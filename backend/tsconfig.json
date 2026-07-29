@@ -30,5 +30,6 @@
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true
-  }
+  },
+  "exclude": ["node_modules", "dist", "prettier.config.cjs", "eslint.config.js"]
 }
