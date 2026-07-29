@@ -310,3 +310,236 @@ The Indent follows a linear approval and execution path:
 - **Workflow**: Indexes on `status` and `currentStageId` for dashboard filtering.
 - **Temporal**: Indexes on `createdAt` and `movedAt` for reporting and audit logs.
 - **Soft Deletes**: Indexes on `isDeleted` to filter out deleted entries quickly.
+
+---
+
+## 6. Infrastructure Table Descriptions (Phase 7C)
+
+### 6.1 `notifications` (In-App Notifications)
+Stores system alerts for users.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `title` | `varchar(150)` | Title of alert |
+| `message` | `text` | Alert body message |
+| `type` | `enum` | Type of notification (INFO, SUCCESS, WARNING, etc.) |
+| `priority` | `enum` | Priority (LOW, MEDIUM, HIGH, URGENT) |
+| `referenceId` | `uuid` | Optional ID of linked record (e.g. Indent id) |
+| `referenceModule`| `varchar(100)`| Optional name of linked module |
+| `createdBy` | `uuid` | User ID of sender |
+
+### 6.2 `notification_recipients` (Delivery tracking)
+Maps alerts to individual users.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `notificationId`| `uuid` | Parent notification reference (Composite PK) |
+| `userId` | `uuid` | Recipient user reference (Composite PK) |
+| `isRead` | `boolean` | Read status |
+| `readAt` | `timestamptz`| Timestamp when read |
+| `deliveryStatus` | `varchar(50)` | Senders status (DELIVERED, PENDING, FAILED) |
+
+### 6.3 `email_logs` (Outbound emails log)
+Tracks status of SMTP transactional messages.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `userId` | `uuid` | Target User reference (optional) |
+| `to` | `varchar(150)` | To address |
+| `cc` | `text` | CC addresses list |
+| `bcc` | `text` | BCC addresses list |
+| `subject` | `varchar(255)` | Subject |
+| `body` | `text` | HTML or text body |
+| `status` | `varchar(50)` | Status (SENT, FAILED, PENDING) |
+| `errorMessage` | `text` | Reason on delivery failures |
+| `sentAt` | `timestamptz`| Sent timestamp |
+| `retryCount` | `int` | Retries count |
+
+### 6.4 `audit_logs` (Security updates history)
+Stores changes in records state (creation, modifications, deletions).
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `module` | `varchar(100)`| Target table name |
+| `recordId` | `varchar(100)`| Affected row UUID |
+| `action` | `varchar(50)` | CREATE, UPDATE, DELETE |
+| `oldValue` | `jsonb` | State details before change |
+| `newValue` | `jsonb` | State details after change |
+| `performedBy` | `uuid` | Actor User reference |
+| `ipAddress` | `varchar(45)` | Source IP address |
+| `browser` | `varchar(150)`| Source user agent browser |
+| `operatingSystem`| `varchar(100)`| Source user agent OS |
+| `device` | `varchar(100)`| Source device model |
+| `createdAt` | `timestamptz`| Log creation timestamp |
+
+### 6.5 `activity_logs` (User activity)
+Monitors user actions like logins, exports, views.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `userId` | `uuid` | Actor User reference |
+| `activity` | `varchar(100)`| Action performed |
+| `module` | `varchar(100)`| Context module name |
+| `description` | `text` | Descriptive narrative |
+| `createdAt` | `timestamptz`| Log creation timestamp |
+
+### 6.6 `reports` (Stored reports)
+Keeps track of documents (PDF, Excel) compiled by users.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `reportName` | `varchar(150)`| Report filename |
+| `reportType` | `varchar(50)` | Format (PDF, EXCEL, CSV) |
+| `generatedBy` | `uuid` | User who ran the compilation |
+| `fileUrl` | `varchar(500)`| Document location path |
+| `fileSize` | `bigint` | Bytes size |
+| `generatedAt` | `timestamptz`| Generation timestamp |
+
+### 6.7 `report_downloads` (Download trackers)
+Audit downloads history.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `reportId` | `uuid` | Parent Report reference |
+| `downloadedBy` | `uuid` | User who downloaded |
+| `downloadedAt` | `timestamptz`| Download timestamp |
+
+### 6.8 `user_sessions` (Active logins)
+Maintains session state for concurrent sessions check and security validations.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `userId` | `uuid` | Owner User reference |
+| `sessionToken` | `varchar(255)`| Token signature (unique) |
+| `refreshToken` | `varchar(255)`| Extension token (unique) |
+| `ipAddress` | `varchar(45)` | Source IP address |
+| `browser` | `varchar(150)`| User browser agent |
+| `device` | `varchar(100)`| User device agent |
+| `loginAt` | `timestamptz`| Login timestamp |
+| `logoutAt` | `timestamptz`| Logout timestamp |
+| `expiresAt` | `timestamptz`| Expiration limit timestamp |
+
+### 6.9 `refresh_tokens` (Refresh token rotation storage)
+Maintains secure rotation tokens list.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `userId` | `uuid` | Owner User reference |
+| `token` | `varchar(255)`| Refresh token hash (unique) |
+| `expiresAt` | `timestamptz`| Expiration date |
+| `revokedAt` | `timestamptz`| Cancellation timestamp |
+
+### 6.10 `password_reset_tokens` (Pass reset security)
+Used for single use user identity resets.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `userId` | `uuid` | Target User reference |
+| `token` | `varchar(255)`| Single use token hash (unique) |
+| `expiresAt` | `timestamptz`| Expiration timestamp |
+| `usedAt` | `timestamptz`| Reset verification timestamp |
+
+### 6.11 `application_settings` (Dynamic configuration settings)
+Allows editing SMTP settings, SLA limits, portal configurations on-the-fly.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `key` | `varchar(100)`| Setting key identifier (unique) |
+| `value` | `text` | Value |
+| `category` | `varchar(100)`| Categories group (SMTP, SLA, etc.) |
+| `description` | `varchar(255)`| Context details |
+
+### 6.12 `file_uploads` (Documents storage index)
+Keeps details on uploaded drawings or PDFs in remote buckets (S3 / Cloudinary).
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `fileName` | `varchar(255)`| Saved filename |
+| `originalName` | `varchar(255)`| Original filename on upload |
+| `extension` | `varchar(20)` | File format extension |
+| `mimeType` | `varchar(100)`| Sourced file mime-type |
+| `size` | `bigint` | Files bytes size |
+| `storageProvider`| `varchar(50)` | Location type (LOCAL, S3, etc.) |
+| `url` | `varchar(500)`| Uploaded path url |
+| `uploadedBy` | `uuid` | Sourced User ID |
+
+### 6.13 `dashboard_widgets` (Widgets repository)
+Logical widget metadata.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `widgetCode` | `varchar(100)`| Code identifier (unique) |
+| `widgetName` | `varchar(150)`| Display label |
+| `icon` | `varchar(50)` | Display icon |
+| `description` | `varchar(255)`| Context details |
+
+### 6.14 `dashboard_preferences` (Dashboard layout configurations)
+Saves specific widget position and toggle status per operator.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `userId` | `uuid` | Operator reference (Unique combination) |
+| `widgetId` | `uuid` | Sourced widget reference (Unique combination) |
+| `position` | `int` | Layout display rank sequence |
+| `visible` | `boolean` | Visible state toggle |
+
+### 6.15 `scheduled_jobs` (Background crons configuration)
+Background scheduled cron settings.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `jobName` | `varchar(150)`| Cron name identifier (unique) |
+| `cronExpression`| `varchar(100)`| Standard expression (e.g. `0 0 * * *`) |
+| `enabled` | `boolean` | Run status state |
+
+### 6.16 `job_execution_history` (Background processing log)
+Executions history metadata (cron logs).
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `jobId` | `uuid` | Sourced ScheduledJob reference |
+| `status` | `varchar(50)` | RUNNING, SUCCESS, FAILED |
+| `startedAt` | `timestamptz`| Execute start timestamp |
+| `completedAt` | `timestamptz`| Execute end timestamp |
+| `error` | `text` | Failure trace log details |
+
+### 6.17 `sla_trackers` (SLA deadlines logs)
+Monitors tasks resolution windows (e.g., 2-day delivery escalation).
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `referenceId` | `uuid` | Sourced row reference (Indent, AMR) |
+| `referenceModule`| `varchar(100)`| Target table reference name |
+| `startTime` | `timestamptz`| Sourced start time |
+| `endTime` | `timestamptz`| Sourced resolution time |
+| `status` | `varchar(50)` | Sourced SLA status (PENDING, MET, BREACHED) |
+| `breached` | `boolean` | Breach toggle |
+| `breachTime` | `timestamptz`| Escalate time |
+
+### 6.18 `timelines` (Timelines dashboard logging)
+Shared timeline feeds for workflow movements tracking.
+
+| Column Name | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `uuid` | Primary Key |
+| `module` | `varchar(100)`| Target context category |
+| `recordId` | `uuid` | Target UUID |
+| `title` | `varchar(150)`| Headline visual card title |
+| `description` | `text` | Expanded details text |
+| `performedBy` | `uuid` | Performer User reference |

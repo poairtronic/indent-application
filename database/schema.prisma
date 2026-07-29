@@ -255,6 +255,21 @@ model User {
   workflowMoves      WorkflowHistory[]
   productionReceipts ProductionReceipt[]
   indentChanges      IndentHistory[]
+  
+  // Infrastructure Relations (Phase 7C)
+  notificationRecipients NotificationRecipient[]
+  notificationsCreated   Notification[]            @relation("NotificationCreator")
+  emailLogs              EmailLog[]
+  auditLogs              AuditLog[]
+  activityLogs           ActivityLog[]
+  reportsGenerated       Report[]
+  reportDownloads        ReportDownload[]
+  sessions               UserSession[]
+  refreshTokens          RefreshToken[]
+  passwordResetTokens    PasswordResetToken[]
+  fileUploads            FileUpload[]
+  dashboardPreferences   DashboardPreference[]
+  timelineActivities     Timeline[]
 
   @@index([departmentId])
   @@index([roleId])
@@ -904,4 +919,447 @@ model IndentHistory {
   @@index([isDeleted])
   @@index([createdAt])
   @@map("indent_history")
+}
+
+// ==========================================
+// SYSTEM / INFRASTRUCTURE MODELS (Phase 7C)
+// ==========================================
+
+model Notification {
+  id              String                  @id @default(uuid()) @db.Uuid
+  title           String                  @db.VarChar(150)
+  message         String                  @db.Text
+  type            NotificationType        @default(INFO)
+  priority        Priority                @default(MEDIUM)
+  referenceId     String?                 @db.Uuid
+  referenceModule String?                 @db.VarChar(100)
+  createdBy       String                  @db.Uuid
+  
+  // Audit Fields
+  createdAt       DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime                @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean                 @default(false)
+  deletedAt       DateTime?               @db.Timestamptz(6)
+  updatedBy       String?                 @db.Uuid
+  deletedBy       String?                 @db.Uuid
+
+  // Relations
+  creator         User                    @relation("NotificationCreator", fields: [createdBy], references: [id])
+  recipients      NotificationRecipient[]
+
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([isDeleted])
+  @@map("notifications")
+}
+
+model NotificationRecipient {
+  notificationId String    @db.Uuid
+  userId         String    @db.Uuid
+  isRead         Boolean   @default(false)
+  readAt         DateTime? @db.Timestamptz(6)
+  deliveryStatus String    @default("PENDING") @db.VarChar(50) // e.g. DELIVERED, PENDING, FAILED
+
+  // Audit Fields
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted      Boolean   @default(false)
+  deletedAt      DateTime? @db.Timestamptz(6)
+  createdBy      String?   @db.Uuid
+  updatedBy      String?   @db.Uuid
+  deletedBy      String?   @db.Uuid
+
+  // Relations
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([notificationId, userId])
+  @@index([notificationId])
+  @@index([userId])
+  @@index([isRead])
+  @@index([isDeleted])
+  @@map("notification_recipients")
+}
+
+model EmailLog {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String?   @db.Uuid // Linked recipient user (optional)
+  to           String    @db.VarChar(150)
+  cc           String?   @db.Text
+  bcc          String?   @db.Text
+  subject      String    @db.VarChar(255)
+  body         String    @db.Text
+  status       String    @db.VarChar(50) // e.g. SENT, FAILED, PENDING
+  errorMessage String?   @db.Text
+  sentAt       DateTime  @default(now()) @db.Timestamptz(6)
+  retryCount   Int       @default(0) @db.Integer
+
+  // Relations
+  user         User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([sentAt])
+  @@map("email_logs")
+}
+
+model AuditLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  module          String   @db.VarChar(100) // e.g. Indent, CostSheet
+  recordId        String   @db.VarChar(100) // Uuid of the modified record
+  action          String   @db.VarChar(50)  // e.g. CREATE, UPDATE, DELETE
+  oldValue        Json?    @db.JsonB
+  newValue        Json?    @db.JsonB
+  performedBy     String?  @db.Uuid
+  ipAddress       String?  @db.VarChar(45)
+  browser         String?  @db.VarChar(150)
+  operatingSystem String?  @db.VarChar(100)
+  device          String?  @db.VarChar(100)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  user            User?    @relation(fields: [performedBy], references: [id])
+
+  @@index([module])
+  @@index([recordId])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  activity    String   @db.VarChar(100) // e.g. Login, Logout, Download, Upload, View
+  module      String?  @db.VarChar(100)
+  description String   @db.Text
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([activity])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+model Report {
+  id          String           @id @default(uuid()) @db.Uuid
+  reportName  String           @db.VarChar(150)
+  reportType  String           @db.VarChar(50) // e.g. PDF, EXCEL, CSV
+  generatedBy String           @db.Uuid
+  fileUrl     String           @db.VarChar(500)
+  fileSize    BigInt           @db.BigInt
+  generatedAt DateTime         @default(now()) @db.Timestamptz(6)
+
+  // Audit & Soft Delete Fields
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+  isDeleted   Boolean          @default(false)
+  deletedAt   DateTime?        @db.Timestamptz(6)
+  createdBy   String?          @db.Uuid
+  updatedBy   String?          @db.Uuid
+  deletedBy   String?          @db.Uuid
+
+  // Relations
+  generator   User             @relation(fields: [generatedBy], references: [id])
+  downloads   ReportDownload[]
+
+  @@index([generatedBy])
+  @@index([generatedAt])
+  @@index([isDeleted])
+  @@map("reports")
+}
+
+model ReportDownload {
+  id           String   @id @default(uuid()) @db.Uuid
+  reportId     String   @db.Uuid
+  downloadedBy String   @db.Uuid
+  downloadedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  report       Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  downloader   User     @relation(fields: [downloadedBy], references: [id])
+
+  @@index([reportId])
+  @@index([downloadedBy])
+  @@index([downloadedAt])
+  @@map("report_downloads")
+}
+
+model UserSession {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  sessionToken String    @unique @db.VarChar(255)
+  refreshToken String?   @unique @db.VarChar(255)
+  ipAddress    String?   @db.VarChar(45)
+  browser      String?   @db.VarChar(150)
+  device       String?   @db.VarChar(100)
+  loginAt      DateTime  @default(now()) @db.Timestamptz(6)
+  logoutAt     DateTime? @db.Timestamptz(6)
+  expiresAt    DateTime  @db.Timestamptz(6)
+
+  // Audit & Soft Delete Fields
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted    Boolean   @default(false)
+  deletedAt    DateTime? @db.Timestamptz(6)
+  createdBy    String?   @db.Uuid
+  updatedBy    String?   @db.Uuid
+  deletedBy    String?   @db.Uuid
+
+  // Relations
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([isDeleted])
+  @@map("user_sessions")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique @db.VarChar(255)
+  expiresAt DateTime  @db.Timestamptz(6)
+  revokedAt DateTime? @db.Timestamptz(6)
+
+  // Audit & Soft Delete Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([token])
+  @@index([isDeleted])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique @db.VarChar(255)
+  expiresAt DateTime  @db.Timestamptz(6)
+  usedAt    DateTime? @db.Timestamptz(6)
+
+  // Audit & Soft Delete Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([token])
+  @@index([isDeleted])
+  @@map("password_reset_tokens")
+}
+
+model ApplicationSetting {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  category    String   @db.VarChar(100) // e.g. SMTP, Company, Theme, SLA, Email, Notification, Dashboard
+  description String?  @db.VarChar(255)
+
+  // Audit & Soft Delete Fields
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  createdBy   String?   @db.Uuid
+  updatedBy   String?   @db.Uuid
+  deletedBy   String?   @db.Uuid
+
+  @@index([key])
+  @@index([category])
+  @@index([isDeleted])
+  @@map("application_settings")
+}
+
+model FileUpload {
+  id              String   @id @default(uuid()) @db.Uuid
+  fileName        String   @db.VarChar(255)
+  originalName    String   @db.VarChar(255)
+  extension       String   @db.VarChar(20)
+  mimeType        String   @db.VarChar(100)
+  size            BigInt   @db.BigInt
+  storageProvider String   @db.VarChar(50) // e.g. LOCAL, S3, CLOUDINARY
+  url             String   @db.VarChar(500)
+  uploadedBy      String   @db.Uuid
+
+  // Audit & Soft Delete Fields
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime? @db.Timestamptz(6)
+  createdBy       String?   @db.Uuid
+  updatedBy       String?   @db.Uuid
+  deletedBy       String?   @db.Uuid
+
+  // Relations
+  uploader        User      @relation(fields: [uploadedBy], references: [id])
+
+  @@index([uploadedBy])
+  @@index([extension])
+  @@index([isDeleted])
+  @@map("file_uploads")
+}
+
+model DashboardWidget {
+  id          String   @id @default(uuid()) @db.Uuid
+  widgetCode  String   @unique @db.VarChar(100)
+  widgetName  String   @db.VarChar(150)
+  icon        String?  @db.VarChar(50)
+  description String?  @db.VarChar(255)
+
+  // Audit & Soft Delete Fields
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  createdBy   String?   @db.Uuid
+  updatedBy   String?   @db.Uuid
+  deletedBy   String?   @db.Uuid
+
+  // Relations
+  preferences DashboardPreference[]
+
+  @@index([widgetCode])
+  @@index([isDeleted])
+  @@map("dashboard_widgets")
+}
+
+model DashboardPreference {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  widgetId  String   @db.Uuid
+  position  Int      @db.Integer
+  visible   Boolean  @default(true)
+
+  // Audit & Soft Delete Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  widget    DashboardWidget @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, widgetId])
+  @@index([userId])
+  @@index([widgetId])
+  @@index([isDeleted])
+  @@map("dashboard_preferences")
+}
+
+model ScheduledJob {
+  id             String   @id @default(uuid()) @db.Uuid
+  jobName        String   @unique @db.VarChar(150) // e.g. SLA Reminder, Daily Report
+  cronExpression String   @db.VarChar(100)
+  enabled        Boolean  @default(true)
+
+  // Audit & Soft Delete Fields
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted      Boolean   @default(false)
+  deletedAt      DateTime? @db.Timestamptz(6)
+  createdBy      String?   @db.Uuid
+  updatedBy      String?   @db.Uuid
+  deletedBy      String?   @db.Uuid
+
+  // Relations
+  history        JobExecutionHistory[]
+
+  @@index([jobName])
+  @@index([isDeleted])
+  @@map("scheduled_jobs")
+}
+
+model JobExecutionHistory {
+  id          String    @id @default(uuid()) @db.Uuid
+  jobId       String    @db.Uuid
+  status      String    @db.VarChar(50) // e.g. SUCCESS, FAILED, RUNNING
+  startedAt   DateTime  @default(now()) @db.Timestamptz(6)
+  completedAt DateTime? @db.Timestamptz(6)
+  error       String?   @db.Text
+
+  // Relations
+  job         ScheduledJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("job_execution_history")
+}
+
+model SLATracker {
+  id              String    @id @default(uuid()) @db.Uuid
+  referenceId     String    @db.Uuid
+  referenceModule String    @db.VarChar(100) // e.g. Indent, AMR
+  startTime       DateTime  @default(now()) @db.Timestamptz(6)
+  endTime         DateTime? @db.Timestamptz(6)
+  status          String    @db.VarChar(50) // e.g. PENDING, MET, BREACHED
+  breached        Boolean   @default(false)
+  breachTime      DateTime? @db.Timestamptz(6)
+
+  // Audit & Soft Delete Fields
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime? @db.Timestamptz(6)
+  createdBy       String?   @db.Uuid
+  updatedBy       String?   @db.Uuid
+  deletedBy       String?   @db.Uuid
+
+  @@index([referenceId])
+  @@index([referenceModule])
+  @@index([status])
+  @@index([isDeleted])
+  @@map("sla_trackers")
+}
+
+model Timeline {
+  id              String   @id @default(uuid()) @db.Uuid
+  module          String   @db.VarChar(100) // e.g. Indent
+  recordId        String   @db.Uuid
+  title           String   @db.VarChar(150)
+  description     String   @db.Text
+  performedBy     String   @db.Uuid
+
+  // Audit & Soft Delete Fields
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime? @db.Timestamptz(6)
+  createdBy       String?   @db.Uuid
+  updatedBy       String?   @db.Uuid
+  deletedBy       String?   @db.Uuid
+
+  // Relations
+  performer       User     @relation(fields: [performedBy], references: [id])
+
+  @@index([recordId])
+  @@index([module])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@index([isDeleted])
+  @@map("timelines")
 }
