@@ -1,0 +1,10 @@
+export const VALIDATION_LIMITS = {
+  USER: {
+    MIN_PASSWORD_LENGTH: 8,
+    MAX_NAME_LENGTH: 50,
+  },
+  INDENT: {
+    MIN_DESCRIPTION_LENGTH: 10,
+    MAX_ITEMS: 100,
+  },
+};

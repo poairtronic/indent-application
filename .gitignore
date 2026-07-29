@@ -1,0 +1,47 @@
+# Node modules
+node_modules/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build directories
+dist/
+build/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# IDEs and editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# NestJS specific
+/development-local.cache
+
+# Prisma
+/prisma/migrations
+/backend/prisma/migrations
+
+# Temporary / Uploads
+uploads/
+/backend/uploads/
+temp/
+tmp/
