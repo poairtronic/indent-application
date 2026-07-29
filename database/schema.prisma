@@ -1,4 +1,5 @@
-// Prisma Schema for Indent Application
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
   provider = "postgresql"
@@ -9,35 +10,898 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  roleId    String
-  role      Role     @relation(fields: [roleId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ==========================================
+// ENUMS
+// ==========================================
 
-  indentsCreated Indent[] @relation("CreatedIndents")
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_APPROVAL
+  BLACKLISTED
+}
+
+enum MaterialStatus {
+  ACTIVE
+  INACTIVE
+  OBSOLETE
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+  UNDER_DEVELOPMENT
+}
+
+enum ProcessStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  ALL
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  INDENT_CREATED
+  INDENT_APPROVED
+  INDENT_REJECTED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ==========================================
+// TRANSACTION ENUMS
+// ==========================================
+
+enum IndentStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_STORES
+  PENDING_ACCOUNTS
+  PENDING_SENIOR_MANAGER
+  PENDING_GENERAL_MANAGER
+  APPROVED
+  REJECTED
+  IN_PRODUCTION
+  COMPLETED
+  CANCELLED
+}
+
+enum CostSheetStatus {
+  DRAFT
+  FINALIZED
+  CANCELLED
+}
+
+enum AMRStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FileType {
+  PDF
+  DRAWING
+  CAD
+  IMAGE
+  EXCEL
+  OTHER
+}
+
+// ==========================================
+// MASTER MODELS
+// ==========================================
+
+model Department {
+  id             String           @id @default(uuid()) @db.Uuid
+  departmentCode String           @unique @db.VarChar(50)
+  departmentName String           @db.VarChar(100)
+  description    String?          @db.VarChar(255)
+  status         DepartmentStatus @default(ACTIVE)
+  
+  // Audit Fields
+  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(6)
+  isDeleted      Boolean          @default(false)
+  deletedAt      DateTime?        @db.Timestamptz(6)
+  createdBy      String?          @db.Uuid
+  updatedBy      String?          @db.Uuid
+  deletedBy      String?          @db.Uuid
+
+  // Relations
+  users          User[]
+  indents        Indent[]
+  workflowFrom   WorkflowHistory[] @relation("WorkflowFrom")
+  workflowTo     WorkflowHistory[] @relation("WorkflowTo")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("departments")
 }
 
 model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  users       User[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String           @id @default(uuid()) @db.Uuid
+  roleName        String           @unique @db.VarChar(100)
+  description     String?          @db.VarChar(255)
+  isSystem        Boolean          @default(false)
+  
+  // Audit Fields
+  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?        @db.Timestamptz(6)
+  createdBy       String?          @db.Uuid
+  updatedBy       String?          @db.Uuid
+  deletedBy       String?          @db.Uuid
+
+  // Relations
+  users           User[]
+  rolePermissions RolePermission[]
+  approvals       ApprovalHistory[]
+
+  @@index([createdAt])
+  @@map("roles")
 }
 
+model Permission {
+  id              String           @id @default(uuid()) @db.Uuid
+  module          String           @db.VarChar(100)
+  action          PermissionAction
+  code            String           @unique @db.VarChar(150)
+  description     String?          @db.VarChar(255)
+  
+  // Audit Fields
+  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?        @db.Timestamptz(6)
+  createdBy       String?          @db.Uuid
+  updatedBy       String?          @db.Uuid
+  deletedBy       String?          @db.Uuid
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@index([module])
+  @@index([code])
+  @@index([createdAt])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  
+  // Audit Fields
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
+  isDeleted    Boolean    @default(false)
+  deletedAt    DateTime?  @db.Timestamptz(6)
+  createdBy    String?    @db.Uuid
+  updatedBy    String?    @db.Uuid
+  deletedBy    String?    @db.Uuid
+
+  // Relations
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  employeeCode String     @unique @db.VarChar(50)
+  firstName    String     @db.VarChar(100)
+  lastName     String     @db.VarChar(100)
+  email        String     @unique @db.VarChar(150)
+  phone        String?    @db.VarChar(20)
+  password     String     @db.VarChar(255)
+  departmentId String     @db.Uuid
+  roleId       String     @db.Uuid
+  status       UserStatus @default(ACTIVE)
+  profileImage String?    @db.VarChar(255)
+  lastLogin    DateTime?  @db.Timestamptz(6)
+  
+  // Audit Fields
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
+  isDeleted    Boolean    @default(false)
+  deletedAt    DateTime?  @db.Timestamptz(6)
+  createdBy    String?    @db.Uuid
+  updatedBy    String?    @db.Uuid
+  deletedBy    String?    @db.Uuid
+
+  // Relations
+  department         Department                  @relation(fields: [departmentId], references: [id])
+  role               Role                        @relation(fields: [roleId], references: [id])
+  indentsCreated     Indent[]                    @relation("IndentCreator")
+  attachmentsUploaded IndentAttachment[]
+  costSheetsPrepared CostSheet[]                 @relation("CostSheetPreparer")
+  amrRequested       AdditionalMaterialRequest[] @relation("AMRRequester")
+  amrApproved        AdditionalMaterialRequest[] @relation("AMRApprover")
+  approvals          ApprovalHistory[]
+  workflowMoves      WorkflowHistory[]
+  productionReceipts ProductionReceipt[]
+  indentChanges      IndentHistory[]
+
+  @@index([departmentId])
+  @@index([roleId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Vendor {
+  id              String         @id @default(uuid()) @db.Uuid
+  vendorCode      String         @unique @db.VarChar(50)
+  vendorName      String         @db.VarChar(150)
+  email           String         @unique @db.VarChar(150)
+  phone           String?        @db.VarChar(20)
+  gstNumber       String?        @unique @db.VarChar(15)
+  panNumber       String?        @unique @db.VarChar(10)
+  address         String         @db.Text
+  city            String         @db.VarChar(100)
+  state           String         @db.VarChar(100)
+  country         String         @db.VarChar(100)
+  pincode         String         @db.VarChar(10)
+  status          VendorStatus   @default(ACTIVE)
+  
+  // Audit Fields
+  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean        @default(false)
+  deletedAt       DateTime?      @db.Timestamptz(6)
+  createdBy       String?        @db.Uuid
+  updatedBy       String?        @db.Uuid
+  deletedBy       String?        @db.Uuid
+
+  // Relations
+  materialVendors MaterialVendor[]
+  costItems       CostItem[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("vendors")
+}
+
+model Unit {
+  id        String     @id @default(uuid()) @db.Uuid
+  unitCode  String     @unique @db.VarChar(20)
+  unitName  String     @db.VarChar(100)
+  symbol    String     @db.VarChar(10)
+  
+  // Audit Fields
+  createdAt DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean    @default(false)
+  deletedAt DateTime?  @db.Timestamptz(6)
+  createdBy String?    @db.Uuid
+  updatedBy String?    @db.Uuid
+  deletedBy String?    @db.Uuid
+
+  // Relations
+  materials   Material[]
+  indentItems IndentItem[]
+  amrItems    AdditionalMaterialItem[]
+
+  @@map("units")
+}
+
+model Material {
+  id              String         @id @default(uuid()) @db.Uuid
+  materialCode    String         @unique @db.VarChar(50)
+  materialName    String         @db.VarChar(150)
+  description     String?        @db.Text
+  unitId          String         @db.Uuid
+  minimumStock    Decimal        @default(0) @db.Decimal(18, 4)
+  maximumStock    Decimal        @default(0) @db.Decimal(18, 4)
+  currentStock    Decimal        @default(0) @db.Decimal(18, 4)
+  category        String         @db.VarChar(100)
+  status          MaterialStatus @default(ACTIVE)
+  
+  // Audit Fields
+  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean        @default(false)
+  deletedAt       DateTime?      @db.Timestamptz(6)
+  createdBy       String?        @db.Uuid
+  updatedBy       String?        @db.Uuid
+  deletedBy       String?        @db.Uuid
+
+  // Relations
+  unit             Unit                     @relation(fields: [unitId], references: [id])
+  materialVendors  MaterialVendor[]
+  productMaterials ProductMaterial[]
+  indentItems      IndentItem[]
+  costItems        CostItem[]
+  amrItems         AdditionalMaterialItem[]
+
+  @@index([unitId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("materials")
+}
+
+model MaterialVendor {
+  materialId   String    @db.Uuid
+  vendorId     String    @db.Uuid
+  leadTimeDays Int?      @db.Integer
+  unitPrice    Decimal?  @db.Decimal(18, 4)
+  
+  // Audit Fields
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted    Boolean   @default(false)
+  deletedAt    DateTime? @db.Timestamptz(6)
+  createdBy    String?   @db.Uuid
+  updatedBy    String?   @db.Uuid
+  deletedBy    String?   @db.Uuid
+
+  // Relations
+  material     Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  vendor       Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@id([materialId, vendorId])
+  @@index([materialId])
+  @@index([vendorId])
+  @@map("material_vendors")
+}
+
+model Product {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  productCode            String                 @unique @db.VarChar(50)
+  productName            String                 @db.VarChar(150)
+  drawingNumber          String?                @db.VarChar(100)
+  revision               String?                @db.VarChar(20)
+  description            String?                @db.Text
+  status                 ProductStatus          @default(ACTIVE)
+  
+  // Audit Fields
+  createdAt              DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime               @updatedAt @db.Timestamptz(6)
+  isDeleted              Boolean                @default(false)
+  deletedAt              DateTime?              @db.Timestamptz(6)
+  createdBy              String?                @db.Uuid
+  updatedBy              String?                @db.Uuid
+  deletedBy              String?                @db.Uuid
+
+  // Relations
+  manufacturingProcesses ManufacturingProcess[]
+  productMaterials       ProductMaterial[]
+  indents                Indent[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("products")
+}
+
+model ProductMaterial {
+  productId        String    @db.Uuid
+  materialId       String    @db.Uuid
+  quantityRequired Decimal   @db.Decimal(18, 4)
+  scrapFactor      Decimal   @default(0) @db.Decimal(5, 2) // Percentage: e.g. 5.50%
+  
+  // Audit Fields
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted        Boolean   @default(false)
+  deletedAt        DateTime? @db.Timestamptz(6)
+  createdBy        String?   @db.Uuid
+  updatedBy        String?   @db.Uuid
+  deletedBy        String?   @db.Uuid
+
+  // Relations
+  product          Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  material         Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@id([productId, materialId])
+  @@index([productId])
+  @@index([materialId])
+  @@map("product_materials")
+}
+
+model ManufacturingProcess {
+  id             String        @id @default(uuid()) @db.Uuid
+  productId      String        @db.Uuid
+  processCode    String        @db.VarChar(50)
+  processName    String        @db.VarChar(150)
+  description    String?       @db.Text
+  sequence       Int           @db.Integer
+  estimatedHours Decimal       @db.Decimal(8, 2)
+  status         ProcessStatus @default(ACTIVE)
+  
+  // Audit Fields
+  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(6)
+  isDeleted      Boolean       @default(false)
+  deletedAt      DateTime?     @db.Timestamptz(6)
+  createdBy      String?       @db.Uuid
+  updatedBy      String?       @db.Uuid
+  deletedBy      String?       @db.Uuid
+
+  // Relations
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  indentProcesses IndentProcess[]
+  processCosts    ProcessCost[]
+
+  @@unique([productId, processCode])
+  @@unique([productId, sequence])
+  @@index([productId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("manufacturing_processes")
+}
+
+// ==========================================
+// TRANSACTION MODELS
+// ==========================================
+
 model Indent {
-  id          String   @id @default(uuid())
-  indentNo    String   @unique
-  description String?
-  status      String   @default("DRAFT") // DRAFT, PENDING_APPROVAL, APPROVED, REJECTED
-  creatorId   String
-  creator     User     @relation("CreatedIndents", fields: [creatorId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String           @id @default(uuid()) @db.Uuid
+  indentNumber          String           @unique @db.VarChar(50)
+  productId             String           @db.Uuid
+  departmentId          String           @db.Uuid
+  priority              Priority         @default(MEDIUM)
+  status                IndentStatus     @default(DRAFT)
+  currentStageId        String?          @db.Uuid
+  requiredDate          DateTime         @db.Timestamptz(6)
+  requiredDeliveryDate  DateTime?        @db.Timestamptz(6)
+  purpose               String?          @db.Text
+  remarks               String?          @db.Text
+  version               Int              @default(1)
+  isLocked              Boolean          @default(false)
+  
+  // Audit Fields
+  createdAt             DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime         @updatedAt @db.Timestamptz(6)
+  isDeleted             Boolean          @default(false)
+  deletedAt             DateTime?        @db.Timestamptz(6)
+  createdBy             String           @db.Uuid
+  updatedBy             String?          @db.Uuid
+  deletedBy             String?          @db.Uuid
+
+  // Relations
+  product               Product          @relation(fields: [productId], references: [id])
+  department            Department       @relation(fields: [departmentId], references: [id])
+  creator               User             @relation("IndentCreator", fields: [createdBy], references: [id])
+  currentStage          WorkflowStage?   @relation(fields: [currentStageId], references: [id])
+  indentItems           IndentItem[]
+  attachments           IndentAttachment[]
+  costSheet             CostSheet?
+  approvalHistory       ApprovalHistory[]
+  workflowHistory       WorkflowHistory[]
+  additionalRequests    AdditionalMaterialRequest[]
+  productionReceipt     ProductionReceipt?
+  history               IndentHistory[]
+
+  @@index([indentNumber])
+  @@index([productId])
+  @@index([departmentId])
+  @@index([createdBy])
+  @@index([status])
+  @@index([currentStageId])
+  @@index([requiredDate])
+  @@index([createdAt])
+  @@map("indents")
+}
+
+model IndentItem {
+  id              String           @id @default(uuid()) @db.Uuid
+  indentId        String           @db.Uuid
+  materialId      String           @db.Uuid
+  quantity        Decimal          @db.Decimal(18, 4)
+  unitId          String           @db.Uuid
+  remarks         String?          @db.Text
+  status          String?          @db.VarChar(50) // e.g., AVAILABLE, TO_BE_PURCHASED
+  
+  // Audit Fields
+  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?        @db.Timestamptz(6)
+  createdBy       String?          @db.Uuid
+  updatedBy       String?          @db.Uuid
+  deletedBy       String?          @db.Uuid
+
+  // Relations
+  indent          Indent           @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  material        Material         @relation(fields: [materialId], references: [id])
+  unit            Unit             @relation(fields: [unitId], references: [id])
+  indentProcesses IndentProcess[]
+
+  @@index([indentId])
+  @@index([materialId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("indent_items")
+}
+
+model IndentAttachment {
+  id          String   @id @default(uuid()) @db.Uuid
+  indentId    String   @db.Uuid
+  fileName    String   @db.VarChar(255)
+  fileUrl     String   @db.VarChar(500)
+  fileType    FileType @default(OTHER)
+  uploadedBy  String   @db.Uuid
+  
+  // Audit Fields
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  createdBy   String?  @db.Uuid
+  updatedBy   String?  @db.Uuid
+  deletedBy   String?  @db.Uuid
+
+  // Relations
+  indent      Indent   @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  uploader    User     @relation(fields: [uploadedBy], references: [id])
+
+  @@index([indentId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("indent_attachments")
+}
+
+model IndentProcess {
+  id              String        @id @default(uuid()) @db.Uuid
+  indentItemId    String        @db.Uuid
+  processId       String        @db.Uuid
+  sequence        Int           @db.Integer
+  estimatedHours  Decimal       @db.Decimal(8, 2)
+  actualHours     Decimal?      @db.Decimal(8, 2)
+  status          ProcessStatus @default(ACTIVE)
+
+  // Audit Fields
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean       @default(false)
+  deletedAt       DateTime?     @db.Timestamptz(6)
+  createdBy       String?       @db.Uuid
+  updatedBy       String?       @db.Uuid
+  deletedBy       String?       @db.Uuid
+
+  // Relations
+  indentItem      IndentItem           @relation(fields: [indentItemId], references: [id], onDelete: Cascade)
+  process         ManufacturingProcess @relation(fields: [processId], references: [id])
+
+  @@unique([indentItemId, processId])
+  @@index([indentItemId])
+  @@index([processId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("indent_processes")
+}
+
+model CostSheet {
+  id                String          @id @default(uuid()) @db.Uuid
+  costNumber        String          @unique @db.VarChar(50)
+  indentId          String          @unique @db.Uuid
+  preparedBy        String          @db.Uuid
+  predictedTotal    Decimal         @db.Decimal(18, 4)
+  actualTotal       Decimal?        @db.Decimal(18, 4)
+  varianceAmount    Decimal?        @db.Decimal(18, 4)
+  variancePercentage Decimal?       @db.Decimal(5, 2)
+  status            CostSheetStatus @default(DRAFT)
+  
+  // Audit Fields
+  createdAt         DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime        @updatedAt @db.Timestamptz(6)
+  isDeleted         Boolean         @default(false)
+  deletedAt         DateTime?       @db.Timestamptz(6)
+  createdBy         String          @db.Uuid
+  updatedBy         String?         @db.Uuid
+  deletedBy         String?         @db.Uuid
+
+  // Relations
+  indent            Indent          @relation(fields: [indentId], references: [id])
+  preparer          User            @relation("CostSheetPreparer", fields: [preparedBy], references: [id])
+  costItems         CostItem[]
+  processCosts      ProcessCost[]
+
+  @@index([costNumber])
+  @@index([indentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("cost_sheets")
+}
+
+model CostItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  costSheetId       String   @db.Uuid
+  materialId        String   @db.Uuid
+  vendorId          String?  @db.Uuid
+  predictedRate     Decimal  @db.Decimal(18, 4)
+  predictedQuantity Decimal  @db.Decimal(18, 4)
+  predictedAmount   Decimal  @db.Decimal(18, 4)
+  actualRate        Decimal? @db.Decimal(18, 4)
+  actualQuantity    Decimal? @db.Decimal(18, 4)
+  actualAmount      Decimal? @db.Decimal(18, 4)
+  remarks           String?  @db.Text
+
+  // Audit Fields
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted         Boolean   @default(false)
+  deletedAt         DateTime? @db.Timestamptz(6)
+  createdBy         String?   @db.Uuid
+  updatedBy         String?   @db.Uuid
+  deletedBy         String?   @db.Uuid
+
+  // Relations
+  costSheet         CostSheet @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
+  material          Material  @relation(fields: [materialId], references: [id])
+  vendor            Vendor?   @relation(fields: [vendorId], references: [id])
+
+  @@index([costSheetId])
+  @@index([materialId])
+  @@index([vendorId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("cost_items")
+}
+
+model ProcessCost {
+  id              String    @id @default(uuid()) @db.Uuid
+  costSheetId     String    @db.Uuid
+  processId       String    @db.Uuid
+  predictedCost   Decimal   @db.Decimal(18, 4)
+  actualCost      Decimal?  @db.Decimal(18, 4)
+  variance        Decimal?  @db.Decimal(18, 4)
+  estimatedHours  Decimal   @db.Decimal(8, 2)
+  actualHours     Decimal?  @db.Decimal(8, 2)
+
+  // Audit Fields
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean   @default(false)
+  deletedAt       DateTime? @db.Timestamptz(6)
+  createdBy       String?   @db.Uuid
+  updatedBy       String?   @db.Uuid
+  deletedBy       String?   @db.Uuid
+
+  // Relations
+  costSheet       CostSheet            @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
+  process         ManufacturingProcess @relation(fields: [processId], references: [id])
+
+  @@index([costSheetId])
+  @@index([processId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("process_costs")
+}
+
+model AdditionalMaterialRequest {
+  id              String      @id @default(uuid()) @db.Uuid
+  parentIndentId  String      @db.Uuid
+  requestNumber   String      @unique @db.VarChar(50)
+  requestedBy     String      @db.Uuid
+  approvedBy      String?     @db.Uuid
+  reason          String      @db.Text
+  status          AMRStatus   @default(DRAFT)
+  
+  // Audit Fields
+  createdAt       DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime    @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean     @default(false)
+  deletedAt       DateTime?   @db.Timestamptz(6)
+  createdBy       String      @db.Uuid
+  updatedBy       String?     @db.Uuid
+  deletedBy       String?     @db.Uuid
+
+  // Relations
+  parentIndent    Indent      @relation(fields: [parentIndentId], references: [id])
+  requester       User        @relation("AMRRequester", fields: [requestedBy], references: [id])
+  approver        User?       @relation("AMRApprover", fields: [approvedBy], references: [id])
+  items           AdditionalMaterialItem[]
+
+  @@index([parentIndentId])
+  @@index([requestNumber])
+  @@index([status])
+  @@index([createdAt])
+  @@map("additional_material_requests")
+}
+
+model AdditionalMaterialItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  requestId   String   @db.Uuid
+  materialId  String   @db.Uuid
+  quantity    Decimal  @db.Decimal(18, 4)
+  unitId      String   @db.Uuid
+  remarks     String?  @db.Text
+
+  // Audit Fields
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted   Boolean   @default(false)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  createdBy   String?   @db.Uuid
+  updatedBy   String?   @db.Uuid
+  deletedBy   String?   @db.Uuid
+
+  // Relations
+  request     AdditionalMaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  material    Material                  @relation(fields: [materialId], references: [id])
+  unit        Unit                      @relation(fields: [unitId], references: [id])
+
+  @@index([requestId])
+  @@index([materialId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("additional_material_items")
+}
+
+model ApprovalHistory {
+  id          String       @id @default(uuid()) @db.Uuid
+  indentId    String       @db.Uuid
+  approvedBy  String       @db.Uuid
+  roleId      String       @db.Uuid
+  status      IndentStatus
+  remarks     String?      @db.Text
+  approvedAt  DateTime     @default(now()) @db.Timestamptz(6)
+
+  // Audit Fields
+  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
+  isDeleted   Boolean      @default(false)
+  deletedAt   DateTime?    @db.Timestamptz(6)
+  createdBy   String?      @db.Uuid
+  updatedBy   String?      @db.Uuid
+  deletedBy   String?      @db.Uuid
+
+  // Relations
+  indent      Indent       @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  approver    User         @relation(fields: [approvedBy], references: [id])
+  role        Role         @relation(fields: [roleId], references: [id])
+
+  @@index([indentId])
+  @@index([approvedBy])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("approval_history")
+}
+
+model WorkflowStage {
+  id          String   @id @default(uuid()) @db.Uuid
+  stageName   String   @unique @db.VarChar(100)
+  sequence    Int      @unique @db.Integer
+  description String?  @db.VarChar(255)
+  
+  // Audit Fields
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  createdBy   String?  @db.Uuid
+  updatedBy   String?  @db.Uuid
+  deletedBy   String?  @db.Uuid
+
+  // Relations
+  workflowHistory WorkflowHistory[]
+  indents         Indent[]
+
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("workflow_stages")
+}
+
+model WorkflowHistory {
+  id              String   @id @default(uuid()) @db.Uuid
+  indentId        String   @db.Uuid
+  fromDepartmentId String?  @db.Uuid
+  toDepartmentId   String   @db.Uuid
+  stageId         String?  @db.Uuid
+  movedBy         String   @db.Uuid
+  movedAt         DateTime @default(now()) @db.Timestamptz(6)
+  remarks         String?  @db.Text
+
+  // Audit Fields
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+  isDeleted       Boolean  @default(false)
+  deletedAt       DateTime? @db.Timestamptz(6)
+  createdBy       String?  @db.Uuid
+  updatedBy       String?  @db.Uuid
+  deletedBy       String?  @db.Uuid
+
+  // Relations
+  indent          Indent         @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  fromDepartment  Department?    @relation("WorkflowFrom", fields: [fromDepartmentId], references: [id])
+  toDepartment    Department     @relation("WorkflowTo", fields: [toDepartmentId], references: [id])
+  stage           WorkflowStage? @relation(fields: [stageId], references: [id])
+  mover           User           @relation(fields: [movedBy], references: [id])
+
+  @@index([indentId])
+  @@index([stageId])
+  @@index([movedAt])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("workflow_history")
+}
+
+model ProductionReceipt {
+  id            String   @id @default(uuid()) @db.Uuid
+  indentId      String   @unique @db.Uuid
+  receivedBy    String   @db.Uuid
+  receivedDate  DateTime @default(now()) @db.Timestamptz(6)
+  remarks       String?  @db.Text
+
+  // Audit Fields
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
+  isDeleted     Boolean  @default(false)
+  deletedAt     DateTime? @db.Timestamptz(6)
+  createdBy     String?  @db.Uuid
+  updatedBy     String?  @db.Uuid
+  deletedBy     String?  @db.Uuid
+
+  // Relations
+  indent        Indent   @relation(fields: [indentId], references: [id])
+  receiver      User     @relation(fields: [receivedBy], references: [id])
+
+  @@index([indentId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("production_receipts")
+}
+
+model IndentHistory {
+  id          String   @id @default(uuid()) @db.Uuid
+  indentId    String   @db.Uuid
+  version     Int      @db.Integer
+  snapshot    Json     @db.JsonB
+  changedBy   String   @db.Uuid
+  changedAt   DateTime @default(now()) @db.Timestamptz(6)
+  changeNotes String?  @db.Text
+
+  // Audit Fields
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime? @db.Timestamptz(6)
+  createdBy   String?  @db.Uuid
+  updatedBy   String?  @db.Uuid
+  deletedBy   String?  @db.Uuid
+
+  // Relations
+  indent      Indent   @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  changer     User     @relation(fields: [changedBy], references: [id])
+
+  @@index([indentId])
+  @@index([changedAt])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("indent_history")
 }
