@@ -45,3 +45,8 @@ uploads/
 /backend/uploads/
 temp/
 tmp/
+
+# Testing & Cache
+coverage/
+*.tsbuildinfo
+.eslintcache
