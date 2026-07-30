@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { apiClient } from '../../lib/axios';
 import { LogIn, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
@@ -14,6 +15,24 @@ const loginSchema = z.object({
 });
 
 type LoginFields = z.infer<typeof loginSchema>;
+
+function getLoginErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    if (error.response?.data?.message && typeof error.response.data.message === 'string') {
+      return error.response.data.message;
+    }
+
+    if (error.code === 'ERR_NETWORK') {
+      return 'Unable to reach the server. Make sure the backend is running and try again.';
+    }
+
+    if (error.response?.status && error.response.status >= 500) {
+      return 'The server encountered an error while signing you in. Please try again.';
+    }
+  }
+
+  return 'Login failed. Please try again.';
+}
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,9 +77,8 @@ export const LoginPage: React.FC = () => {
       setTimeout(() => {
         navigate('/profile');
       }, 1500);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
-      setErrorMsg(msg);
+    } catch (error: unknown) {
+      setErrorMsg(getLoginErrorMessage(error));
     } finally {
       setLoading(false);
     }
