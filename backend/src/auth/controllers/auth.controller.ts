@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
@@ -9,6 +10,7 @@ import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtRefreshGuard } from '../guards/jwt-refresh.guard';
+import { extractDeviceInfo } from '../utils/device-info';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -21,8 +23,9 @@ export class AuthController {
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid email or password' })
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
+    const deviceInfo = extractDeviceInfo(req);
+    return this.authService.login(loginDto, deviceInfo);
   }
 
   @Post('logout')
@@ -31,8 +34,9 @@ export class AuthController {
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
   @ApiBody({ type: RefreshTokenDto })
-  async logout(@CurrentUser() user: any, @Body() refreshTokenDto: RefreshTokenDto) {
-    await this.authService.logout(user.id, refreshTokenDto.refreshToken);
+  async logout(@CurrentUser() user: any, @Body() refreshTokenDto: RefreshTokenDto, @Req() req: Request) {
+    const deviceInfo = extractDeviceInfo(req);
+    await this.authService.logout(user.id, refreshTokenDto.refreshToken, deviceInfo);
     return { message: 'Logged out successfully' };
   }
 

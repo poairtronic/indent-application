@@ -9,6 +9,10 @@ import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
 import { ProfilePage } from '../pages/auth/ProfilePage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
+import { AccountLockPage } from '../pages/AccountLockPage';
+import { SecurityDashboardPage } from '../pages/SecurityDashboardPage';
+import { SessionManagementPage } from '../pages/SessionManagementPage';
+import { LoginHistoryPage } from '../pages/LoginHistoryPage';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -43,6 +47,7 @@ export const AppRouter: React.FC = () => {
           </PublicRoute>
         }
       />
+      <Route path="/account-locked" element={<AccountLockPage />} />
 
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
@@ -65,6 +70,24 @@ export const AppRouter: React.FC = () => {
           path="/change-password"
           element={
             <ChangePasswordPage />
+          }
+        />
+        <Route
+          path="/security"
+          element={
+            <SecurityDashboardPage />
+          }
+        />
+        <Route
+          path="/sessions"
+          element={
+            <SessionManagementPage />
+          }
+        />
+        <Route
+          path="/login-history"
+          element={
+            <LoginHistoryPage />
           }
         />
 

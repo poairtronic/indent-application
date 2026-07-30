@@ -22,7 +22,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Enterprise Manufacturing Indent & Costing Management System')
     .setDescription(
-      `Authentication and business flow endpoints documentation
+      `Authentication, Authorization, and Security endpoints
 
 ## Authorization
 This API uses Bearer JWT token authentication.
@@ -45,6 +45,14 @@ Access is denied with 403 Forbidden if the user lacks the required permission.
 1. JwtAuthGuard - Validates JWT token
 2. RolesGuard - Checks required roles (if specified)
 3. PermissionsGuard - Checks required permissions (if specified)
+
+## Security Features (Phase 8C)
+- **Session Management** - Active session tracking with device/browser/IP info
+- **Login History** - Complete audit trail of login attempts
+- **Account Locking** - Automatic lock after 5 failed attempts (30 min timeout)
+- **Refresh Token Rotation** - Tokens rotated on every refresh, old tokens invalidated
+- **Password Change Tracking** - Password age monitoring
+- **Security Events** - Login, logout, failed login, password change, account lock/unlock tracking
 `,
     )
     .setVersion('1.0')

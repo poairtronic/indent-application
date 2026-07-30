@@ -2,6 +2,9 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { PrismaService } from '../../prisma/prisma.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
+import { SessionService } from './session.service';
+import { LoginHistoryService } from './login-history.service';
+import { AccountSecurityService } from './account-security.service';
 import { LoginDto } from '../dto/login.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
@@ -15,9 +18,15 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
     private readonly tokenService: TokenService,
+    private readonly sessionService: SessionService,
+    private readonly loginHistoryService: LoginHistoryService,
+    private readonly accountSecurityService: AccountSecurityService,
   ) {}
 
-  async login(loginDto: LoginDto): Promise<AuthResponse> {
+  async login(
+    loginDto: LoginDto,
+    deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
+  ): Promise<AuthResponse> {
     const user = await this.prisma.user.findUnique({
       where: { email: loginDto.email },
       include: {
@@ -41,16 +50,55 @@ export class AuthService {
       throw new UnauthorizedException('Your account is inactive');
     }
 
+    await this.accountSecurityService.checkAccountLocked(user.id);
+
     const isPasswordValid = await this.passwordService.compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
+      await this.accountSecurityService.recordFailedAttempt(user.id);
+      await this.loginHistoryService.recordLogin({
+        userId: user.id,
+        ipAddress: deviceInfo?.ipAddress || 'unknown',
+        browser: deviceInfo?.browser || 'unknown',
+        operatingSystem: deviceInfo?.operatingSystem || 'unknown',
+        device: deviceInfo?.device || 'unknown',
+        success: false,
+        failureReason: 'Invalid password',
+      });
       throw new UnauthorizedException('Invalid email or password');
     }
+
+    await this.accountSecurityService.resetFailedAttempts(user.id);
 
     const accessToken = await this.tokenService.generateAccessToken(user.id, user.email);
     const refreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);
 
     await this.tokenService.saveRefreshToken(user.id, refreshToken);
+
+    const hashedToken = this.tokenService.hashToken(refreshToken);
+    await this.sessionService.createSession({
+      userId: user.id,
+      sessionToken: hashedToken,
+      refreshToken: hashedToken,
+      ipAddress: deviceInfo?.ipAddress || 'unknown',
+      browser: deviceInfo?.browser || 'unknown',
+      operatingSystem: deviceInfo?.operatingSystem || 'unknown',
+      device: deviceInfo?.device || 'unknown',
+    });
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() },
+    });
+
+    await this.loginHistoryService.recordLogin({
+      userId: user.id,
+      ipAddress: deviceInfo?.ipAddress || 'unknown',
+      browser: deviceInfo?.browser || 'unknown',
+      operatingSystem: deviceInfo?.operatingSystem || 'unknown',
+      device: deviceInfo?.device || 'unknown',
+      success: true,
+    });
 
     return {
       accessToken,
@@ -75,8 +123,18 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string, refreshToken: string): Promise<void> {
+  async logout(
+    userId: string,
+    refreshToken: string,
+    deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
+  ): Promise<void> {
+    const hashedToken = this.tokenService.hashToken(refreshToken);
+
+    await this.sessionService.revokeAllSessions(userId);
+
     await this.tokenService.revokeRefreshToken(refreshToken);
+
+    await this.loginHistoryService.recordLogout(userId);
   }
 
   async refresh(userId: string, refreshToken: string): Promise<AuthResponse> {
@@ -101,12 +159,28 @@ export class AuthService {
       throw new UnauthorizedException('User is inactive or not found');
     }
 
+    await this.accountSecurityService.checkAccountLocked(user.id);
+
     await this.tokenService.revokeRefreshToken(refreshToken);
+
+    const hashedOldToken = this.tokenService.hashToken(refreshToken);
+    await this.sessionService.revokeAllSessions(user.id);
 
     const newAccessToken = await this.tokenService.generateAccessToken(user.id, user.email);
     const newRefreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);
 
     await this.tokenService.saveRefreshToken(user.id, newRefreshToken);
+
+    const hashedNewToken = this.tokenService.hashToken(newRefreshToken);
+    await this.sessionService.createSession({
+      userId: user.id,
+      sessionToken: hashedNewToken,
+      refreshToken: hashedNewToken,
+      ipAddress: 'unknown',
+      browser: 'unknown',
+      operatingSystem: 'unknown',
+      device: 'unknown',
+    });
 
     return {
       accessToken: newAccessToken,
@@ -182,7 +256,10 @@ export class AuthService {
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: user.id },
-        data: { password: hashedPassword },
+        data: {
+          password: hashedPassword,
+          lastPasswordChange: new Date(),
+        },
       }),
       this.prisma.passwordResetToken.update({
         where: { token: resetToken.token },
@@ -195,6 +272,16 @@ export class AuthService {
     ]);
 
     await this.tokenService.revokeAllRefreshTokensForUser(user.id);
+    await this.sessionService.revokeAllSessions(user.id);
+
+    await this.prisma.activityLog.create({
+      data: {
+        userId: user.id,
+        activity: 'PASSWORD_RESET',
+        module: 'SECURITY',
+        description: 'Password reset completed via token',
+      },
+    });
   }
 
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<void> {
@@ -219,9 +306,23 @@ export class AuthService {
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedNewPassword },
+      data: {
+        password: hashedNewPassword,
+        lastPasswordChange: new Date(),
+      },
     });
 
     await this.tokenService.revokeAllRefreshTokensForUser(user.id);
+    await this.sessionService.revokeAllSessions(user.id);
+    await this.accountSecurityService.resetFailedAttempts(user.id);
+
+    await this.prisma.activityLog.create({
+      data: {
+        userId,
+        activity: 'PASSWORD_CHANGE',
+        module: 'SECURITY',
+        description: 'Password changed successfully',
+      },
+    });
   }
 }

@@ -24,6 +24,9 @@ const navItems: NavItem[] = [
   { label: 'Analytics', path: '/analytics', icon: <span>📉</span>, permission: 'analytics.view' },
   { label: 'Users', path: '/users', icon: <span>👥</span>, permission: 'users.view' },
   { label: 'Roles', path: '/roles', icon: <span>🔐</span>, permission: 'roles.view' },
+  { label: 'Security', path: '/security', icon: <span>🛡️</span> },
+  { label: 'Sessions', path: '/sessions', icon: <span>🔌</span> },
+  { label: 'Login History', path: '/login-history', icon: <span>📜</span> },
   { label: 'Settings', path: '/settings', icon: <span>⚙️</span>, permission: 'settings.manage' },
 ];
 
