@@ -10,15 +10,31 @@ export const LoginHistoryPage: React.FC = () => {
 
   const getStatusBadge = (entry: any) => {
     if (entry.activity === 'LOGIN_SUCCESS') {
-      return <span className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">Success</span>;
+      return (
+        <span className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
+          Success
+        </span>
+      );
     }
     if (entry.activity === 'LOGIN_FAILED') {
-      return <span className="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-full">Failed</span>;
+      return (
+        <span className="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-full">
+          Failed
+        </span>
+      );
     }
     if (entry.activity === 'LOGOUT') {
-      return <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full">Logout</span>;
+      return (
+        <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full">
+          Logout
+        </span>
+      );
     }
-    return <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full">{entry.activity}</span>;
+    return (
+      <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full">
+        {entry.activity}
+      </span>
+    );
   };
 
   if (isLoading && loginHistory.length === 0) {
@@ -42,13 +58,27 @@ export const LoginHistoryPage: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700">
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">Date & Time</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">Status</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">IP Address</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">Browser</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">OS</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">Device</th>
-                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">Reason</th>
+                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">
+                    Date & Time
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">
+                    Status
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">
+                    IP Address
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">
+                    Browser
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">
+                    OS
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">
+                    Device
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 dark:text-gray-300 font-medium">
+                    Reason
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">

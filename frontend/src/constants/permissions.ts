@@ -78,18 +78,9 @@ export const MODULE_PERMISSIONS: Record<string, AppPermission[]> = {
     AppPermission.WORKFLOW_APPROVE,
     AppPermission.WORKFLOW_REJECT,
   ],
-  production: [
-    AppPermission.PRODUCTION_VIEW,
-    AppPermission.PRODUCTION_RECEIVE,
-  ],
-  inventory: [
-    AppPermission.INVENTORY_VIEW,
-    AppPermission.INVENTORY_ISSUE,
-  ],
-  reports: [
-    AppPermission.REPORTS_VIEW,
-    AppPermission.REPORTS_EXPORT,
-  ],
+  production: [AppPermission.PRODUCTION_VIEW, AppPermission.PRODUCTION_RECEIVE],
+  inventory: [AppPermission.INVENTORY_VIEW, AppPermission.INVENTORY_ISSUE],
+  reports: [AppPermission.REPORTS_VIEW, AppPermission.REPORTS_EXPORT],
   materials: [
     AppPermission.MATERIALS_VIEW,
     AppPermission.MATERIALS_CREATE,
@@ -101,11 +92,7 @@ export const MODULE_PERMISSIONS: Record<string, AppPermission[]> = {
     AppPermission.PRODUCTS_CREATE,
     AppPermission.PRODUCTS_UPDATE,
   ],
-  vendors: [
-    AppPermission.VENDORS_VIEW,
-    AppPermission.VENDORS_CREATE,
-    AppPermission.VENDORS_UPDATE,
-  ],
+  vendors: [AppPermission.VENDORS_VIEW, AppPermission.VENDORS_CREATE, AppPermission.VENDORS_UPDATE],
   notifications: [AppPermission.NOTIFICATIONS_VIEW],
   analytics: [AppPermission.ANALYTICS_VIEW],
   settings: [AppPermission.SETTINGS_MANAGE],

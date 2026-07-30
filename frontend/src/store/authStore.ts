@@ -27,7 +27,11 @@ interface AuthState {
   permissions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (accessToken: string, refreshToken: string, user: User & { permissions?: string[] }) => void;
+  login: (
+    accessToken: string,
+    refreshToken: string,
+    user: User & { permissions?: string[] },
+  ) => void;
   logout: () => void;
   setAccessToken: (token: string) => void;
   setLoading: (loading: boolean) => void;

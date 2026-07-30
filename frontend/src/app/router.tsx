@@ -60,36 +60,11 @@ export const AppRouter: React.FC = () => {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
 
-        <Route
-          path="/profile"
-          element={
-            <ProfilePage />
-          }
-        />
-        <Route
-          path="/change-password"
-          element={
-            <ChangePasswordPage />
-          }
-        />
-        <Route
-          path="/security"
-          element={
-            <SecurityDashboardPage />
-          }
-        />
-        <Route
-          path="/sessions"
-          element={
-            <SessionManagementPage />
-          }
-        />
-        <Route
-          path="/login-history"
-          element={
-            <LoginHistoryPage />
-          }
-        />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route path="/security" element={<SecurityDashboardPage />} />
+        <Route path="/sessions" element={<SessionManagementPage />} />
+        <Route path="/login-history" element={<LoginHistoryPage />} />
 
         <Route
           path="/indents"
@@ -103,7 +78,9 @@ export const AppRouter: React.FC = () => {
           path="/cost-sheets"
           element={
             <ProtectedRoute permissions={['costsheet.view']}>
-              <div className="text-white p-8 text-center text-xl">Cost Sheets Module (Coming Soon)</div>
+              <div className="text-white p-8 text-center text-xl">
+                Cost Sheets Module (Coming Soon)
+              </div>
             </ProtectedRoute>
           }
         />
@@ -111,7 +88,9 @@ export const AppRouter: React.FC = () => {
           path="/workflow"
           element={
             <ProtectedRoute permissions={['workflow.view']}>
-              <div className="text-white p-8 text-center text-xl">Workflow Module (Coming Soon)</div>
+              <div className="text-white p-8 text-center text-xl">
+                Workflow Module (Coming Soon)
+              </div>
             </ProtectedRoute>
           }
         />
@@ -119,7 +98,9 @@ export const AppRouter: React.FC = () => {
           path="/production"
           element={
             <ProtectedRoute permissions={['production.view']}>
-              <div className="text-white p-8 text-center text-xl">Production Module (Coming Soon)</div>
+              <div className="text-white p-8 text-center text-xl">
+                Production Module (Coming Soon)
+              </div>
             </ProtectedRoute>
           }
         />
@@ -127,7 +108,9 @@ export const AppRouter: React.FC = () => {
           path="/inventory"
           element={
             <ProtectedRoute permissions={['inventory.view']}>
-              <div className="text-white p-8 text-center text-xl">Inventory Module (Coming Soon)</div>
+              <div className="text-white p-8 text-center text-xl">
+                Inventory Module (Coming Soon)
+              </div>
             </ProtectedRoute>
           }
         />
@@ -135,7 +118,9 @@ export const AppRouter: React.FC = () => {
           path="/materials"
           element={
             <ProtectedRoute permissions={['materials.view']}>
-              <div className="text-white p-8 text-center text-xl">Materials Module (Coming Soon)</div>
+              <div className="text-white p-8 text-center text-xl">
+                Materials Module (Coming Soon)
+              </div>
             </ProtectedRoute>
           }
         />
@@ -143,7 +128,9 @@ export const AppRouter: React.FC = () => {
           path="/products"
           element={
             <ProtectedRoute permissions={['products.view']}>
-              <div className="text-white p-8 text-center text-xl">Products Module (Coming Soon)</div>
+              <div className="text-white p-8 text-center text-xl">
+                Products Module (Coming Soon)
+              </div>
             </ProtectedRoute>
           }
         />
@@ -167,7 +154,9 @@ export const AppRouter: React.FC = () => {
           path="/analytics"
           element={
             <ProtectedRoute permissions={['analytics.view']}>
-              <div className="text-white p-8 text-center text-xl">Analytics Module (Coming Soon)</div>
+              <div className="text-white p-8 text-center text-xl">
+                Analytics Module (Coming Soon)
+              </div>
             </ProtectedRoute>
           }
         />

@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { useSecurityStore, Session } from '../store/securityStore';
+import { useSecurityStore, type Session } from '../store/securityStore';
 
 export const SessionManagementPage: React.FC = () => {
-  const { sessions, fetchSessions, revokeSession, logoutOtherSessions, logoutAllSessions, isLoading } = useSecurityStore();
+  const {
+    sessions,
+    fetchSessions,
+    revokeSession,
+    logoutOtherSessions,
+    logoutAllSessions,
+    isLoading,
+  } = useSecurityStore();
   const [confirmLogoutAll, setConfirmLogoutAll] = useState(false);
 
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
-
-  const getDeviceIcon = (device: string | null) => {
-    switch ((device ?? '').toLowerCase()) {
-      case 'mobile': return '📱';
-      case 'tablet': return '📟';
-      default: return '💻';
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -76,11 +75,7 @@ export const SessionManagementPage: React.FC = () => {
 
       <div className="grid gap-4">
         {sessions.map((session) => (
-          <SessionCard
-            key={session.id}
-            session={session}
-            onRevoke={revokeSession}
-          />
+          <SessionCard key={session.id} session={session} onRevoke={revokeSession} />
         ))}
       </div>
     </div>
@@ -102,9 +97,11 @@ const SessionCard: React.FC<{
   const isActive = session.status === 'ACTIVE' && !session.logoutAt;
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-l-4 ${
-      isActive ? 'border-l-green-500' : 'border-l-gray-400'
-    }`}>
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-l-4 ${
+        isActive ? 'border-l-green-500' : 'border-l-gray-400'
+      }`}
+    >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
           <div className="text-3xl mt-1">{getDeviceIcon(session.device)}</div>
@@ -125,15 +122,16 @@ const SessionCard: React.FC<{
               )}
             </div>
             <div className="text-sm text-gray-500 mt-1 space-y-0.5">
-              <p>Device: {session.device || 'Unknown'} &middot; OS: {session.operatingSystem || 'Unknown'}</p>
+              <p>
+                Device: {session.device || 'Unknown'} &middot; OS:{' '}
+                {session.operatingSystem || 'Unknown'}
+              </p>
               <p>IP: {session.ipAddress || 'Unknown'}</p>
               <p>Logged in: {new Date(session.loginAt).toLocaleString()}</p>
               {session.lastActivity && (
                 <p>Last activity: {new Date(session.lastActivity).toLocaleString()}</p>
               )}
-              {session.expiresAt && (
-                <p>Expires: {new Date(session.expiresAt).toLocaleString()}</p>
-              )}
+              {session.expiresAt && <p>Expires: {new Date(session.expiresAt).toLocaleString()}</p>}
             </div>
           </div>
         </div>
@@ -153,8 +151,11 @@ const SessionCard: React.FC<{
 
 function getDeviceIcon(device: string | null): string {
   switch ((device ?? '').toLowerCase()) {
-    case 'mobile': return '📱';
-    case 'tablet': return '📟';
-    default: return '💻';
+    case 'mobile':
+      return '📱';
+    case 'tablet':
+      return '📟';
+    default:
+      return '💻';
   }
 }

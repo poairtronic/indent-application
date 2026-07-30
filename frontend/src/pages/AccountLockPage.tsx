@@ -10,8 +10,8 @@ export const AccountLockPage: React.FC = () => {
         <div className="text-6xl">🔒</div>
         <h1 className="text-3xl font-semibold">Account Locked</h1>
         <p className="text-gray-400">
-          Your account has been temporarily locked due to multiple failed login attempts.
-          This is a security measure to protect your account.
+          Your account has been temporarily locked due to multiple failed login attempts. This is a
+          security measure to protect your account.
         </p>
         <div className="bg-gray-800 rounded-lg p-4 text-left space-y-2">
           <p className="text-sm text-gray-400">

@@ -13,9 +13,19 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', path: '/dashboard', icon: <span>📊</span>, permission: 'analytics.view' },
   { label: 'Indents', path: '/indents', icon: <span>📋</span>, permission: 'indent.view' },
-  { label: 'Cost Sheets', path: '/cost-sheets', icon: <span>💰</span>, permission: 'costsheet.view' },
+  {
+    label: 'Cost Sheets',
+    path: '/cost-sheets',
+    icon: <span>💰</span>,
+    permission: 'costsheet.view',
+  },
   { label: 'Workflow', path: '/workflow', icon: <span>🔄</span>, permission: 'workflow.view' },
-  { label: 'Production', path: '/production', icon: <span>🏭</span>, permission: 'production.view' },
+  {
+    label: 'Production',
+    path: '/production',
+    icon: <span>🏭</span>,
+    permission: 'production.view',
+  },
   { label: 'Inventory', path: '/inventory', icon: <span>📦</span>, permission: 'inventory.view' },
   { label: 'Materials', path: '/materials', icon: <span>🧱</span>, permission: 'materials.view' },
   { label: 'Products', path: '/products', icon: <span>⚙️</span>, permission: 'products.view' },
@@ -52,9 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
       } ${isMobileOpen ? 'fixed inset-0 z-50' : 'hidden md:flex'}`}
     >
       <div className="p-4 border-b border-gray-700">
-        <h2 className={`font-bold text-lg ${isOpen ? 'block' : 'hidden'}`}>
-          Indent System
-        </h2>
+        <h2 className={`font-bold text-lg ${isOpen ? 'block' : 'hidden'}`}>Indent System</h2>
         {!isOpen && <span className="block text-center text-lg font-bold">IS</span>}
       </div>
 

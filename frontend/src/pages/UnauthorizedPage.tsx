@@ -10,8 +10,8 @@ export const UnauthorizedPage: React.FC = () => {
         <div className="text-8xl font-bold text-red-500">403</div>
         <h1 className="text-3xl font-semibold">Access Denied</h1>
         <p className="text-gray-400 max-w-md">
-          You do not have the required permissions to access this page.
-          Please contact your system administrator if you believe this is an error.
+          You do not have the required permissions to access this page. Please contact your system
+          administrator if you believe this is an error.
         </p>
         <div className="flex gap-4 justify-center">
           <button

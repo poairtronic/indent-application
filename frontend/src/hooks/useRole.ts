@@ -10,7 +10,7 @@ export function useRole() {
     const roleName = user?.role?.roleName ?? null;
     return {
       roleName,
-      roleLabel: roleName ? ROLE_LABELS[roleName.toUpperCase()] ?? roleName : null,
+      roleLabel: roleName ? (ROLE_LABELS[roleName.toUpperCase()] ?? roleName) : null,
       is: hasRole,
     };
   }, [user, hasRole]);

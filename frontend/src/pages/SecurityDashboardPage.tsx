@@ -1,10 +1,8 @@
 import React, { useEffect } from 'react';
 import { useSecurityStore } from '../store/securityStore';
-import { useAuthStore } from '../store/authStore';
 
 export const SecurityDashboardPage: React.FC = () => {
   const { securityStatus, fetchSecurityStatus, isLoading } = useSecurityStore();
-  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     fetchSecurityStatus();
@@ -29,15 +27,19 @@ export const SecurityDashboardPage: React.FC = () => {
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-500">Status</span>
-              <span className={`font-medium ${
-                securityStatus?.accountStatus === 'ACTIVE' ? 'text-green-500' : 'text-red-500'
-              }`}>
+              <span
+                className={`font-medium ${
+                  securityStatus?.accountStatus === 'ACTIVE' ? 'text-green-500' : 'text-red-500'
+                }`}
+              >
                 {securityStatus?.accountStatus}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Locked</span>
-              <span className={`font-medium ${securityStatus?.isLocked ? 'text-red-500' : 'text-green-500'}`}>
+              <span
+                className={`font-medium ${securityStatus?.isLocked ? 'text-red-500' : 'text-green-500'}`}
+              >
                 {securityStatus?.isLocked ? 'Yes' : 'No'}
               </span>
             </div>
@@ -57,12 +59,17 @@ export const SecurityDashboardPage: React.FC = () => {
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-500">Age</span>
-              <span className={`font-medium ${
-                securityStatus?.passwordAgeDays != null && securityStatus.passwordAgeDays > 90
-                  ? 'text-red-500'
-                  : 'text-green-500'
-              }`}>
-                {securityStatus?.passwordAgeDays != null
+              <span
+                className={`font-medium ${
+                  securityStatus?.passwordAgeDays !== null &&
+                  securityStatus?.passwordAgeDays !== undefined &&
+                  securityStatus.passwordAgeDays > 90
+                    ? 'text-red-500'
+                    : 'text-green-500'
+                }`}
+              >
+                {securityStatus?.passwordAgeDays !== null &&
+                securityStatus?.passwordAgeDays !== undefined
                   ? `${securityStatus.passwordAgeDays} days`
                   : 'Not tracked'}
               </span>
@@ -83,9 +90,11 @@ export const SecurityDashboardPage: React.FC = () => {
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-500">Failed Logins</span>
-              <span className={`font-medium font-bold text-lg ${
-                (securityStatus?.failedLoginAttempts ?? 0) > 0 ? 'text-red-500' : 'text-green-500'
-              }`}>
+              <span
+                className={`font-medium font-bold text-lg ${
+                  (securityStatus?.failedLoginAttempts ?? 0) > 0 ? 'text-red-500' : 'text-green-500'
+                }`}
+              >
                 {securityStatus?.failedLoginAttempts ?? 0}
               </span>
             </div>
@@ -108,7 +117,8 @@ export const SecurityDashboardPage: React.FC = () => {
             Your account is locked until{' '}
             {securityStatus.lockedUntil
               ? new Date(securityStatus.lockedUntil).toLocaleString()
-              : 'unknown'}.
+              : 'unknown'}
+            .
           </p>
           <p className="text-red-600 dark:text-red-300 mt-1">
             Please wait for the lock to expire or contact an administrator.

@@ -32,7 +32,7 @@ export const ProfilePage: React.FC = () => {
     try {
       const response = await apiClient.get('/auth/profile');
       setProfileData(response.data.data.user);
-    } catch (err: any) {
+    } catch {
       setErrorMsg('Failed to load profile from server.');
     } finally {
       setLoading(false);
