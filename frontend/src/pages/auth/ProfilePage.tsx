@@ -2,7 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { apiClient } from '../../lib/axios';
-import { User, LogOut, KeyRound, Building2, ShieldAlert, Award, Mail, RefreshCw } from 'lucide-react';
+import {
+  User,
+  LogOut,
+  KeyRound,
+  Building2,
+  ShieldAlert,
+  Award,
+  Mail,
+  RefreshCw,
+} from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -122,7 +131,8 @@ export const ProfilePage: React.FC = () => {
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Department</div>
             <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-              {displayUser.department?.departmentName || 'N/A'} ({displayUser.department?.departmentCode || 'N/A'})
+              {displayUser.department?.departmentName || 'N/A'} (
+              {displayUser.department?.departmentCode || 'N/A'})
             </div>
           </div>
         </div>
@@ -153,14 +163,30 @@ export const ProfilePage: React.FC = () => {
           onClick={fetchProfile}
           disabled={loading}
           className="btn-primary"
-          style={{ flex: 1, background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)' }}
+          style={{
+            flex: 1,
+            background: 'none',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-main)',
+          }}
         >
-          <RefreshCw size={16} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+          <RefreshCw
+            size={16}
+            style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}
+          />
           {loading ? 'Refreshing...' : 'Refresh'}
         </button>
 
         <Link to="/change-password" style={{ flex: 1, textDecoration: 'none' }}>
-          <button className="btn-primary" style={{ width: '100%', background: 'none', border: '1px solid var(--border-color)', color: 'var(--text-main)' }}>
+          <button
+            className="btn-primary"
+            style={{
+              width: '100%',
+              background: 'none',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
+            }}
+          >
             <KeyRound size={16} />
             Password
           </button>

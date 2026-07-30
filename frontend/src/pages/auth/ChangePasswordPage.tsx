@@ -63,7 +63,9 @@ export const ChangePasswordPage: React.FC = () => {
         navigate('/login');
       }, 2000);
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to update password. Current password may be incorrect.';
+      const msg =
+        err.response?.data?.message ||
+        'Failed to update password. Current password may be incorrect.';
       setErrorMsg(msg);
     } finally {
       setLoading(false);
@@ -73,7 +75,9 @@ export const ChangePasswordPage: React.FC = () => {
   return (
     <div className="auth-card">
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Change Password</h2>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
+          Change Password
+        </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
           Create a new strong password for your account
         </p>
@@ -95,7 +99,9 @@ export const ChangePasswordPage: React.FC = () => {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="form-group">
-          <label className="form-label" htmlFor="currentPassword">Current Password</label>
+          <label className="form-label" htmlFor="currentPassword">
+            Current Password
+          </label>
           <input
             id="currentPassword"
             type="password"
@@ -109,7 +115,9 @@ export const ChangePasswordPage: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label" htmlFor="newPassword">New Password</label>
+          <label className="form-label" htmlFor="newPassword">
+            New Password
+          </label>
           <input
             id="newPassword"
             type="password"
@@ -121,7 +129,9 @@ export const ChangePasswordPage: React.FC = () => {
         </div>
 
         <div className="form-group">
-          <label className="form-label" htmlFor="confirmPassword">Confirm New Password</label>
+          <label className="form-label" htmlFor="confirmPassword">
+            Confirm New Password
+          </label>
           <input
             id="confirmPassword"
             type="password"
@@ -134,13 +144,26 @@ export const ChangePasswordPage: React.FC = () => {
           )}
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading} style={{ margin: '1.5rem 0' }}>
-          {loading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <KeyRound size={18} />}
+        <button
+          type="submit"
+          className="btn-primary"
+          disabled={loading}
+          style={{ margin: '1.5rem 0' }}
+        >
+          {loading ? (
+            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <KeyRound size={18} />
+          )}
           {loading ? 'Updating password...' : 'Update Password'}
         </button>
 
         <div style={{ textAlign: 'center' }}>
-          <Link to="/profile" className="auth-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <Link
+            to="/profile"
+            className="auth-link"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+          >
             <ArrowLeft size={16} /> Back to Profile
           </Link>
         </div>

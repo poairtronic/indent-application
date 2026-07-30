@@ -28,9 +28,7 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppContext.Provider value={{ theme, toggleTheme }}>
-          {children}
-        </AppContext.Provider>
+        <AppContext.Provider value={{ theme, toggleTheme }}>{children}</AppContext.Provider>
       </BrowserRouter>
     </QueryClientProvider>
   );

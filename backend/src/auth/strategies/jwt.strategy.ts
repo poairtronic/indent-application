@@ -20,7 +20,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
       include: {
         department: true,
-        role: true,
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+              where: { isDeleted: false },
+            },
+          },
+        },
       },
     });
 
@@ -28,7 +37,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User is inactive or not found');
     }
 
-    const { password, ...result } = user;
-    return result;
+    const { password: _pw, ...safeUser } = user;
+    void _pw;
+    const permissions = safeUser.role.rolePermissions.map((rp) => rp.permission.code);
+    return { ...safeUser, permissions };
   }
 }

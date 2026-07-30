@@ -81,13 +81,17 @@ apiClient.interceptors.response.use(
         refreshToken,
       });
 
-      const { accessToken: newAccessToken, refreshToken: newRefreshToken, user } = response.data.data;
+      const {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        user,
+      } = response.data.data;
 
       useAuthStore.getState().login(newAccessToken, newRefreshToken, user);
 
       originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
       processQueue(null, newAccessToken);
-      
+
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);

@@ -7,9 +7,13 @@ describe('AuthController', () => {
   let authService: AuthService;
 
   const mockAuthService = {
-    login: jest.fn().mockResolvedValue({ accessToken: 'access_token', refreshToken: 'refresh_token' }),
+    login: jest
+      .fn()
+      .mockResolvedValue({ accessToken: 'access_token', refreshToken: 'refresh_token' }),
     logout: jest.fn().mockResolvedValue(undefined),
-    refresh: jest.fn().mockResolvedValue({ accessToken: 'new_access_token', refreshToken: 'new_refresh_token' }),
+    refresh: jest
+      .fn()
+      .mockResolvedValue({ accessToken: 'new_access_token', refreshToken: 'new_refresh_token' }),
     forgotPassword: jest.fn().mockResolvedValue(undefined),
     resetPassword: jest.fn().mockResolvedValue(undefined),
     changePassword: jest.fn().mockResolvedValue(undefined),
@@ -18,9 +22,7 @@ describe('AuthController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [
-        { provide: AuthService, useValue: mockAuthService },
-      ],
+      providers: [{ provide: AuthService, useValue: mockAuthService }],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);

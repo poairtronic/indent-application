@@ -1,13 +1,29 @@
 export enum AppRole {
   ADMIN = 'ADMIN',
-  REQUESTER = 'REQUESTER',
-  APPROVER = 'APPROVER',
-  PURCHASE_OFFICER = 'PURCHASE_OFFICER',
+  DESIGN_ENGINEER = 'DESIGN ENGINEER',
+  STORES_EXECUTIVE = 'STORES EXECUTIVE',
+  ACCOUNTS_EXECUTIVE = 'ACCOUNTS EXECUTIVE',
+  PRODUCTION_EXECUTIVE = 'PRODUCTION EXECUTIVE',
+  SENIOR_MANAGER = 'SENIOR MANAGER',
+  GENERAL_MANAGER = 'GENERAL MANAGER',
 }
 
-export const ROLE_LABELS: Record<AppRole, string> = {
-  [AppRole.ADMIN]: 'System Administrator',
-  [AppRole.REQUESTER]: 'Indent Requester',
-  [AppRole.APPROVER]: 'Indent Approver',
-  [AppRole.PURCHASE_OFFICER]: 'Purchase Officer',
+export const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'System Administrator',
+  'DESIGN ENGINEER': 'Design Engineer',
+  'STORES EXECUTIVE': 'Stores Executive',
+  'ACCOUNTS EXECUTIVE': 'Accounts Executive',
+  'PRODUCTION EXECUTIVE': 'Production Executive',
+  'SENIOR MANAGER': 'Senior Manager',
+  'GENERAL MANAGER': 'General Manager',
+};
+
+export const ROLE_HIERARCHY: Record<string, number> = {
+  ADMIN: 0,
+  'DESIGN ENGINEER': 1,
+  'STORES EXECUTIVE': 2,
+  'ACCOUNTS EXECUTIVE': 3,
+  'PRODUCTION EXECUTIVE': 4,
+  'SENIOR MANAGER': 5,
+  'GENERAL MANAGER': 6,
 };

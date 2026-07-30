@@ -51,7 +51,9 @@ export const ForgotPasswordPage: React.FC = () => {
   return (
     <div className="auth-card">
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Forgot Password</h2>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
+          Forgot Password
+        </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
           Enter your email and we'll send you a password reset link
         </p>
@@ -73,7 +75,9 @@ export const ForgotPasswordPage: React.FC = () => {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="form-group">
-          <label className="form-label" htmlFor="email">Email Address</label>
+          <label className="form-label" htmlFor="email">
+            Email Address
+          </label>
           <input
             id="email"
             type="email"
@@ -84,13 +88,26 @@ export const ForgotPasswordPage: React.FC = () => {
           {errors.email && <div className="form-error">{errors.email.message}</div>}
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading} style={{ margin: '1.5rem 0' }}>
-          {loading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Mail size={18} />}
+        <button
+          type="submit"
+          className="btn-primary"
+          disabled={loading}
+          style={{ margin: '1.5rem 0' }}
+        >
+          {loading ? (
+            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <Mail size={18} />
+          )}
           {loading ? 'Sending link...' : 'Send Reset Link'}
         </button>
 
         <div style={{ textAlign: 'center' }}>
-          <Link to="/login" className="auth-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <Link
+            to="/login"
+            className="auth-link"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+          >
             <ArrowLeft size={16} /> Back to Sign In
           </Link>
         </div>

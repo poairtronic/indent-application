@@ -68,7 +68,8 @@ export const ResetPasswordPage: React.FC = () => {
         navigate('/login');
       }, 2000);
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Failed to reset password. The link may have expired.';
+      const msg =
+        err.response?.data?.message || 'Failed to reset password. The link may have expired.';
       setErrorMsg(msg);
     } finally {
       setLoading(false);
@@ -78,7 +79,9 @@ export const ResetPasswordPage: React.FC = () => {
   return (
     <div className="auth-card">
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Reset Password</h2>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
+          Reset Password
+        </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
           Enter and confirm your new password below
         </p>
@@ -100,12 +103,16 @@ export const ResetPasswordPage: React.FC = () => {
 
       {!token ? (
         <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-          <Link to="/login" className="auth-link">Return to Sign In</Link>
+          <Link to="/login" className="auth-link">
+            Return to Sign In
+          </Link>
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group">
-            <label className="form-label" htmlFor="password">New Password</label>
+            <label className="form-label" htmlFor="password">
+              New Password
+            </label>
             <input
               id="password"
               type="password"
@@ -117,7 +124,9 @@ export const ResetPasswordPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="confirmPassword">Confirm Password</label>
+            <label className="form-label" htmlFor="confirmPassword">
+              Confirm Password
+            </label>
             <input
               id="confirmPassword"
               type="password"
@@ -130,8 +139,17 @@ export const ResetPasswordPage: React.FC = () => {
             )}
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1.5rem' }}>
-            {loading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <ShieldAlert size={18} />}
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+            style={{ marginTop: '1.5rem' }}
+          >
+            {loading ? (
+              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <ShieldAlert size={18} />
+            )}
             {loading ? 'Resetting password...' : 'Reset Password'}
           </button>
         </form>

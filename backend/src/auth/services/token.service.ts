@@ -57,12 +57,17 @@ export class TokenService {
         where: { token: hashedToken },
       });
 
-      if (!dbToken || dbToken.isDeleted || (dbToken.revokedAt !== null) || new Date() > dbToken.expiresAt) {
+      if (
+        !dbToken ||
+        dbToken.isDeleted ||
+        dbToken.revokedAt !== null ||
+        new Date() > dbToken.expiresAt
+      ) {
         throw new UnauthorizedException('Invalid or expired refresh token');
       }
 
       return payload;
-    } catch (e) {
+    } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }

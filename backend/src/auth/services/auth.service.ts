@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
@@ -26,7 +22,14 @@ export class AuthService {
       where: { email: loginDto.email },
       include: {
         department: true,
-        role: true,
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: true },
+              where: { isDeleted: false },
+            },
+          },
+        },
       },
     });
 
@@ -38,23 +41,14 @@ export class AuthService {
       throw new UnauthorizedException('Your account is inactive');
     }
 
-    const isPasswordValid = await this.passwordService.compare(
-      loginDto.password,
-      user.password,
-    );
+    const isPasswordValid = await this.passwordService.compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const accessToken = await this.tokenService.generateAccessToken(
-      user.id,
-      user.email,
-    );
-    const refreshToken = await this.tokenService.generateRefreshToken(
-      user.id,
-      user.email,
-    );
+    const accessToken = await this.tokenService.generateAccessToken(user.id, user.email);
+    const refreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);
 
     await this.tokenService.saveRefreshToken(user.id, refreshToken);
 
@@ -76,6 +70,7 @@ export class AuthService {
           id: user.role.id,
           roleName: user.role.roleName,
         },
+        permissions: user.role.rolePermissions.map((rp) => rp.permission.code),
       },
     };
   }
@@ -86,12 +81,19 @@ export class AuthService {
 
   async refresh(userId: string, refreshToken: string): Promise<AuthResponse> {
     const payload = await this.tokenService.verifyRefreshToken(refreshToken);
-    
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {
         department: true,
-        role: true,
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: true },
+              where: { isDeleted: false },
+            },
+          },
+        },
       },
     });
 
@@ -101,14 +103,8 @@ export class AuthService {
 
     await this.tokenService.revokeRefreshToken(refreshToken);
 
-    const newAccessToken = await this.tokenService.generateAccessToken(
-      user.id,
-      user.email,
-    );
-    const newRefreshToken = await this.tokenService.generateRefreshToken(
-      user.id,
-      user.email,
-    );
+    const newAccessToken = await this.tokenService.generateAccessToken(user.id, user.email);
+    const newRefreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);
 
     await this.tokenService.saveRefreshToken(user.id, newRefreshToken);
 
@@ -130,6 +126,7 @@ export class AuthService {
           id: user.role.id,
           roleName: user.role.roleName,
         },
+        permissions: user.role.rolePermissions.map((rp) => rp.permission.code),
       },
     };
   }
@@ -155,7 +152,7 @@ export class AuthService {
       },
     });
 
-    console.log(`[STUB] Password Reset Link: http://localhost:5173/reset-password?token=${token}`);
+    console.info(`[STUB] Password Reset Link: http://localhost:5173/reset-password?token=${token}`);
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
@@ -180,9 +177,7 @@ export class AuthService {
       throw new BadRequestException('Associated user not found or inactive');
     }
 
-    const hashedPassword = await this.passwordService.hash(
-      resetPasswordDto.password,
-    );
+    const hashedPassword = await this.passwordService.hash(resetPasswordDto.password);
 
     await this.prisma.$transaction([
       this.prisma.user.update({
@@ -202,10 +197,7 @@ export class AuthService {
     await this.tokenService.revokeAllRefreshTokensForUser(user.id);
   }
 
-  async changePassword(
-    userId: string,
-    changePasswordDto: ChangePasswordDto,
-  ): Promise<void> {
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -223,9 +215,7 @@ export class AuthService {
       throw new BadRequestException('Incorrect current password');
     }
 
-    const hashedNewPassword = await this.passwordService.hash(
-      changePasswordDto.newPassword,
-    );
+    const hashedNewPassword = await this.passwordService.hash(changePasswordDto.newPassword);
 
     await this.prisma.user.update({
       where: { id: user.id },

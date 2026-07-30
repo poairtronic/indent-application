@@ -1,19 +1,5 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiBody,
-} from '@nestjs/swagger';
+import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
@@ -45,10 +31,7 @@ export class AuthController {
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
   @ApiBody({ type: RefreshTokenDto })
-  async logout(
-    @CurrentUser() user: any,
-    @Body() refreshTokenDto: RefreshTokenDto,
-  ) {
+  async logout(@CurrentUser() user: any, @Body() refreshTokenDto: RefreshTokenDto) {
     await this.authService.logout(user.id, refreshTokenDto.refreshToken);
     return { message: 'Logged out successfully' };
   }
@@ -89,10 +72,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change current password' })
   @ApiResponse({ status: 200, description: 'Password updated successfully' })
-  async changePassword(
-    @CurrentUser() user: any,
-    @Body() changePasswordDto: ChangePasswordDto,
-  ) {
+  async changePassword(@CurrentUser() user: any, @Body() changePasswordDto: ChangePasswordDto) {
     await this.authService.changePassword(user.id, changePasswordDto);
     return { message: 'Password has been updated successfully' };
   }

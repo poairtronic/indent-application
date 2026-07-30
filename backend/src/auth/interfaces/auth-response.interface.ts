@@ -16,5 +16,6 @@ export interface AuthResponse {
       id: string;
       roleName: string;
     };
+    permissions: string[];
   };
 }

@@ -7,7 +7,6 @@ import { UnauthorizedException } from '@nestjs/common';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let passwordService: PasswordService;
   let mockPrisma: any;
 
   const mockPrismaService = {
@@ -54,7 +53,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    passwordService = module.get<PasswordService>(PasswordService);
     mockPrisma = module.get<PrismaService>(PrismaService);
   });
 
@@ -75,7 +73,11 @@ describe('AuthService', () => {
       isDeleted: false,
       employeeCode: 'EMP123',
       department: { id: 'dept_id', departmentCode: 'DEPT', departmentName: 'Dept' },
-      role: { id: 'role_id', roleName: 'Role' },
+      role: {
+        id: 'role_id',
+        roleName: 'Role',
+        rolePermissions: [{ permission: { code: 'users.view' } }],
+      },
     };
 
     it('should login successfully with correct credentials', async () => {
