@@ -5,9 +5,15 @@
     "moduleResolution": "node",
     "strict": true,
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "types": ["node"],
+    "typeRoots": [
+      "../backend/node_modules/@types"
+    ],
     "baseUrl": ".",
     "paths": {
-      "*": ["../backend/node_modules/*", "../backend/node_modules/@types/*"]
+      "@prisma/client": ["../backend/node_modules/@prisma/client"],
+      "*": ["../backend/node_modules/*"]
     }
   },
   "include": ["**/*.ts"]
