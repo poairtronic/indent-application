@@ -16,5 +16,8 @@ export const API_ENDPOINTS = {
   USERS: {
     BASE: '/users',
     DETAIL: (id: string) => `/users/${id}`,
+    PROFILE: '/users/profile',
+    STATUS: (id: string) => `/users/${id}/status`,
+    RESTORE: (id: string) => `/users/${id}/restore`,
   },
 };

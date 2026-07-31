@@ -14,6 +14,7 @@ import { SecurityDashboardPage } from '../pages/SecurityDashboardPage';
 import { SessionManagementPage } from '../pages/SessionManagementPage';
 import { LoginHistoryPage } from '../pages/LoginHistoryPage';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { UsersPage } from '../modules/users/UsersPage';
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -164,7 +165,7 @@ export const AppRouter: React.FC = () => {
           path="/users"
           element={
             <ProtectedRoute permissions={['users.view']}>
-              <div className="text-white p-8 text-center text-xl">Users Module (Coming Soon)</div>
+              <UsersPage />
             </ProtectedRoute>
           }
         />

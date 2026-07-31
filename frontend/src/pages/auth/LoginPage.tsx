@@ -70,13 +70,13 @@ export const LoginPage: React.FC = () => {
         email: data.email,
         password: data.password,
       });
-
       const { accessToken, refreshToken, user } = response.data.data;
+
       login(accessToken, refreshToken, user);
-      setSuccessMsg('Logged in successfully! Redirecting...');
+      setSuccessMsg('Login Successful! Redirecting...');
       setTimeout(() => {
         navigate('/profile');
-      }, 1500);
+      }, 1000);
     } catch (error: unknown) {
       setErrorMsg(getLoginErrorMessage(error));
     } finally {

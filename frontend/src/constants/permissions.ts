@@ -3,6 +3,8 @@ export enum AppPermission {
   USERS_CREATE = 'users.create',
   USERS_UPDATE = 'users.update',
   USERS_DELETE = 'users.delete',
+  USERS_STATUS_UPDATE = 'users.status.update',
+  USERS_RESTORE = 'users.restore',
   ROLES_VIEW = 'roles.view',
   ROLES_CREATE = 'roles.create',
   ROLES_UPDATE = 'roles.update',
@@ -54,6 +56,8 @@ export const MODULE_PERMISSIONS: Record<string, AppPermission[]> = {
     AppPermission.USERS_CREATE,
     AppPermission.USERS_UPDATE,
     AppPermission.USERS_DELETE,
+    AppPermission.USERS_STATUS_UPDATE,
+    AppPermission.USERS_RESTORE,
   ],
   roles: [
     AppPermission.ROLES_VIEW,
