@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { UsersModule } from './users/users.module';
 import { IndentModule } from './indent/indent.module';
 import { AuthModule } from './auth/auth.module';
 import { RolesModule } from './roles/roles.module';
@@ -12,7 +13,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
-  imports: [PrismaModule, AuthModule, RolesModule, PermissionsModule, IndentModule],
+  imports: [PrismaModule, AuthModule, RolesModule, PermissionsModule, UsersModule, IndentModule],
   controllers: [],
   providers: [
     {
