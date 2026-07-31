@@ -5,6 +5,7 @@ export const VENDOR_MESSAGES = {
   FETCHED_SUCCESS: 'Vendor retrieved successfully.',
   LIST_FETCHED_SUCCESS: 'Vendors list retrieved successfully.',
   NOT_FOUND: 'Vendor not found.',
+  CODE_EXISTS: 'A vendor with this vendor code already exists.',
   EMAIL_EXISTS: 'A vendor with this email already exists.',
   GST_EXISTS: 'A vendor with this GST number already exists.',
   PAN_EXISTS: 'A vendor with this PAN number already exists.',

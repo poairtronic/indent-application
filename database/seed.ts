@@ -87,11 +87,20 @@ async function main() {
     { module: 'vendors', action: PermissionAction.CREATE, code: 'vendors.create', description: 'Create vendors' },
     { module: 'vendors', action: PermissionAction.READ, code: 'vendors.view', description: 'View vendors' },
     { module: 'vendors', action: PermissionAction.UPDATE, code: 'vendors.update', description: 'Update vendors' },
+    { module: 'vendors', action: PermissionAction.DELETE, code: 'vendors.delete', description: 'Delete vendors' },
+    { module: 'vendors', action: PermissionAction.UPDATE, code: 'vendors.restore', description: 'Restore vendors' },
 
+    { module: 'manufacturing-processes', action: PermissionAction.CREATE, code: 'manufacturing-processes.create', description: 'Create manufacturing processes' },
     { module: 'manufacturing-processes', action: PermissionAction.READ, code: 'manufacturing-processes.view', description: 'View manufacturing processes' },
     { module: 'manufacturing-processes', action: PermissionAction.UPDATE, code: 'manufacturing-processes.update', description: 'Update manufacturing processes' },
+    { module: 'manufacturing-processes', action: PermissionAction.DELETE, code: 'manufacturing-processes.delete', description: 'Delete manufacturing processes' },
+    { module: 'manufacturing-processes', action: PermissionAction.UPDATE, code: 'manufacturing-processes.restore', description: 'Restore manufacturing processes' },
 
+    { module: 'units', action: PermissionAction.CREATE, code: 'units.create', description: 'Create units' },
     { module: 'units', action: PermissionAction.READ, code: 'units.view', description: 'View units' },
+    { module: 'units', action: PermissionAction.UPDATE, code: 'units.update', description: 'Update units' },
+    { module: 'units', action: PermissionAction.DELETE, code: 'units.delete', description: 'Delete units' },
+    { module: 'units', action: PermissionAction.UPDATE, code: 'units.restore', description: 'Restore units' },
 
     // Business Modules
     { module: 'indent', action: PermissionAction.CREATE, code: 'indent.create', description: 'Create indent' },

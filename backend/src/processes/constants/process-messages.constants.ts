@@ -9,4 +9,6 @@ export const PROCESS_MESSAGES = {
   INVALID_PRODUCT: 'Invalid or inactive product specified.',
   SEQUENCE_CONFLICT:
     'The provided process sequence conflicts with an existing process for the product.',
+  IN_USE_DELETE:
+    'Manufacturing process cannot be deleted because it is referenced by indents or cost sheets.',
 };
