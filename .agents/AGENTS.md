@@ -17,8 +17,10 @@ The authoritative specifications for the Enterprise Manufacturing Indent & Costi
    All future development must be driven **one phase at a time** (e.g. Phase 9 → Phase 10 → Phase 11). Never attempt to rewrite or build the full application in a single step.
 3. **Presentation-Layer Refactor Scope (Phase 10):**  
    UI refactoring must be presentation-only, consuming theme variables (`src/theme/`) and reusable components (`src/components/`).
-4. **Business Workflow Sequence:**  
-   `Design` → `Stores Verification` → `Accounts Verification` → `Senior Manager Review` → `General Manager Approval` → `Production` → `Material Receipt Confirmation` → `Workflow Completed`
+4. **Business Workflow Sequence (Two-Loop Zero-Approval Architecture):**  
+   - **Loop 1 (Manufacturing Workflow):** `Draft` → `Design Completed` → `Stores Processing` → `Production Processing` → `Customer Delivered`
+   - **Loop 2 (Financial Workflow):** `Accounts Cost Verification` → `Accounts Financial Closure` → `Archived` → `Completed`
+   - *Zero-Approval Rule:* Senior Managers & General Managers do NOT approve transactions; they are notified at each stage and passively monitor progress via executive dashboards.
 5. **Technology Stack:**  
    - Frontend: React, TypeScript, Vite, Tailwind CSS, Zustand, React Query
    - Backend: NestJS, TypeScript, Prisma ORM, JWT, bcrypt

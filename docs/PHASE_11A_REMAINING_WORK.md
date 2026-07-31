@@ -37,7 +37,7 @@ Each controller must follow the `UsersController` guard pattern (`JwtAuthGuard` 
 
 ## 2.3 Phase 12 — Workflow Engine Integration
 
-- Wire the 7-department approval flow (`Design → Stores → Accounts → Senior Manager → General Manager → Production`) on top of the master data.
+- Wire the Two-Loop Business Workflow (`Loop 1: Manufacturing, Loop 2: Financial Closure & Archival`) with zero-approval notification routing on top of the master data.
 - Material verification (Stores) and costing (Accounts) will consume `Unit`, `Vendor`, and `ManufacturingProcess` masters.
 
 ## 2.4 Phase 11+ — Frontend Master Screens

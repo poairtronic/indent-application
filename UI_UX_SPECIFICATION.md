@@ -3,7 +3,7 @@
 
 **Project:** Enterprise Manufacturing Indent & Costing Management System (IMCMS)  
 **Document Type:** Frontend Presentation-Layer Refactoring & Design System Specification  
-**Version:** 1.0  
+**Version:** 2.0 (Approved 2-Loop Zero-Approval Architecture)  
 **Status:** Approved  
 **Constraint:** Presentation-Layer Refactor Only (Backend Architecture & APIs Immutable)  
 
@@ -12,7 +12,7 @@
 # 1. Executive Direction & Strict Boundaries
 
 > [!IMPORTANT]
-> The backend architecture, REST API contracts, database schema, NestJS services, JWT authentication, RBAC authorization, and business workflow state machine (completed through Phase 8C) are **IMMUTABLE**.  
+> The backend architecture, REST API contracts, database schema, NestJS services, JWT authentication, RBAC authorization, and 2-loop business workflow state machine are **IMMUTABLE**.  
 > The AI MUST NOT rewrite backend code, alter database tables, rename modules, modify Prisma schemas, or change API endpoints. This refactoring is strictly a **frontend presentation-layer update**.
 
 ### Strict AI Rules & Constraints
@@ -22,7 +22,7 @@ The AI MUST NOT:
 - Create new backend APIs unless explicitly requested and approved.
 - Change database tables or Prisma models.
 - Rename NestJS or React modules.
-- Modify workflow state machines or approval rules.
+- Modify 2-loop business workflow state machines or zero-approval notification rules.
 - Change RBAC, guards, or JWT authentication.
 - Modify backend DTOs or validation logic.
 - Rewrite business logic.
@@ -55,9 +55,9 @@ All colors, typography, spacing, shadows, and border-radii MUST be imported from
 | **Primary Accent** | `#3B82F6` | Primary action buttons, Active navigation, Links |
 | **Primary Accent (Hover)** | `#2563EB` | Button hover state |
 | **Primary Accent (Pressed)**| `#1D4ED8` | Active click state |
-| **Success Status** | `#22C55E` | Approved / Validated / Success badges |
-| **Warning Status** | `#F59E0B` | Pending / SLA Warning badges |
-| **Error Status** | `#EF4444` | Rejected / Critical Alert badges |
+| **Success Status** | `#22C55E` | Completed / Financial Closure / Validated badges |
+| **Warning Status** | `#F59E0B` | In-Progress / Cost Variance Alert badges |
+| **Error Status** | `#EF4444` | Delivery Exception / Critical Alert badges |
 | **Text Primary** | `#F8FAFC` | Main headings, Primary text |
 | **Text Secondary** | `#CBD5E1` | Subtitles, Table data, Body text |
 | **Text Muted** | `#94A3B8` | Input placeholders, Disabled text |
@@ -106,7 +106,7 @@ src/
 
 ### 4.1 Sidebar & Header Navigation
 - **Sidebar:** Clean, collapsible panel with rounded active state pills, subtle hover animations, custom scrollbars, and a polished user profile footer card. Keep existing navigation links intact.
-- **Top Header:** Modern breadcrumbs, global search bar with keyboard shortcut indicator (`Ctrl + K`), dynamic unread notification popover badge, user profile menu, and status indicators.
+- **Top Header:** Modern breadcrumbs, global search bar with keyboard shortcut indicator (`Ctrl + K`), dynamic unread executive notification popover badge, user profile menu, and status indicators.
 
 ### 4.2 Dashboard & Analytics Cards
 - **Stat Cards:** Generous padding (`p-6`), rounded corners (`rounded-xl`), soft elevated shadows, trend indicators (+% / -%), and consistent accent icon containers.

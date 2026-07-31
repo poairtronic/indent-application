@@ -3,9 +3,9 @@
 # Phase 1 – Business Foundation
 
 **Project Name:** Enterprise Manufacturing Indent & Costing Management System (IMCMS)  
-**Version:** 1.0  
-**Document Owner:** Product Team  
-**Status:** Draft  
+**Version:** 2.0 (Approved 2-Loop Zero-Approval Architecture)  
+**Document Owner:** Product & Solutions Architecture Team  
+**Status:** Approved  
 
 ---
 
@@ -13,11 +13,15 @@
 
 ## Overview
 
-The Enterprise Manufacturing Indent & Costing Management System (IMCMS) is a web-based ERP application designed to digitize and automate the complete material indent, costing, approval, and production workflow within a manufacturing organization.
+The Enterprise Manufacturing Indent & Costing Management System (IMCMS) is a web-based ERP application designed to digitize and manage the complete material indent, process costing, manufacturing execution, financial closure, and archival workflow within a manufacturing organization.
 
-The current process relies heavily on paper documents, Excel spreadsheets, manual approvals, and email communication. These manual methods increase processing time, introduce human error, reduce traceability, and make reporting difficult.
+The application operates on a **Two-Loop Business Workflow Architecture**:
+1. **Loop 1 (Manufacturing Workflow):** Raw Material Fulfillment → Manufacturing Execution → Customer Delivery.
+2. **Loop 2 (Financial Workflow):** Actual Cost Verification → Cost Variance Analysis → Financial Closure → Automated Archival.
 
-The proposed system will centralize the complete workflow into a single secure platform, enabling departments to collaborate efficiently while providing management with real-time visibility into manufacturing activities.
+The system features a **Zero-Approval Architecture**. Senior Managers and General Managers do not perform manual approvals or rejections; instead, they receive real-time notifications at every stage transition and monitor operations via executive dashboards.
+
+The proposed system centralizes the complete workflow into a single secure platform, enabling departments to collaborate efficiently while providing management with real-time visibility into manufacturing activities.
 
 ---
 
@@ -28,7 +32,7 @@ The organization currently manages engineering indents and costing using manuall
 Each department maintains its own records, resulting in:
 
 - Duplicate data entry
-- Manual approval processes
+- Lack of automated process workflow tracking
 - Lack of real-time tracking
 - Difficult report generation
 - Poor document traceability
@@ -50,11 +54,11 @@ The current system suffers from several operational challenges:
 - Excel-based costing sheets
 - Manual calculations
 
-### Approval Delays
+### Process Tracking & Visibility Delays
 
 - Documents move manually between departments
-- No centralized approval workflow
-- Difficult to identify pending approvals
+- No automated notification routing
+- Difficulty in tracking real-time document status across departments
 
 ### Poor Visibility
 
@@ -90,16 +94,16 @@ Develop a modern enterprise-grade Manufacturing Indent & Costing Management Syst
 
 # 5. Product Vision
 
-The application should become the central platform used by every department involved in manufacturing planning, costing, approvals, inventory coordination, and production execution.
+The application should become the central platform used by every department involved in manufacturing planning, costing, inventory coordination, production execution, financial actual cost verification, and archival.
 
 The system should provide:
 
-- Digital engineering documents
-- Automated workflows
-- Secure role-based access
+- Digital engineering documents (Indent Sheet & Process Cost Sheet)
+- Automated Two-Loop Workflows
+- Secure role-based access & stage permissions
 - Complete audit history
-- Real-time notifications
-- Executive dashboards
+- Real-time executive notifications
+- Executive monitoring dashboards
 - Enterprise reporting
 - Scalable architecture for future ERP expansion
 
@@ -109,15 +113,15 @@ The system should provide:
 
 ## Primary Objectives
 
-- Digitize paper-based engineering documents.
+- Digitize paper-based engineering documents (Indent Sheets & Process Cost Sheets).
 - Replace Excel costing sheets.
-- Standardize approval workflows.
-- Reduce document processing time.
+- Standardize 2-loop business workflows.
+- Reduce document processing turnaround time.
 - Improve collaboration between departments.
 - Increase process transparency.
-- Provide management dashboards.
+- Provide management dashboards and automated notification routing.
 - Reduce manual errors.
-- Improve data accuracy.
+- Improve cost accuracy with automated variance calculation.
 - Enable future ERP expansion.
 
 ---
@@ -128,17 +132,17 @@ The success of the application will be measured using the following Key Performa
 
 ### Operational KPIs
 
-- Reduction in document processing time.
+- Reduction in document processing turnaround time.
 - Reduction in manual data entry.
-- Reduction in approval delays.
+- Reduction in workflow bottlenecks.
 - Increase in workflow visibility.
 - Reduction in document loss.
 
 ### Business KPIs
 
 - Faster production readiness.
-- Improved cost accuracy.
-- Increased approval efficiency.
+- Improved cost accuracy & variance control.
+- Increased operational efficiency.
 - Improved reporting speed.
 - Improved department collaboration.
 
@@ -163,7 +167,7 @@ The application will include:
 - Login
 - Logout
 - Password Management
-- JWT Authentication
+- JWT Authentication & Refresh Token Rotation
 
 ### User Management
 
@@ -182,12 +186,12 @@ The application will include:
 
 ### Business Modules
 
-- Indent Management
-- Cost Sheet Management
-- Workflow Management
-- Approval Management
-- Production
-- Inventory
+- Indent Sheet Management (Design)
+- Process Cost Sheet Management (Planned & Actual Costs)
+- 2-Loop Workflow Engine
+- Executive Notification Engine (SM & GM Routing)
+- Production Work Center
+- Inventory & Stock Issue
 
 ### System Modules
 
@@ -226,13 +230,13 @@ These may be considered for future releases.
 
 | Stakeholder | Responsibility |
 | --- | --- |
-| Admin | System administration |
-| Design Department | Create indents and costing sheets |
-| Stores Department | Verify materials and inventory |
-| Accounts Department | Verify and finalize costing |
-| Senior Manager | Review and approve workflows |
-| General Manager | Final approval authority |
-| Production Department | Receive materials and complete production |
+| Admin | System administration & master data management |
+| Design Department | Create Indent Sheets and Process Cost Sheets |
+| Stores Department | Verify materials stock and issue raw materials |
+| Accounts Department | Verify actual costs, calculate variance, and finalize financial records |
+| Senior Manager | Passive executive monitoring & notification recipient |
+| General Manager | Passive executive monitoring & plant oversight recipient |
+| Production Department | Receive raw materials, execute manufacturing, and deliver to customer |
 | IT Team | Deployment, maintenance, security |
 
 ---
@@ -242,108 +246,95 @@ These may be considered for future releases.
 ## Admin
 
 Responsibilities:
-
-- Manage users
-- Manage roles
-- Configure application
-- Monitor system
+- Manage users & roles
+- Configure application settings
+- Monitor system security & session logs
 - View audit logs
 
 Goals:
-
-- Maintain application health.
-- Ensure secure access.
-- Configure business rules.
+- Maintain application health & security.
+- Ensure proper role assignment.
 
 ---
 
 ## Design Engineer
 
 Responsibilities:
-
-- Create Indent
-- Create Cost Sheet
-- Attach Engineering Drawings
-- Submit Documents
+- Create Indent Sheet (Product, Customer, Materials, Drawings)
+- Create Process Cost Sheet (Manufacturing Processes, Vendor/In-House selection, Planned Costs)
+- Attach Engineering Drawings / CAD files
+- Submit Business Transaction
 
 Goals:
-
 - Quickly prepare engineering documentation.
-- Reduce paperwork.
+- Eliminate paper indents & manual calculations.
 
 ---
 
 ## Stores Executive
 
 Responsibilities:
-
-- Verify materials.
-- Check inventory.
-- Confirm material availability.
+- Review material requirements
+- Verify stock availability
+- Issue raw materials to production
+- Update dispatch details
 
 Goals:
-
-- Ensure accurate material verification.
-- Reduce inventory discrepancies.
+- Ensure prompt material fulfillment.
+- Reduce stock discrepancies.
 
 ---
 
 ## Accounts Executive
 
 Responsibilities:
-
-- Verify costing.
-- Update actual costs.
-- Validate financial information.
+- Collect vendor bills & in-house cost statements
+- Enter actual costs for every manufacturing process
+- Calculate cost variance (Planned vs Actual)
+- Finalize financial record
 
 Goals:
-
-- Improve costing accuracy.
-- Reduce costing errors.
+- Ensure accurate financial closure.
+- Identify process cost variances.
 
 ---
 
-## Senior Manager
+## Senior Manager (Executive)
 
 Responsibilities:
-
-- Review submitted documents.
-- Monitor workflow.
-- Approve or reject requests.
+- Monitor live business transaction progress
+- Inspect cost variances & department turnaround times
+- Receive real-time notification broadcasts on stage transitions
+- Passive monitoring (No manual approvals or rejections)
 
 Goals:
-
-- Improve approval turnaround.
-- Monitor department performance.
+- High-level operational oversight without workflow bottlenecks.
 
 ---
 
-## General Manager
+## General Manager (Executive)
 
 Responsibilities:
-
-- Final approval.
-- Executive monitoring.
-- Business oversight.
+- Plant-wide performance monitoring
+- Executive risk & cost variance inspection
+- Receive real-time notification broadcasts on stage transitions
+- Passive monitoring (No manual approvals or rejections)
 
 Goals:
-
-- Improve operational efficiency.
-- Monitor plant performance.
+- Ensure overall plant efficiency & financial accuracy.
 
 ---
 
 ## Production Executive
 
 Responsibilities:
-
-- Receive materials.
-- Confirm production readiness.
-- Request additional materials if necessary.
+- Receive raw materials from Stores
+- Execute manufacturing processes
+- Update work center production status
+- Complete manufacturing & deliver product to customer
 
 Goals:
-
-- Ensure uninterrupted production.
+- Ensure timely production & delivery to customer.
 
 ---
 
@@ -374,44 +365,36 @@ Manufacturing
 ```
 
 Pain Points:
-
-- Manual signatures
-- Excel calculations
-- Email communication
+- Manual signatures & approval delays
+- Excel calculations & disconnected actual costs
+- Email communication & lost tracking
 - Duplicate data entry
 - Limited traceability
-- Delayed approvals
 
 ---
 
-# 13. Proposed Future Process
+# 13. Proposed Future Process (Two-Loop Business Workflow)
 
-The future workflow will be fully digital.
+The future workflow will be fully digital and operates across two business loops with zero manual approvals.
 
 ```
 Login
 ↓
-Role-Based Work Queue
+Role-Based Work Queue / Executive Dashboard
 ↓
-Create Indent
+Create Business Transaction (Indent Sheet & Process Cost Sheet)
 ↓
-Create Cost Sheet
+Submit (State = DESIGN_COMPLETED) → Notify SM & GM
 ↓
-Submit
+Stores Material Verification & Stock Issue (State = STORES_PROCESSING) → Notify SM & GM
 ↓
-Stores Verification
+Production Manufacturing & Customer Delivery (State = CUSTOMER_DELIVERED) → Loop 1 Closed → Notify SM & GM
 ↓
-Accounts Verification
+Accounts Invoice Collection, Actual Cost Entry & Cost Variance Calculation (State = ACCOUNTS_COST_VERIFICATION)
 ↓
-Senior Manager Review
+Accounts Financial Closure (State = ACCOUNTS_FINANCIAL_CLOSURE) → Loop 2 Closed → Notify SM & GM
 ↓
-General Manager Approval
-↓
-Production
-↓
-Material Receipt Confirmation
-↓
-Workflow Completed
+System Automated Archival & Final Report Generation (State = ARCHIVED → COMPLETED) → Notify SM & GM
 ↓
 Reports & Analytics
 ```
@@ -424,25 +407,25 @@ The proposed solution provides:
 
 ### Operational Benefits
 
-- Faster approvals
-- Reduced paperwork
-- Centralized data
-- Improved collaboration
+- Faster turnaround times
+- Total elimination of approval bottlenecks (Zero-Approval Architecture)
+- Centralized data & document repository
+- Improved inter-department collaboration
 
 ### Financial Benefits
 
 - Reduced operational costs
-- Better costing accuracy
-- Reduced rework
+- Automated Cost Variance calculation per process
+- Real-time actual cost tracking by Accounts
 - Improved resource utilization
 
 ### Technical Benefits
 
-- Secure authentication
-- Complete audit trail
-- Real-time dashboards
+- Secure JWT authentication & RBAC
+- Complete audit trail for all mutations
+- Real-time executive dashboards & notifications
 - Scalable architecture
-- Cloud deployment
+- Cloud deployment on Render & Neon PostgreSQL
 
 ---
 
@@ -450,26 +433,24 @@ The proposed solution provides:
 
 Potential risks include:
 
-- User adoption challenges
-- Data migration complexity
-- Training requirements
-- Process changes
-- Integration with future ERP modules
+- User adoption & process transition
+- Data entry accuracy for actual vendor bills
+- Training requirements for work center status updates
+- Network connectivity dependencies
 
 Mitigation strategies:
 
-- User training
-- Pilot rollout
-- Role-based access
-- Comprehensive testing
-- Documentation
+- User training & clear role workflows
+- Field-level validation rules
+- Passive notification feeds for management
+- Comprehensive documentation
 
 ---
 
 # 16. Assumptions
 
 - Users have access to modern web browsers.
-- Departments will follow the defined workflow.
+- Departments follow their designated workflow stages.
 - Internet connectivity is available.
 - User authentication is mandatory.
 - All business documents will be managed digitally.
@@ -479,18 +460,17 @@ Mitigation strategies:
 # 17. Constraints
 
 - Web-based application.
-- PostgreSQL database.
-- NestJS backend.
-- React frontend.
+- Neon PostgreSQL database.
+- NestJS backend framework.
+- React frontend framework.
 - Cloud deployment on Render.
-- Free/open-source technology stack where practical.
-- Enterprise security standards.
+- Enterprise security standards & zero-approval notification routing.
 
 ---
 
 # 18. Phase 1 Deliverables
 
-At the end of Phase 1, the following should be complete:
+At the end of Phase 1, the following are complete:
 
 - Business requirements documented.
 - Product vision approved.
@@ -498,7 +478,7 @@ At the end of Phase 1, the following should be complete:
 - Stakeholders identified.
 - User personas documented.
 - Current workflow documented.
-- Future workflow documented.
+- Future two-loop zero-approval workflow documented.
 - Business objectives established.
 - Success metrics defined.
 - Risks and assumptions recorded.
@@ -508,8 +488,8 @@ At the end of Phase 1, the following should be complete:
 # Phase 2 – Functional Requirements Specification (FRS)
 
 **Project:** Enterprise Manufacturing Indent & Costing Management System (IMCMS)  
-**Version:** 1.0  
-**Status:** Draft  
+**Version:** 2.0  
+**Status:** Approved  
 
 ---
 
@@ -534,8 +514,8 @@ The system consists of the following modules:
 
 ## Core Foundation
 
-- Authentication
-- Authorization (RBAC)
+- Authentication & JWT Refresh Tokens
+- Authorization (RBAC & Stage Guards)
 - User Management
 - Department Management
 - Role Management
@@ -555,23 +535,22 @@ The system consists of the following modules:
 
 ## Business Modules
 
-- Indent Management
-- Cost Sheet Management
-- Workflow Management
-- Approval Management
-- Inventory
-- Production
+- Indent Sheet Management (Design)
+- Process Cost Sheet Management (Planned & Actual Costs)
+- 2-Loop Workflow Engine
+- Executive Notification Engine
+- Inventory & Stock Issue (Stores)
+- Production Execution & Customer Delivery
 
 ---
 
 ## Enterprise Modules
 
-- Reports
-- Analytics
-- Notifications
-- Audit Logs
-- Dashboard
-- Settings
+- Reports & Export Engine
+- Analytics & Dashboards
+- Notifications (In-App & Email)
+- Audit Logs & Activity Logs
+- System Settings
 
 ---
 
@@ -588,28 +567,14 @@ Authenticate users securely before allowing access to the application.
 - Forgot Password
 - Reset Password
 - Change Password
-- Refresh Token
+- Refresh Token Rotation
 - User Profile
 
 ### Business Rules
 
 - Email must be unique.
-- Password must be encrypted.
-- Password cannot be stored in plain text.
+- Password must be encrypted (bcrypt).
 - JWT authentication is mandatory.
-
-### Validation
-
-- Valid email format
-- Password policy
-- Account must be active
-
-### Acceptance Criteria
-
-- User logs in successfully.
-- Invalid credentials return an error.
-- JWT token generated.
-- Refresh token generated.
 
 ---
 
@@ -617,26 +582,14 @@ Authenticate users securely before allowing access to the application.
 
 ## Purpose
 
-Control access to application features.
+Control access to application features using granular RBAC and stage-level route guards.
 
 ### Features
 
 - Role Management
 - Permission Management
-- RBAC
-- Protected APIs
-- Protected Routes
-
-### Business Rules
-
-- Every user has one role.
-- Every role contains multiple permissions.
-- Permissions determine access.
-
-### Acceptance Criteria
-
-- Unauthorized users receive 403 Forbidden.
-- Menu changes dynamically based on permissions.
+- RBAC Guards (`JwtAuthGuard`, `RolesGuard`, `PermissionsGuard`)
+- Protected APIs & Routes
 
 ---
 
@@ -644,27 +597,15 @@ Control access to application features.
 
 ## Purpose
 
-Manage application users.
+Manage application users and role assignments.
 
 ### Features
 
 - Create User
 - Update User
-- Deactivate User
+- Deactivate / Reactivate User
 - Reset Password
-- Search Users
-- Filter Users
-
-### Business Rules
-
-- Email must be unique.
-- Employee Code must be unique.
-- Soft delete only.
-
-### Acceptance Criteria
-
-- Admin can create users.
-- Duplicate emails are rejected.
+- Search & Filter Users
 
 ---
 
@@ -675,13 +616,6 @@ Manage application users.
 - Create Department
 - Edit Department
 - Disable Department
-- Search
-- Filter
-
-### Business Rules
-
-- Department name must be unique.
-- Departments cannot be deleted if users are assigned.
 
 ---
 
@@ -691,16 +625,8 @@ Manage application users.
 
 - Create Material
 - Update Material
-- Material Categories
 - Unit Selection
-- Search
-- Import Excel
-
-### Business Rules
-
-- Material Code must be unique.
-- Unit required.
-- Category required.
+- Search & Pagination
 
 ---
 
@@ -713,11 +639,6 @@ Manage application users.
 - Revision Management
 - Manufacturing Process Mapping
 
-### Business Rules
-
-- Product Code unique.
-- Multiple manufacturing processes allowed.
-
 ---
 
 # 9. Vendor Management
@@ -725,173 +646,79 @@ Manage application users.
 ## Features
 
 - Create Vendor
-- GST Information
+- GST & Address Details
 - Contact Details
 - Vendor Status
-
-### Validation
-
-- GST Number
-- Email
-- Phone
 
 ---
 
 # 10. Manufacturing Process Management
 
-Examples:
-
-- Milling
-- Turning
-- Grinding
-- Heat Treatment
-- Inspection
-- Assembly
-
-### Features
-
-- Process Master
-- Estimated Hours
-- Process Order
-- Cost Parameters
+Examples: Turning, Heat Treatment, Grinding, Assembly, Inspection.
 
 ---
 
-# 11. Indent Management
+# 11. Indent Sheet Management
 
 ## Purpose
 
-Digitize the paper-based indent form.
+Digitize the engineering material requirement document.
 
 ### Features
 
-- Create Indent
+- Create Indent Sheet
 - Edit Draft
 - Save Draft
-- Submit
-- Clone Indent
-- View History
-- Attach Drawings
-- Attach PDFs
-
-### Fields
-
-- Indent Number
-- PO Number
-- Concept Number
-- Customer
-- Product
-- Priority
-- Required Date
-
-### Material Grid
-
-- Material
-- Grade
-- Size
-- Quantity
-- Unit
-- Vendor
-- Remarks
-
-### Business Rules
-
-- Draft can be edited.
-- Submitted indent becomes read-only except through defined workflow actions.
-- Every indent must have at least one material.
+- Submit Business Transaction
+- Attach Drawings & CAD files (`BYTEA`)
 
 ---
 
-# 12. Cost Sheet Management
+# 12. Process Cost Sheet Management
 
 ## Purpose
 
-Digitize costing Excel sheets.
+Digitize manufacturing process costing and compute automated cost variance.
 
 ### Features
 
-- Predicted Cost
-- Actual Cost
-- Material Cost
-- Process Cost
-- Variance Calculation
-
-### Sections
-
-- Material Cost
-- Process Cost
-- Summary
-
-### Business Rules
-
-- Predicted cost entered by Design.
-- Actual cost updated by Accounts.
-- System calculates variance automatically.
+- Planned Cost Entry (Design Stage per process)
+- Vendor / In-House Selection per process
+- Actual Cost Entry (Accounts Stage per process)
+- Automated Cost Variance Calculation (`Actual Cost - Planned Cost`)
+- Financial Closure
 
 ---
 
 # 13. Workflow Management
 
-Workflow
-
-```
-Design
-↓
-Stores
-↓
-Accounts
-↓
-Senior Manager
-↓
-General Manager
-↓
-Production
-```
-
-### Features
-
-- Submit
-- Forward
-- Approve
-- Reject
-- Request Changes
-
-### Business Rules
-
-- Users can only act at their assigned workflow stage.
-- All actions are recorded in history.
+Operates on the Two-Loop Business Workflow Architecture (`Design` → `Stores` → `Production` → `Accounts` → `System Archival`).
 
 ---
 
-# 14. Approval Management
+# 14. Executive Notification & Monitoring Engine
 
 ### Features
 
-- Approval Queue
-- Comments
-- Digital Approval
-- Timeline
-- Status Tracking
+- Real-Time Notification Broadcast Feed
+- Live Business Transaction Stage Tracking
+- Cost Variance Alerts
+- Read-Only Audit History Inspection
 
 ### Business Rules
 
-- Senior Manager reviews before General Manager.
-- Rejected documents return to the previous stage.
+- Senior Managers and General Managers do NOT perform manual approvals or rejections.
+- Automated notifications are broadcast to Senior Managers and General Managers at every state transition.
 
 ---
 
-# 15. Inventory Management
+# 15. Inventory & Stores Management
 
 ### Features
 
-- Material Verification
-- Material Issue
-- Material Availability
-- Stock Status
-
-### Business Rules
-
-- Stores verifies material availability before approval.
+- Review Material Requirements
+- Verify Stock Availability
+- Raw Material Issue & Dispatch to Production Work Center
 
 ---
 
@@ -899,15 +726,10 @@ Production
 
 ### Features
 
-- Receive Materials
-- Production Confirmation
-- Additional Material Request
-- Completion Status
-
-### Business Rules
-
-- Materials should be received within the defined SLA.
-- Additional material requests reference the original indent.
+- Receive Raw Materials from Stores
+- Update Production Work Center Status
+- Complete Manufacturing
+- Deliver Finished Product to Customer
 
 ---
 
@@ -915,570 +737,159 @@ Production
 
 ### Notification Types
 
-- New Indent
-- Approval Request
-- Approval Completed
-- Rejection
-- Material Ready
-- Production Complete
-- SLA Warning
-
-### Channels
-
-- In-App
-- Email
+- Business Transaction Submitted (`DESIGN_COMPLETED`)
+- Raw Materials Issued (`STORES_PROCESSING`)
+- Manufacturing Completed & Customer Delivered (`CUSTOMER_DELIVERED`)
+- Accounts Financial Closure (`ACCOUNTS_FINANCIAL_CLOSURE`)
+- Transaction Archived (`ARCHIVED`)
+- SLA Warning Alert
 
 ---
 
-# 18. Reports
+# 18. Reports & Analytics
 
-### Standard Reports
-
-- Indent Report
-- Cost Sheet Report
-- Vendor Report
-- Material Report
-- Production Report
-- Approval Report
-
-### Export Formats
-
-- PDF
-- Excel
+Standard Reports: Indent Sheet Report, Process Cost Sheet Report, Cost Variance Report, Vendor Report, Production Report.
 
 ---
 
-# 19. Analytics
+# 19. Analytics & Dashboards
 
-### Dashboards
-
-- Executive Dashboard
-- Department Dashboard
-- Workflow Dashboard
-- Cost Dashboard
-- Vendor Dashboard
-- Production Dashboard
-
-### KPIs
-
-- Pending Indents
-- Pending Approvals
-- Cost Variance
-- SLA Compliance
-- Production Status
-- Vendor Performance
+Dashboards: Executive Dashboard (SM & GM), Department Task Work Queues, Cost Variance Dashboard, Turnaround Time Metrics.
 
 ---
 
 # 20. Audit Logs
 
-Track:
-
-- Login
-- Logout
-- Create
-- Update
-- Delete (Soft Delete)
-- Approval
-- Workflow Changes
-- Password Changes
-
----
-
-# 21. Settings
-
-### Features
-
-- Company Profile
-- Email Configuration
-- Notification Settings
-- SLA Configuration
-- Workflow Configuration (future)
-- Theme Settings
-
----
-
-# 22. Global Functional Requirements
-
-Every module must support:
-
-- Search
-- Filter
-- Sorting
-- Pagination
-- Export
-- Soft Delete
-- Audit Trail
-- Status Management
-- Validation
-- Responsive UI
-- Accessibility
-
----
-
-# 23. Business Rules Summary
-
-- Every user belongs to one department.
-- Every user has one role.
-- Permissions are role-based.
-- Indents must contain at least one material.
-- Cost sheets are linked to indents.
-- Workflow follows the defined department sequence.
-- Production can request additional materials.
-- All business actions are auditable.
-
----
-
-# 24. Functional Acceptance Criteria
-
-The system will be considered functionally complete when:
-
-- Users can authenticate securely.
-- Role-based permissions are enforced.
-- Master data can be managed.
-- Indents and cost sheets can be created and processed.
-- Workflow and approvals operate correctly.
-- Inventory and production processes are tracked.
-- Reports and analytics are available.
-- Notifications are delivered.
-- Audit logs capture all significant actions.
+Track: Login, Logout, Create, Update, Soft Delete, State Transition, Cost Entry, Archival.
 
 ---
 
 # Phase 3 – Workflow & Business Process Specification (WBPS)
 
 **Project:** Enterprise Manufacturing Indent & Costing Management System (IMCMS)  
-**Version:** 1.0  
+**Version:** 2.0  
 **Document Type:** Workflow & Business Process Specification  
 
 ---
 
-# 1. Purpose
-
-This document defines the complete business workflow executed by the Enterprise Manufacturing Indent & Costing Management System.
-
-The objective is to replace the current manual engineering process with a secure, auditable, role-based digital workflow.
-
-Every department must understand:
-
-- Responsibilities
-- Inputs
-- Outputs
-- Decision points
-- Approvals
-- Notifications
-- SLA
-- Exception handling
-
----
-
-# 2. High-Level Business Workflow
+# 1. High-Level Business Workflow Architecture
 
 ```
-Design Department
+Design Department (Create Indent Sheet & Process Cost Sheet)
 ↓
-Create Indent
+Submit (State = DESIGN_COMPLETED) → Notify SM & GM
 ↓
-Create Cost Sheet
+Stores Stock Verification & Material Issue (State = STORES_PROCESSING) → Notify SM & GM
 ↓
-Submit
+Production Manufacturing & Customer Delivery (State = CUSTOMER_DELIVERED) → Loop 1 Closed → Notify SM & GM
 ↓
-Stores Verification
+Accounts Cost Verification & Actual Cost Entry (State = ACCOUNTS_COST_VERIFICATION)
 ↓
-Accounts Verification
+Accounts Financial Closure (State = ACCOUNTS_FINANCIAL_CLOSURE) → Loop 2 Closed → Notify SM & GM
 ↓
-Senior Manager Review
-↓
-General Manager Approval
-↓
-Production
-↓
-Material Receipt Confirmation
-↓
-Workflow Completed
+System Automated Archival & Final Report Generation (State = ARCHIVED → COMPLETED) → Notify SM & GM
 ```
 
 ---
 
-# 3. Department Responsibilities
+# 2. Department Responsibilities & Permissions
 
 ## Design Department
-
-### Responsibilities
-
-- Create new indent
-- Create costing sheet
-- Attach engineering drawings
-- Select materials
-- Define manufacturing processes
-- Estimate costs
-- Submit document
-
-### Inputs
-
-- Customer requirement
-- Drawing
-- Product information
-- Material list
-
-### Outputs
-
-- Indent
-- Cost Sheet
-
-### Allowed Actions
-
-- Create
-- Edit Draft
-- Save Draft
-- Submit
-- Cancel Draft
-
-### Not Allowed
-
-- Verify inventory
-- Update actual costs
-- Approve workflow
-
----
+- **Responsibilities:** Create Indent Sheet, Create Process Cost Sheet (Planned Costs for Manufacturing Processes e.g. Turning, Heat Treatment, Grinding, Assembly, Inspection), attach drawings, submit document.
+- **Allowed Actions:** Create, Edit Draft, Save Draft, Submit.
+- **Not Allowed:** Issue raw materials, enter actual vendor costs.
 
 ## Stores Department
+- **Responsibilities:** Review material requirements, verify stock availability, issue raw materials, dispatch to production.
+- **Allowed Actions:** Stock verification, Material issue, Dispatch confirmation.
 
-### Responsibilities
-
-- Verify material availability
-- Validate inventory
-- Suggest alternative materials
-- Confirm stock
-
-### Inputs
-
-- Submitted indent
-
-### Outputs
-
-- Material verification
-
-### Allowed Actions
-
-- Verify
-- Reject
-- Request clarification
-
-### Not Allowed
-
-- Modify costing
-- Approve financial data
-
----
+## Production Department
+- **Responsibilities:** Receive raw materials, execute manufacturing processes, update status, complete manufacturing, deliver product to customer.
+- **Allowed Actions:** Receive materials, Update production status, Customer delivery confirmation.
 
 ## Accounts Department
+- **Responsibilities:** Collect vendor bills and in-house cost statements, verify planned costs, enter actual cost for every process, calculate cost variance, finalize financial record.
+- **Allowed Actions:** Enter actual costs, Calculate variance, Finalize financial record.
 
-### Responsibilities
-
-- Review costing
-- Enter actual costs
-- Calculate variance
-- Validate financial data
-
-### Inputs
-
-- Verified indent
-- Cost sheet
-
-### Outputs
-
-- Final costing
+## Senior Manager & General Manager (Executive Roles)
+- **Responsibilities:** Passive executive monitoring, review live state tracker, inspect cost variances.
+- **Rule:** Do NOT approve or reject documents. Notified automatically at every stage transition.
 
 ---
 
-## Senior Manager
+# 3. Workflow States & Transitions
 
-### Responsibilities
+### 9 Sequential Business States:
 
-- Review documents
-- Review costing
-- Review workflow
-- Approve
-- Reject
-
----
-
-## General Manager
-
-### Responsibilities
-
-- Final approval
-- Executive review
-- Risk assessment
+1. `Draft`
+2. `Design Completed`
+3. `Stores Processing`
+4. `Production Processing`
+5. `Customer Delivered` *(Loop 1 Closed)*
+6. `Accounts Cost Verification`
+7. `Accounts Financial Closure` *(Loop 2 Financial Closure)*
+8. `Archived`
+9. `Completed` *(Transaction Closed)*
 
 ---
 
-## Production
+# 4. Executive Notification Matrix
 
-### Responsibilities
-
-- Receive materials
-- Confirm receipt
-- Request additional materials
-- Complete workflow
-
----
-
-# 4. Workflow States
-
-Every document must always exist in exactly one workflow state:
-
-- `Draft`
-- `Submitted`
-- `Stores Verification`
-- `Accounts Verification`
-- `Senior Manager Review`
-- `General Manager Approval`
-- `Approved`
-- `Production`
-- `Material Received`
-- `Completed`
-- `Rejected`
-- `Returned`
-- `Cancelled`
-
----
-
-# 5. Workflow State Transitions
-
-### Draft
-Possible actions: Save, Edit, Submit, Delete
-
-### Submitted
-Possible actions: Send to Stores, Cancel Submission
-
-### Stores Verification
-Possible actions: Verify, Reject, Return to Design
-
-### Accounts Verification
-Possible actions: Verify Cost, Update Actual Cost, Return to Stores
-
-### Senior Manager Review
-Possible actions: Approve, Reject, Request Changes
-
-### General Manager
-Possible actions: Final Approval, Reject, Send Back
-
-### Production
-Possible actions: Receive Materials, Confirm Receipt, Request Additional Materials
-
----
-
-# 6. Business Rules
-
-- **Rule 1:** Only Design can create an Indent.
-- **Rule 2:** Only Design can prepare the initial Cost Sheet.
-- **Rule 3:** Stores cannot modify costing.
-- **Rule 4:** Accounts cannot modify engineering information.
-- **Rule 5:** Production cannot receive materials before approval.
-- **Rule 6:** General Manager approval is mandatory before Production begins.
-- **Rule 7:** Rejected documents return to the previous workflow stage with comments.
-- **Rule 8:** Every workflow action generates an audit record.
-- **Rule 9:** Every workflow action generates notifications.
-- **Rule 10:** Workflow history cannot be deleted.
-
----
-
-# 7. SLA Rules
-
-| Stage | SLA |
-| --- | --- |
-| Design Submission | 1 Day |
-| Stores Verification | 1 Day |
-| Accounts Verification | 1 Day |
-| Senior Manager Review | 1 Day |
-| General Manager Approval | 1 Day |
-| Production Receipt | 2 Days |
-
-If SLA exceeds: Generate Notification → Escalation
-
----
-
-# 8. Notification Matrix
-
-| Event | Notify |
-| --- | --- |
-| Indent Submitted | Stores |
-| Stores Approved | Accounts |
-| Accounts Approved | Senior Manager |
-| SM Approved | General Manager |
-| GM Approved | Production |
-| Material Received | Accounts, SM, GM |
-| Rejected | Previous Department |
-| SLA Breach | Admin + Responsible Department |
-
----
-
-# 9. Approval Rules
-
-Approval Hierarchy:
-`Stores` → `Accounts` → `Senior Manager` → `General Manager`
-
-Each approval records: User, Date, Time, Comments, Decision.
-
----
-
-# 10. Rejection Workflow
-
-`Rejected` → `Previous Stage` → `Edit` → `Resubmit` → `Continue Workflow`
-
-Every rejection must include comments.
-
----
-
-# 11. Additional Material Request Workflow
-
-`Production` → `Request Additional Material` → `Stores Verification` → `Accounts Verification` → `Approval` → `Issue Material` → `Continue Production`
-
-The request references the original indent and is fully traceable.
-
----
-
-# 12. Exception Handling
-
-- **Material Not Available:** Return to Design.
-- **Cost Mismatch:** Return to Accounts.
-- **Incorrect Drawing:** Return to Design.
-- **Vendor Issue:** Return to Stores.
-- **Production Delay:** Escalate to Management.
-
----
-
-# 13. Audit Events
-
-Log every significant action with User, Timestamp, Department, Action, Previous State, New State, and Comments.
-
----
-
-# 14. Document Lifecycle
-
-`Draft` → `Submitted` → `Verified` → `Approved` → `Production` → `Completed` → `Archived`
-
-Soft deletion only; archived documents remain searchable.
-
----
-
-# 15. Role Permissions by Workflow Stage
-
-| Role | Create | Edit | Approve | Reject | View |
-| --- | --- | --- | --- | --- | --- |
-| Design | ✔ | ✔ | ✖ | ✖ | ✔ |
-| Stores | ✖ | ✖ | ✔ (Verification) | ✔ | ✔ |
-| Accounts | ✖ | ✔ (Actual Cost) | ✔ | ✔ | ✔ |
-| Senior Manager | ✖ | ✖ | ✔ | ✔ | ✔ |
-| General Manager | ✖ | ✖ | ✔ | ✔ | ✔ |
-| Production | ✖ | ✖ | Material Receipt Only | ✖ | ✔ |
-| Admin | ✔ | ✔ | ✔ | ✔ | ✔ |
-
----
-
-# 16. Workflow Dashboard Requirements
-
-Each role should see a personalized work queue tailored to their responsibilities.
-
----
-
-# 17. Acceptance Criteria
-
-- Workflow state transitions follow defined rules.
-- Unauthorized transitions are blocked.
-- All approvals and rejections are logged with comments.
-- SLA timers trigger notifications appropriately.
+| Event Trigger | Direct Action Target | Executive Notifications |
+| --- | --- | --- |
+| Indent & Process Cost Sheet Submitted | Stores Department | Senior Manager, General Manager |
+| Stores Issues Raw Materials | Production Department | Senior Manager, General Manager |
+| Production Delivers to Customer | Accounts Department | Senior Manager, General Manager |
+| Accounts Finalizes Costs | System Archival | Senior Manager, General Manager |
+| System Archives Transaction | Transaction Closed | Senior Manager, General Manager |
 
 ---
 
 # Phase 4 – Technical Solution Architecture Specification (TSAS)
 
 **Project:** Enterprise Manufacturing Indent & Costing Management System (IMCMS)  
-**Version:** 1.1  
+**Version:** 2.0  
 **Document Type:** Technical Architecture Specification  
 
 ---
 
-# 1. Purpose
+# 1. Architecture Overview
 
-Define the technical architecture of the Enterprise Manufacturing Indent & Costing Management System to ensure security, scalability, maintainability, and modularity.
-
----
-
-# 2. Solution Overview
-
-Three-tier enterprise architecture:
-- Presentation Layer (React + TypeScript)
+Three-tier enterprise modular architecture:
+- Presentation Layer (React 19 + TypeScript + Tailwind CSS)
 - Business Logic Layer (NestJS + TypeScript)
 - Data Layer (Neon PostgreSQL + Prisma ORM)
 
 ---
 
-# 3. Technology Stack
+# 2. Business Logic Execution
 
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS, React Router, React Hook Form, Zod, Zustand, TanStack Query, Axios
-- **Backend:** NestJS, TypeScript, Prisma ORM, JWT, bcrypt, class-validator, class-transformer
-- **Database:** Neon PostgreSQL (stores master data, transactions, workflow, files/documents via BYTEA, system data)
-- **Deployment:** Render (Frontend Static Site, Backend Web Service, Neon PostgreSQL)
-
----
-
-# 4. Storage Architecture
-
-Neon PostgreSQL serves as the centralized storage for structured data and document attachments (PDF, Excel, Images, CAD drawings up to limit).
-
----
-
-# 5. Security & Authentication
-
-- HTTPS / TLS Encryption
-- JWT Access & Refresh Tokens
-- bcrypt Password Hashing
-- RBAC Guard Controls
-- DTO Input Validation
-- Audit Logging for all critical endpoints
-
----
-
-# 6. Performance Targets
-
-- API Response Time: < 2 seconds
-- Page Load Time: < 3 seconds
-- 99.9% Uptime SLA
+- **Loop 1 Execution:** Design → Stores → Production → Customer Delivery.
+- **Loop 2 Execution:** Accounts actual cost verification → Cost variance calculation → System automated archival (`BYTEA` attachments, audit history, workflow logs locked).
+- **Notification Engine:** Event emission on state transitions routing notifications to SM & GM.
 
 ---
 
 # Phase 5 – User Experience (UX), User Interface (UI) & Screen Specification
 
 **Project:** Enterprise Manufacturing Indent & Costing Management System (IMCMS)  
-**Version:** 1.0  
+**Version:** 2.0  
 **Document Type:** UI/UX & Screen Specification  
 
 ---
 
-# 1. Design Principles
+# 1. Navigation & Role-Based Layouts
 
-- Simplicity, Consistency, Clarity, Accessibility (WCAG 2.1 AA), Efficiency, Scalability, Responsiveness.
-- Clean layout inspired by Microsoft Dynamics 365, SAP Fiori, Atlassian Jira.
-
----
-
-# 2. Navigation & Role-Based Layouts
-
-- **Left Sidebar:** Dynamic module links based on permissions (Dashboard, Work Queue, Indents, Cost Sheets, Materials, Products, Vendors, Production, Reports, Analytics, Settings).
-- **Top Navigation:** Global Search, Notifications, User Profile, Theme Switch, Help, Logout.
+- **Left Sidebar:** Module links based on role (Dashboard, Work Queue, Indents, Cost Sheets, Materials, Products, Vendors, Production, Reports, Analytics, Settings).
+- **Top Navigation:** Global Search, Real-Time Executive Notification Badge, User Profile Menu.
 
 ---
 
-# 3. Key Screens
+# 2. Key Screens
 
-- **Work Queue:** Dedicated task list per role with Search, Filter, Sort, Pagination, and Action buttons.
-- **Indent Screen:** Basic Information, Material Grid, Engineering Drawing Attachments, Save Draft / Submit actions.
-- **Cost Sheet Screen:** Material Costs, Process Costs, Estimated vs. Actual Cost Summary, Automatic Variance Calculation.
-- **Workflow & Approval Timeline:** Visual step-by-step state tracker with comments and timestamp audit logs.
-- **Production Screen:** Material Receipt confirmation, Additional Material Request flow, Job completion.
-- **Dashboards & Analytics:** Role-tailored KPI cards, workflow bottleneck metrics, cost variance trends.
-
----
+- **Design Screen:** Indent Sheet basic info, Material Grid, Engineering Drawing Uploader (`BYTEA`), Process Cost Sheet Planned Costs, Submit action.
+- **Stores Work Center:** Material requirement review, stock availability status, raw material issue action.
+- **Production Work Center:** Raw material receipt acknowledgment, manufacturing process status tracker, customer delivery action.
+- **Accounts Costing Screen:** Process actual cost entry form, automated cost variance breakdown table, financial closure action.
+- **Executive Dashboard (SM & GM):** Real-time notification feed, live workflow state progress bar, cost variance widgets, turnaround metrics.
+- **Workflow & Audit Timeline:** Step-by-step state tracker with timestamp audit logs.

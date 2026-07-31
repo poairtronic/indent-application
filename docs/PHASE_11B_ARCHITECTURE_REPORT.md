@@ -141,4 +141,4 @@ Coverage added: `processes.service.spec.ts`, `processes.controller.spec.ts`, `un
 
 - Frontend screens and API client wiring for the three modules.
 - Phase 11B stops at backend completion per the approved instruction.
-- Remaining Phase 12+ features (indent lifecycle, costing, approvals) are unchanged.
+- Remaining Phase 12+ features (2-loop business workflow, process costing, zero-approval notifications) follow the approved 2-loop architecture.

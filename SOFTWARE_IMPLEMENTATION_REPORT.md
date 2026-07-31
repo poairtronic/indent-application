@@ -17,8 +17,9 @@ The Enterprise Manufacturing Indent & Costing Management System (IMCMS) is a web
 
 ### 1.2 Business Objective
 Replace manual, paper-based indent forms, Excel costing sheets, and un-tracked email approval flows with a centralized digital platform featuring:
-- Single Source of Truth for engineering documents and cost estimates.
-- End-to-End 7-Department Workflow (`Design` → `Stores` → `Accounts` → `Senior Manager` → `General Manager` → `Production`).
+- Two-Loop Business Workflow Architecture (Loop 1: Manufacturing, Loop 2: Financial Closure & Archival).
+- Zero-Approval Executive Notification Model for Senior Manager & General Manager.
+- Single Source of Truth for Indent Sheets and Process Cost Sheets.
 - Enterprise Role-Based Access Control (RBAC) and Audit Trail.
 - Live executive dashboards and turnaround metrics.
 
@@ -230,11 +231,9 @@ The database schema (`database/schema.prisma`) contains **28 tables** fully defi
 
 ---
 
-# SECTION 10: BUSINESS WORKFLOW ENGINE
-
-The workflow state machine is defined in `APPLICATION_FLOW.md` and schema enums:
-`DRAFT` → `SUBMITTED` → `PENDING_STORES` → `PENDING_ACCOUNTS` → `PENDING_SENIOR_MANAGER` → `PENDING_GENERAL_MANAGER` → `APPROVED` → `IN_PRODUCTION` → `COMPLETED` → `CLOSED`.
-Rejection from any stage returns document to `DRAFT` while retaining approval audit history.
+The workflow state machine is defined in `APPLICATION_FLOW.md` and follows the 2-loop zero-approval state sequence:
+`DRAFT` → `DESIGN_COMPLETED` → `STORES_PROCESSING` → `PRODUCTION_PROCESSING` → `CUSTOMER_DELIVERED` → `ACCOUNTS_COST_VERIFICATION` → `ACCOUNTS_FINANCIAL_CLOSURE` → `ARCHIVED` → `COMPLETED`.
+Senior Managers and General Managers do NOT approve or reject documents; they receive real-time notifications on state transitions and monitor operations passively.
 
 ---
 

@@ -287,14 +287,15 @@ Snapshot backups of modified indents.
 
 ---
 
-## 4. Lifecycle & Workflow
+## 4. Lifecycle & Workflow (Two-Loop Zero-Approval Architecture)
 
-The Indent follows a linear approval and execution path:
-1. **Design**: Creates Indent and Predicted Costing.
-2. **Stores**: Verifies material availability and updates sourcing.
-3. **Accounts**: Finalizes predicted costing and budget approval.
-4. **Management**: (Senior/General Manager) Reviews and notifies.
-5. **Production**: Executes manufacturing and acknowledges receipt (`ProductionReceipt`).
+The Business Transaction follows a two-loop non-approval sequence:
+1. **Design**: Creates Indent Sheet and Process Cost Sheet (planned costs per process).
+2. **Stores**: Verifies material stock availability, issues raw materials, dispatches to production work center.
+3. **Production**: Executes manufacturing processes, updates status, completes manufacturing, delivers finished product to customer (Loop 1 Closed).
+4. **Accounts**: Collects vendor bills/in-house cost statements, verifies planned costs, enters actual costs per process, calculates cost variance, finalizes financial record (Loop 2 Financial Closure).
+5. **System**: Archives transaction, drawings, audit logs, and workflow history; generates final report; closes transaction.
+6. **Executive Oversight**: Senior Managers and General Managers receive real-time notifications at every state transition and monitor operations passively on executive dashboards.
 
 ---
 

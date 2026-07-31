@@ -1,14 +1,14 @@
 # ENTERPRISE MANUFACTURING INDENT & COSTING MANAGEMENT SYSTEM (IMCMS)
-## Complete Application Flow & State Machine Specification
+## Complete Application Flow & Two-Loop Business State Machine Specification
 
 **Project:** Enterprise Manufacturing Indent & Costing Management System (IMCMS)  
 **Document Type:** System Workflow & UI Application Flow Specification  
-**Version:** 1.0  
+**Version:** 2.0 (Approved 2-Loop Zero-Approval Architecture)  
 **Status:** Approved  
 
 ---
 
-# 1. System Entry & Authentication Flow
+# 1. System Architecture & Entry Flow
 
 ```
                                    START
@@ -35,387 +35,261 @@
                                      │
      ┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐
      │          │          │          │          │          │          │
-     ▼          ▼          ▼          ▼          ▼          ▼
-  Design      Stores    Accounts   Sr.Manager  GM      Production
-     │          │          │          │          │          │
-     └──────────┴──────────┴──────────┴──────────┴──────────┘
+     ▼          ▼          ▼          ▼          ▼          ▼          ▼
+  Design      Stores   Production  Accounts  Sr.Manager    GM       System
+     │          │          │          │          │          │          │
+     └──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
                                      │
                                      ▼
-                             Work Queue Dashboard
+                       Department Task & Executive Monitoring
 ```
 
 ---
 
-# 2. Department Workflows
+# 2. Two-Loop Business Workflow
 
-## 2.1 Design Department Flow
+## 2.1 LOOP 1: Manufacturing Workflow (Design → Stores → Production → Customer Delivery)
 
+### Stage 1: Design Department Flow
 ```
-Dashboard
+Design Dashboard
     │
     ▼
-Create New Indent
+Create Business Transaction
     │
-    ▼
-Select Product
-    │
-    ▼
-Add Materials
-    │
-    ▼
-Add Manufacturing Processes
-    │
-    ▼
-Upload Drawings / PDFs / CAD
-    │
-    ▼
-Create Cost Sheet
-    │
-    ▼
-Estimated Material Cost
-    │
-    ▼
-Estimated Process Cost
-    │
-    ▼
-Estimated Total Cost
-    │
-    ▼
-Save Draft
-    │
-    ├────────────► Edit Later
-    │
-    ▼
-Submit Indent
-    │
-    ▼
-Workflow Status = STORES_PENDING
-    │
-    ▼
-Notification Sent to Stores
+    ├──────────────────────────────┬──────────────────────────────┐
+    ▼                                                             ▼
+Create Indent Sheet                                   Create Process Cost Sheet
+ • Select Product                                      • Define Manufacturing Processes
+ • Customer Details                                     (e.g., Turning → Heat Treatment →
+ • Material Requirements & Quantities                    Grinding → Assembly → Inspection)
+ • Upload Drawings / PDFs / CAD                        • Select Vendor / In-House per Process
+                                                       • Planned Cost per Process
+    │                                                  • Total Planned Cost
+    └──────────────────────────────┬──────────────────────────────┘
+                                   │
+                                   ▼
+                             Save Draft
+                                   │
+                                   ▼
+                       Submit Business Document
+                                   │
+                                   ▼
+                   State = DESIGN_COMPLETED
+                                   │
+                                   ▼
+          Notifications Sent → Stores, Senior Manager, General Manager
 ```
 
----
-
-## 2.2 Stores Department Flow
-
+### Stage 2: Stores Department Flow (Material Fulfillment)
 ```
-Stores Dashboard
+Stores Dashboard (Notification Feed)
      │
      ▼
-Pending Material Verification
+Review Material Requirement & Indent Sheet
      │
      ▼
-Open Indent
+Verify Stock Availability
      │
      ▼
-Check Material Availability
+Issue Raw Materials & Update Issue Details
      │
      ▼
-Verify Materials
-     │
-     ├────────────► Reject ───► Return to Design
+Dispatch Materials to Production
      │
      ▼
-Approve
+State = STORES_PROCESSING
      │
      ▼
-Workflow Status = ACCOUNTS_PENDING
-     │
-     ▼
-Notification to Accounts
+Notifications Sent → Production, Senior Manager, General Manager
 ```
 
----
-
-## 2.3 Accounts Department Flow
-
+### Stage 3: Production Department Flow (Manufacturing & Delivery)
 ```
-Accounts Dashboard
-     │
-     ▼
-Pending Cost Verification
-     │
-     ▼
-Open Cost Sheet
-     │
-     ▼
-Review Material Cost
-     │
-     ▼
-Review Process Cost
-     │
-     ▼
-Enter Actual Cost
-     │
-     ▼
-Calculate Variance
-     │
-     ▼
-Approve
-     │
-     ├──────────► Reject ───► Return to Design
-     │
-     ▼
-Workflow Status = SENIOR_MANAGER_PENDING
-     │
-     ▼
-Notification Sent to Senior Manager
-```
-
----
-
-## 2.4 Senior Manager Flow
-
-```
-Senior Manager Dashboard
-     │
-     ▼
-Pending Reviews
-     │
-     ▼
-Open Indent
-     │
-     ▼
-Review (Materials, Cost, Attachments, History, Comments)
-     │
-     ▼
-Approve
-     │
-     ├────────► Reject ───► Return to Design
-     │
-     ▼
-Workflow Status = GENERAL_MANAGER_PENDING
-     │
-     ▼
-Notification Sent to General Manager
-```
-
----
-
-## 2.5 General Manager Flow
-
-```
-GM Dashboard
-     │
-     ▼
-Pending Approvals
-     │
-     ▼
-Review Complete Document
-     │
-     ▼
-Approve
-     │
-     ├────────► Reject ───► Return to Design
-     │
-     ▼
-Workflow Status = PRODUCTION_PENDING
-     │
-     ▼
-Notify Production Department
-```
-
----
-
-## 2.6 Production Flow
-
-```
-Production Dashboard
+Production Dashboard (Work Center Notification)
       │
       ▼
-Receive Approved Indent
+Receive Raw Materials from Stores
       │
       ▼
-Receive Materials
+Manufacture Product (Execute Manufacturing Processes)
       │
       ▼
-Confirm Receipt
+Update Production Status
       │
       ▼
-Production Started
-      │
-      ├─────────────► Need Additional Materials?
-      │                        │
-      │                       Yes
-      │                        │
-      │                        ▼
-      │            Create Additional Material Request
-      │                        │
-      │                        ▼
-      │            Stores Verification
-      │                        │
-      │                        ▼
-      │            Accounts Review (if costing changes)
-      │                        │
-      │                        ▼
-      │                Material Issued
+Complete Manufacturing
       │
       ▼
-Production Completed
+Deliver Finished Product to Customer
       │
       ▼
-Workflow Closed
+State = CUSTOMER_DELIVERED (Loop 1 Closed)
+      │
+      ▼
+Notifications Sent → Accounts, Senior Manager, General Manager
 ```
 
 ---
 
-# 3. Auxiliary Subsystem Flows
+## 2.2 LOOP 2: Financial Workflow (Accounts Cost Verification → Financial Closure → System Archival)
 
-## 3.1 Attachment Handling Flow
+### Stage 4: Accounts Department Flow (Financial Verification & Closure)
+```
+Accounts Dashboard (Notification Feed)
+      │
+      ▼
+State = ACCOUNTS_COST_VERIFICATION
+      │
+      ▼
+Collect Vendor Bills & In-House Cost Statements
+      │
+      ▼
+Verify Planned Process Costs against Invoices
+      │
+      ▼
+Enter Actual Cost for Every Process
+      │
+      ▼
+Calculate Cost Variance (Planned vs Actual)
+      │
+      ▼
+Generate Final Cost Sheet
+      │
+      ▼
+Finalize Financial Record
+      │
+      ▼
+State = ACCOUNTS_FINANCIAL_CLOSURE
+      │
+      ▼
+Notifications Sent → Senior Manager, General Manager
+```
+
+### Stage 5: System Automated Archival & Transaction Completion
+```
+System Automated Process
+      │
+      ▼
+Archive Indent Sheet & Process Cost Sheet
+      │
+      ▼
+Store Audit History, Workflow Logs & Drawings/Attachments
+      │
+      ▼
+State = ARCHIVED
+      │
+      ▼
+Generate Final Report
+      │
+      ▼
+State = COMPLETED (Business Transaction Closed)
+      │
+      ▼
+Notifications Sent → Senior Manager, General Manager
+```
+
+---
+
+# 3. Executive Monitoring & Zero-Approval Architecture
 
 ```
-Upload File
+                       EXECUTIVE MONITORING (SM & GM)
+                                     │
+        ┌────────────────────────────┴────────────────────────────┐
+        ▼                                                         ▼
+Senior Manager (SM) Dashboard                            General Manager (GM) Dashboard
+ • Real-time Notification Feed                            • Real-time Notification Feed
+ • Live Process State Tracker                             • Cost Variance & Analytics Widgets
+ • Department Bottleneck Alerts                           • Full Audit History Inspection
+ • Read-Only View of Indent & Cost Sheets                 • Executive Performance Metrics
+```
+
+> [!IMPORTANT]
+> **Zero-Approval Rule:** Senior Managers and General Managers do NOT approve or reject transactions. There are no approval engines, approval queues, return loops, or reject buttons. Senior Managers and General Managers receive notifications at every stage transition and passively monitor process execution and financial variances via executive dashboards.
+
+---
+
+# 4. Auxiliary Subsystem Flows
+
+## 4.1 Attachment Handling Flow
+```
+Upload File (Design Stage)
     │
     ▼
 Validation Check (Extension & MIME Type)
     │
     ▼
-Store Metadata
+Store Metadata & Link to Business Transaction
     │
     ▼
-Store Binary Data (BYTEA) in PostgreSQL
+Store Binary Data (BYTEA) / Managed Storage
     │
     ▼
-Link to Indent Record
-    │
-    ▼
-Available for Workflow Review
+Available for Read-Only Inspection across Workflows & Archival
 ```
-*Supported formats:* PDF, Excel (.xlsx), CAD Drawings, Images (.png, .jpg), Word (.docx)
 
----
-
-## 3.2 Audit Logging Flow
-
+## 4.2 Audit Logging Flow
 ```
-Action Triggered (Create / Update / Submit / Approve / Reject / Upload / Download / Login / Logout)
+Action Triggered (Create / Submit / Stock Issue / Status Update / Delivery / Cost Entry / Closure / Archive)
     │
     ▼
-Capture Event Data:
-• User ID
-• Timestamp
-• Module
-• Action
-• Old Value
-• New Value
-• IP Address
-• User Agent
+Capture Event Data (User ID, Timestamp, Department, Action, Old Value, New Value, IP Address)
     │
     ▼
 Write to AuditLogs Table
 ```
 
----
-
-## 3.3 Email & In-App Notification Flow
-
+## 4.3 Notification Flow Matrix
 ```
-Workflow Event (Submit / Approve / Reject / SLA Breach)
-    │
-    ▼
-Notification Service
-    │
-    ├────────► In-App Notification Record Created
-    │
-    ▼
-Email Queue
-    │
-    ▼
-SMTP Relay
-    │
-    ▼
-Deliver to Recipient → Update Email Log
+Trigger Event                        Stores  Production  Accounts   SM     GM
+-----------------------------------------------------------------------------
+Design Submits Business Transaction    ✅        ❌          ❌      ✅     ✅
+Stores Issues Material                 ❌        ✅          ❌      ✅     ✅
+Production Delivers to Customer        ❌        ❌          ✅      ✅     ✅
+Accounts Finalizes Cost                ❌        ❌          ❌      ✅     ✅
+System Archives Transaction            ❌        ❌          ❌      ✅     ✅
 ```
 
 ---
 
-## 3.4 Report Generation Flow
-
-```
-User Requests Report (Indent / Cost Sheet / Production / Vendor / Material)
-    │
-    ▼
-Query Database with Filters
-    │
-    ▼
-Compile Data & Generate PDF/Excel
-    │
-    ▼
-Store Report History Record
-    │
-    ▼
-Download File
-```
-
----
-
-## 3.5 Dashboard Analytics Flow
-
-```
-Database Transactions
-    │
-    ▼
-Analytics Service Aggregations
-    │
-    ▼
-Calculate KPIs:
-• Pending Indents
-• Approved Indents
-• Department Workload
-• Material Consumption
-• Cost Variance
-• Approval SLA Timers
-• Production Turnaround Time
-    │
-    ▼
-Render Charts & Dashboard Widgets
-```
-
----
-
-# 4. Overall Workflow State Machine
+# 5. Overall Business State Machine
 
 ```
 Draft
   │
   ▼
-Submitted
+Design Completed
   │
   ▼
-Stores Verification ──────────────► Reject ───► Draft / Returned
+Stores Processing
   │
   ▼
-Accounts Verification ────────────► Reject ───► Draft / Returned
+Production Processing
   │
   ▼
-Senior Manager Review ────────────► Reject ───► Draft / Returned
+Customer Delivered   (Loop 1 Closed)
   │
   ▼
-General Manager Approval ─────────► Reject ───► Draft / Returned
+Accounts Cost Verification
   │
   ▼
-Production
+Accounts Financial Closure
   │
   ▼
-Material Received
+Archived
   │
   ▼
-Production Completed
-  │
-  ▼
-Closed
+Completed   (Loop 2 Closed & Transaction Closed)
 ```
 
 ---
 
-# 5. Complete End-to-End System Summary
+# 6. Complete End-to-End System Summary
 
 ```
-Login ──► Auth Check ──► Role Dashboard ──► Create Indent ──► Create Cost Sheet ──► Submit
-                                                                                     │
-                                                                                     ▼
-Reports & Analytics ◄── Closed ◄── Complete ◄── Material Receipt ◄── GM Approval ◄── SM Approval ◄── Accounts Verification ◄── Stores Verification
+Login ──► Auth Check ──► Role Dashboard ──► Create Indent & Process Cost Sheet ──► Submit
+                                                                                       │
+                                                                                       ▼
+Reports & Archival ◄── Completed ◄── Archived ◄── Financial Closure ◄── Cost Entry ◄── Customer Delivery ◄── Production ◄── Stores Issue
 ```
-
-This application flow governs the frontend routing, backend API sequencing, state transition validations, notification triggers, and user acceptance scenarios for the IMCMS project.

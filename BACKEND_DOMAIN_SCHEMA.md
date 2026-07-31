@@ -1,9 +1,9 @@
 # ENTERPRISE MANUFACTURING INDENT & COSTING MANAGEMENT SYSTEM (IMCMS)
-## Enterprise Backend Domain Schema & Architecture Specification
+## Enterprise Backend Domain Schema & Two-Loop Architecture Specification
 
 **Project:** Enterprise Manufacturing Indent & Costing Management System (IMCMS)  
 **Document Type:** Backend Domain Schema & Module Boundaries Specification  
-**Version:** 1.0  
+**Version:** 2.0 (Approved 2-Loop Zero-Approval Architecture)  
 **Status:** Approved  
 
 ---
@@ -20,40 +20,43 @@ REST API (HTTPS)
                        NestJS Backend
 ────────────────────────────────────────────────────────────
 
-Authentication Layer
+Authentication & Security Layer
 │
 ├── JWT Authentication
-├── Refresh Token
-├── RBAC (Role-Based Access Control)
+├── Refresh Token Rotation
+├── Granular Field & Stage RBAC
 ├── Session Management
-├── Login History
-└── Security Dashboard
+└── Executive Security & Audit Dashboard
 
 ────────────────────────────────────────────────────────────
 
-Business Layer
+Business Layer (Two-Loop Business Architecture)
 
-├── Users Module
-├── Departments Module
-├── Roles Module
-├── Permissions Module
+├── Core Master Modules
+│   ├── Users Module
+│   ├── Departments Module
+│   ├── Roles & Permissions Module
+│   ├── Product Module
+│   ├── Material Module
+│   ├── Vendor Module
+│   └── Manufacturing Process Module
 │
-├── Material Module
-├── Product Module
-├── Vendor Module
-├── Manufacturing Module
+├── Loop 1: Manufacturing Modules
+│   ├── Indent Sheet Module (Design)
+│   ├── Process Cost Sheet Module (Design Planned Costs)
+│   ├── Stores Module (Material Verification & Issue)
+│   └── Production Module (Manufacturing & Customer Delivery)
 │
-├── Indent Module
-├── Cost Sheet Module
-├── Workflow Module
-├── Production Module
-├── Inventory Module
+├── Loop 2: Financial & Archival Modules
+│   ├── Accounts Module (Actual Cost Entry & Financial Closure)
+│   └── System Archival Module (Record Archival & Final Report)
 │
-├── Notification Module
-├── Audit Module
-├── Report Module
-├── Analytics Module
-└── Settings Module
+└── Cross-Cutting Services
+    ├── Workflow State Machine Module
+    ├── Executive Notification Module (SM & GM Routing)
+    ├── Audit Log Module
+    ├── Report Module
+    └── Analytics Module
 
 ────────────────────────────────────────────────────────────
 
@@ -65,13 +68,15 @@ Neon PostgreSQL Database
 
 ---
 
-# 2. Business Workflow Sequence
+# 2. Business Workflow Sequence (Two-Loop Architecture)
 
 ```
-Design Department ──► Create Indent ──► Create Cost Sheet ──► Submit
-                                                                │
-                                                                ▼
-Workflow Closed ◄── Production Complete ◄── Material Receipt ◄── GM Approval ◄── SM Review ◄── Accounts Verification ◄── Stores Verification
+LOOP 1: MANUFACTURING WORKFLOW
+Design (Indent & Process Cost Sheet) ──► Stores (Material Issue) ──► Production (Manufacturing) ──► Customer Delivered
+                                                                                                        │
+                                                                                                        ▼
+LOOP 2: FINANCIAL WORKFLOW & ARCHIVAL
+Process Completed ◄── System (Archive & Final Report) ◄── Accounts (Cost Verification & Financial Closure)
 ```
 
 ---
@@ -80,134 +85,105 @@ Workflow Closed ◄── Production Complete ◄── Material Receipt ◄─�
 
 | Module | Core Responsibilities | Owned Database Tables / Prisma Models | Key Domain Relationships |
 | --- | --- | --- | --- |
-| **Authentication** | Login, Logout, JWT tokens, Refresh token rotation, Password reset, Change password | `users`, `refresh_tokens`, `password_reset_tokens`, `user_sessions` | Users |
-| **Authorization** | Roles, Permissions, Permission mappings, Guards (`JwtAuthGuard`, `RolesGuard`, `PermissionsGuard`) | `roles`, `permissions`, `role_permissions` | Users, Modules |
-| **Users** | User CRUD, Profile management, Department & Role assignment, Account status | `users` | `departments`, `roles`, `audit_logs`, `notifications` |
-| **Department** | Department CRUD, Department-specific configuration | `departments` | `users` |
-| **Product** | Product Master, Engineering Drawings, Revisions, Process Mapping | `products` | `manufacturing_processes`, `materials`, `cost_sheets` |
-| **Material** | Material Master, Unit of Measure, Categories | `materials`, `units` | `products`, `indent_items`, `vendors` |
-| **Vendor** | Vendor Master, GST Registration details, Address, Contact Info | `vendors` | `materials`, `cost_items` |
-| **Manufacturing** | Manufacturing Process Master, Estimated Time, Estimated Base Cost | `manufacturing_processes` | `products`, `process_costs` |
-| **Indent** | Draft Indents, Update Draft, Submit, Soft Delete, Attachment Attach/Detach | `indents`, `indent_items`, `indent_attachments` | `cost_sheets`, `workflow_history`, `users` |
-| **Cost Sheet** | Estimated Material Cost, Estimated Process Cost, Actual Cost Entry, Variance Calculation | `cost_sheets`, `cost_items`, `process_costs` | `indents`, `products` |
-| **Workflow** | Approval Engine, Workflow State Machine, Comments, Approval Timeline | `workflow_history`, `approval_history`, `workflow_stages` | `indents`, `users` |
-| **Production** | Material Receipt Confirmation, Production Confirmation, Additional Material Requests | `production_receipts`, `additional_material_requests`, `additional_material_items` | `indents`, `materials` |
-| **Inventory** | Material Availability Verification, Stock Reservation, Inventory Transactions | `inventory_transactions` | `materials`, `indents` |
-| **Notification** | In-App Notifications, SMTP Email Delivery, Notification Preferences | `notifications`, `notification_recipients`, `email_logs` | `users`, `workflow_history` |
-| **Report** | Report Generation (PDF/Excel), History, Downloads | `reports`, `report_downloads` | `users` |
-| **Analytics** | Dashboard Analytics APIs, KPIs, Aggregations, Trend Analysis | *None (Reads only)* | Reads `indents`, `workflow`, `production`, `cost_sheets` |
-| **Audit** | System Audit Trail, User Activity Logging | `audit_logs`, `activity_logs` | `users` |
-| **Settings** | System Configuration, SMTP Host Config, SLA Rules, Company Info | `application_settings` | System-wide |
+| **Authentication** | Login, Logout, JWT tokens, Refresh token rotation | `users`, `refresh_tokens`, `user_sessions` | Users |
+| **Authorization** | Roles, Permissions, Permission mappings, Guards | `roles`, `permissions`, `role_permissions` | Users, Modules |
+| **Users** | User CRUD, Department & Role assignment | `users` | `departments`, `roles`, `audit_logs` |
+| **Product** | Product Master, Engineering Drawings, Revisions | `products` | `manufacturing_processes`, `materials` |
+| **Material** | Material Master, Unit of Measure | `materials`, `units` | `products`, `indent_items`, `vendors` |
+| **Vendor** | Vendor Master, GST & Address Details | `vendors` | `materials`, `process_costs` |
+| **Manufacturing** | Manufacturing Process Master, Default Process Templates | `manufacturing_processes` | `products`, `process_costs` |
+| **Indent Sheet** | Draft Indents, Product/Material/Quantity specifications, Drawings | `indents`, `indent_items`, `indent_attachments` | `process_cost_sheets`, `workflow_history` |
+| **Process Cost Sheet**| Planned Cost per Process, Actual Cost Entry, Cost Variance calculation | `cost_sheets`, `cost_items`, `process_costs` | `indents`, `products`, `vendors` |
+| **Workflow** | Workflow State Machine Transitions, State Validation, History | `workflow_history`, `workflow_stages` | `indents`, `users` |
+| **Stores Fulfillment** | Stock Verification, Material Issue & Dispatch to Production | `inventory_transactions`, `material_issues` | `indents`, `materials` |
+| **Production** | Raw Material Receipt, Status Updates, Customer Delivery Confirmation | `production_records`, `additional_material_requests` | `indents`, `materials` |
+| **Accounts** | In-House & Vendor Cost Entry, Actual Cost Verification, Financial Closure | `cost_sheets`, `financial_records` | `indents`, `vendors` |
+| **Notification** | In-App Notifications, SMTP Email Delivery, Executive SM & GM Broadcasts | `notifications`, `notification_recipients` | `users`, `workflow_history` |
+| **Audit & Archive** | System Audit Trail, Automated Archival & Final Reporting | `audit_logs`, `archived_transactions` | System-wide |
 
 ---
 
-# 4. Entity Relationship Overview
-
-```
-Department ──► Users ──► Roles ──► Permissions ──► Create ──► Indent ──► Indent Items ──► Cost Sheet ──► Workflow ──► Production ──► Reports
-```
-
----
-
-# 5. Workflow State Machine
+# 4. Workflow State Machine
 
 ```
 [DRAFT]
    │
    ▼
-[SUBMITTED]
+[DESIGN_COMPLETED] ──────► Stores Notification
    │
    ▼
-[STORES_PENDING] ──► Stores Approval ──► [STORES_APPROVED]
-   │                                         │
-   ▼                                         ▼
-[ACCOUNTS_PENDING] ──► Accounts Approval ──► [ACCOUNTS_APPROVED]
-   │                                             │
-   ▼                                             ▼
-[SENIOR_MANAGER_PENDING] ──► SM Approval ──► [SENIOR_MANAGER_APPROVED]
-   │                                                    │
-   ▼                                                    ▼
-[GENERAL_MANAGER_PENDING] ──► GM Approval ──► [GENERAL_MANAGER_APPROVED]
-   │                                                    │
-   ▼                                                    ▼
-[PRODUCTION_PENDING] ──► Material Receipt ──► [MATERIAL_RECEIVED]
-                                                    │
-                                                    ▼
-                                           [PRODUCTION_COMPLETED]
-                                                    │
-                                                    ▼
-                                                [CLOSED]
+[STORES_PROCESSING] ─────► Production Notification
+   │
+   ▼
+[PRODUCTION_PROCESSING] ──► Accounts Notification
+   │
+   ▼
+[CUSTOMER_DELIVERED] (Loop 1 Closed)
+   │
+   ▼
+[ACCOUNTS_COST_VERIFICATION]
+   │
+   ▼
+[ACCOUNTS_FINANCIAL_CLOSURE] (Loop 2 Financial Closure)
+   │
+   ▼
+[ARCHIVED]
+   │
+   ▼
+[COMPLETED] (Business Transaction Closed)
 ```
-> **Rejection Rule:** A rejection from any stage returns the document to `DRAFT` status while preserving complete audit history and comments.
 
 ---
 
-# 6. Notification Event Matrix
+# 5. Executive Notification Routing Matrix
 
-| Trigger Event | Recipients Notified |
-| --- | --- |
-| **Indent Submit** | Stores Department |
-| **Stores Approved** | Accounts Department |
-| **Accounts Approved** | Senior Manager |
-| **Senior Manager Approved** | General Manager |
-| **GM Approved** | Production Department |
-| **Material Received** | Accounts, Senior Manager, General Manager |
-| **Additional Material Request** | Stores Department, Accounts Department |
-| **Workflow Closed** | Design, Accounts, Senior Manager, General Manager |
+| Trigger Event | Direct Department Action | Executive Notification (SM & GM) |
+| --- | --- | --- |
+| **Design Submits Document** | Stores Department receives task | SM & GM receive real-time notification |
+| **Stores Issues Raw Material** | Production Department receives material | SM & GM receive real-time notification |
+| **Production Completes & Delivers** | Accounts Department receives task | SM & GM receive real-time notification |
+| **Accounts Finalizes Costs** | System triggers Automated Archival | SM & GM receive real-time notification |
+| **System Archives Transaction** | Business Transaction Closed | SM & GM receive final completion alert |
 
 ---
 
-# 7. Department Business Rules & Boundaries
+# 6. Department Business Rules & Ownership Boundaries
 
 ### Design Department
-- **Can:** Create Indent, Edit Drafts, Upload Attachments, Enter Estimated Costs.
-- **Cannot:** Approve Workflow transitions, Modify Actual Financial Costs.
+- **Owns:** Indent Sheet creation, Process Cost Sheet creation (planned cost per manufacturing process).
+- **Can:** Edit Drafts, Upload Attachments, Define Manufacturing Processes (Turning, Heat Treatment, Grinding, etc.), Select Vendor/In-House.
+- **Cannot:** Modify Stores issue quantities or Accounts actual cost values.
 
 ### Stores Department
-- **Can:** Verify Material Availability, Approve/Reject Material Status.
-- **Cannot:** Modify Financial Costing or Engineering Specifications.
-
-### Accounts Department
-- **Can:** Update Actual Costs, Calculate Cost Variance, Approve Financials.
-- **Cannot:** Modify Engineering Drawings or Product Process Specs.
-
-### Senior Manager & General Manager
-- **Can:** Review complete history, Approve, Reject with comments.
-- **Cannot:** Alter material specifications or unit costs directly.
+- **Owns:** Material fulfillment and raw material dispatch.
+- **Can:** Verify Stock, Issue Raw Materials, Dispatch to Production Work Center.
+- **Cannot:** Edit engineering specifications or actual vendor financial costs.
 
 ### Production Department
-- **Can:** Receive Materials, Confirm Material Receipt, Request Additional Materials, Close Production.
-- **Cannot:** Bypass approval sequence.
+- **Owns:** Product manufacturing execution and customer delivery.
+- **Can:** Receive Raw Materials, Update Production Status, Confirm Customer Delivery.
+- **Cannot:** Alter process planned costs or material requirements.
+
+### Accounts Department
+- **Owns:** Financial Verification and Closure.
+- **Can:** Collect Vendor Bills, Enter Actual Cost per process, Calculate Cost Variance, Finalize Financial Record.
+- **Cannot:** Alter product drawings or raw material specifications.
+
+### Senior Manager & General Manager (Executive Roles)
+- **Owns:** Passive Executive Monitoring & Oversight.
+- **Can:** View complete live workflow status, inspect cost variances, read full audit history.
+- **Rule:** Do NOT perform approvals or rejections; notified at every stage transition.
 
 ---
 
-# 8. Security Architecture (Phase 8C Implemented)
-
-- **Authentication:** JWT with Refresh Token Rotation & bcrypt password hashing.
-- **Authorization:** Granular RBAC (`@Permissions(...)` guards).
-- **Session Security:** Active session tracking, IP/Device logging, Login audit history, Account Lock after failed attempts, Force Logout capability.
-
----
-
-# 9. AI Development Rules & Technical Constraints
-
-All AI assistants and developers MUST strictly follow these implementation rules:
+# 7. AI Development Rules & Technical Constraints
 
 1. **NestJS Modular Architecture:** Each module owns its controllers, services, DTOs, and Prisma queries.
 2. **Controller Responsibility:** Controllers handle HTTP routing, request DTO validation, and response formatting ONLY. All business logic belongs in services.
 3. **Prisma ORM:** Use Prisma ORM exclusively for database queries. No raw SQL strings.
-4. **Transactions:** Wrap multi-step operations (`Submit Indent`, `Approve`, `Material Receipt`, `Additional Material Request`) in Prisma transactions (`$transaction`).
+4. **Transactions:** Wrap multi-step operations (`Submit Indent Sheet`, `Material Issue`, `Customer Delivery`, `Financial Closure`) in Prisma transactions (`$transaction`).
 5. **UUID Primary Keys:** Use UUID v4 for all database primary keys (`@id @default(uuid())`).
 6. **Soft Deletes:** Implement soft deletes (`deletedAt`) for all business entities. Never hard-delete records.
-7. **Audit Logging:** Every Create, Update, Approve, Reject, Upload, Download, and Auth action MUST generate an audit log entry.
-8. **Guards & DTO Validation:** Protect APIs with `JwtAuthGuard`, `RolesGuard`, and `PermissionsGuard`. Validate payloads using `class-validator` DTOs.
-9. **Standardized API Responses:**
-```json
-{
-  "success": true,
-  "message": "Operation completed successfully.",
-  "data": {}
-}
-```
-10. **State Machine Integrity:** Enforce strict workflow transitions. No module may bypass approval stages.
-11. **Loose Coupling:** Modules communicate through public service interfaces—never direct cross-module database manipulation.
+7. **Audit Logging:** Every Create, Update, Status Change, Issue, Delivery, Cost Entry, and Archival action MUST generate an audit log entry.
+8. **Notification Triggers:** State machine transitions MUST trigger `NotificationService` events for Senior Managers & General Managers.
+9. **Zero Approval Engine:** Do NOT implement approval tables, approval queues, or rejection routes. State machine advances linearly based on department actions.
