@@ -15,6 +15,9 @@ import { SessionManagementPage } from '../pages/SessionManagementPage';
 import { LoginHistoryPage } from '../pages/LoginHistoryPage';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { UsersPage } from '../modules/users/UsersPage';
+import { ProcessesPage } from '../modules/processes/ProcessesPage';
+import { UnitsPage } from '../modules/units/UnitsPage';
+import { VendorsPage } from '../modules/vendors/VendorsPage';
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -136,10 +139,26 @@ export const AppRouter: React.FC = () => {
           }
         />
         <Route
+          path="/manufacturing-processes"
+          element={
+            <ProtectedRoute permissions={['manufacturing-processes.view']}>
+              <ProcessesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/units"
+          element={
+            <ProtectedRoute permissions={['units.view']}>
+              <UnitsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/vendors"
           element={
             <ProtectedRoute permissions={['vendors.view']}>
-              <div className="text-white p-8 text-center text-xl">Vendors Module (Coming Soon)</div>
+              <VendorsPage />
             </ProtectedRoute>
           }
         />

@@ -29,6 +29,13 @@ const navItems: NavItem[] = [
   { label: 'Inventory', path: '/inventory', icon: <span>📦</span>, permission: 'inventory.view' },
   { label: 'Materials', path: '/materials', icon: <span>🧱</span>, permission: 'materials.view' },
   { label: 'Products', path: '/products', icon: <span>⚙️</span>, permission: 'products.view' },
+  {
+    label: 'Manufacturing Processes',
+    path: '/manufacturing-processes',
+    icon: <span>🛠️</span>,
+    permission: 'manufacturing-processes.view',
+  },
+  { label: 'Units', path: '/units', icon: <span>📐</span>, permission: 'units.view' },
   { label: 'Vendors', path: '/vendors', icon: <span>🏢</span>, permission: 'vendors.view' },
   { label: 'Reports', path: '/reports', icon: <span>📈</span>, permission: 'reports.view' },
   { label: 'Analytics', path: '/analytics', icon: <span>📉</span>, permission: 'analytics.view' },
