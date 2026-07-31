@@ -24,15 +24,13 @@ describe('UsersController', () => {
   beforeEach(async () => {
     serviceMock = {
       createUser: jest.fn().mockResolvedValue(mockUserResponse),
-      findAllUsers: jest
-        .fn()
-        .mockResolvedValue({
-          items: [mockUserResponse],
-          total: 1,
-          page: 1,
-          limit: 10,
-          totalPages: 1,
-        }),
+      findAllUsers: jest.fn().mockResolvedValue({
+        items: [mockUserResponse],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      }),
       findUserById: jest.fn().mockResolvedValue(mockUserResponse),
       getUserProfile: jest.fn().mockResolvedValue(mockUserResponse),
       updateUser: jest.fn().mockResolvedValue(mockUserResponse),
