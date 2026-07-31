@@ -126,10 +126,8 @@ export class AuthService {
   async logout(
     userId: string,
     refreshToken: string,
-    deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
+    _deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
   ): Promise<void> {
-    const hashedToken = this.tokenService.hashToken(refreshToken);
-
     await this.sessionService.revokeAllSessions(userId);
 
     await this.tokenService.revokeRefreshToken(refreshToken);
@@ -163,7 +161,6 @@ export class AuthService {
 
     await this.tokenService.revokeRefreshToken(refreshToken);
 
-    const hashedOldToken = this.tokenService.hashToken(refreshToken);
     await this.sessionService.revokeAllSessions(user.id);
 
     const newAccessToken = await this.tokenService.generateAccessToken(user.id, user.email);

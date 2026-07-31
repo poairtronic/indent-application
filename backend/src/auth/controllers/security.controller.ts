@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AccountSecurityService } from '../services/account-security.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
@@ -7,9 +7,7 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 @ApiBearerAuth()
 @Controller('auth')
 export class SecurityController {
-  constructor(
-    private readonly accountSecurityService: AccountSecurityService,
-  ) {}
+  constructor(private readonly accountSecurityService: AccountSecurityService) {}
 
   @Get('security-status')
   @ApiOperation({ summary: 'Get account security status' })

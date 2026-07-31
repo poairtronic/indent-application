@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Delete,
-  Post,
-  Param,
-  ParseUUIDPipe,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Delete, Post, Param, ParseUUIDPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { SessionService } from '../services/session.service';
 import { LoginHistoryService } from '../services/login-history.service';
@@ -42,10 +34,7 @@ export class SessionController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Session revoked' })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async revokeSession(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
-  ) {
+  async revokeSession(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
     await this.sessionService.revokeSession(id, user.id);
     return { message: 'Session revoked successfully' };
   }

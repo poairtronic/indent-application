@@ -34,7 +34,11 @@ export class AuthController {
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
   @ApiBody({ type: RefreshTokenDto })
-  async logout(@CurrentUser() user: any, @Body() refreshTokenDto: RefreshTokenDto, @Req() req: Request) {
+  async logout(
+    @CurrentUser() user: any,
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Req() req: Request,
+  ) {
     const deviceInfo = extractDeviceInfo(req);
     await this.authService.logout(user.id, refreshTokenDto.refreshToken, deviceInfo);
     return { message: 'Logged out successfully' };

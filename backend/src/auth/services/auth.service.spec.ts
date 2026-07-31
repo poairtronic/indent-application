@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
+import { SessionService } from './session.service';
+import { LoginHistoryService } from './login-history.service';
+import { AccountSecurityService } from './account-security.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UnauthorizedException } from '@nestjs/common';
 
@@ -37,9 +40,26 @@ describe('AuthService', () => {
     generateAccessToken: jest.fn().mockResolvedValue('access_token'),
     generateRefreshToken: jest.fn().mockResolvedValue('refresh_token'),
     saveRefreshToken: jest.fn().mockResolvedValue(undefined),
+    hashToken: jest.fn().mockReturnValue('hashed_refresh_token'),
     verifyRefreshToken: jest.fn(),
     revokeRefreshToken: jest.fn().mockResolvedValue(undefined),
     revokeAllRefreshTokensForUser: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockSessionService = {
+    createSession: jest.fn().mockResolvedValue({ id: 'session_id' }),
+    revokeAllSessions: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockLoginHistoryService = {
+    recordLogin: jest.fn().mockResolvedValue(undefined),
+    recordLogout: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockAccountSecurityService = {
+    checkAccountLocked: jest.fn().mockResolvedValue(undefined),
+    recordFailedAttempt: jest.fn().mockResolvedValue(undefined),
+    resetFailedAttempts: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(async () => {
@@ -49,6 +69,9 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: PasswordService, useValue: mockPasswordService },
         { provide: TokenService, useValue: mockTokenService },
+        { provide: SessionService, useValue: mockSessionService },
+        { provide: LoginHistoryService, useValue: mockLoginHistoryService },
+        { provide: AccountSecurityService, useValue: mockAccountSecurityService },
       ],
     }).compile();
 
@@ -80,18 +103,42 @@ describe('AuthService', () => {
       },
     };
 
+    const deviceInfo = {
+      ipAddress: '127.0.0.1',
+      browser: 'Chrome',
+      operatingSystem: 'Windows 10',
+      device: 'Desktop',
+    };
+
     it('should login successfully with correct credentials', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockPrisma.user.update.mockResolvedValue({ ...mockUser, lastLogin: new Date() });
       mockPasswordService.compare.mockResolvedValue(true);
 
-      const result = await service.login({
-        email: 'test@example.com',
-        password: 'password123',
-      });
+      const result = await service.login(
+        {
+          email: 'test@example.com',
+          password: 'password123',
+        },
+        deviceInfo,
+      );
 
       expect(result).toHaveProperty('accessToken', 'access_token');
       expect(result).toHaveProperty('refreshToken', 'refresh_token');
       expect(result.user.email).toEqual(mockUser.email);
+      expect(mockAccountSecurityService.checkAccountLocked).toHaveBeenCalledWith(mockUser.id);
+      expect(mockAccountSecurityService.resetFailedAttempts).toHaveBeenCalledWith(mockUser.id);
+      expect(mockSessionService.createSession).toHaveBeenCalledWith({
+        userId: mockUser.id,
+        sessionToken: 'hashed_refresh_token',
+        refreshToken: 'hashed_refresh_token',
+        ...deviceInfo,
+      });
+      expect(mockLoginHistoryService.recordLogin).toHaveBeenCalledWith({
+        userId: mockUser.id,
+        ...deviceInfo,
+        success: true,
+      });
     });
 
     it('should throw UnauthorizedException if user not found', async () => {
@@ -118,8 +165,15 @@ describe('AuthService', () => {
       mockPasswordService.compare.mockResolvedValue(false);
 
       await expect(
-        service.login({ email: 'test@example.com', password: 'password123' }),
+        service.login({ email: 'test@example.com', password: 'password123' }, deviceInfo),
       ).rejects.toThrow(UnauthorizedException);
+      expect(mockAccountSecurityService.recordFailedAttempt).toHaveBeenCalledWith(mockUser.id);
+      expect(mockLoginHistoryService.recordLogin).toHaveBeenCalledWith({
+        userId: mockUser.id,
+        ...deviceInfo,
+        success: false,
+        failureReason: 'Invalid password',
+      });
     });
   });
 });

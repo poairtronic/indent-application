@@ -38,7 +38,12 @@ describe('AuthController', () => {
       const dto = { email: 'test@example.com', password: 'password123' };
       const mockReq = { headers: { 'user-agent': 'test' }, ip: '127.0.0.1' } as any;
       const res = await controller.login(dto, mockReq);
-      expect(authService.login).toHaveBeenCalledWith(dto, { userAgent: 'test', ip: '127.0.0.1' });
+      expect(authService.login).toHaveBeenCalledWith(dto, {
+        ipAddress: '127.0.0.1',
+        browser: 'Unknown',
+        operatingSystem: 'Unknown',
+        device: 'Desktop',
+      });
       expect(res).toEqual({ accessToken: 'access_token', refreshToken: 'refresh_token' });
     });
   });
