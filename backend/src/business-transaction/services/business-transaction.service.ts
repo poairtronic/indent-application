@@ -246,7 +246,7 @@ export class BusinessTransactionService {
             costSheetId: meta.costSheetId || null,
             storageFileName: meta.storageFileName || att.fileName,
           };
-        } catch (e) {
+        } catch {
           return att;
         }
       }),
@@ -1500,17 +1500,31 @@ export class BusinessTransactionService {
       const meta = JSON.parse(attachment.fileName);
       storageFileName = meta.storageFileName;
 
-      if (meta.department === 'DESIGN' && txData.currentState !== WorkflowState.DRAFT) {
-        throw new BadRequestException('Cannot delete Design files after submission.');
+      if (meta.department === 'DESIGN') {
+        if (departmentCode !== 'DESIGN') {
+          throw new ForbiddenException('Only Design department can delete design files.');
+        }
+        if (txData.currentState !== WorkflowState.DRAFT) {
+          throw new BadRequestException('Cannot delete Design files after submission.');
+        }
       }
-      if (
-        meta.department === 'ACCOUNTS' &&
-        txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
-        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
-      ) {
-        throw new BadRequestException('Cannot delete Accounts files outside verification states.');
+      if (meta.department === 'ACCOUNTS') {
+        if (departmentCode !== 'ACCOUNTS') {
+          throw new ForbiddenException('Only Accounts department can delete financial files.');
+        }
+        if (
+          txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
+          txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
+        ) {
+          throw new BadRequestException(
+            'Cannot delete Accounts files outside verification states.',
+          );
+        }
       }
-    } catch (e) {
+    } catch (err) {
+      if (err instanceof ForbiddenException || err instanceof BadRequestException) {
+        throw err;
+      }
       if (txData.currentState !== WorkflowState.DRAFT) {
         throw new BadRequestException('Design files are locked post-submission.');
       }

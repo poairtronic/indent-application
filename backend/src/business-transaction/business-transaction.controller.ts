@@ -28,7 +28,6 @@ import {
 import { StoresIssueDto } from './dto/stores-issue.dto';
 import { ProductionUpdateDto, CustomerDeliveryDto } from './dto/production-update.dto';
 import { ActualCostEntryDto, FinancialClosureDto } from './dto/actual-cost-entry.dto';
-import { AddAttachmentDto } from './dto/attachment.dto';
 
 @Controller('business-transactions')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
