@@ -109,7 +109,7 @@ export class BusinessTransactionEventService {
         : 'System';
 
       let commType: CommunicationEventType | null = null;
-      let context: Record<string, any> = {
+      const context: Record<string, any> = {
         indentId,
         indentNumber,
         productName,
@@ -140,7 +140,7 @@ export class BusinessTransactionEventService {
         case WorkflowState.CUSTOMER_DELIVERED:
           commType = CommunicationEventType.CUSTOMER_DELIVERED;
           break;
-        case WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE:
+        case WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE: {
           commType = CommunicationEventType.FINANCIAL_CLOSURE;
           const costSheet = await this.prisma.costSheet.findFirst({ where: { indentId } });
           context.plannedTotal = costSheet?.predictedTotal ? Number(costSheet.predictedTotal) : 0;
@@ -150,6 +150,7 @@ export class BusinessTransactionEventService {
             ? Number(costSheet.variancePercentage)
             : 0;
           break;
+        }
       }
 
       if (commType) {
