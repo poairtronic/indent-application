@@ -7,10 +7,11 @@ import { TemplateEngine } from './templates/template.engine';
 import { RecipientResolver } from './resolver/recipient.resolver';
 import { CommunicationEventBus } from './events/communication-event.bus';
 import { NotificationDispatcher } from './dispatcher/notification.dispatcher';
+import { QueueModule } from './queue/queue.module';
 
 @Global()
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, QueueModule],
   controllers: [CommunicationController],
   providers: [
     CommunicationService,
@@ -20,6 +21,6 @@ import { NotificationDispatcher } from './dispatcher/notification.dispatcher';
     CommunicationEventBus,
     NotificationDispatcher,
   ],
-  exports: [CommunicationService, CommunicationEventBus],
+  exports: [CommunicationService, CommunicationEventBus, QueueModule],
 })
 export class CommunicationModule {}

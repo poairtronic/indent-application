@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { NodemailerProvider } from './providers/nodemailer.provider';
 import { TemplateEngine } from './templates/template.engine';
 import { RecipientResolver, IResolverQuery } from './resolver/recipient.resolver';
-import { IEmailPayload, IEmailAttachment } from './interfaces/provider.interface';
-import { SMTPException } from './exceptions/communication.exceptions';
+import { QueueService } from './queue/queue.service';
+import { IJobPayload, EmailState } from './queue/queue.constants';
+import * as crypto from 'crypto';
 
 export interface ISendEmailOptions {
   to: string | string[] | IResolverQuery;
@@ -13,8 +13,11 @@ export interface ISendEmailOptions {
   templateContext?: Record<string, any>;
   cc?: string | string[];
   bcc?: string | string[];
-  attachments?: IEmailAttachment[];
+  attachments?: any[];
   replyTo?: string;
+  priority?: number; // 1 = High, 5 = Low
+  requestedBy?: string;
+  correlationId?: string;
 }
 
 @Injectable()
@@ -23,19 +26,19 @@ export class CommunicationService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly emailProvider: NodemailerProvider,
     private readonly templateEngine: TemplateEngine,
     private readonly recipientResolver: RecipientResolver,
+    private readonly queueService: QueueService,
   ) {}
 
   /**
-   * Main entrypoint to dispatch emails using layout templates and dynamically resolved recipients.
-   * Resolves target addresses, compiles Handlebars content, triggers delivery, and stores EmailLogs.
+   * Main entrypoint to dispatch emails asynchronously via the BullMQ/Redis pipeline.
+   * Resolves target addresses, logs transactions as QUEUED in DB, constructs job payload, and pushes to redis queue.
    */
   public async sendEmail(
     options: ISendEmailOptions,
-  ): Promise<{ success: boolean; messageId?: string }> {
-    this.logger.log(`Received sendEmail request for template: ${options.templateName}`);
+  ): Promise<{ success: boolean; jobId?: string }> {
+    this.logger.log(`Received sendEmail queue request for template: ${options.templateName}`);
 
     // 1. Resolve recipients
     let recipients: string[] = [];
@@ -44,73 +47,79 @@ export class CommunicationService {
     } else if (Array.isArray(options.to)) {
       recipients = options.to;
     } else {
-      // It's a query block, resolve dynamically
       recipients = await this.recipientResolver.resolve(options.to);
     }
 
     if (recipients.length === 0) {
-      this.logger.warn('Recipient list is empty. Aborting email dispatch.');
+      this.logger.warn('Recipient list is empty. Aborting queue dispatch.');
       return { success: false };
     }
 
-    // 2. Render layout-body template
-    const renderedBodyHtml = this.templateEngine.render(
-      options.templateName,
-      options.templateContext,
-    );
+    const jobId = crypto.randomUUID();
+    const correlationId = options.correlationId || crypto.randomUUID();
 
-    // 3. Setup core payload
-    const payload: IEmailPayload = {
-      to: recipients,
+    // 2. Pre-save log records in QUEUED state
+    const bodyText = `IMCMS Notification. Please view in HTML mode.`;
+    await this.saveEmailLogs(jobId, recipients, options, bodyText, 'QUEUED');
+
+    // 3. Construct queue job payload
+    const jobPayload: IJobPayload = {
+      jobId,
+      recipient: recipients[0],
+      recipients,
+      template: options.templateName,
       subject: options.subject,
-      body: `This is a formatted HTML email from IMCMS ERP portal. Please enable HTML viewing.`,
-      html: renderedBodyHtml,
-      cc: options.cc,
-      bcc: options.bcc,
-      replyTo: options.replyTo,
+      businessEvent: options.templateContext?.event || 'MANUAL',
+      payload: options.templateContext || {},
       attachments: options.attachments,
+      priority: options.priority || 3, // default medium
+      retryCount: 0,
+      createdTime: new Date().toISOString(),
+      requestedBy: options.requestedBy || 'SYSTEM',
+      correlationId,
     };
 
-    // 4. Send via provider & Log transaction in Database
+    // 4. Push to BullMQ queue
     try {
-      const result = await this.emailProvider.sendEmail(payload);
-
-      // Save log records for each recipient
-      await this.saveEmailLogs(recipients, options, renderedBodyHtml, 'SENT');
-
+      await this.queueService.addJob(jobPayload);
+      this.logger.log(`Job ${jobId} successfully queued.`);
       return {
         success: true,
-        messageId: result.messageId,
+        jobId,
       };
-    } catch (error) {
-      this.logger.error(
-        `Failed to complete SMTP email dispatch: ${error?.message || error}`,
-        error?.stack,
-      );
-      await this.saveEmailLogs(
-        recipients,
-        options,
-        renderedBodyHtml,
-        'FAILED',
-        error?.message || String(error),
-      );
-      throw new SMTPException(error);
+    } catch (err) {
+      this.logger.error(`Failed to queue job ${jobId}`, err);
+      await this.updateLogStatus(jobId, 'FAILED', err?.message || String(err));
+      return {
+        success: false,
+      };
     }
   }
 
-  /**
-   * Persists details of dispatched communication into database logs.
-   */
-  private async saveEmailLogs(
-    recipients: string[],
-    options: ISendEmailOptions,
-    body: string,
-    status: 'SENT' | 'FAILED',
+  private async updateLogStatus(
+    jobId: string,
+    status: string,
     errorMessage?: string,
   ): Promise<void> {
     try {
+      await this.prisma.emailLog.updateMany({
+        where: { id: jobId },
+        data: { status, errorMessage: errorMessage || null },
+      });
+    } catch (err) {
+      this.logger.error(`Database log status update failed for job ${jobId}`, err);
+    }
+  }
+
+  private async saveEmailLogs(
+    jobId: string,
+    recipients: string[],
+    options: ISendEmailOptions,
+    body: string,
+    status: string,
+  ): Promise<void> {
+    try {
       const logPromises = recipients.map(async (recipient) => {
-        // Try to match recipient string to user ID to establish DB relations
         const matchedUser = await this.prisma.user.findFirst({
           where: { email: { equals: recipient.trim(), mode: 'insensitive' }, isDeleted: false },
           select: { id: true },
@@ -118,12 +127,12 @@ export class CommunicationService {
 
         return this.prisma.emailLog.create({
           data: {
+            id: jobId,
             to: recipient,
             userId: matchedUser?.id || null,
             subject: options.subject,
             body: body,
             status: status,
-            errorMessage: errorMessage || null,
             cc: options.cc
               ? Array.isArray(options.cc)
                 ? options.cc.join(', ')

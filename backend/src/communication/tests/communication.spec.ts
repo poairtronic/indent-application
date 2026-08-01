@@ -6,6 +6,7 @@ import { RecipientResolver } from '../resolver/recipient.resolver';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CommunicationEventBus, CommunicationEventType } from '../events/communication-event.bus';
 import { NotificationDispatcher } from '../dispatcher/notification.dispatcher';
+import { QueueService } from '../queue/queue.service';
 import {
   TemplateNotFoundException,
   InvalidRecipientException,
@@ -32,6 +33,11 @@ const mockNodemailerProvider = {
   sendEmail: jest.fn().mockResolvedValue({ success: true, messageId: 'msg-123' }),
 };
 
+const mockQueueService = {
+  addJob: jest.fn().mockResolvedValue({ id: 'job-uuid' }),
+  addDeadJob: jest.fn(),
+};
+
 describe('Enterprise Communication Module', () => {
   let service: CommunicationService;
   let engine: TemplateEngine;
@@ -49,6 +55,7 @@ describe('Enterprise Communication Module', () => {
         NotificationDispatcher,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: NodemailerProvider, useValue: mockNodemailerProvider },
+        { provide: QueueService, useValue: mockQueueService },
       ],
     }).compile();
 
@@ -140,8 +147,8 @@ describe('Enterprise Communication Module', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.messageId).toBe('msg-123');
-      expect(mockNodemailerProvider.sendEmail).toHaveBeenCalled();
+      expect(result.jobId).toBeDefined();
+      expect(mockQueueService.addJob).toHaveBeenCalled();
       expect(mockPrisma.emailLog.create).toHaveBeenCalled();
     });
   });

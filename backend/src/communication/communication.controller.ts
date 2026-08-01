@@ -5,6 +5,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationService } from './communication.service';
+import { QueueService } from './queue/queue.service';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 class TestEmailDto {
@@ -17,16 +18,17 @@ class TestEmailDto {
   subject?: string;
 }
 
-@Controller('admin/communication')
+@Controller('communication')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class CommunicationController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
+    private readonly queueService: QueueService,
   ) {}
 
   /**
-   * GET /admin/communication/logs
+   * GET /communication/logs
    * Fetches latest outbox transaction logs.
    * Gated: audit.view permission
    */
@@ -73,7 +75,7 @@ export class CommunicationController {
   }
 
   /**
-   * POST /admin/communication/test
+   * POST /communication/test
    * Dispatches a test layout email to verify SMTP transporter configurations.
    * Gated: settings.manage permission
    */
@@ -96,7 +98,66 @@ export class CommunicationController {
     return {
       success: true,
       message: 'Test email queue request completed successfully.',
-      messageId: result.messageId,
+      jobId: result.jobId,
+    };
+  }
+
+  /**
+   * GET /communication/health
+   * Connectivity diagnostics for SMTP and Redis.
+   */
+  @Get('health')
+  @Permissions('settings.manage')
+  async getHealth() {
+    const redisStatus = await this.queueService.checkRedisHealth();
+    return {
+      status: redisStatus === 'UP' ? 'UP' : 'DEGRADED',
+      redis: redisStatus,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * GET /communication/queue
+   * Diagnostic summary statistics for active and dead queues.
+   */
+  @Get('queue')
+  @Permissions('settings.manage')
+  async getQueueStatus() {
+    const stats = await this.queueService.getQueueStats();
+    return {
+      mailQueue: {
+        active: stats.active,
+        waiting: stats.waiting,
+        delayed: stats.delayed,
+        failed: stats.failed,
+      },
+      deadQueue: {
+        total: stats.dead,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * GET /communication/metrics
+   * Queue performance and throughput statistics.
+   */
+  @Get('metrics')
+  @Permissions('settings.manage')
+  async getMetrics() {
+    const stats = await this.queueService.getQueueStats();
+    const totalProcessed = stats.completed + stats.failed;
+    const successRate = totalProcessed > 0 ? (stats.completed / totalProcessed) * 100 : 100;
+
+    return {
+      throughput: {
+        totalProcessed,
+        completed: stats.completed,
+        failed: stats.failed,
+        successRatePercentage: Math.round(successRate * 100) / 100,
+      },
+      timestamp: new Date().toISOString(),
     };
   }
 }
