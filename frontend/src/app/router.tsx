@@ -18,6 +18,14 @@ import { UsersPage } from '../modules/users/UsersPage';
 import { ProcessesPage } from '../modules/processes/ProcessesPage';
 import { UnitsPage } from '../modules/units/UnitsPage';
 import { VendorsPage } from '../modules/vendors/VendorsPage';
+import {
+  SummaryPage as AnalyticsSummaryPage,
+  WorkflowPage as AnalyticsWorkflowPage,
+  DepartmentsPage as AnalyticsDepartmentsPage,
+  CostsPage as AnalyticsCostsPage,
+  ProductsPage as AnalyticsProductsPage,
+  VendorsPage as AnalyticsVendorsPage,
+} from '../modules/analytics';
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -174,9 +182,47 @@ export const AppRouter: React.FC = () => {
           path="/analytics"
           element={
             <ProtectedRoute permissions={['analytics.view']}>
-              <div className="text-white p-8 text-center text-xl">
-                Analytics Module (Coming Soon)
-              </div>
+              <AnalyticsSummaryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/workflow"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              <AnalyticsWorkflowPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/departments"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              <AnalyticsDepartmentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/costs"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              <AnalyticsCostsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/products"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              <AnalyticsProductsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/vendors"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              <AnalyticsVendorsPage />
             </ProtectedRoute>
           }
         />
