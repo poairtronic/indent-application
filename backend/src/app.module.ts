@@ -16,6 +16,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 import { BusinessTransactionModule } from './business-transaction/business-transaction.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { BusinessTransactionModule } from './business-transaction/business-trans
     UnitsModule,
     VendorsModule,
     BusinessTransactionModule,
+    AnalyticsModule,
   ],
   controllers: [],
   providers: [
