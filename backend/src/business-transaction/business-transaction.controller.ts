@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Delete,
+  Patch,
   Body,
   Param,
   Query,
@@ -79,10 +80,36 @@ export class BusinessTransactionController {
     return this.businessTransactionService.submitDesign(id, req.user.id, remarks);
   }
 
+  // =========================================================================
+  // LOOP 1: MANUFACTURING WORKFLOW OPERATIONS (STORES & PRODUCTION)
+  // =========================================================================
+
+  @Post(':id/stores/verify')
+  @Permissions('stores.issue')
+  async storesVerifyStock(@Param('id') id: string, @Request() req: any) {
+    return this.businessTransactionService.storesVerifyStock(id, req.user.id);
+  }
+
+  @Post(':id/stores/issue')
+  @Permissions('stores.issue')
+  async storesIssueNew(@Param('id') id: string, @Body() dto: StoresIssueDto, @Request() req: any) {
+    return this.businessTransactionService.storesIssueMaterials(id, req.user.id, dto);
+  }
+
   @Post(':id/stores-issue')
   @Permissions('stores.issue')
   async storesIssue(@Param('id') id: string, @Body() dto: StoresIssueDto, @Request() req: any) {
     return this.businessTransactionService.storesIssueMaterials(id, req.user.id, dto);
+  }
+
+  @Post(':id/production/receive')
+  @Permissions('production.update')
+  async productionReceiveNew(
+    @Param('id') id: string,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.productionReceiveMaterials(id, req.user.id, remarks);
   }
 
   @Post(':id/production-receive')
@@ -95,6 +122,26 @@ export class BusinessTransactionController {
     return this.businessTransactionService.productionReceiveMaterials(id, req.user.id, remarks);
   }
 
+  @Post(':id/production/start')
+  @Permissions('production.update')
+  async productionStart(
+    @Param('id') id: string,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.productionStartWork(id, req.user.id, remarks);
+  }
+
+  @Patch(':id/production/progress')
+  @Permissions('production.update')
+  async productionProgress(
+    @Param('id') id: string,
+    @Body() dto: ProductionUpdateDto,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.productionUpdateProgress(id, req.user.id, dto);
+  }
+
   @Post(':id/production-update')
   @Permissions('production.update')
   async productionUpdate(
@@ -102,7 +149,27 @@ export class BusinessTransactionController {
     @Body() dto: ProductionUpdateDto,
     @Request() req: any,
   ) {
-    return this.businessTransactionService.productionUpdateStatus(id, req.user.id, dto);
+    return this.businessTransactionService.productionUpdateProgress(id, req.user.id, dto);
+  }
+
+  @Post(':id/production/complete')
+  @Permissions('production.update')
+  async productionComplete(
+    @Param('id') id: string,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.productionCompleteWork(id, req.user.id, remarks);
+  }
+
+  @Post(':id/delivery')
+  @Permissions('production.deliver')
+  async customerDelivery(
+    @Param('id') id: string,
+    @Body() dto: CustomerDeliveryDto,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.deliverToCustomer(id, req.user.id, dto);
   }
 
   @Post(':id/deliver-customer')

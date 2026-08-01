@@ -43,27 +43,51 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
     loop: WorkflowLoop.MANUFACTURING_LOOP,
     owningDepartmentCode: 'STORES',
     requiredPermissionCode: 'stores.issue',
+    allowedNextStates: [WorkflowState.MATERIALS_ISSUED],
+    isLoopBoundary: false,
+    isTerminalState: false,
+    description: 'Stores department verifying stock and preparing raw materials issue.',
+  },
+
+  [WorkflowState.MATERIALS_ISSUED]: {
+    state: WorkflowState.MATERIALS_ISSUED,
+    sequence: 4,
+    loop: WorkflowLoop.MANUFACTURING_LOOP,
+    owningDepartmentCode: 'STORES',
+    requiredPermissionCode: 'stores.issue',
     allowedNextStates: [WorkflowState.PRODUCTION_PROCESSING],
     isLoopBoundary: false,
     isTerminalState: false,
-    description: 'Stores department verifying stock and issuing raw materials to Production.',
+    description: 'Stores issued raw materials and dispatched to Production.',
   },
 
   [WorkflowState.PRODUCTION_PROCESSING]: {
     state: WorkflowState.PRODUCTION_PROCESSING,
-    sequence: 4,
+    sequence: 5,
+    loop: WorkflowLoop.MANUFACTURING_LOOP,
+    owningDepartmentCode: 'PRODUCTION',
+    requiredPermissionCode: 'production.update',
+    allowedNextStates: [WorkflowState.PRODUCTION_COMPLETED],
+    isLoopBoundary: false,
+    isTerminalState: false,
+    description: 'Production department manufacturing product and updating work center status.',
+  },
+
+  [WorkflowState.PRODUCTION_COMPLETED]: {
+    state: WorkflowState.PRODUCTION_COMPLETED,
+    sequence: 6,
     loop: WorkflowLoop.MANUFACTURING_LOOP,
     owningDepartmentCode: 'PRODUCTION',
     requiredPermissionCode: 'production.update',
     allowedNextStates: [WorkflowState.CUSTOMER_DELIVERED],
     isLoopBoundary: false,
     isTerminalState: false,
-    description: 'Production department manufacturing product and updating work center status.',
+    description: 'Manufacturing completed and ready for customer delivery.',
   },
 
   [WorkflowState.CUSTOMER_DELIVERED]: {
     state: WorkflowState.CUSTOMER_DELIVERED,
-    sequence: 5,
+    sequence: 7,
     loop: WorkflowLoop.MANUFACTURING_LOOP,
     owningDepartmentCode: 'PRODUCTION',
     requiredPermissionCode: 'production.deliver',
@@ -75,7 +99,7 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
 
   [WorkflowState.ACCOUNTS_COST_VERIFICATION]: {
     state: WorkflowState.ACCOUNTS_COST_VERIFICATION,
-    sequence: 6,
+    sequence: 8,
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'ACCOUNTS',
     requiredPermissionCode: 'accounts.verify',
@@ -87,7 +111,7 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
 
   [WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE]: {
     state: WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE,
-    sequence: 7,
+    sequence: 9,
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'ACCOUNTS',
     requiredPermissionCode: 'accounts.close',
@@ -99,7 +123,7 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
 
   [WorkflowState.ARCHIVED]: {
     state: WorkflowState.ARCHIVED,
-    sequence: 8,
+    sequence: 10,
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'SYSTEM',
     requiredPermissionCode: 'system.archive',
@@ -111,7 +135,7 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
 
   [WorkflowState.COMPLETED]: {
     state: WorkflowState.COMPLETED,
-    sequence: 9,
+    sequence: 11,
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'SYSTEM',
     requiredPermissionCode: 'system.complete',

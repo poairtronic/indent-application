@@ -199,7 +199,7 @@ export class BusinessTransactionService {
       throw new NotFoundException(`Business Transaction with ID '${id}' not found.`);
     }
 
-    const domainState = WorkflowStateMapper.toDomain(indent.status);
+    const domainState = WorkflowStateMapper.toDomain(indent.status, indent);
     const stageDef = this.workflowStateMachine.getStageDefinition(domainState);
 
     return {
@@ -277,7 +277,7 @@ export class BusinessTransactionService {
     ]);
 
     const data = indents.map((indent) => {
-      const domainState = WorkflowStateMapper.toDomain(indent.status);
+      const domainState = WorkflowStateMapper.toDomain(indent.status, indent);
       const stageDef = this.workflowStateMachine.getStageDefinition(domainState);
       return {
         id: indent.id,
@@ -404,11 +404,107 @@ export class BusinessTransactionService {
   }
 
   /**
-   * STAGE 2 STORES ISSUE: Stores department verifies stock & issues materials (DESIGN_COMPLETED -> STORES_PROCESSING)
+   * STORES STOCK VERIFICATION: Checks material availability for Indent Items
+   */
+  public async storesVerifyStock(id: string, userId: string): Promise<any> {
+    const txData = await this.findTransactionById(id);
+
+    if (
+      txData.currentState !== WorkflowState.DESIGN_COMPLETED &&
+      txData.currentState !== WorkflowState.STORES_PROCESSING
+    ) {
+      throw new BadRequestException(
+        `Stock verification not allowed in state '${txData.currentState}'. Must be DESIGN_COMPLETED or STORES_PROCESSING.`,
+      );
+    }
+
+    const targetState = WorkflowState.STORES_PROCESSING;
+    const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
+
+    const storesDept = await this.prisma.department.findFirst({
+      where: { departmentCode: 'STORES', isDeleted: false },
+    });
+
+    const verificationResults = await Promise.all(
+      txData.items.map(async (item: any) => {
+        const material = await this.prisma.material.findUnique({
+          where: { id: item.materialId },
+        });
+
+        if (!material) {
+          throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
+        }
+
+        const isAvailable = material.currentStock.greaterThanOrEqualTo(item.quantity);
+        const status = isAvailable ? 'AVAILABLE' : 'TO_BE_PURCHASED';
+
+        return {
+          id: item.id,
+          status,
+          materialName: material.materialName,
+          requested: item.quantity,
+          availableStock: material.currentStock,
+        };
+      }),
+    );
+
+    const hasInsufficientStock = verificationResults.some((r) => r.status === 'TO_BE_PURCHASED');
+    const verificationRemarks =
+      `Stock Verification Results:\n` +
+      verificationResults
+        .map(
+          (r) =>
+            `- ${r.materialName}: Requested ${r.requested}, Stock ${r.availableStock} [${r.status}]`,
+        )
+        .join('\n');
+
+    await this.prisma.$transaction(async (prisma) => {
+      for (const res of verificationResults) {
+        await prisma.indentItem.update({
+          where: { id: res.id },
+          data: { status: res.status },
+        });
+      }
+
+      await prisma.indent.update({
+        where: { id },
+        data: {
+          status: prismaTargetStatus,
+          remarks: `${txData.remarks || ''}\n${verificationRemarks}`,
+          updatedBy: userId,
+        },
+      });
+
+      await prisma.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: storesDept ? storesDept.id : txData.departmentId,
+          movedBy: userId,
+          remarks: hasInsufficientStock
+            ? 'Stock verification completed: Insufficient stock detected for one or more items.'
+            : 'Stock verification completed: All materials are available in stock.',
+        },
+      });
+    });
+
+    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
+    await this.eventService.logAudit(
+      AuditEventType.STORES_ISSUE,
+      id,
+      userId,
+      { state: txData.currentState },
+      { state: targetState, verificationResults },
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * STORES MATERIAL ISSUE: Issues raw materials to Production and subtracts stock (STORES_PROCESSING -> MATERIALS_ISSUED)
    */
   public async storesIssueMaterials(id: string, userId: string, dto: StoresIssueDto): Promise<any> {
     const txData = await this.findTransactionById(id);
-    const targetState = WorkflowState.STORES_PROCESSING;
+    const targetState = WorkflowState.MATERIALS_ISSUED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
       txData.currentState,
@@ -425,28 +521,52 @@ export class BusinessTransactionService {
       where: { departmentCode: 'PRODUCTION', isDeleted: false },
     });
 
-    await this.prisma.$transaction([
-      this.prisma.indent.update({
+    await this.prisma.$transaction(async (prisma) => {
+      for (const item of txData.items) {
+        const material = await prisma.material.findUnique({
+          where: { id: item.materialId },
+        });
+
+        if (!material) {
+          throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
+        }
+
+        if (material.currentStock.lessThan(item.quantity)) {
+          throw new BadRequestException(
+            `Inventory is insufficient for material '${material.materialName}'. Verification/Purchasing is required. Required: ${item.quantity}, Available: ${material.currentStock}`,
+          );
+        }
+
+        await prisma.material.update({
+          where: { id: item.materialId },
+          data: {
+            currentStock: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      }
+
+      const updatedRemarks = `${txData.remarks || ''}\n[MATERIALS_ISSUED] Materials issued from Stores. ${dto.remarks ? `Remarks: ${dto.remarks}` : ''}`;
+      await prisma.indent.update({
         where: { id },
         data: {
           status: prismaTargetStatus,
+          remarks: updatedRemarks,
           updatedBy: userId,
-          remarks: dto.remarks
-            ? `${txData.remarks || ''}\nStores Issue Notes: ${dto.remarks}`
-            : txData.remarks,
         },
-      }),
-      this.prisma.workflowHistory.create({
+      });
+
+      await prisma.workflowHistory.create({
         data: {
           indentId: id,
           toDepartmentId: productionDept ? productionDept.id : txData.departmentId,
           movedBy: userId,
           remarks: dto.remarks || 'Stores issued raw materials and dispatched to Production.',
         },
-      }),
-    ]);
+      });
+    });
 
-    // Dispatch Notifications & Audit
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
       AuditEventType.STORES_ISSUE,
@@ -460,7 +580,7 @@ export class BusinessTransactionService {
   }
 
   /**
-   * STAGE 3 PRODUCTION RECEIVE: Production confirms material receipt (STORES_PROCESSING -> PRODUCTION_PROCESSING)
+   * PRODUCTION RECEIVE MATERIALS: Production confirms raw material receipt (MATERIALS_ISSUED -> PRODUCTION_PROCESSING)
    */
   public async productionReceiveMaterials(
     id: string,
@@ -511,7 +631,6 @@ export class BusinessTransactionService {
       }),
     ]);
 
-    // Dispatch Notifications & Audit
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
       AuditEventType.PRODUCTION_UPDATE,
@@ -525,9 +644,51 @@ export class BusinessTransactionService {
   }
 
   /**
-   * STAGE 3 PRODUCTION UPDATE: Record manufacturing progress notes
+   * PRODUCTION START WORK: Production starts manufacturing operations
    */
-  public async productionUpdateStatus(
+  public async productionStartWork(id: string, userId: string, remarks?: string): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    if (txData.currentState !== WorkflowState.PRODUCTION_PROCESSING) {
+      throw new BadRequestException(
+        `Production cannot start in state '${txData.currentState}'. Must be PRODUCTION_PROCESSING (materials received).`,
+      );
+    }
+
+    const updatedRemarks = `${txData.remarks || ''}\n[PRODUCTION_STARTED] Manufacturing started at work center. ${remarks ? `Remarks: ${remarks}` : ''}`;
+
+    await this.prisma.$transaction([
+      this.prisma.indent.update({
+        where: { id },
+        data: {
+          remarks: updatedRemarks,
+          updatedBy: userId,
+        },
+      }),
+      this.prisma.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: txData.departmentId,
+          movedBy: userId,
+          remarks: remarks || 'Production department started manufacturing processes.',
+        },
+      }),
+    ]);
+
+    await this.eventService.logAudit(
+      AuditEventType.PRODUCTION_UPDATE,
+      id,
+      userId,
+      { state: txData.currentState },
+      { action: 'START_PRODUCTION', remarks },
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * PRODUCTION UPDATE PROGRESS: Updates status notes and logs updates
+   */
+  public async productionUpdateProgress(
     id: string,
     userId: string,
     dto: ProductionUpdateDto,
@@ -551,13 +712,63 @@ export class BusinessTransactionService {
 
     await this.eventService.logAudit(AuditEventType.PRODUCTION_UPDATE, id, userId, null, {
       statusNotes: dto.statusNotes,
+      remarks: dto.remarks,
     });
 
     return this.findTransactionById(id);
   }
 
   /**
-   * STAGE 3 CUSTOMER DELIVERY: Production confirms delivery to customer (PRODUCTION_PROCESSING -> CUSTOMER_DELIVERED)
+   * PRODUCTION COMPLETE WORK: Production completes manufacturing (PRODUCTION_PROCESSING -> PRODUCTION_COMPLETED)
+   */
+  public async productionCompleteWork(id: string, userId: string, remarks?: string): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    const targetState = WorkflowState.PRODUCTION_COMPLETED;
+
+    const transitionValidation = this.workflowStateMachine.validateTransition(
+      txData.currentState,
+      targetState,
+      'PRODUCTION',
+    );
+    if (!transitionValidation.isValid) {
+      throw new BadRequestException(transitionValidation.errors.join(', '));
+    }
+
+    const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
+
+    await this.prisma.$transaction([
+      this.prisma.indent.update({
+        where: { id },
+        data: {
+          status: prismaTargetStatus,
+          remarks: `${txData.remarks || ''}\n[PRODUCTION_COMPLETED] Manufacturing completed. ${remarks ? `Notes: ${remarks}` : ''}`,
+          updatedBy: userId,
+        },
+      }),
+      this.prisma.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: txData.departmentId,
+          movedBy: userId,
+          remarks: remarks || 'Production completed manufacturing.',
+        },
+      }),
+    ]);
+
+    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
+    await this.eventService.logAudit(
+      AuditEventType.PRODUCTION_UPDATE,
+      id,
+      userId,
+      { state: txData.currentState },
+      { state: targetState, remarks },
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * CUSTOMER DELIVERY: Confirms product delivery to customer (PRODUCTION_COMPLETED -> CUSTOMER_DELIVERED)
    * Completes Loop 1 (Manufacturing Workflow)!
    */
   public async deliverToCustomer(
@@ -603,14 +814,17 @@ export class BusinessTransactionService {
       }),
     ]);
 
-    // Dispatch Notifications & Audit
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
       AuditEventType.DELIVER_CUSTOMER,
       id,
       userId,
       { state: txData.currentState },
-      { state: targetState, deliveryDate: dto.deliveryDate, loop1Completed: true },
+      {
+        state: targetState,
+        deliveryDate: dto.deliveryDate,
+        reference: dto.customerReceiptReference,
+      },
     );
 
     return this.findTransactionById(id);

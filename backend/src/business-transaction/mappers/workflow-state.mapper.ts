@@ -10,7 +10,9 @@ export class WorkflowStateMapper {
     [WorkflowState.DRAFT]: IndentStatus.DRAFT,
     [WorkflowState.DESIGN_COMPLETED]: IndentStatus.SUBMITTED,
     [WorkflowState.STORES_PROCESSING]: IndentStatus.PENDING_STORES,
+    [WorkflowState.MATERIALS_ISSUED]: IndentStatus.PENDING_STORES,
     [WorkflowState.PRODUCTION_PROCESSING]: IndentStatus.IN_PRODUCTION,
+    [WorkflowState.PRODUCTION_COMPLETED]: IndentStatus.IN_PRODUCTION,
     [WorkflowState.CUSTOMER_DELIVERED]: IndentStatus.APPROVED,
     [WorkflowState.ACCOUNTS_COST_VERIFICATION]: IndentStatus.PENDING_ACCOUNTS,
     [WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE]: IndentStatus.PENDING_SENIOR_MANAGER,
@@ -36,7 +38,23 @@ export class WorkflowStateMapper {
     return this.DOMAIN_TO_PRISMA_MAP[state] || IndentStatus.DRAFT;
   }
 
-  public static toDomain(status: IndentStatus): WorkflowState {
+  public static toDomain(status: IndentStatus, indent?: any): WorkflowState {
+    if (
+      status === IndentStatus.PENDING_STORES &&
+      indent &&
+      indent.remarks &&
+      indent.remarks.includes('[MATERIALS_ISSUED]')
+    ) {
+      return WorkflowState.MATERIALS_ISSUED;
+    }
+    if (
+      status === IndentStatus.IN_PRODUCTION &&
+      indent &&
+      indent.remarks &&
+      indent.remarks.includes('[PRODUCTION_COMPLETED]')
+    ) {
+      return WorkflowState.PRODUCTION_COMPLETED;
+    }
     return this.PRISMA_TO_DOMAIN_MAP[status] || WorkflowState.DRAFT;
   }
 }

@@ -23,8 +23,17 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.STORES_PROCESSING]: {
-    eventType: NotificationEventType.STORES_MATERIAL_ISSUED,
+    eventType: NotificationEventType.BUSINESS_TRANSACTION_SUBMITTED,
     triggerState: WorkflowState.STORES_PROCESSING,
+    targetDepartmentCode: 'STORES',
+    executiveBroadcast: true,
+    templateTitle: 'Stores Stock Verification Underway',
+    templateMessage: 'Stores stock verification has begun for Indent #{indentNumber}.',
+  },
+
+  [WorkflowState.MATERIALS_ISSUED]: {
+    eventType: NotificationEventType.STORES_MATERIAL_ISSUED,
+    triggerState: WorkflowState.MATERIALS_ISSUED,
     targetDepartmentCode: 'PRODUCTION',
     executiveBroadcast: true,
     templateTitle: 'Stores Material Issued',
@@ -37,8 +46,18 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
     triggerState: WorkflowState.PRODUCTION_PROCESSING,
     targetDepartmentCode: 'PRODUCTION',
     executiveBroadcast: true,
-    templateTitle: 'Production Work Center Updated',
-    templateMessage: 'Manufacturing process is underway for Indent #{indentNumber}.',
+    templateTitle: 'Production Manufacturing Started',
+    templateMessage: 'Production manufacturing has started for Indent #{indentNumber}.',
+  },
+
+  [WorkflowState.PRODUCTION_COMPLETED]: {
+    eventType: NotificationEventType.PRODUCTION_COMPLETED,
+    triggerState: WorkflowState.PRODUCTION_COMPLETED,
+    targetDepartmentCode: 'PRODUCTION',
+    executiveBroadcast: true,
+    templateTitle: 'Production Manufacturing Completed',
+    templateMessage:
+      'Production department has completed manufacturing for Indent #{indentNumber}. Ready for delivery.',
   },
 
   [WorkflowState.CUSTOMER_DELIVERED]: {
