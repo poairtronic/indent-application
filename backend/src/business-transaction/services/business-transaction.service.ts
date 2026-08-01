@@ -1,10 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BusinessTransactionValidator } from '../validators/business-transaction.validator';
 import { WorkflowStateMachineService } from './workflow-state-machine.service';
 import { BusinessTransactionEventService } from './business-transaction-event.service';
 import { WorkflowStateMapper } from '../mappers/workflow-state.mapper';
 import { WorkflowState, WorkflowLoop, AuditEventType } from '../enums/workflow-state.enum';
+import { FileType } from '@prisma/client';
+import * as path from 'path';
+import { AttachmentStorageService, UploadedFileMetadata } from './attachment-storage.service';
 import {
   CreateBusinessTransactionDto,
   UpdateBusinessTransactionDto,
@@ -19,6 +27,7 @@ export class BusinessTransactionService {
     private readonly businessTransactionValidator: BusinessTransactionValidator,
     private readonly workflowStateMachine: WorkflowStateMachineService,
     private readonly eventService: BusinessTransactionEventService,
+    private readonly attachmentStorage: AttachmentStorageService,
   ) {}
 
   /**
@@ -220,7 +229,27 @@ export class BusinessTransactionService {
       createdAt: indent.createdAt,
       updatedAt: indent.updatedAt,
       items: indent.indentItems,
-      attachments: indent.attachments,
+      attachments: indent.attachments.map((att: any) => {
+        try {
+          const meta = JSON.parse(att.fileName);
+          return {
+            id: att.id,
+            fileName: meta.originalName || att.fileName,
+            fileUrl: att.fileUrl,
+            fileType: att.fileType,
+            uploadedBy: att.uploadedBy,
+            createdAt: att.createdAt,
+            mimeType: meta.mimeType || 'application/octet-stream',
+            fileSize: meta.fileSize || 0,
+            department: meta.department || 'DESIGN',
+            remarks: meta.remarks || '',
+            costSheetId: meta.costSheetId || null,
+            storageFileName: meta.storageFileName || att.fileName,
+          };
+        } catch (e) {
+          return att;
+        }
+      }),
       costSheet: indent.costSheet,
       productionReceipt: indent.productionReceipt,
       workflowHistory: indent.workflowHistory,
@@ -1345,5 +1374,174 @@ export class BusinessTransactionService {
     );
 
     return this.findTransactionById(id);
+  }
+
+  /**
+   * Upload drawing/invoice attachment to Business Transaction, Indent, or Cost Sheet
+   */
+  public async uploadAttachmentToIndent(
+    id: string,
+    file: UploadedFileMetadata,
+    userId: string,
+    remarks?: string,
+  ): Promise<any> {
+    const txData = await this.findTransactionById(id);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { department: true },
+    });
+
+    if (!user || !user.department) {
+      throw new ForbiddenException('User department not found.');
+    }
+
+    const departmentCode = user.department.departmentCode;
+
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      throw new BadRequestException('File size exceeds the maximum limit of 10MB.');
+    }
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    let fileType: FileType = FileType.OTHER;
+
+    if (departmentCode === 'DESIGN') {
+      if (txData.currentState !== WorkflowState.DRAFT) {
+        throw new BadRequestException('Design uploads allowed only in DRAFT state.');
+      }
+      const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png', '.dwg', '.dxf'];
+      if (!allowedExtensions.includes(ext)) {
+        throw new BadRequestException(`Extension '${ext}' not supported for Design uploads.`);
+      }
+
+      if (ext === '.pdf') fileType = FileType.PDF;
+      else if (ext === '.xlsx' || ext === '.xls') fileType = FileType.EXCEL;
+      else if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') fileType = FileType.IMAGE;
+      else if (ext === '.dwg' || ext === '.dxf') fileType = FileType.CAD;
+    } else if (departmentCode === 'ACCOUNTS') {
+      if (
+        txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
+        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
+      ) {
+        throw new BadRequestException('Accounts uploads allowed only in cost verification states.');
+      }
+      const allowedExtensions = ['.pdf', '.xlsx', '.xls'];
+      if (!allowedExtensions.includes(ext)) {
+        throw new BadRequestException(`Extension '${ext}' not supported for Accounts uploads.`);
+      }
+
+      if (ext === '.pdf') fileType = FileType.PDF;
+      else if (ext === '.xlsx' || ext === '.xls') fileType = FileType.EXCEL;
+    } else {
+      throw new ForbiddenException(
+        `Department '${departmentCode}' is not authorized to upload attachments.`,
+      );
+    }
+
+    const saved = await this.attachmentStorage.saveFile(file);
+
+    const meta = {
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+      department: departmentCode,
+      remarks: remarks || '',
+      costSheetId: txData.costSheet ? txData.costSheet.id : null,
+      storageFileName: saved.fileName,
+    };
+
+    await this.prisma.indentAttachment.create({
+      data: {
+        indentId: id,
+        fileName: JSON.stringify(meta),
+        fileUrl: saved.fileUrl,
+        fileType,
+        uploadedBy: userId,
+        createdBy: userId,
+      },
+    });
+
+    await this.eventService.logAudit(AuditEventType.PRODUCTION_UPDATE, id, userId, null, {
+      uploadedAttachment: file.originalname,
+      fileType,
+      department: departmentCode,
+    });
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * Delete attachment (marks isDeleted = true and removes physical file)
+   */
+  public async deleteAttachment(id: string, attachmentId: string, userId: string): Promise<any> {
+    const txData = await this.findTransactionById(id);
+
+    const attachment = await this.prisma.indentAttachment.findUnique({
+      where: { id: attachmentId },
+    });
+
+    if (!attachment || attachment.indentId !== id || attachment.isDeleted) {
+      throw new NotFoundException(`Attachment with ID '${attachmentId}' not found.`);
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { department: true },
+    });
+    if (!user || !user.department) {
+      throw new ForbiddenException('User department not found.');
+    }
+
+    const departmentCode = user.department.departmentCode;
+
+    let storageFileName = attachment.fileName;
+    try {
+      const meta = JSON.parse(attachment.fileName);
+      storageFileName = meta.storageFileName;
+
+      if (meta.department === 'DESIGN' && txData.currentState !== WorkflowState.DRAFT) {
+        throw new BadRequestException('Cannot delete Design files after submission.');
+      }
+      if (
+        meta.department === 'ACCOUNTS' &&
+        txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
+        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
+      ) {
+        throw new BadRequestException('Cannot delete Accounts files outside verification states.');
+      }
+    } catch (e) {
+      if (txData.currentState !== WorkflowState.DRAFT) {
+        throw new BadRequestException('Design files are locked post-submission.');
+      }
+    }
+
+    await this.attachmentStorage.deleteFile(storageFileName);
+
+    await this.prisma.indentAttachment.update({
+      where: { id: attachmentId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy: userId,
+      },
+    });
+
+    await this.eventService.logAudit(
+      AuditEventType.PRODUCTION_UPDATE,
+      id,
+      userId,
+      { deletedAttachment: attachment.id },
+      null,
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * Get physical file path for download
+   */
+  public async getAttachmentFilePath(fileName: string): Promise<string> {
+    return this.attachmentStorage.getFilePath(fileName);
   }
 }

@@ -10,7 +10,12 @@ import {
   Query,
   UseGuards,
   Request,
+  UseInterceptors,
+  UploadedFile,
+  Res,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -278,26 +283,38 @@ export class BusinessTransactionController {
   }
 
   // =========================================================================
-  // ATTACHMENT OPERATIONS (DESIGN DEPARTMENT)
+  // ATTACHMENT & DOCUMENT OPERATIONS (DESIGN & ACCOUNTS DEPARTMENTS)
   // =========================================================================
 
   @Post(':id/attachments')
-  @Permissions('indent.edit')
-  async addAttachment(@Param('id') id: string, @Body() dto: AddAttachmentDto, @Request() req: any) {
-    return this.businessTransactionService.addAttachmentToIndent(id, dto, req.user.id);
+  @Permissions('indent.edit', 'accounts.verify')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadAttachment(
+    @Param('id') id: string,
+    @UploadedFile() file: any,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.uploadAttachmentToIndent(id, file, req.user.id, remarks);
+  }
+
+  @Get('attachments/download/:fileName')
+  async downloadAttachment(
+    @Param('fileName') fileName: string,
+    @Request() req: any,
+    @Res() res: Response,
+  ) {
+    const filePath = await this.businessTransactionService.getAttachmentFilePath(fileName);
+    return res.sendFile(filePath);
   }
 
   @Delete(':id/attachments/:attachmentId')
-  @Permissions('indent.edit')
+  @Permissions('indent.edit', 'accounts.verify')
   async removeAttachment(
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
     @Request() req: any,
   ) {
-    return this.businessTransactionService.removeAttachmentFromIndent(
-      id,
-      attachmentId,
-      req.user.id,
-    );
+    return this.businessTransactionService.deleteAttachment(id, attachmentId, req.user.id);
   }
 }
