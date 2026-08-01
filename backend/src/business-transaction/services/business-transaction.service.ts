@@ -1609,13 +1609,15 @@ export class BusinessTransactionService {
         select: { id: true },
       });
 
-      const uniqueUserIds = Array.from(new Set(recipientUsers.map((u) => u.id)));
+      const uniqueUserIds = Array.from(new Set(recipientUsers.map((u: any) => u.id)));
       if (uniqueUserIds.length > 0) {
         let metaName = attachment.fileName;
         try {
           const meta = JSON.parse(attachment.fileName);
           metaName = meta.originalName;
-        } catch {}
+        } catch {
+          void 0;
+        }
 
         await this.prisma.notification.create({
           data: {
@@ -1755,7 +1757,9 @@ export class BusinessTransactionService {
         try {
           const meta = JSON.parse(att.fileName);
           originalName = meta.originalName;
-        } catch {}
+        } catch {
+          void 0;
+        }
 
         await this.eventService.logAudit(
           AuditEventType.PRODUCTION_UPDATE,
