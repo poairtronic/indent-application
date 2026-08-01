@@ -1592,8 +1592,53 @@ export class BusinessTransactionService {
       id,
       userId,
       { deletedAttachment: attachment.id },
-      null,
+      { action: 'DOCUMENT_DELETE', attachmentId },
     );
+
+    try {
+      const recipientUsers = await this.prisma.user.findMany({
+        where: {
+          isDeleted: false,
+          status: 'ACTIVE',
+          role: {
+            roleName: {
+              in: ['Senior Manager', 'General Manager'],
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      const uniqueUserIds = Array.from(new Set(recipientUsers.map((u) => u.id)));
+      if (uniqueUserIds.length > 0) {
+        let metaName = attachment.fileName;
+        try {
+          const meta = JSON.parse(attachment.fileName);
+          metaName = meta.originalName;
+        } catch {}
+
+        await this.prisma.notification.create({
+          data: {
+            title: 'Document Deleted',
+            message: `Document '${metaName}' has been deleted from Indent #${txData.indentNumber}.`,
+            type: 'WARNING',
+            priority: 'HIGH',
+            referenceId: id,
+            referenceModule: 'Indent',
+            createdBy: userId,
+            recipients: {
+              create: uniqueUserIds.map((uId) => ({
+                userId: uId,
+                isRead: false,
+                deliveryStatus: 'DELIVERED',
+              })),
+            },
+          },
+        });
+      }
+    } catch (notifErr) {
+      this.logger.error(`Failed to send document delete notification: ${notifErr.message}`);
+    }
 
     return this.findTransactionById(id);
   }
@@ -1688,5 +1733,288 @@ export class BusinessTransactionService {
       }
       return true;
     });
+  }
+
+  /**
+   * Log document download action in audit logs
+   */
+  public async logDocumentDownload(storageFileName: string, userId: string): Promise<void> {
+    try {
+      const atts = await this.prisma.indentAttachment.findMany({
+        where: {
+          fileName: {
+            contains: storageFileName,
+          },
+          isDeleted: false,
+        },
+      });
+
+      if (atts.length > 0) {
+        const att = atts[0];
+        let originalName = storageFileName;
+        try {
+          const meta = JSON.parse(att.fileName);
+          originalName = meta.originalName;
+        } catch {}
+
+        await this.eventService.logAudit(
+          AuditEventType.PRODUCTION_UPDATE,
+          att.indentId,
+          userId,
+          null,
+          {
+            action: 'DOCUMENT_DOWNLOAD',
+            fileName: originalName,
+            attachmentId: att.id,
+          },
+        );
+      }
+    } catch (err) {
+      this.logger.error(`Failed to log document download audit event: ${err.message}`);
+    }
+  }
+
+  /**
+   * Generate document statistics and summary for a Business Transaction
+   */
+  public async getAttachmentSummary(id: string): Promise<any> {
+    const tx = await this.findTransactionById(id);
+
+    let totalDocs = 0;
+    let designDocs = 0;
+    let accountsDocs = 0;
+    let cadFiles = 0;
+    let pdfFiles = 0;
+    let excelFiles = 0;
+    let imageFiles = 0;
+    let otherFiles = 0;
+    let totalSize = 0;
+
+    tx.attachments.forEach((att: any) => {
+      totalDocs++;
+
+      if (att.department === 'DESIGN') {
+        designDocs++;
+      } else if (att.department === 'ACCOUNTS') {
+        accountsDocs++;
+      }
+
+      if (att.fileType === FileType.CAD) cadFiles++;
+      else if (att.fileType === FileType.PDF) pdfFiles++;
+      else if (att.fileType === FileType.EXCEL) excelFiles++;
+      else if (att.fileType === FileType.IMAGE) imageFiles++;
+      else otherFiles++;
+
+      totalSize += att.fileSize || 0;
+    });
+
+    return {
+      businessTransactionId: id,
+      indentNumber: tx.indentNumber,
+      totalDocuments: totalDocs,
+      designDocuments: designDocs,
+      accountsDocuments: accountsDocs,
+      cadFiles,
+      pdfFiles,
+      excelFiles,
+      imageFiles,
+      otherFiles,
+      totalFileSize: totalSize,
+    };
+  }
+
+  /**
+   * Get audit log history for a specific attachment
+   */
+  public async getAttachmentHistory(id: string, attachmentId: string): Promise<any[]> {
+    const attachment = await this.prisma.indentAttachment.findUnique({
+      where: { id: attachmentId },
+    });
+    if (!attachment || attachment.indentId !== id) {
+      throw new NotFoundException('Attachment not found.');
+    }
+
+    const logs = await this.prisma.auditLog.findMany({
+      where: {
+        recordId: id,
+      },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const attachmentLogs = logs.filter((log: any) => {
+      const val = log.newValue ? (log.newValue as any) : {};
+      const oldVal = log.oldValue ? (log.oldValue as any) : {};
+      return (
+        val.attachmentId === attachmentId ||
+        val.deletedAttachment === attachmentId ||
+        oldVal.deletedAttachment === attachmentId ||
+        val.replacedAttachmentId === attachmentId ||
+        (val.uploadedAttachment && val.uploadedAttachment === attachment.fileName)
+      );
+    });
+
+    return attachmentLogs.map((log: any) => {
+      const val = log.newValue ? (log.newValue as any) : {};
+      return {
+        action: val.action || log.action,
+        performedBy: log.user,
+        timestamp: log.createdAt,
+        details: val,
+      };
+    });
+  }
+
+  /**
+   * Replace an existing attachment with a new file
+   */
+  public async replaceAttachment(
+    id: string,
+    attachmentId: string,
+    file: UploadedFileMetadata,
+    userId: string,
+    remarks?: string,
+  ): Promise<any> {
+    const txData = await this.findTransactionById(id);
+
+    const attachment = await this.prisma.indentAttachment.findUnique({
+      where: { id: attachmentId },
+    });
+
+    if (!attachment || attachment.indentId !== id || attachment.isDeleted) {
+      throw new NotFoundException(`Attachment with ID '${attachmentId}' not found.`);
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { department: true },
+    });
+    if (!user || !user.department) {
+      throw new ForbiddenException('User department not found.');
+    }
+
+    const departmentCode = user.department.departmentCode;
+
+    let oldMeta: any = {};
+    try {
+      oldMeta = JSON.parse(attachment.fileName);
+    } catch {
+      oldMeta = { department: 'DESIGN', storageFileName: attachment.fileName };
+    }
+
+    if (oldMeta.department === 'DESIGN') {
+      if (departmentCode !== 'DESIGN') {
+        throw new ForbiddenException('Only Design department can replace design files.');
+      }
+      if (txData.currentState !== WorkflowState.DRAFT) {
+        throw new BadRequestException('Cannot replace Design files after submission.');
+      }
+    } else if (oldMeta.department === 'ACCOUNTS') {
+      if (departmentCode !== 'ACCOUNTS') {
+        throw new ForbiddenException('Only Accounts department can replace financial files.');
+      }
+      if (
+        txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
+        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
+      ) {
+        throw new BadRequestException('Cannot replace Accounts files outside verification states.');
+      }
+    }
+
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      throw new BadRequestException('File size exceeds the maximum limit of 10MB.');
+    }
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    const designExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png', '.dwg', '.dxf'];
+    const accountsExtensions = ['.pdf', '.xlsx', '.xls'];
+
+    if (oldMeta.department === 'DESIGN' && !designExtensions.includes(ext)) {
+      throw new BadRequestException(`Extension '${ext}' not supported for Design replace.`);
+    }
+    if (oldMeta.department === 'ACCOUNTS' && !accountsExtensions.includes(ext)) {
+      throw new BadRequestException(`Extension '${ext}' not supported for Accounts replace.`);
+    }
+
+    await this.attachmentStorage.deleteFile(oldMeta.storageFileName || attachment.fileName);
+
+    const saved = await this.attachmentStorage.saveFile(file);
+
+    const newMeta = {
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+      department: oldMeta.department,
+      remarks: remarks || oldMeta.remarks || '',
+      costSheetId: oldMeta.costSheetId,
+      storageFileName: saved.fileName,
+    };
+
+    await this.prisma.indentAttachment.update({
+      where: { id: attachmentId },
+      data: {
+        fileName: JSON.stringify(newMeta),
+        fileUrl: saved.fileUrl,
+        uploadedBy: userId,
+      },
+    });
+
+    await this.eventService.logAudit(
+      AuditEventType.PRODUCTION_UPDATE,
+      id,
+      userId,
+      { oldFileName: oldMeta.originalName || attachment.fileName },
+      {
+        action: 'DOCUMENT_REPLACE',
+        replacedAttachmentId: attachmentId,
+        newFileName: file.originalname,
+      },
+    );
+
+    try {
+      const recipientUsers = await this.prisma.user.findMany({
+        where: {
+          isDeleted: false,
+          status: 'ACTIVE',
+          role: {
+            roleName: {
+              in: ['Senior Manager', 'General Manager'],
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      const uniqueUserIds = Array.from(new Set(recipientUsers.map((u) => u.id)));
+      if (uniqueUserIds.length > 0) {
+        await this.prisma.notification.create({
+          data: {
+            title: 'Document Replaced',
+            message: `Document '${oldMeta.originalName || attachment.fileName}' has been replaced with '${file.originalname}' on Indent #${txData.indentNumber}.`,
+            type: 'INFO',
+            priority: 'MEDIUM',
+            referenceId: id,
+            referenceModule: 'Indent',
+            createdBy: userId,
+            recipients: {
+              create: uniqueUserIds.map((uId) => ({
+                userId: uId,
+                isRead: false,
+                deliveryStatus: 'DELIVERED',
+              })),
+            },
+          },
+        });
+      }
+    } catch (notifErr) {
+      this.logger.error(`Failed to send document replace notification: ${notifErr.message}`);
+    }
+
+    return this.findTransactionById(id);
   }
 }

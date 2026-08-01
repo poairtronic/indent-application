@@ -326,7 +326,39 @@ export class BusinessTransactionController {
     @Res() res: Response,
   ) {
     const filePath = await this.businessTransactionService.getAttachmentFilePath(fileName);
+    await this.businessTransactionService.logDocumentDownload(fileName, req.user.id);
     return res.sendFile(filePath);
+  }
+
+  @Get(':id/attachments/summary')
+  @Permissions('indent.view', 'accounts.verify')
+  async getAttachmentSummary(@Param('id') id: string) {
+    return this.businessTransactionService.getAttachmentSummary(id);
+  }
+
+  @Get(':id/attachments/:attachmentId/history')
+  @Permissions('indent.view', 'accounts.verify')
+  async getAttachmentHistory(@Param('id') id: string, @Param('attachmentId') attachmentId: string) {
+    return this.businessTransactionService.getAttachmentHistory(id, attachmentId);
+  }
+
+  @Put(':id/attachments/:attachmentId')
+  @Permissions('indent.edit', 'accounts.verify')
+  @UseInterceptors(FileInterceptor('file'))
+  async replaceAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @UploadedFile() file: any,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.replaceAttachment(
+      id,
+      attachmentId,
+      file,
+      req.user.id,
+      remarks,
+    );
   }
 
   @Delete(':id/attachments/:attachmentId')
