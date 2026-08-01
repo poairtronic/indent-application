@@ -15,6 +15,8 @@ import { PermissionsGuard } from './auth/guards/permissions.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
+import { BusinessTransactionModule } from './business-transaction/business-transaction.module';
+
 @Module({
   imports: [
     PrismaModule,
@@ -26,6 +28,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     ProcessesModule,
     UnitsModule,
     VendorsModule,
+    BusinessTransactionModule,
   ],
   controllers: [],
   providers: [
