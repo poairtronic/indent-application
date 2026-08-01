@@ -10,6 +10,7 @@ import {
 } from './dto/create-business-transaction.dto';
 import { StoresIssueDto } from './dto/stores-issue.dto';
 import { ProductionUpdateDto, CustomerDeliveryDto } from './dto/production-update.dto';
+import { ActualCostEntryDto, FinancialClosureDto } from './dto/actual-cost-entry.dto';
 
 @Controller('business-transactions')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
@@ -100,5 +101,59 @@ export class BusinessTransactionController {
     @Request() req: any,
   ) {
     return this.businessTransactionService.deliverToCustomer(id, req.user.id, dto);
+  }
+
+  // =========================================================================
+  // LOOP 2: FINANCIAL WORKFLOW & ARCHIVAL ENDPOINTS
+  // =========================================================================
+
+  @Post(':id/accounts-verify')
+  @Permissions('accounts.verify')
+  async startAccountsVerify(
+    @Param('id') id: string,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.startAccountsVerification(id, req.user.id, remarks);
+  }
+
+  @Post(':id/actual-costs')
+  @Permissions('accounts.verify')
+  async enterActualCosts(
+    @Param('id') id: string,
+    @Body() dto: ActualCostEntryDto,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.enterActualCosts(id, req.user.id, dto);
+  }
+
+  @Post(':id/financial-closure')
+  @Permissions('accounts.close')
+  async financialClosure(
+    @Param('id') id: string,
+    @Body() dto: FinancialClosureDto,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.financialClosure(id, req.user.id, dto);
+  }
+
+  @Post(':id/archive')
+  @Permissions('system.archive')
+  async archiveTransaction(
+    @Param('id') id: string,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.archiveTransaction(id, req.user.id, remarks);
+  }
+
+  @Post(':id/complete')
+  @Permissions('system.complete')
+  async completeTransaction(
+    @Param('id') id: string,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.completeTransaction(id, req.user.id, remarks);
   }
 }

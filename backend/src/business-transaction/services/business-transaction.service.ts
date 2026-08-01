@@ -615,4 +615,310 @@ export class BusinessTransactionService {
 
     return this.findTransactionById(id);
   }
+
+  // =========================================================================
+  // LOOP 2: FINANCIAL WORKFLOW & ARCHIVAL METHODS
+  // =========================================================================
+
+  /**
+   * STAGE 4 ACCOUNTS START: Start Accounts cost verification (CUSTOMER_DELIVERED -> ACCOUNTS_COST_VERIFICATION)
+   */
+  public async startAccountsVerification(
+    id: string,
+    userId: string,
+    remarks?: string,
+  ): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    const targetState = WorkflowState.ACCOUNTS_COST_VERIFICATION;
+
+    const transitionValidation = this.workflowStateMachine.validateTransition(
+      txData.currentState,
+      targetState,
+      'ACCOUNTS',
+    );
+    if (!transitionValidation.isValid) {
+      throw new BadRequestException(transitionValidation.errors.join(', '));
+    }
+
+    const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
+
+    await this.prisma.$transaction([
+      this.prisma.indent.update({
+        where: { id },
+        data: {
+          status: prismaTargetStatus,
+          updatedBy: userId,
+          remarks: remarks
+            ? `${txData.remarks || ''}\nAccounts Verification Notes: ${remarks}`
+            : txData.remarks,
+        },
+      }),
+      this.prisma.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: txData.departmentId,
+          movedBy: userId,
+          remarks: remarks || 'Accounts started actual cost verification.',
+        },
+      }),
+    ]);
+
+    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
+    await this.eventService.logAudit(
+      AuditEventType.VERIFY_COSTS,
+      id,
+      userId,
+      { state: txData.currentState },
+      { state: targetState },
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * STAGE 4 ACTUAL COST ENTRY: Accounts enters actual vendor and in-house process costs
+   * Computes item variances, total actual cost, total variance amount, and variance percentage.
+   */
+  public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    if (txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION) {
+      throw new BadRequestException(
+        `Actual cost entry allowed only in state ACCOUNTS_COST_VERIFICATION. Current state: ${txData.currentState}`,
+      );
+    }
+
+    if (!txData.costSheet) {
+      throw new NotFoundException(`Process Cost Sheet for Indent ID '${id}' not found.`);
+    }
+
+    const costSheetId = txData.costSheet.id;
+
+    await this.prisma.$transaction(async (tx) => {
+      let totalMaterialActual = 0;
+      let totalProcessActual = 0;
+
+      // 1. Update CostItems actual rate, quantity, and amount
+      if (dto.costItems && dto.costItems.length > 0) {
+        for (const ciDto of dto.costItems) {
+          const actualAmount = (ciDto.actualRate || 0) * (ciDto.actualQuantity || 0);
+          totalMaterialActual += actualAmount;
+          await tx.costItem.update({
+            where: { id: ciDto.costItemId },
+            data: {
+              actualRate: ciDto.actualRate,
+              actualQuantity: ciDto.actualQuantity,
+              actualAmount,
+              remarks: ciDto.remarks || undefined,
+              updatedBy: userId,
+            },
+          });
+        }
+      }
+
+      // 2. Update ProcessCosts actual cost and actual hours
+      if (dto.processCosts && dto.processCosts.length > 0) {
+        for (const pcDto of dto.processCosts) {
+          totalProcessActual += pcDto.actualCost || 0;
+          const existingPc = await tx.processCost.findUnique({
+            where: { id: pcDto.processCostId },
+          });
+          const predicted = existingPc ? Number(existingPc.predictedCost) : 0;
+          const variance = (pcDto.actualCost || 0) - predicted;
+
+          await tx.processCost.update({
+            where: { id: pcDto.processCostId },
+            data: {
+              actualCost: pcDto.actualCost,
+              actualHours: pcDto.actualHours,
+              variance,
+              updatedBy: userId,
+            },
+          });
+        }
+      }
+
+      // 3. Compute overall CostSheet actual total and variance
+      const actualTotal = totalMaterialActual + totalProcessActual;
+      const predictedTotal = Number(txData.costSheet.predictedTotal || 0);
+      const varianceAmount = actualTotal - predictedTotal;
+      const variancePercentage = predictedTotal > 0 ? (varianceAmount / predictedTotal) * 100 : 0;
+
+      await tx.costSheet.update({
+        where: { id: costSheetId },
+        data: {
+          actualTotal,
+          varianceAmount,
+          variancePercentage,
+          updatedBy: userId,
+        },
+      });
+    });
+
+    await this.eventService.logAudit(
+      AuditEventType.VERIFY_COSTS,
+      id,
+      userId,
+      { predictedTotal: txData.costSheet.predictedTotal },
+      { actualCostEntered: true, costSheetId },
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * STAGE 4 FINANCIAL CLOSURE: Finalize cost sheet and close financial records (ACCOUNTS_COST_VERIFICATION -> ACCOUNTS_FINANCIAL_CLOSURE)
+   */
+  public async financialClosure(id: string, userId: string, dto: any): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    const targetState = WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE;
+
+    const transitionValidation = this.workflowStateMachine.validateTransition(
+      txData.currentState,
+      targetState,
+      'ACCOUNTS',
+    );
+    if (!transitionValidation.isValid) {
+      throw new BadRequestException(transitionValidation.errors.join(', '));
+    }
+
+    const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
+
+    await this.prisma.$transaction([
+      this.prisma.indent.update({
+        where: { id },
+        data: {
+          status: prismaTargetStatus,
+          updatedBy: userId,
+          remarks: dto.closureNotes
+            ? `${txData.remarks || ''}\nFinancial Closure Notes: ${dto.closureNotes}`
+            : txData.remarks,
+        },
+      }),
+      this.prisma.costSheet.update({
+        where: { id: txData.costSheet.id },
+        data: {
+          status: 'FINALIZED',
+          updatedBy: userId,
+        },
+      }),
+      this.prisma.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: txData.departmentId,
+          movedBy: userId,
+          remarks:
+            dto.closureNotes || 'Accounts finalized financial records and variance calculation.',
+        },
+      }),
+    ]);
+
+    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
+    await this.eventService.logAudit(
+      AuditEventType.FINANCIAL_CLOSURE,
+      id,
+      userId,
+      { state: txData.currentState },
+      { state: targetState, costSheetStatus: 'FINALIZED' },
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * STAGE 5 ARCHIVE: System / Admin archives transaction (ACCOUNTS_FINANCIAL_CLOSURE -> ARCHIVED)
+   */
+  public async archiveTransaction(id: string, userId: string, remarks?: string): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    const targetState = WorkflowState.ARCHIVED;
+
+    const transitionValidation = this.workflowStateMachine.validateTransition(
+      txData.currentState,
+      targetState,
+      'SYSTEM',
+    );
+    if (!transitionValidation.isValid) {
+      throw new BadRequestException(transitionValidation.errors.join(', '));
+    }
+
+    const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
+
+    await this.prisma.$transaction([
+      this.prisma.indent.update({
+        where: { id },
+        data: {
+          status: prismaTargetStatus,
+          isLocked: true, // Lock record against edits
+          updatedBy: userId,
+        },
+      }),
+      this.prisma.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: txData.departmentId,
+          movedBy: userId,
+          remarks: remarks || 'Automated archival completed. Record locked.',
+        },
+      }),
+    ]);
+
+    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
+    await this.eventService.logAudit(
+      AuditEventType.ARCHIVE_TRANSACTION,
+      id,
+      userId,
+      { state: txData.currentState, isLocked: false },
+      { state: targetState, isLocked: true },
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * STAGE 5 COMPLETE: Complete Business Transaction across both loops (ARCHIVED -> COMPLETED)
+   */
+  public async completeTransaction(id: string, userId: string, remarks?: string): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    const targetState = WorkflowState.COMPLETED;
+
+    const transitionValidation = this.workflowStateMachine.validateTransition(
+      txData.currentState,
+      targetState,
+      'SYSTEM',
+    );
+    if (!transitionValidation.isValid) {
+      throw new BadRequestException(transitionValidation.errors.join(', '));
+    }
+
+    const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
+
+    await this.prisma.$transaction([
+      this.prisma.indent.update({
+        where: { id },
+        data: {
+          status: prismaTargetStatus,
+          isLocked: true,
+          updatedBy: userId,
+        },
+      }),
+      this.prisma.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: txData.departmentId,
+          movedBy: userId,
+          remarks: remarks || 'Business Transaction fully completed across Loop 1 and Loop 2.',
+        },
+      }),
+    ]);
+
+    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
+    await this.eventService.logAudit(
+      AuditEventType.ARCHIVE_TRANSACTION,
+      id,
+      userId,
+      { state: txData.currentState },
+      { state: targetState, businessTransactionCompleted: true },
+    );
+
+    return this.findTransactionById(id);
+  }
 }
