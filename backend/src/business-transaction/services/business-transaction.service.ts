@@ -892,13 +892,19 @@ export class BusinessTransactionService {
   /**
    * STAGE 4 ACTUAL COST ENTRY: Accounts enters actual vendor and in-house process costs
    * Computes item variances, total actual cost, total variance amount, and variance percentage.
+   * Transitions to ACTUAL_COST_UPDATED state.
    */
   public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
     const txData = await this.findTransactionById(id);
-    if (txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION) {
-      throw new BadRequestException(
-        `Actual cost entry allowed only in state ACCOUNTS_COST_VERIFICATION. Current state: ${txData.currentState}`,
-      );
+    const targetState = WorkflowState.ACTUAL_COST_UPDATED;
+
+    const transitionValidation = this.workflowStateMachine.validateTransition(
+      txData.currentState,
+      targetState,
+      'ACCOUNTS',
+    );
+    if (!transitionValidation.isValid) {
+      throw new BadRequestException(transitionValidation.errors.join(', '));
     }
 
     if (!txData.costSheet) {
@@ -906,6 +912,7 @@ export class BusinessTransactionService {
     }
 
     const costSheetId = txData.costSheet.id;
+    const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
     await this.prisma.$transaction(async (tx) => {
       let totalMaterialActual = 0;
@@ -914,6 +921,9 @@ export class BusinessTransactionService {
       // 1. Update CostItems actual rate, quantity, and amount
       if (dto.costItems && dto.costItems.length > 0) {
         for (const ciDto of dto.costItems) {
+          if ((ciDto.actualRate || 0) < 0 || (ciDto.actualQuantity || 0) < 0) {
+            throw new BadRequestException('Actual rates and quantities must be non-negative.');
+          }
           const actualAmount = (ciDto.actualRate || 0) * (ciDto.actualQuantity || 0);
           totalMaterialActual += actualAmount;
           await tx.costItem.update({
@@ -927,11 +937,22 @@ export class BusinessTransactionService {
             },
           });
         }
+      } else {
+        const existingCostItems = await tx.costItem.findMany({
+          where: { costSheetId },
+        });
+        totalMaterialActual = existingCostItems.reduce(
+          (sum, item) => sum + Number(item.actualAmount || 0),
+          0,
+        );
       }
 
       // 2. Update ProcessCosts actual cost and actual hours
       if (dto.processCosts && dto.processCosts.length > 0) {
         for (const pcDto of dto.processCosts) {
+          if ((pcDto.actualCost || 0) < 0 || (pcDto.actualHours || 0) < 0) {
+            throw new BadRequestException('Actual costs and hours must be non-negative.');
+          }
           totalProcessActual += pcDto.actualCost || 0;
           const existingPc = await tx.processCost.findUnique({
             where: { id: pcDto.processCostId },
@@ -949,6 +970,14 @@ export class BusinessTransactionService {
             },
           });
         }
+      } else {
+        const existingProcessCosts = await tx.processCost.findMany({
+          where: { costSheetId },
+        });
+        totalProcessActual = existingProcessCosts.reduce(
+          (sum, item) => sum + Number(item.actualCost || 0),
+          0,
+        );
       }
 
       // 3. Compute overall CostSheet actual total and variance
@@ -966,21 +995,131 @@ export class BusinessTransactionService {
           updatedBy: userId,
         },
       });
+
+      // 4. Update Indent state and append tag [ACTUAL_COST_UPDATED]
+      const updatedRemarks = `${txData.remarks || ''}\n[ACTUAL_COST_UPDATED] Actual costs and variance calculations updated.`;
+      await tx.indent.update({
+        where: { id },
+        data: {
+          status: prismaTargetStatus,
+          remarks: updatedRemarks,
+          updatedBy: userId,
+        },
+      });
+
+      // 5. Create workflow history record
+      await tx.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: txData.departmentId,
+          movedBy: userId,
+          remarks: 'Accounts updated actual costs and process variances.',
+        },
+      });
     });
 
+    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
       AuditEventType.VERIFY_COSTS,
       id,
       userId,
       { predictedTotal: txData.costSheet.predictedTotal },
-      { actualCostEntered: true, costSheetId },
+      { actualCostEntered: true, costSheetId, state: targetState },
     );
 
     return this.findTransactionById(id);
   }
 
   /**
-   * STAGE 4 FINANCIAL CLOSURE: Finalize cost sheet and close financial records (ACCOUNTS_COST_VERIFICATION -> ACCOUNTS_FINANCIAL_CLOSURE)
+   * ACCOUNTS MATERIAL COST UPDATE: Updates single actual material item cost rate & quantity
+   */
+  public async updateMaterialActualCosts(
+    id: string,
+    userId: string,
+    dto: { costItemId: string; actualRate: number; actualQuantity: number; remarks?: string },
+  ): Promise<any> {
+    const txData = await this.findTransactionById(id);
+
+    if (
+      txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
+      txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
+    ) {
+      throw new BadRequestException(
+        `Material actual cost updates allowed only in cost verification states. Current state: ${txData.currentState}`,
+      );
+    }
+
+    if (dto.actualRate < 0 || dto.actualQuantity < 0) {
+      throw new BadRequestException('Actual rates and quantities must be non-negative.');
+    }
+
+    if (!txData.costSheet) {
+      throw new NotFoundException(`Process Cost Sheet for Indent ID '${id}' not found.`);
+    }
+
+    const costSheetId = txData.costSheet.id;
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Update target CostItem
+      const actualAmount = dto.actualRate * dto.actualQuantity;
+      await tx.costItem.update({
+        where: { id: dto.costItemId },
+        data: {
+          actualRate: dto.actualRate,
+          actualQuantity: dto.actualQuantity,
+          actualAmount,
+          remarks: dto.remarks || undefined,
+          updatedBy: userId,
+        },
+      });
+
+      // 2. Fetch all materials and processes actual totals to recalculate
+      const allCostItems = await tx.costItem.findMany({
+        where: { costSheetId },
+      });
+      const allProcessCosts = await tx.processCost.findMany({
+        where: { costSheetId },
+      });
+
+      const totalMaterialActual = allCostItems.reduce(
+        (sum, item) => sum + Number(item.actualAmount || 0),
+        0,
+      );
+      const totalProcessActual = allProcessCosts.reduce(
+        (sum, item) => sum + Number(item.actualCost || 0),
+        0,
+      );
+
+      const actualTotal = totalMaterialActual + totalProcessActual;
+      const predictedTotal = Number(txData.costSheet.predictedTotal || 0);
+      const varianceAmount = actualTotal - predictedTotal;
+      const variancePercentage = predictedTotal > 0 ? (varianceAmount / predictedTotal) * 100 : 0;
+
+      // 3. Update CostSheet calculations
+      await tx.costSheet.update({
+        where: { id: costSheetId },
+        data: {
+          actualTotal,
+          varianceAmount,
+          variancePercentage,
+          updatedBy: userId,
+        },
+      });
+    });
+
+    await this.eventService.logAudit(
+      AuditEventType.VERIFY_COSTS,
+      id,
+      userId,
+      { costItemId: dto.costItemId },
+      { actualRate: dto.actualRate, actualQuantity: dto.actualQuantity },
+    );
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * STAGE 4 FINANCIAL CLOSURE: Finalize cost sheet and close financial records (ACTUAL_COST_UPDATED -> ACCOUNTS_FINANCIAL_CLOSURE)
    */
   public async financialClosure(id: string, userId: string, dto: any): Promise<any> {
     const txData = await this.findTransactionById(id);

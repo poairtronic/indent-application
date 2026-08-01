@@ -15,6 +15,7 @@ export class WorkflowStateMapper {
     [WorkflowState.PRODUCTION_COMPLETED]: IndentStatus.IN_PRODUCTION,
     [WorkflowState.CUSTOMER_DELIVERED]: IndentStatus.APPROVED,
     [WorkflowState.ACCOUNTS_COST_VERIFICATION]: IndentStatus.PENDING_ACCOUNTS,
+    [WorkflowState.ACTUAL_COST_UPDATED]: IndentStatus.PENDING_ACCOUNTS,
     [WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE]: IndentStatus.PENDING_SENIOR_MANAGER,
     [WorkflowState.ARCHIVED]: IndentStatus.PENDING_GENERAL_MANAGER,
     [WorkflowState.COMPLETED]: IndentStatus.COMPLETED,
@@ -54,6 +55,14 @@ export class WorkflowStateMapper {
       indent.remarks.includes('[PRODUCTION_COMPLETED]')
     ) {
       return WorkflowState.PRODUCTION_COMPLETED;
+    }
+    if (
+      status === IndentStatus.PENDING_ACCOUNTS &&
+      indent &&
+      indent.remarks &&
+      indent.remarks.includes('[ACTUAL_COST_UPDATED]')
+    ) {
+      return WorkflowState.ACTUAL_COST_UPDATED;
     }
     return this.PRISMA_TO_DOMAIN_MAP[status] || WorkflowState.DRAFT;
   }

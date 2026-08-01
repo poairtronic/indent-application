@@ -186,6 +186,16 @@ export class BusinessTransactionController {
   // LOOP 2: FINANCIAL WORKFLOW & ARCHIVAL ENDPOINTS
   // =========================================================================
 
+  @Post(':id/accounts/verify')
+  @Permissions('accounts.verify')
+  async accountsVerifyNew(
+    @Param('id') id: string,
+    @Body('remarks') remarks: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.startAccountsVerification(id, req.user.id, remarks);
+  }
+
   @Post(':id/accounts-verify')
   @Permissions('accounts.verify')
   async startAccountsVerify(
@@ -196,6 +206,16 @@ export class BusinessTransactionController {
     return this.businessTransactionService.startAccountsVerification(id, req.user.id, remarks);
   }
 
+  @Post(':id/accounts/actual-cost')
+  @Permissions('accounts.verify')
+  async enterActualCostsNew(
+    @Param('id') id: string,
+    @Body() dto: ActualCostEntryDto,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.enterActualCosts(id, req.user.id, dto);
+  }
+
   @Post(':id/actual-costs')
   @Permissions('accounts.verify')
   async enterActualCosts(
@@ -204,6 +224,27 @@ export class BusinessTransactionController {
     @Request() req: any,
   ) {
     return this.businessTransactionService.enterActualCosts(id, req.user.id, dto);
+  }
+
+  @Patch(':id/accounts/material-cost')
+  @Permissions('accounts.verify')
+  async updateMaterialCost(
+    @Param('id') id: string,
+    @Body()
+    dto: { costItemId: string; actualRate: number; actualQuantity: number; remarks?: string },
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.updateMaterialActualCosts(id, req.user.id, dto);
+  }
+
+  @Post(':id/accounts/financial-close')
+  @Permissions('accounts.close')
+  async financialCloseNew(
+    @Param('id') id: string,
+    @Body() dto: FinancialClosureDto,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.financialClosure(id, req.user.id, dto);
   }
 
   @Post(':id/financial-closure')

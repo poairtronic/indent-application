@@ -80,6 +80,15 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
       'Accounts is verifying actual vendor and in-house costs for Indent #{indentNumber}.',
   },
 
+  [WorkflowState.ACTUAL_COST_UPDATED]: {
+    eventType: NotificationEventType.ACCOUNTS_COST_VERIFIED,
+    triggerState: WorkflowState.ACTUAL_COST_UPDATED,
+    targetDepartmentCode: 'ACCOUNTS',
+    executiveBroadcast: true,
+    templateTitle: 'Actual Cost Updated',
+    templateMessage: 'Actual costs and variance calculations updated for Indent #{indentNumber}.',
+  },
+
   [WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE]: {
     eventType: NotificationEventType.ACCOUNTS_FINANCIAL_CLOSED,
     triggerState: WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE,

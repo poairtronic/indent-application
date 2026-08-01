@@ -103,15 +103,27 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'ACCOUNTS',
     requiredPermissionCode: 'accounts.verify',
-    allowedNextStates: [WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE],
+    allowedNextStates: [WorkflowState.ACTUAL_COST_UPDATED],
     isLoopBoundary: false,
     isTerminalState: false,
     description: 'Accounts collecting vendor bills, entering actual costs, and computing variance.',
   },
 
+  [WorkflowState.ACTUAL_COST_UPDATED]: {
+    state: WorkflowState.ACTUAL_COST_UPDATED,
+    sequence: 9,
+    loop: WorkflowLoop.FINANCIAL_LOOP,
+    owningDepartmentCode: 'ACCOUNTS',
+    requiredPermissionCode: 'accounts.verify',
+    allowedNextStates: [WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE],
+    isLoopBoundary: false,
+    isTerminalState: false,
+    description: 'Actual costs entered and variance calculations updated.',
+  },
+
   [WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE]: {
     state: WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE,
-    sequence: 9,
+    sequence: 10,
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'ACCOUNTS',
     requiredPermissionCode: 'accounts.close',
@@ -123,7 +135,7 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
 
   [WorkflowState.ARCHIVED]: {
     state: WorkflowState.ARCHIVED,
-    sequence: 10,
+    sequence: 11,
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'SYSTEM',
     requiredPermissionCode: 'system.archive',
@@ -135,7 +147,7 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
 
   [WorkflowState.COMPLETED]: {
     state: WorkflowState.COMPLETED,
-    sequence: 11,
+    sequence: 12,
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'SYSTEM',
     requiredPermissionCode: 'system.complete',
