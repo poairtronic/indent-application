@@ -921,4 +921,76 @@ export class BusinessTransactionService {
 
     return this.findTransactionById(id);
   }
+
+  /**
+   * Add drawing or document attachment to draft Indent Sheet
+   */
+  public async addAttachmentToIndent(id: string, dto: any, userId: string): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    if (txData.currentState !== WorkflowState.DRAFT) {
+      throw new BadRequestException(
+        `Cannot add attachments in state '${txData.currentState}'. Design fields are locked.`,
+      );
+    }
+
+    await this.prisma.indentAttachment.create({
+      data: {
+        indentId: id,
+        fileName: dto.fileName,
+        fileUrl: dto.fileUrl,
+        fileType: dto.fileType,
+        uploadedBy: userId,
+        createdBy: userId,
+      },
+    });
+
+    await this.eventService.logAudit(AuditEventType.CREATE_DRAFT, id, userId, null, {
+      addedAttachment: dto.fileName,
+    });
+
+    return this.findTransactionById(id);
+  }
+
+  /**
+   * Soft-delete drawing or document attachment from draft Indent Sheet
+   */
+  public async removeAttachmentFromIndent(
+    id: string,
+    attachmentId: string,
+    userId: string,
+  ): Promise<any> {
+    const txData = await this.findTransactionById(id);
+    if (txData.currentState !== WorkflowState.DRAFT) {
+      throw new BadRequestException(
+        `Cannot remove attachments in state '${txData.currentState}'. Design fields are locked.`,
+      );
+    }
+
+    const attachment = await this.prisma.indentAttachment.findUnique({
+      where: { id: attachmentId },
+    });
+
+    if (!attachment || attachment.indentId !== id || attachment.isDeleted) {
+      throw new NotFoundException(`Attachment with ID '${attachmentId}' not found.`);
+    }
+
+    await this.prisma.indentAttachment.update({
+      where: { id: attachmentId },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy: userId,
+      },
+    });
+
+    await this.eventService.logAudit(
+      AuditEventType.CREATE_DRAFT,
+      id,
+      userId,
+      { removedAttachment: attachment.fileName },
+      null,
+    );
+
+    return this.findTransactionById(id);
+  }
 }

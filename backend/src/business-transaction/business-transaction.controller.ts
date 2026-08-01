@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -11,6 +22,7 @@ import {
 import { StoresIssueDto } from './dto/stores-issue.dto';
 import { ProductionUpdateDto, CustomerDeliveryDto } from './dto/production-update.dto';
 import { ActualCostEntryDto, FinancialClosureDto } from './dto/actual-cost-entry.dto';
+import { AddAttachmentDto } from './dto/attachment.dto';
 
 @Controller('business-transactions')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
@@ -155,5 +167,29 @@ export class BusinessTransactionController {
     @Request() req: any,
   ) {
     return this.businessTransactionService.completeTransaction(id, req.user.id, remarks);
+  }
+
+  // =========================================================================
+  // ATTACHMENT OPERATIONS (DESIGN DEPARTMENT)
+  // =========================================================================
+
+  @Post(':id/attachments')
+  @Permissions('indent.edit')
+  async addAttachment(@Param('id') id: string, @Body() dto: AddAttachmentDto, @Request() req: any) {
+    return this.businessTransactionService.addAttachmentToIndent(id, dto, req.user.id);
+  }
+
+  @Delete(':id/attachments/:attachmentId')
+  @Permissions('indent.edit')
+  async removeAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.removeAttachmentFromIndent(
+      id,
+      attachmentId,
+      req.user.id,
+    );
   }
 }
