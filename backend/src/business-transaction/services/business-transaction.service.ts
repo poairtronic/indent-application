@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BusinessTransactionValidator } from '../validators/business-transaction.validator';
@@ -22,6 +23,8 @@ import { ProductionUpdateDto, CustomerDeliveryDto } from '../dto/production-upda
 
 @Injectable()
 export class BusinessTransactionService {
+  private readonly logger = new Logger(BusinessTransactionService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly businessTransactionValidator: BusinessTransactionValidator,
@@ -1468,6 +1471,49 @@ export class BusinessTransactionService {
       department: departmentCode,
     });
 
+    try {
+      const recipientUsers = await this.prisma.user.findMany({
+        where: {
+          isDeleted: false,
+          status: 'ACTIVE',
+          role: {
+            roleName: {
+              in: ['Senior Manager', 'General Manager'],
+            },
+          },
+        },
+        select: { id: true },
+      });
+
+      const uniqueUserIds = Array.from(new Set(recipientUsers.map((u) => u.id)));
+      if (uniqueUserIds.length > 0) {
+        const title =
+          departmentCode === 'DESIGN' ? 'Design Drawing Uploaded' : 'Vendor Bill/Invoice Uploaded';
+        const msg = `User has uploaded attachment '${file.originalname}' for Indent #${txData.indentNumber}.`;
+
+        await this.prisma.notification.create({
+          data: {
+            title,
+            message: msg,
+            type: 'INFO',
+            priority: 'MEDIUM',
+            referenceId: id,
+            referenceModule: 'Indent',
+            createdBy: userId,
+            recipients: {
+              create: uniqueUserIds.map((uId) => ({
+                userId: uId,
+                isRead: false,
+                deliveryStatus: 'DELIVERED',
+              })),
+            },
+          },
+        });
+      }
+    } catch (notifErr) {
+      this.logger.error(`Failed to send attachment upload notification: ${notifErr.message}`);
+    }
+
     return this.findTransactionById(id);
   }
 
@@ -1557,5 +1603,90 @@ export class BusinessTransactionService {
    */
   public async getAttachmentFilePath(fileName: string): Promise<string> {
     return this.attachmentStorage.getFilePath(fileName);
+  }
+
+  /**
+   * Search and filter attachments across all business transactions
+   */
+  public async searchAttachments(query: any): Promise<any[]> {
+    const whereClause: any = {
+      isDeleted: false,
+    };
+
+    if (query.businessTransactionId) {
+      whereClause.indentId = query.businessTransactionId;
+    }
+    if (query.documentType) {
+      whereClause.fileType = query.documentType;
+    }
+    if (query.uploadedBy) {
+      whereClause.uploadedBy = query.uploadedBy;
+    }
+    if (query.uploadDate) {
+      const date = new Date(query.uploadDate);
+      if (!isNaN(date.getTime())) {
+        const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+        whereClause.createdAt = {
+          gte: startOfDay,
+          lte: endOfDay,
+        };
+      }
+    }
+
+    const dbAttachments = await this.prisma.indentAttachment.findMany({
+      where: whereClause,
+      include: {
+        uploader: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    const parsed = dbAttachments.map((att: any) => {
+      try {
+        const meta = JSON.parse(att.fileName);
+        return {
+          id: att.id,
+          fileName: meta.originalName || att.fileName,
+          fileUrl: att.fileUrl,
+          fileType: att.fileType,
+          uploadedBy: att.uploader,
+          createdAt: att.createdAt,
+          mimeType: meta.mimeType || 'application/octet-stream',
+          fileSize: meta.fileSize || 0,
+          department: meta.department || 'DESIGN',
+          remarks: meta.remarks || '',
+          costSheetId: meta.costSheetId || null,
+          storageFileName: meta.storageFileName || att.fileName,
+        };
+      } catch (e) {
+        return {
+          id: att.id,
+          fileName: att.fileName,
+          fileUrl: att.fileUrl,
+          fileType: att.fileType,
+          uploadedBy: att.uploader,
+          createdAt: att.createdAt,
+          mimeType: 'application/octet-stream',
+          fileSize: 0,
+          department: 'DESIGN',
+          remarks: '',
+          costSheetId: null,
+          storageFileName: att.fileName,
+        };
+      }
+    });
+
+    return parsed.filter((att) => {
+      if (query.costSheetId && att.costSheetId !== query.costSheetId) {
+        return false;
+      }
+      if (query.department && att.department.toLowerCase() !== query.department.toLowerCase()) {
+        return false;
+      }
+      if (query.fileName && !att.fileName.toLowerCase().includes(query.fileName.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
   }
 }

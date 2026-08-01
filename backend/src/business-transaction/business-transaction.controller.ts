@@ -58,6 +58,28 @@ export class BusinessTransactionController {
     });
   }
 
+  @Get('attachments/search')
+  @Permissions('indent.view', 'accounts.verify')
+  async searchAttachments(
+    @Query('businessTransactionId') businessTransactionId?: string,
+    @Query('costSheetId') costSheetId?: string,
+    @Query('documentType') documentType?: string,
+    @Query('department') department?: string,
+    @Query('uploadedBy') uploadedBy?: string,
+    @Query('uploadDate') uploadDate?: string,
+    @Query('fileName') fileName?: string,
+  ) {
+    return this.businessTransactionService.searchAttachments({
+      businessTransactionId,
+      costSheetId,
+      documentType,
+      department,
+      uploadedBy,
+      uploadDate,
+      fileName,
+    });
+  }
+
   @Get(':id')
   @Permissions('indent.view')
   async findOne(@Param('id') id: string) {
