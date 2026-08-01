@@ -160,9 +160,7 @@ describe('Enterprise Communication Module', () => {
   describe('CommunicationEventBus & Dispatcher', () => {
     it('should trigger email send when an event is emitted on the event bus', async () => {
       dispatcher.onModuleInit();
-      const sendSpy = jest
-        .spyOn(service, 'sendEmail')
-        .mockResolvedValue({ success: true, jobId: '1' });
+      const sendSpy = jest.spyOn(service, 'sendEmail').mockResolvedValue({ success: true, jobId: '1' });
 
       bus.emit(CommunicationEventType.USER_REGISTERED, {
         email: 'test@imcms.com',
