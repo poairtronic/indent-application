@@ -1658,7 +1658,7 @@ export class BusinessTransactionService {
           costSheetId: meta.costSheetId || null,
           storageFileName: meta.storageFileName || att.fileName,
         };
-      } catch (e) {
+      } catch {
         return {
           id: att.id,
           fileName: att.fileName,
