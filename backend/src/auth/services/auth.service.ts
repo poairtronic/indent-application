@@ -11,6 +11,10 @@ import { ResetPasswordDto } from '../dto/reset-password.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { AuthResponse } from '../interfaces/auth-response.interface';
 import * as crypto from 'crypto';
+import {
+  CommunicationEventBus,
+  CommunicationEventType,
+} from '../../communication/events/communication-event.bus';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +25,7 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly loginHistoryService: LoginHistoryService,
     private readonly accountSecurityService: AccountSecurityService,
+    private readonly eventBus: CommunicationEventBus,
   ) {}
 
   async login(
@@ -224,6 +229,12 @@ export class AuthService {
     });
 
     console.info(`[STUB] Password Reset Link: http://localhost:5173/reset-password?token=${token}`);
+
+    this.eventBus.emit(CommunicationEventType.PASSWORD_RESET, {
+      email: user.email,
+      name: `${user.firstName} ${user.lastName}`,
+      resetUrl: `http://localhost:5173/reset-password?token=${token}`,
+    });
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
@@ -278,6 +289,13 @@ export class AuthService {
         module: 'SECURITY',
         description: 'Password reset completed via token',
       },
+    });
+
+    this.eventBus.emit(CommunicationEventType.PASSWORD_CHANGED, {
+      email: user.email,
+      name: `${user.firstName} ${user.lastName}`,
+      changeDate: new Date().toLocaleString(),
+      securityUrl: `http://localhost:5173/security-logs`,
     });
   }
 

@@ -4,11 +4,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from '../auth/services/password.service';
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
+import { CommunicationEventBus } from '../communication/events/communication-event.bus';
 
 describe('UsersService', () => {
   let service: UsersService;
   let prismaMock: any;
   let passwordMock: any;
+
+  const mockEventBus = {
+    emit: jest.fn(),
+  };
 
   const mockUser = {
     id: 'user-uuid-1',
@@ -65,6 +70,7 @@ describe('UsersService', () => {
         UsersService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: PasswordService, useValue: passwordMock },
+        { provide: CommunicationEventBus, useValue: mockEventBus },
       ],
     }).compile();
 

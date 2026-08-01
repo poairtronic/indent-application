@@ -133,6 +133,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               purpose: payload.purpose,
               transactionUrl: payload.transactionUrl,
             },
+            correlationId: payload.correlationId,
           });
           break;
 
@@ -147,6 +148,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               designedBy: payload.designedBy,
               transactionUrl: payload.transactionUrl,
             },
+            correlationId: payload.correlationId,
           });
           break;
 
@@ -160,6 +162,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               productName: payload.productName,
               transactionUrl: payload.transactionUrl,
             },
+            correlationId: payload.correlationId,
           });
           break;
 
@@ -174,6 +177,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               issuedBy: payload.issuedBy,
               transactionUrl: payload.transactionUrl,
             },
+            correlationId: payload.correlationId,
           });
           break;
 
@@ -187,6 +191,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               productName: payload.productName,
               transactionUrl: payload.transactionUrl,
             },
+            correlationId: payload.correlationId,
           });
           break;
 
@@ -200,6 +205,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               productName: payload.productName,
               transactionUrl: payload.transactionUrl,
             },
+            correlationId: payload.correlationId,
           });
           break;
 
@@ -213,6 +219,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               productName: payload.productName,
               transactionUrl: payload.transactionUrl,
             },
+            correlationId: payload.correlationId,
           });
           break;
 
@@ -232,6 +239,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               variancePercentage: payload.variancePercentage,
               transactionUrl: payload.transactionUrl,
             },
+            correlationId: payload.correlationId,
           });
           break;
 

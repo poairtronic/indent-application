@@ -6,6 +6,7 @@ import { SessionService } from './session.service';
 import { LoginHistoryService } from './login-history.service';
 import { AccountSecurityService } from './account-security.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CommunicationEventBus } from '../../communication/events/communication-event.bus';
 import { UnauthorizedException } from '@nestjs/common';
 
 describe('AuthService', () => {
@@ -62,6 +63,10 @@ describe('AuthService', () => {
     resetFailedAttempts: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockEventBus = {
+    emit: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -72,6 +77,7 @@ describe('AuthService', () => {
         { provide: SessionService, useValue: mockSessionService },
         { provide: LoginHistoryService, useValue: mockLoginHistoryService },
         { provide: AccountSecurityService, useValue: mockAccountSecurityService },
+        { provide: CommunicationEventBus, useValue: mockEventBus },
       ],
     }).compile();
 

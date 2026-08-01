@@ -13,12 +13,17 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { USER_MESSAGES } from './constants/user-messages.constants';
 import { UserStatus, Prisma } from '@prisma/client';
+import {
+  CommunicationEventBus,
+  CommunicationEventType,
+} from '../communication/events/communication-event.bus';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
+    private readonly eventBus: CommunicationEventBus,
   ) {}
 
   private mapToUserResponse(user: any): UserResponseDto {
@@ -117,6 +122,16 @@ export class UsersService {
 
     const response = this.mapToUserResponse(newUser);
     await this.createAuditLog('CREATE', newUser.id, null, response, performingUserId);
+
+    this.eventBus.emit(CommunicationEventType.USER_REGISTERED, {
+      email: newUser.email,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      employeeCode: newUser.employeeCode,
+      departmentName: newUser.department?.departmentName || 'General',
+      roleName: newUser.role?.roleName || 'Employee',
+      loginUrl: 'http://localhost:5173/login',
+    });
 
     return response;
   }
@@ -338,6 +353,21 @@ export class UsersService {
       { status: dto.status },
       performingUserId,
     );
+
+    if (dto.status === UserStatus.ACTIVE) {
+      this.eventBus.emit(CommunicationEventType.ACCOUNT_ACTIVATED, {
+        email: updatedUser.email,
+        name: `${updatedUser.firstName} ${updatedUser.lastName}`,
+        roleName: updatedUser.role?.roleName || 'Employee',
+        loginUrl: 'http://localhost:5173/login',
+      });
+    } else if (dto.status === UserStatus.INACTIVE || dto.status === UserStatus.SUSPENDED) {
+      this.eventBus.emit(CommunicationEventType.ACCOUNT_DISABLED, {
+        email: updatedUser.email,
+        name: `${updatedUser.firstName} ${updatedUser.lastName}`,
+        reason: `Status updated to ${dto.status} by administrator.`,
+      });
+    }
 
     return newResponse;
   }
