@@ -9,6 +9,7 @@ The authoritative specifications for the Enterprise Manufacturing Indent & Costi
 - **UI/UX Refactoring & Design System:** [UI_UX_SPECIFICATION.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/UI_UX_SPECIFICATION.md) | [docs/UI_UX_SPECIFICATION.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/docs/UI_UX_SPECIFICATION.md)
 - **Master Implementation Roadmap:** [IMPLEMENTATION_ROADMAP.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/IMPLEMENTATION_ROADMAP.md) | [docs/IMPLEMENTATION_ROADMAP.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/docs/IMPLEMENTATION_ROADMAP.md)
 - **Software Implementation Audit Report:** [SOFTWARE_IMPLEMENTATION_REPORT.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/SOFTWARE_IMPLEMENTATION_REPORT.md) | [docs/SOFTWARE_IMPLEMENTATION_REPORT.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/docs/SOFTWARE_IMPLEMENTATION_REPORT.md)
+- **Enterprise Engineering Baseline (Post-Audit):** [IMCMS_Enterprise_Engineering_Baseline.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/IMCMS_Enterprise_Engineering_Baseline.md) | [docs/IMCMS_Enterprise_Engineering_Baseline.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/docs/IMCMS_Enterprise_Engineering_Baseline.md)
 
 ### CRITICAL HARD BOUNDARIES & RULES FOR AI AGENTS:
 1. **Current Development Milestone:**  
@@ -25,3 +26,5 @@ The authoritative specifications for the Enterprise Manufacturing Indent & Costi
    - Frontend: React, TypeScript, Vite, Tailwind CSS, Zustand, React Query
    - Backend: NestJS, TypeScript, Prisma ORM, JWT, bcrypt
    - Database: Neon PostgreSQL
+6. **Engineering Baseline Constraints:**
+   - Every completed phase must strictly adhere to the constraints defined in [IMCMS_Enterprise_Engineering_Baseline.md](file:///c:/Users/Admin/OneDrive/Desktop/indent%20application/IMCMS_Enterprise_Engineering_Baseline.md). This includes modular monolith isolation, SRP implementations, event-driven communication decoupling, and mandatory validation checks.
