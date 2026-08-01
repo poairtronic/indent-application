@@ -8,8 +8,6 @@ import { CommunicationEventBus, CommunicationEventType } from '../events/communi
 import { NotificationDispatcher } from '../dispatcher/notification.dispatcher';
 import {
   TemplateNotFoundException,
-  EmailRenderException,
-  ConfigurationException,
   InvalidRecipientException,
 } from '../exceptions/communication.exceptions';
 
