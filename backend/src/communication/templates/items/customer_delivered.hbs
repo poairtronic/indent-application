@@ -1,0 +1,16 @@
+<h2>Items Delivered to Customer</h2>
+<p>Production has confirmed delivery of items to the customer for Indent <strong>#{{indentNumber}}</strong>.</p>
+<p>Loop 1 (Manufacturing Workflow) is now fully concluded. The transaction is forwarded to Accounts for financial verification.</p>
+<table width="100%" style="background-color: #0f172a; border-radius: 8px; margin: 20px 0; border: 1px solid #334155; padding: 15px;">
+  <tr>
+    <td style="color: #64748b; font-size: 14px; padding: 5px 0;">Indent Number:</td>
+    <td style="color: #f8fafc; font-size: 14px; font-weight: bold; padding: 5px 0;">{{indentNumber}}</td>
+  </tr>
+  <tr>
+    <td style="color: #64748b; font-size: 14px; padding: 5px 0;">Product:</td>
+    <td style="color: #f8fafc; font-size: 14px; padding: 5px 0;">{{productName}}</td>
+  </tr>
+</table>
+<div align="center">
+  <a href="{{transactionUrl}}" class="btn">View Delivery Details</a>
+</div>
