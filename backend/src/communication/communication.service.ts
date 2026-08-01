@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TemplateEngine } from './templates/template.engine';
 import { RecipientResolver, IResolverQuery } from './resolver/recipient.resolver';
 import { QueueService } from './queue/queue.service';
-import { IJobPayload, EmailState } from './queue/queue.constants';
+import { IJobPayload } from './queue/queue.constants';
 import * as crypto from 'crypto';
 
 export interface ISendEmailOptions {

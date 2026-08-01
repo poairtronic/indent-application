@@ -162,7 +162,7 @@ describe('Enterprise Communication Module', () => {
       dispatcher.onModuleInit();
       const sendSpy = jest
         .spyOn(service, 'sendEmail')
-        .mockResolvedValue({ success: true, messageId: '1' });
+        .mockResolvedValue({ success: true, jobId: '1' });
 
       bus.emit(CommunicationEventType.USER_REGISTERED, {
         email: 'test@imcms.com',
