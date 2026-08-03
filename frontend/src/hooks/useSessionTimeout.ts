@@ -7,13 +7,6 @@ export function useSessionTimeout(timeoutMs = 15 * 60 * 1000) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      return;
-    }
-
     const resetTimer = () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
@@ -26,20 +19,23 @@ export function useSessionTimeout(timeoutMs = 15 * 60 * 1000) {
     };
 
     const activityEvents = ['mousemove', 'keydown', 'mousedown', 'scroll', 'click'];
-    
-    activityEvents.forEach((event) => {
-      window.addEventListener(event, resetTimer);
-    });
 
-    resetTimer();
+    if (isAuthenticated) {
+      activityEvents.forEach((event) => {
+        window.addEventListener(event, resetTimer);
+      });
+      resetTimer();
+    }
 
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
-      activityEvents.forEach((event) => {
-        window.removeEventListener(event, resetTimer);
-      });
+      if (isAuthenticated) {
+        activityEvents.forEach((event) => {
+          window.removeEventListener(event, resetTimer);
+        });
+      }
     };
   }, [isAuthenticated, logout, timeoutMs]);
 }

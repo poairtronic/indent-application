@@ -10,7 +10,8 @@ export const ServerErrorPage: React.FC = () => {
         <h1 className="text-6xl font-extrabold text-status-error mb-2 animate-pulse">500</h1>
         <h2 className="text-xl font-bold text-text-primary mb-4">Internal Server Error</h2>
         <p className="text-sm text-text-secondary mb-8">
-          The server encountered an unexpected condition that prevented it from fulfilling the request. Our cloud systems group has been alerted.
+          The server encountered an unexpected condition that prevented it from fulfilling the
+          request. Our cloud systems group has been alerted.
         </p>
         <button
           onClick={() => navigate('/dashboard')}

@@ -27,7 +27,7 @@ describe('Sidebar Component', () => {
     render(
       <MemoryRouter>
         <Sidebar />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText('IMCMS Portal')).toBeInTheDocument();

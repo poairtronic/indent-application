@@ -22,7 +22,10 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 animate-fade-in" onClick={onClose} />
+      <div
+        className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300 animate-fade-in"
+        onClick={onClose}
+      />
 
       <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-surface-card border-l border-border-default shadow-2xl z-50 flex flex-col font-sans transition-all duration-300">
         {/* Header */}
@@ -68,7 +71,9 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
             <div className="flex flex-col items-center justify-center p-12 text-center h-64">
               <Lucide.BellOff className="w-8 h-8 text-text-muted mb-3" />
               <p className="text-xs font-semibold text-text-primary mb-1">All caught up!</p>
-              <p className="text-[10px] text-text-muted">You have no unread notifications on this terminal.</p>
+              <p className="text-[10px] text-text-muted">
+                You have no unread notifications on this terminal.
+              </p>
             </div>
           ) : (
             notifications.map((n) => (
@@ -88,14 +93,19 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
                 </div>
 
                 <div className="flex-1 min-w-0 pr-4">
-                  <p className={`text-xs text-text-primary ${!n.isRead ? 'font-semibold' : 'font-medium'}`}>
+                  <p
+                    className={`text-xs text-text-primary ${!n.isRead ? 'font-semibold' : 'font-medium'}`}
+                  >
                     {n.title}
                   </p>
                   <p className="text-[10px] text-text-secondary mt-0.5 whitespace-pre-wrap">
                     {n.message}
                   </p>
                   <span className="text-[9px] text-text-muted mt-1 block">
-                    {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(n.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </span>
                 </div>
               </div>

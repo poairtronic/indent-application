@@ -52,7 +52,10 @@ export const Header: React.FC = () => {
           <span className="text-border-default">|</span>
           {/* Breadcrumbs */}
           <nav className="flex items-center space-x-2 text-xs">
-            <Link to="/dashboard" className="text-text-muted hover:text-text-primary transition-colors">
+            <Link
+              to="/dashboard"
+              className="text-text-muted hover:text-text-primary transition-colors"
+            >
               Home
             </Link>
             {pathnames.map((name, index) => {
@@ -152,10 +155,7 @@ export const Header: React.FC = () => {
 
             {isProfileOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsProfileOpen(false)}
-                />
+                <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)} />
                 <div className="absolute right-0 mt-2 w-48 bg-surface-card border border-border-default rounded-xl shadow-dropdown py-1 z-20 font-sans">
                   <div className="px-4 py-2 border-b border-border-default">
                     <p className="text-xs font-bold text-text-primary">
@@ -200,10 +200,7 @@ export const Header: React.FC = () => {
       />
 
       {/* Command Palette search console */}
-      <CommandPalette
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
+      <CommandPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );
 };

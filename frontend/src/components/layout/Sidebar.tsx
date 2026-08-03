@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
   const { isOpen, toggleSidebar } = useSidebar();
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const user = useAuthStore((s) => s.user);
-  
+
   const { favorites, recents, toggleFavorite, addRecent } = useNavigationStore();
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
   const [isRecentsOpen, setIsRecentsOpen] = useState(true);
@@ -68,16 +68,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
     >
       {/* Header */}
       <div className="p-4 border-b border-border-default flex items-center justify-between min-h-[64px]">
-        <span className={`font-bold text-xs tracking-wider text-text-primary uppercase ${isOpen ? 'block' : 'hidden'}`}>
+        <span
+          className={`font-bold text-xs tracking-wider text-text-primary uppercase ${isOpen ? 'block' : 'hidden'}`}
+        >
           IMCMS Portal
         </span>
-        {!isOpen && <span className="block text-center text-sm font-bold text-accent-primary">IE</span>}
+        {!isOpen && (
+          <span className="block text-center text-sm font-bold text-accent-primary">IE</span>
+        )}
         <button
           onClick={() => toggleSidebar()}
           className="text-text-muted hover:text-text-primary p-1 rounded hover:bg-surface-elevated transition-colors focus:outline-none"
           title={isOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
         >
-          {isOpen ? <Lucide.ChevronLeft className="w-4 h-4" /> : <Lucide.ChevronRight className="w-4 h-4" />}
+          {isOpen ? (
+            <Lucide.ChevronLeft className="w-4 h-4" />
+          ) : (
+            <Lucide.ChevronRight className="w-4 h-4" />
+          )}
         </button>
       </div>
 
@@ -86,7 +94,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
         {/* Primary Menus */}
         <div>
           {visibleItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+            const isActive =
+              location.pathname === item.path ||
+              (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
             const isFav = favorites.includes(item.path);
 
             return (
@@ -103,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                   className="flex-1 flex items-center gap-3 text-left focus:outline-none"
                   title={!isOpen ? item.label : undefined}
                 >
-                  {renderIcon(item.iconName, "w-4 h-4 flex-shrink-0")}
+                  {renderIcon(item.iconName, 'w-4 h-4 flex-shrink-0')}
                   {isOpen && <span>{item.label}</span>}
                 </button>
 
@@ -111,9 +121,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                   <button
                     onClick={() => toggleFavorite(item.path)}
                     className={`ml-2 text-text-muted hover:text-accent-primary transition-colors focus:outline-none ${
-                      isFav ? 'text-accent-primary opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      isFav
+                        ? 'text-accent-primary opacity-100'
+                        : 'opacity-0 group-hover:opacity-100'
                     }`}
-                    title={isFav ? "Remove from Favorites" : "Add to Favorites"}
+                    title={isFav ? 'Remove from Favorites' : 'Add to Favorites'}
                   >
                     ⭐
                   </button>
@@ -144,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                       onClick={() => handleNavigate(path)}
                       className="w-full flex items-center gap-3 px-6 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left focus:outline-none"
                     >
-                      {renderIcon(item.iconName, "w-3.5 h-3.5 flex-shrink-0 text-text-muted")}
+                      {renderIcon(item.iconName, 'w-3.5 h-3.5 flex-shrink-0 text-text-muted')}
                       <span className="truncate">{item.label}</span>
                     </button>
                   );
@@ -175,7 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                       onClick={() => handleNavigate(path)}
                       className="w-full flex items-center gap-3 px-6 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left focus:outline-none"
                     >
-                      {renderIcon(item.iconName, "w-3.5 h-3.5 flex-shrink-0 text-text-muted")}
+                      {renderIcon(item.iconName, 'w-3.5 h-3.5 flex-shrink-0 text-text-muted')}
                       <span className="truncate">{item.label}</span>
                     </button>
                   );
@@ -193,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
           className={`flex items-center gap-3 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors ${
             !isOpen ? 'justify-center w-full' : ''
           }`}
-          title={!isOpen ? "View Profile" : undefined}
+          title={!isOpen ? 'View Profile' : undefined}
         >
           <Lucide.User className="w-5 h-5 flex-shrink-0" />
           {isOpen && (

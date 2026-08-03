@@ -33,6 +33,6 @@ export const useNavigationStore = create<NavigationState>()(
     }),
     {
       name: 'navigation_settings',
-    }
-  )
+    },
+  ),
 );

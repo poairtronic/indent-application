@@ -12,16 +12,17 @@ interface CommandPaletteProps {
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const hasPermission = useAuthStore((s) => s.hasPermission);
-  
+
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = menuItems
     .filter((item) => !item.permission || hasPermission(item.permission))
-    .filter((item) =>
-      item.label.toLowerCase().includes(query.toLowerCase()) ||
-      item.path.toLowerCase().includes(query.toLowerCase())
+    .filter(
+      (item) =>
+        item.label.toLowerCase().includes(query.toLowerCase()) ||
+        item.path.toLowerCase().includes(query.toLowerCase()),
     );
 
   useEffect(() => {
@@ -33,8 +34,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -53,8 +52,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, filtered, selectedIndex, onClose]);
 
   const handleSelect = (path: string) => {
@@ -91,9 +95,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         {/* Results List */}
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {filtered.length === 0 ? (
-            <div className="p-8 text-center text-text-muted text-xs">
-              No matching pages found.
-            </div>
+            <div className="p-8 text-center text-text-muted text-xs">No matching pages found.</div>
           ) : (
             filtered.map((item, index) => {
               const isSelected = index === selectedIndex;
@@ -113,7 +115,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                       <p className={isSelected ? 'text-white' : 'text-text-primary'}>
                         {item.label}
                       </p>
-                      <p className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-text-muted'}`}>
+                      <p
+                        className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-text-muted'}`}
+                      >
                         {item.path}
                       </p>
                     </div>
@@ -129,10 +133,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         <div className="px-4 py-2 border-t border-border-default bg-background-secondary flex items-center justify-between text-[10px] text-text-muted">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
-              <kbd className="bg-surface-card border border-border-default px-1 rounded">↑↓</kbd> Navigate
+              <kbd className="bg-surface-card border border-border-default px-1 rounded">↑↓</kbd>{' '}
+              Navigate
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="bg-surface-card border border-border-default px-1 rounded">Enter</kbd> Open
+              <kbd className="bg-surface-card border border-border-default px-1 rounded">Enter</kbd>{' '}
+              Open
             </span>
           </div>
           <span>Enterprise Portal Command Console</span>
