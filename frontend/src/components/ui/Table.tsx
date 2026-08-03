@@ -75,6 +75,7 @@ export function Table<T>({
                       type="checkbox"
                       checked={isAllSelected}
                       onChange={handleSelectAll}
+                      aria-label="Select all rows in this table"
                       className="h-3.5 w-3.5 rounded border border-border-default bg-background-primary text-accent-primary focus:ring-accent-primary outline-none transition-all cursor-pointer"
                     />
                   </th>
@@ -85,28 +86,50 @@ export function Table<T>({
                   return (
                     <th
                       key={col.key}
-                      onClick={() => col.sortable && onSort?.(col.key)}
-                      className={`px-4 py-3 text-xs font-semibold bg-background-secondary ${
+                      role="columnheader"
+                      aria-sort={
                         col.sortable
-                          ? 'cursor-pointer hover:text-text-primary transition-colors'
-                          : ''
+                          ? isSorted
+                            ? sortDirection === 'asc'
+                              ? 'ascending'
+                              : 'descending'
+                            : 'none'
+                          : undefined
+                      }
+                      className={`px-4 py-3 text-xs font-semibold bg-background-secondary ${
+                        col.sortable ? 'hover:text-text-primary transition-colors' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-1.5">
-                        <span>{col.header}</span>
-                        {col.sortable && isSorted && (
-                          <span>
-                            {sortDirection === 'asc' ? (
-                              <ArrowUp className="w-3 h-3 text-accent-primary" />
-                            ) : (
-                              <ArrowDown className="w-3 h-3 text-accent-primary" />
-                            )}
-                          </span>
-                        )}
-                        {col.sortable && !isSorted && (
-                          <ChevronsUpDown className="w-3 h-3 opacity-30" />
-                        )}
-                      </div>
+                      {col.sortable ? (
+                        <button
+                          type="button"
+                          onClick={() => onSort?.(col.key)}
+                          className="flex items-center gap-1.5 w-full text-left font-semibold outline-none focus-visible:ring-1 focus-visible:ring-accent-primary rounded-sm"
+                          aria-label={`Sort by ${col.header} ${
+                            isSorted
+                              ? sortDirection === 'asc'
+                                ? 'descending'
+                                : 'ascending'
+                              : 'ascending'
+                          }`}
+                        >
+                          <span>{col.header}</span>
+                          {isSorted && (
+                            <span>
+                              {sortDirection === 'asc' ? (
+                                <ArrowUp className="w-3 h-3 text-accent-primary" />
+                              ) : (
+                                <ArrowDown className="w-3 h-3 text-accent-primary" />
+                              )}
+                            </span>
+                          )}
+                          {!isSorted && <ChevronsUpDown className="w-3 h-3 opacity-30" />}
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span>{col.header}</span>
+                        </div>
+                      )}
                     </th>
                   );
                 })}
@@ -168,6 +191,7 @@ export function Table<T>({
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => onSelectRow(rowId)}
+                            aria-label={`Select row ${rowId}`}
                             className="h-3.5 w-3.5 rounded border border-border-default bg-background-primary text-accent-primary focus:ring-accent-primary outline-none transition-all cursor-pointer"
                           />
                         </td>
@@ -187,7 +211,11 @@ export function Table<T>({
       </div>
 
       {page && totalPages && onPageChange && (
-        <div className="flex items-center justify-between font-sans text-xs px-2 select-none">
+        <div
+          role="navigation"
+          aria-label="Table pagination"
+          className="flex items-center justify-between font-sans text-xs px-2 select-none"
+        >
           <span className="text-text-muted">
             Page <span className="font-semibold text-text-primary">{page}</span> of{' '}
             <span className="font-semibold text-text-primary">{totalPages}</span>
@@ -196,14 +224,16 @@ export function Table<T>({
             <button
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="p-1.5 rounded-lg border border-border-default bg-surface-card text-text-secondary hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none focus:ring-1"
+              aria-label="Go to previous page"
+              className="p-1.5 rounded-lg border border-border-default bg-surface-card text-text-secondary hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-1"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
-              className="p-1.5 rounded-lg border border-border-default bg-surface-card text-text-secondary hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none focus:ring-1"
+              aria-label="Go to next page"
+              className="p-1.5 rounded-lg border border-border-default bg-surface-card text-text-secondary hover:text-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-1"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

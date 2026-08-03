@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 
 interface DatePickerProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -21,10 +21,19 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       valueEnd,
       onChangeEnd,
       nameEnd,
+      id,
       ...props
     },
     ref,
   ) => {
+    const generatedId = useId();
+    const inputId = id || generatedId;
+    const errorId = `${inputId}-error`;
+    const helperId = `${inputId}-helper`;
+
+    const describedBy =
+      [error ? errorId : null, helperText ? helperId : null].filter(Boolean).join(' ') || undefined;
+
     let inputType = 'date';
     if (variant === 'time') inputType = 'time';
     else if (variant === 'datetime') inputType = 'datetime-local';
@@ -39,23 +48,48 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       return (
         <div className="w-full font-sans">
           {label && (
-            <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
+            <span className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
               {label}
-            </label>
+            </span>
           )}
           <div className="flex items-center gap-2">
-            <input ref={ref} type="date" className={baseInputStyle} {...props} />
-            <span className="text-text-muted text-xs font-semibold">to</span>
+            <input
+              ref={ref}
+              type="date"
+              aria-label="Start date"
+              aria-invalid={error ? 'true' : 'false'}
+              aria-describedby={describedBy}
+              className={baseInputStyle}
+              {...props}
+            />
+            <span className="text-text-muted text-xs font-semibold" aria-hidden="true">
+              to
+            </span>
             <input
               type="date"
               name={nameEnd}
               value={valueEnd}
               onChange={onChangeEnd}
+              aria-label="End date"
+              aria-invalid={error ? 'true' : 'false'}
+              aria-describedby={describedBy}
               className={baseInputStyle}
             />
           </div>
-          {error && <p className="mt-1 text-[10px] text-status-error font-medium">{error}</p>}
-          {helperText && !error && <p className="mt-1 text-[10px] text-text-muted">{helperText}</p>}
+          {error && (
+            <p
+              id={errorId}
+              aria-live="polite"
+              className="mt-1 text-[10px] text-status-error font-medium"
+            >
+              {error}
+            </p>
+          )}
+          {helperText && !error && (
+            <p id={helperId} className="mt-1 text-[10px] text-text-muted">
+              {helperText}
+            </p>
+          )}
         </div>
       );
     }
@@ -63,19 +97,37 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     return (
       <div className="w-full font-sans">
         {label && (
-          <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
+          <label
+            htmlFor={inputId}
+            className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide"
+          >
             {label}
           </label>
         )}
         <input
           ref={ref}
+          id={inputId}
           type={inputType}
+          aria-invalid={error ? 'true' : 'false'}
+          aria-describedby={describedBy}
           className={baseInputStyle}
           {...(variant === 'year' ? { min: 1900, max: 2100, placeholder: 'YYYY' } : {})}
           {...props}
         />
-        {error && <p className="mt-1 text-[10px] text-status-error font-medium">{error}</p>}
-        {helperText && !error && <p className="mt-1 text-[10px] text-text-muted">{helperText}</p>}
+        {error && (
+          <p
+            id={errorId}
+            aria-live="polite"
+            className="mt-1 text-[10px] text-status-error font-medium"
+          >
+            {error}
+          </p>
+        )}
+        {helperText && !error && (
+          <p id={helperId} className="mt-1 text-[10px] text-text-muted">
+            {helperText}
+          </p>
+        )}
       </div>
     );
   },

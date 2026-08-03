@@ -131,7 +131,7 @@ export const CostsPage: React.FC = () => {
             </div>
             <div className="border-t border-border-default pt-4 mt-6 text-xs text-text-disabled font-medium">
               <span>
-                Date Filtering: {data?.dateRange.from ? 'Active' : 'Unfiltered (All Time)'}
+                Date Filtering: {data?.dateRange?.from ? 'Active' : 'Unfiltered (All Time)'}
               </span>
             </div>
           </div>

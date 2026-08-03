@@ -1,5 +1,6 @@
 import React, { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 export type ModalSize = 'sm' | 'md' | 'lg';
 
@@ -29,6 +30,8 @@ export const Modal: React.FC<ModalProps> = ({
   size = 'md',
 }) => {
   const titleId = useId();
+  const descId = `${titleId}-desc`;
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(open);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -55,6 +58,7 @@ export const Modal: React.FC<ModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
+      aria-describedby={description ? descId : undefined}
     >
       <div
         className="absolute inset-0 bg-overlay backdrop-blur-[8px] animate-fade-in"
@@ -62,20 +66,26 @@ export const Modal: React.FC<ModalProps> = ({
         aria-hidden="true"
       />
       <div
-        className={`relative w-full ${sizeClasses[size]} bg-surface-card border border-border-strong rounded-xl shadow-modal animate-scale-in`}
+        ref={focusTrapRef}
+        tabIndex={-1}
+        className={`relative w-full ${sizeClasses[size]} bg-surface-card border border-border-strong rounded-xl shadow-modal animate-scale-in outline-none`}
       >
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border-default">
           <div className="min-w-0">
             <h2 id={titleId} className="text-base font-bold text-text-primary tracking-tight">
               {title}
             </h2>
-            {description && <p className="text-xs text-text-muted mt-1">{description}</p>}
+            {description && (
+              <p id={descId} className="text-xs text-text-muted mt-1">
+                {description}
+              </p>
+            )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-background-secondary transition-colors"
-            aria-label="Close"
+            className="shrink-0 text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-background-secondary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+            aria-label="Close dialog"
           >
             <X size={18} />
           </button>

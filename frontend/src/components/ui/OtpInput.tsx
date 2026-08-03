@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useId } from 'react';
 
 interface OtpInputProps {
   label?: string;
@@ -18,6 +18,9 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   className = '',
 }) => {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const generatedId = useId();
+  const baseId = `otp-${generatedId}`;
+  const errorId = `${baseId}-error`;
 
   const getDigitsArray = () => {
     const arr = value.split('');
@@ -46,13 +49,26 @@ export const OtpInput: React.FC<OtpInputProps> = ({
       if (!currentDigits[idx] && idx > 0) {
         inputsRef.current[idx - 1]?.focus();
       }
+    } else if (e.key === 'ArrowLeft') {
+      if (idx > 0) {
+        inputsRef.current[idx - 1]?.focus();
+        e.preventDefault();
+      }
+    } else if (e.key === 'ArrowRight') {
+      if (idx < length - 1) {
+        inputsRef.current[idx + 1]?.focus();
+        e.preventDefault();
+      }
     }
   };
 
   return (
     <div className={`w-full font-sans text-xs ${className}`}>
       {label && (
-        <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
+        <label
+          htmlFor={`${baseId}-0`}
+          className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide"
+        >
           {label}
         </label>
       )}
@@ -60,6 +76,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
         {Array.from({ length }).map((_, idx) => (
           <input
             key={idx}
+            id={`${baseId}-${idx}`}
             ref={(el) => {
               inputsRef.current[idx] = el;
             }}
@@ -69,13 +86,24 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             value={currentDigits[idx] || ''}
             onChange={(e) => handleInputChange(idx, e.target.value)}
             onKeyDown={(e) => handleKeyDown(idx, e)}
+            aria-label={`Digit ${idx + 1} of ${length}`}
+            aria-invalid={error ? 'true' : 'false'}
+            aria-describedby={error ? errorId : undefined}
             className={`w-10 h-10 bg-background-primary border rounded-lg text-center text-sm font-bold text-text-primary outline-none transition-all focus:ring-1 focus:ring-accent-primary focus:border-accent-primary disabled:opacity-50 disabled:cursor-not-allowed ${
               error ? 'border-status-error' : 'border-border-default'
             }`}
           />
         ))}
       </div>
-      {error && <p className="mt-1.5 text-[10px] text-status-error font-medium">{error}</p>}
+      {error && (
+        <p
+          id={errorId}
+          aria-live="polite"
+          className="mt-1.5 text-[10px] text-status-error font-medium"
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 };

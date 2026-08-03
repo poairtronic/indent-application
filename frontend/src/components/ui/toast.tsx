@@ -71,10 +71,17 @@ const toastIcon = {
 
 export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss }) => {
   return (
-    <div className="fixed bottom-4 right-4 z-[60] space-y-2 font-sans text-xs">
+    <div
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions"
+      className="fixed bottom-4 right-4 z-[60] space-y-2 font-sans text-xs"
+    >
       {toasts.map((toast) => (
         <div
           key={toast.id}
+          role={toast.type === 'error' || toast.type === 'warning' ? 'alert' : 'status'}
+          aria-atomic="true"
           className={`flex flex-col gap-2 rounded-xl p-4 shadow-modal text-white min-w-72 max-w-sm animate-toast-in ${toastBg[toast.type]}`}
         >
           <div className="flex items-center gap-2.5">
@@ -90,7 +97,7 @@ export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss 
                     toast.onAction?.();
                     onDismiss(toast.id);
                   }}
-                  className="bg-toast-action hover:bg-toast-action-hover text-white font-bold px-2 py-1 rounded text-[10px] uppercase tracking-wider focus:outline-none"
+                  className="bg-toast-action hover:bg-toast-action-hover text-white font-bold px-2 py-1 rounded text-[10px] uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   {toast.actionLabel}
                 </button>
@@ -98,8 +105,8 @@ export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss 
               <button
                 type="button"
                 onClick={() => onDismiss(toast.id)}
-                className="text-toast-dismiss hover:text-white transition-colors p-0.5 rounded focus:outline-none"
-                aria-label="Dismiss"
+                className="text-toast-dismiss hover:text-white transition-colors p-0.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Dismiss notification"
               >
                 <X size={14} />
               </button>
