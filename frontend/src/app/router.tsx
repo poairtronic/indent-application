@@ -89,6 +89,15 @@ const MaintenancePage = lazy(() =>
 const UsersPage = lazy(() =>
   import('../modules/users/UsersPage').then((m) => ({ default: m.UsersPage })),
 );
+const RolesPage = lazy(() =>
+  import('../modules/roles/RolesPage').then((m) => ({ default: m.RolesPage })),
+);
+const PermissionsPage = lazy(() =>
+  import('../modules/permissions/PermissionsPage').then((m) => ({ default: m.PermissionsPage })),
+);
+const DepartmentsPage = lazy(() =>
+  import('../modules/departments/DepartmentsPage').then((m) => ({ default: m.DepartmentsPage })),
+);
 const ProcessesPage = lazy(() =>
   import('../modules/processes/ProcessesPage').then((m) => ({ default: m.ProcessesPage })),
 );
@@ -232,8 +241,14 @@ export const AppRouter: React.FC = () => {
         <Route
           path="/roles"
           element={
-            <ProtectedRoute permissions={['roles.view']}>
-              <ComingSoon title="RBAC Roles Management" />
+            <ProtectedRoute permissions={['roles.view']}>{suspended(RolesPage)}</ProtectedRoute>
+          }
+        />
+        <Route
+          path="/permissions"
+          element={
+            <ProtectedRoute permissions={['permissions.view']}>
+              {suspended(PermissionsPage)}
             </ProtectedRoute>
           }
         />
@@ -263,6 +278,14 @@ export const AppRouter: React.FC = () => {
           path="/users"
           element={
             <ProtectedRoute permissions={['users.view']}>{suspended(UsersPage)}</ProtectedRoute>
+          }
+        />
+        <Route
+          path="/departments"
+          element={
+            <ProtectedRoute permissions={['departments.view']}>
+              {suspended(DepartmentsPage)}
+            </ProtectedRoute>
           }
         />
 

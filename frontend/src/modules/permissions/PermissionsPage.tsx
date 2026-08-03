@@ -1,0 +1,135 @@
+import React, { useState, useMemo } from 'react';
+import { Shield, Search, Lock, Layers } from 'lucide-react';
+import { Input } from '../../components/ui/Input';
+import { MODULE_PERMISSIONS } from '../../constants/permissions';
+
+export const PermissionsPage: React.FC = () => {
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+
+  const categories = useMemo(() => ['ALL', ...Object.keys(MODULE_PERMISSIONS)], []);
+
+  const filteredPermissions = useMemo(() => {
+    const term = search.toLowerCase().trim();
+
+    return Object.entries(MODULE_PERMISSIONS)
+      .filter(([cat]) => selectedCategory === 'ALL' || selectedCategory === cat)
+      .map(([cat, perms]) => {
+        const matchingPerms = (perms as string[]).filter((p) =>
+          term ? p.toLowerCase().includes(term) || cat.toLowerCase().includes(term) : true,
+        );
+        return { category: cat, permissions: matchingPerms };
+      })
+      .filter((group) => group.permissions.length > 0);
+  }, [search, selectedCategory]);
+
+  const totalPermissionCount = useMemo(() => Object.values(MODULE_PERMISSIONS).flat().length, []);
+
+  return (
+    <div className="space-y-6 font-sans">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-black text-text-primary tracking-tight">
+          Permission Hierarchy & Matrix
+        </h1>
+        <p className="text-xs text-text-muted">
+          Read-only system permission tokens, category hierarchy, and authority mapping
+        </p>
+      </div>
+
+      {/* Controls Header: Search & Category Tabs */}
+      <div className="bg-surface-card border border-border-default rounded-xl p-4 shadow-card space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
+              <Search size={16} />
+            </div>
+            <Input
+              id="permSearch"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search permissions tokens (e.g., users.create, indent.view)..."
+              className="pl-9"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
+            <Shield size={16} className="text-accent-primary" />
+            <span>Total System Tokens:</span>
+            <span className="text-text-primary font-bold bg-background-secondary px-2 py-0.5 rounded border border-border-default">
+              {totalPermissionCount} Tokens
+            </span>
+          </div>
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-t border-border-default/40 pt-3">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors whitespace-nowrap ${
+                selectedCategory === cat
+                  ? 'bg-accent-primary text-white shadow-sm'
+                  : 'bg-background-primary/60 text-text-muted hover:text-text-primary hover:bg-background-secondary'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Permission Categories Grid */}
+      <div className="space-y-6">
+        {filteredPermissions.length === 0 ? (
+          <div className="bg-surface-card border border-border-default rounded-xl p-8 text-center space-y-2">
+            <Layers size={24} className="mx-auto text-text-muted/50" />
+            <p className="text-xs font-bold text-text-primary">No permissions matched your query</p>
+            <p className="text-xs text-text-muted">Try modifying your search or category filter.</p>
+          </div>
+        ) : (
+          filteredPermissions.map((group) => (
+            <div
+              key={group.category}
+              className="bg-surface-card border border-border-default rounded-xl p-5 space-y-4 shadow-card"
+            >
+              <div className="flex items-center justify-between border-b border-border-default/40 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded bg-accent-primary/10 text-accent-primary">
+                    <Shield size={16} />
+                  </div>
+                  <h3 className="font-bold text-sm text-text-primary capitalize">
+                    {group.category} Module Permissions
+                  </h3>
+                </div>
+                <span className="text-[10px] font-bold text-text-muted bg-background-secondary px-2 py-0.5 rounded border border-border-default">
+                  {group.permissions.length} Tokens
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {group.permissions.map((perm) => (
+                  <div
+                    key={perm}
+                    className="p-3 bg-background-primary/50 border border-border-default/60 rounded-xl space-y-1.5 hover:border-border-strong transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5 text-accent-primary">
+                      <Lock size={12} />
+                      <span className="font-mono font-bold text-xs text-text-primary truncate">
+                        {perm}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-text-muted">
+                      Scope authorization token for {perm.split('.')[0]} operations.
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
