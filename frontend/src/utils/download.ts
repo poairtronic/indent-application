@@ -8,3 +8,8 @@ export const downloadBlob = (blob: Blob, filename: string): void => {
   link.parentNode?.removeChild(link);
   window.URL.revokeObjectURL(url);
 };
+
+export const downloadFile = (content: string, filename: string, mimeType = 'text/csv'): void => {
+  const blob = new Blob([content], { type: mimeType });
+  downloadBlob(blob, filename);
+};
