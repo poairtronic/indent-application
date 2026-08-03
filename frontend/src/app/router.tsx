@@ -113,6 +113,11 @@ const ProductsMasterPage = lazy(() =>
 const MaterialsPage = lazy(() =>
   import('../modules/materials/MaterialsPage').then((m) => ({ default: m.MaterialsPage })),
 );
+const MasterDataDashboardPage = lazy(() =>
+  import('../modules/dashboard/MasterDataDashboardPage').then((m) => ({
+    default: m.MasterDataDashboardPage,
+  })),
+);
 
 // Analytics Pages
 const AnalyticsSummaryPage = lazy(() =>
@@ -291,6 +296,14 @@ export const AppRouter: React.FC = () => {
           element={
             <ProtectedRoute permissions={['departments.view']}>
               {suspended(DepartmentsPage)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/master-data"
+          element={
+            <ProtectedRoute permissions={['users.view']}>
+              {suspended(MasterDataDashboardPage)}
             </ProtectedRoute>
           }
         />
