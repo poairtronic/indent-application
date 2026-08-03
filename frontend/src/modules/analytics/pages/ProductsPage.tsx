@@ -4,8 +4,8 @@ import { KpiCard } from '../components/AnalyticsCards';
 import { FilterPanel } from '../components/AnalyticsFilters';
 import { useProductAnalytics } from '../hooks/useAnalytics';
 import type { IAnalyticsFilters } from '../types/analytics.types';
-import { Button } from '../../../components/ui/Button';
-import { RotateCcw } from 'lucide-react';
+import { ErrorState } from '../../../components/ui/ErrorState';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 export const ProductsPage: React.FC = () => {
   const [filters, setFilters] = useState<IAnalyticsFilters>({ limit: 50 });
@@ -31,17 +31,7 @@ export const ProductsPage: React.FC = () => {
   if (error) {
     return (
       <AnalyticsLayout title="Product Intelligence & Estimation" subtitle="Product costing metrics">
-        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
-          <p className="font-semibold mb-2">Error loading product analytics</p>
-          <Button
-            variant="danger"
-            size="sm"
-            icon={<RotateCcw size={14} />}
-            onClick={() => refetch()}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState message="Error loading product analytics" onRetry={() => refetch()} />
       </AnalyticsLayout>
     );
   }
@@ -111,8 +101,8 @@ export const ProductsPage: React.FC = () => {
                 ))}
                 {data?.products.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-text-disabled font-medium">
-                      No product statistics available.
+                    <td colSpan={6} className="py-8">
+                      <EmptyState title="No data" description="No product statistics available." />
                     </td>
                   </tr>
                 )}

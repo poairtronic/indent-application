@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Loader2 } from 'lucide-react';
 
 export type ButtonVariant =
   'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'ghost' | 'outline' | 'link';
-export type ButtonSize = 'sm' | 'md';
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
   icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
   fab?: boolean;
+  fullWidth?: boolean;
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -32,31 +34,52 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-2.5 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
+  sm: 'px-2.5 py-1.5 text-xs rounded-lg',
+  md: 'px-4 py-2 text-sm rounded-lg',
+  lg: 'px-5 py-2.5 text-sm rounded-xl',
+  xl: 'px-6 py-3 text-base rounded-xl',
 };
 
-export const Button: React.FC<ButtonProps> = ({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  icon,
-  fab = false,
-  children,
-  className = '',
-  disabled,
-  ...rest
-}) => {
-  return (
-    <button
-      className={`inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 ease-enter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none active:scale-[0.98] ${
-        fab ? 'rounded-full p-3 shadow-modal hover:shadow-glow' : `${sizeClasses[size]}`
-      } ${variantClasses[variant]} ${className}`}
-      disabled={disabled || loading}
-      {...rest}
-    >
-      {loading ? <Loader2 size={size === 'sm' ? 14 : 16} className="animate-spin" /> : icon}
-      {(!fab || children) && children}
-    </button>
-  );
-};
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      variant = 'primary',
+      size = 'md',
+      loading = false,
+      icon,
+      iconPosition = 'left',
+      fab = false,
+      fullWidth = false,
+      children,
+      className = '',
+      disabled,
+      ...rest
+    },
+    ref,
+  ) => {
+    const iconSize = size === 'sm' ? 14 : size === 'lg' || size === 'xl' ? 18 : 16;
+
+    return (
+      <button
+        ref={ref}
+        className={`inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 ease-enter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none active:scale-[0.98] ${
+          fab ? 'rounded-full p-3 shadow-modal hover:shadow-glow' : `${sizeClasses[size]}`
+        } ${fullWidth ? 'w-full' : ''} ${variantClasses[variant]} ${className}`}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
+        aria-disabled={disabled || loading || undefined}
+        {...rest}
+      >
+        {loading ? (
+          <Loader2 size={iconSize} className="animate-spin" />
+        ) : icon && iconPosition === 'left' ? (
+          icon
+        ) : null}
+        {(!fab || children) && children}
+        {!loading && icon && iconPosition === 'right' ? icon : null}
+      </button>
+    );
+  },
+);
+
+Button.displayName = 'Button';

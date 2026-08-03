@@ -5,8 +5,8 @@ import { FilterPanel } from '../components/AnalyticsFilters';
 import { HorizontalBarChart } from '../components/AnalyticsCharts';
 import { useVendorAnalytics } from '../hooks/useAnalytics';
 import type { IAnalyticsFilters } from '../types/analytics.types';
-import { Button } from '../../../components/ui/Button';
-import { RotateCcw } from 'lucide-react';
+import { ErrorState } from '../../../components/ui/ErrorState';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 export const VendorsPage: React.FC = () => {
   const [filters, setFilters] = useState<IAnalyticsFilters>({ limit: 50 });
@@ -32,17 +32,7 @@ export const VendorsPage: React.FC = () => {
   if (error) {
     return (
       <AnalyticsLayout title="Vendor Supply & Cost Adherence" subtitle="Vendor analytics">
-        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
-          <p className="font-semibold mb-2">Error loading vendor analytics</p>
-          <Button
-            variant="danger"
-            size="sm"
-            icon={<RotateCcw size={14} />}
-            onClick={() => refetch()}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState message="Error loading vendor analytics" onRetry={() => refetch()} />
       </AnalyticsLayout>
     );
   }
@@ -96,9 +86,7 @@ export const VendorsPage: React.FC = () => {
             {chartData.length > 0 ? (
               <HorizontalBarChart data={chartData} />
             ) : (
-              <div className="text-text-muted text-center py-12 text-sm">
-                No vendor allocations found.
-              </div>
+              <EmptyState title="No data" description="No vendor allocations found." />
             )}
           </div>
 
@@ -137,9 +125,7 @@ export const VendorsPage: React.FC = () => {
                 );
               })}
               {data?.vendors.length === 0 && (
-                <div className="text-text-disabled text-center py-8 text-sm">
-                  No vendor analytics available.
-                </div>
+                <EmptyState title="No data" description="No vendor analytics available." />
               )}
             </div>
           </div>

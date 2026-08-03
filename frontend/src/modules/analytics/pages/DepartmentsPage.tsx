@@ -2,8 +2,7 @@ import React from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { useDepartmentAnalytics } from '../hooks/useAnalytics';
-import { Button } from '../../../components/ui/Button';
-import { RotateCcw } from 'lucide-react';
+import { ErrorState } from '../../../components/ui/ErrorState';
 
 export const DepartmentsPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useDepartmentAnalytics();
@@ -14,17 +13,7 @@ export const DepartmentsPage: React.FC = () => {
         title="Department Workload Metrics"
         subtitle="Active queues and department capacity"
       >
-        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
-          <p className="font-semibold mb-2">Error loading department workload</p>
-          <Button
-            variant="danger"
-            size="sm"
-            icon={<RotateCcw size={14} />}
-            onClick={() => refetch()}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState message="Error loading department workload" onRetry={() => refetch()} />
       </AnalyticsLayout>
     );
   }

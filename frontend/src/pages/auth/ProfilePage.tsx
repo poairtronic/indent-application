@@ -12,6 +12,7 @@ import {
   Mail,
   RefreshCw,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -117,31 +118,32 @@ export const ProfilePage: React.FC = () => {
       </div>
 
       <div className="flex gap-4">
-        <button
+        <Button
+          variant="outline"
           onClick={fetchProfile}
-          disabled={loading}
-          className="btn-primary flex-1 bg-transparent border border-border-default text-white"
+          loading={loading}
+          icon={loading ? undefined : <RefreshCw size={16} />}
+          fullWidth
         >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           {loading ? 'Refreshing...' : 'Refresh'}
-        </button>
+        </Button>
 
         <Link to="/change-password" className="flex-1 no-underline">
-          <button className="btn-primary w-full bg-transparent border border-border-default text-white">
-            <KeyRound size={16} />
+          <Button variant="outline" fullWidth icon={<KeyRound size={16} />}>
             Password
-          </button>
+          </Button>
         </Link>
       </div>
 
-      <button
+      <Button
+        variant="danger"
         onClick={handleLogout}
-        className="btn-primary w-full mt-4"
-        style={{ background: 'var(--grad-danger)' }}
+        fullWidth
+        icon={<LogOut size={16} />}
+        className="mt-4"
       >
-        <LogOut size={16} />
         Sign Out
-      </button>
+      </Button>
     </div>
   );
 };

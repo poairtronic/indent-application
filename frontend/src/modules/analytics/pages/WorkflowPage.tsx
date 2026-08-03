@@ -3,8 +3,8 @@ import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { BarChart } from '../components/AnalyticsCharts';
 import { useWorkflowAnalytics } from '../hooks/useAnalytics';
-import { Button } from '../../../components/ui/Button';
-import { RotateCcw } from 'lucide-react';
+import { ErrorState } from '../../../components/ui/ErrorState';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 export const WorkflowPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useWorkflowAnalytics();
@@ -15,17 +15,7 @@ export const WorkflowPage: React.FC = () => {
         title="Workflow Process Distribution"
         subtitle="Cycle times and transition bottlenecks"
       >
-        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
-          <p className="font-semibold mb-2">Error loading workflow analytics</p>
-          <Button
-            variant="danger"
-            size="sm"
-            icon={<RotateCcw size={14} />}
-            onClick={() => refetch()}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState message="Error loading workflow analytics" onRetry={() => refetch()} />
       </AnalyticsLayout>
     );
   }
@@ -80,9 +70,7 @@ export const WorkflowPage: React.FC = () => {
           {chartData.length > 0 ? (
             <BarChart data={chartData} color="var(--primary)" />
           ) : (
-            <div className="text-text-muted text-center py-12 text-sm">
-              No transaction records found.
-            </div>
+            <EmptyState title="No data" description="No transaction records found." />
           )}
         </div>
       )}

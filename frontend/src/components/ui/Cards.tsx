@@ -116,9 +116,16 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   );
 };
 
-interface KPICardProps extends MetricCardProps {
+interface KPICardProps extends Omit<MetricCardProps, 'trend'> {
   icon?: React.ReactNode;
   accent?: AccentTone;
+  loading?: boolean;
+  trend?:
+    | string
+    | {
+        value: number | string;
+        isPositive: boolean;
+      };
 }
 
 export const KPICard: React.FC<KPICardProps> = ({
@@ -129,16 +136,36 @@ export const KPICard: React.FC<KPICardProps> = ({
   helperText,
   icon,
   accent = 'primary',
+  loading = false,
   className = '',
 }) => {
+  if (loading) {
+    return (
+      <div className="bg-grad-card border border-border-default rounded-xl p-5 animate-pulse sheen">
+        <div className="flex justify-between items-start mb-4">
+          <div className="h-4 bg-surface-elevated rounded w-24" />
+          <div className="h-8 w-8 bg-surface-elevated rounded-xl" />
+        </div>
+        <div className="h-8 bg-surface-elevated rounded w-16 mb-2" />
+        <div className="h-3 bg-surface-elevated rounded w-32" />
+      </div>
+    );
+  }
+
   const a = ACCENT_CONFIG[accent];
 
-  const trendColor =
-    trendDirection === 'up'
-      ? 'text-status-success'
-      : trendDirection === 'down'
-        ? 'text-status-error'
-        : a.trend;
+  // Support both trend API shapes: { value, isPositive } and { trend, trendDirection }
+  const trendIsPositive =
+    trend && typeof trend === 'object' && 'isPositive' in trend
+      ? trend.isPositive
+      : trendDirection === 'up';
+  const trendValue =
+    trend && typeof trend === 'object' && 'value' in trend
+      ? trend.value
+      : typeof trend === 'string'
+        ? trend
+        : undefined;
+  const showTrend = trendValue !== undefined && trendValue !== '';
 
   return (
     <BaseCard className={`kpi-card ${a.glow} ${className}`}>
@@ -157,12 +184,17 @@ export const KPICard: React.FC<KPICardProps> = ({
         </div>
         {icon && <div className={`p-2.5 rounded-xl shrink-0 ${a.icon}`}>{icon}</div>}
       </div>
-      {(trend || helperText) && (
+      {(showTrend || helperText) && (
         <div className="relative z-10 flex items-center gap-1.5 mt-3 pt-3 border-t border-border-default/50 text-[10px]">
-          {trend && (
-            <span className={`font-extrabold ${trendColor}`}>
-              {trendDirection === 'up' ? '↑ ' : trendDirection === 'down' ? '↓ ' : ''}
-              {trend}
+          {showTrend && (
+            <span
+              className={`inline-flex items-center gap-0.5 font-bold px-1.5 py-0.5 rounded-md ${
+                trendIsPositive
+                  ? 'bg-status-success/10 text-status-success border border-status-success/20'
+                  : 'bg-status-error/10 text-status-error border border-status-error/20'
+              }`}
+            >
+              {trendIsPositive ? '↑' : '↓'} {trendValue}
             </span>
           )}
           {helperText && <span className="text-text-muted">{helperText}</span>}

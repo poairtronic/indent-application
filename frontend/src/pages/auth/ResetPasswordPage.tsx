@@ -4,7 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { apiClient } from '../../lib/axios';
-import { ShieldAlert, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { ShieldAlert, AlertCircle, CheckCircle } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
 const resetPasswordSchema = z
   .object({
@@ -105,40 +107,34 @@ export const ResetPasswordPage: React.FC = () => {
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">
-              New Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              className="form-input"
-              placeholder="••••••••"
-              {...register('password')}
-            />
-            {errors.password && <div className="form-error">{errors.password.message}</div>}
-          </div>
+          <Input
+            id="password"
+            type="password"
+            label="New Password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register('password')}
+          />
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="confirmPassword">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              className="form-input"
-              placeholder="••••••••"
-              {...register('confirmPassword')}
-            />
-            {errors.confirmPassword && (
-              <div className="form-error">{errors.confirmPassword.message}</div>
-            )}
-          </div>
+          <Input
+            id="confirmPassword"
+            type="password"
+            label="Confirm Password"
+            placeholder="••••••••"
+            error={errors.confirmPassword?.message}
+            {...register('confirmPassword')}
+          />
 
-          <button type="submit" className="btn-primary mt-6" disabled={loading}>
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <ShieldAlert size={18} />}
+          <Button
+            type="submit"
+            variant="primary"
+            loading={loading}
+            icon={loading ? undefined : <ShieldAlert size={16} />}
+            fullWidth
+            className="mt-6"
+          >
             {loading ? 'Resetting password...' : 'Reset Password'}
-          </button>
+          </Button>
         </form>
       )}
     </div>

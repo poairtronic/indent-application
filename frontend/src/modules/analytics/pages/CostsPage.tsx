@@ -4,8 +4,7 @@ import { KpiCard } from '../components/AnalyticsCards';
 import { FilterPanel } from '../components/AnalyticsFilters';
 import { useCostAnalytics } from '../hooks/useAnalytics';
 import type { IAnalyticsFilters } from '../types/analytics.types';
-import { Button } from '../../../components/ui/Button';
-import { RotateCcw } from 'lucide-react';
+import { ErrorState } from '../../../components/ui/ErrorState';
 
 export const CostsPage: React.FC = () => {
   const [filters, setFilters] = useState<IAnalyticsFilters>({});
@@ -31,17 +30,7 @@ export const CostsPage: React.FC = () => {
   if (error) {
     return (
       <AnalyticsLayout title="Cost Estimation & Actual Variance" subtitle="Financial analytics">
-        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
-          <p className="font-semibold mb-2">Error loading cost analytics</p>
-          <Button
-            variant="danger"
-            size="sm"
-            icon={<RotateCcw size={14} />}
-            onClick={() => refetch()}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState message="Error loading cost analytics" onRetry={() => refetch()} />
       </AnalyticsLayout>
     );
   }

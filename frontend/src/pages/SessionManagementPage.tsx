@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Smartphone, Tablet, Laptop, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useSecurityStore, type Session } from '../store/securityStore';
 import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { BaseCard } from '../components/ui/Cards';
 
 export const SessionManagementPage: React.FC = () => {
   const {
@@ -20,10 +22,10 @@ export const SessionManagementPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
+      <BaseCard className="p-6">
         <h1 className="text-2xl font-bold text-text-primary tracking-tight">Session Management</h1>
         <p className="text-text-muted mt-1">Manage your active sessions across devices</p>
-      </div>
+      </BaseCard>
 
       <div className="flex flex-wrap gap-3">
         <Button variant="warning" onClick={logoutOtherSessions} disabled={isLoading}>
@@ -58,9 +60,9 @@ export const SessionManagementPage: React.FC = () => {
       )}
 
       {!isLoading && sessions.length === 0 && (
-        <div className="bg-surface-card border border-border-default rounded-xl p-8 text-center shadow-card">
+        <BaseCard className="p-8 text-center">
           <p className="text-text-muted">No active sessions found.</p>
-        </div>
+        </BaseCard>
       )}
 
       <div className="grid gap-4">
@@ -103,16 +105,16 @@ const SessionCard: React.FC<{
                 {session.browser || 'Unknown Browser'}
               </h3>
               {isActive && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-status-success/12 text-status-success rounded-full">
+                <Badge tone="green" size="sm">
                   <ShieldCheck className="w-3 h-3" />
                   Active
-                </span>
+                </Badge>
               )}
               {!isActive && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-background-secondary text-text-secondary rounded-full">
+                <Badge tone="gray" size="sm">
                   <ShieldAlert className="w-3 h-3" />
                   {session.status}
-                </span>
+                </Badge>
               )}
             </div>
             <div className="text-xs text-text-muted mt-1.5 space-y-0.5">

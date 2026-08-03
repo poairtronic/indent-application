@@ -3,8 +3,8 @@ import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { DonutChart } from '../components/AnalyticsCharts';
 import { useAnalyticsSummary } from '../hooks/useAnalytics';
-import { Button } from '../../../components/ui/Button';
-import { RotateCcw } from 'lucide-react';
+import { ErrorState } from '../../../components/ui/ErrorState';
+import { EmptyState } from '../../../components/ui/EmptyState';
 
 export const SummaryPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useAnalyticsSummary();
@@ -12,17 +12,7 @@ export const SummaryPage: React.FC = () => {
   if (error) {
     return (
       <AnalyticsLayout title="Executive Analytics Summary" subtitle="Operational dashboard metrics">
-        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
-          <p className="font-semibold mb-2">Error loading analytics summary</p>
-          <Button
-            variant="danger"
-            size="sm"
-            icon={<RotateCcw size={14} />}
-            onClick={() => refetch()}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState message="Error loading analytics summary" onRetry={() => refetch()} />
       </AnalyticsLayout>
     );
   }
@@ -83,9 +73,7 @@ export const SummaryPage: React.FC = () => {
             {chartData.length > 0 ? (
               <DonutChart data={chartData} />
             ) : (
-              <div className="text-text-muted text-center py-12 text-sm">
-                No transaction records found.
-              </div>
+              <EmptyState title="No data" description="No transaction records found." />
             )}
           </div>
           <div className="bg-surface-card border border-border-default p-6 rounded-xl flex flex-col justify-between">

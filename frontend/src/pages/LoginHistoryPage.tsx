@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { useSecurityStore } from '../store/securityStore';
+import { Badge } from '../components/ui/Badge';
+import { BaseCard } from '../components/ui/Cards';
 
 export const LoginHistoryPage: React.FC = () => {
   const { loginHistory, fetchLoginHistory, isLoading } = useSecurityStore();
@@ -11,29 +13,29 @@ export const LoginHistoryPage: React.FC = () => {
   const getStatusBadge = (entry: any) => {
     if (entry.activity === 'LOGIN_SUCCESS') {
       return (
-        <span className="px-2 py-0.5 text-xs bg-status-success/12 text-status-success rounded-full">
+        <Badge tone="green" size="sm">
           Success
-        </span>
+        </Badge>
       );
     }
     if (entry.activity === 'LOGIN_FAILED') {
       return (
-        <span className="px-2 py-0.5 text-xs bg-status-error/12 text-status-error rounded-full">
+        <Badge tone="red" size="sm">
           Failed
-        </span>
+        </Badge>
       );
     }
     if (entry.activity === 'LOGOUT') {
       return (
-        <span className="px-2 py-0.5 text-xs bg-background-secondary text-text-secondary rounded-full">
+        <Badge tone="gray" size="sm">
           Logout
-        </span>
+        </Badge>
       );
     }
     return (
-      <span className="px-2 py-0.5 text-xs bg-background-secondary text-text-secondary rounded-full">
+      <Badge tone="gray" size="sm">
         {entry.activity}
-      </span>
+      </Badge>
     );
   };
 
@@ -43,12 +45,12 @@ export const LoginHistoryPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
+      <BaseCard className="p-6">
         <h1 className="text-2xl font-bold text-text-primary tracking-tight">Login History</h1>
         <p className="text-text-muted mt-1">Recent login activity for your account</p>
-      </div>
+      </BaseCard>
 
-      <div className="bg-surface-card border border-border-default rounded-xl shadow-card overflow-hidden">
+      <BaseCard className="overflow-hidden">
         {loginHistory.length === 0 ? (
           <div className="p-8 text-center text-text-muted">No login history found.</div>
         ) : (
@@ -101,7 +103,7 @@ export const LoginHistoryPage: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </BaseCard>
     </div>
   );
 };

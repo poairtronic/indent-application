@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
 import { useSecurityStore } from '../store/securityStore';
+import { Badge } from '../components/ui/Badge';
+import { BaseCard } from '../components/ui/Cards';
 
 export const SecurityDashboardPage: React.FC = () => {
   const { securityStatus, fetchSecurityStatus, isLoading } = useSecurityStore();
@@ -14,36 +16,26 @@ export const SecurityDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
+      <BaseCard className="p-6">
         <h1 className="text-2xl font-bold text-text-primary tracking-tight">Security Overview</h1>
         <p className="text-text-muted mt-1">Account security status and activity</p>
-      </div>
+      </BaseCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
+        <BaseCard className="p-6">
           <h3 className="font-semibold text-text-primary">Account Status</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
               <span className="text-text-muted">Status</span>
-              <span
-                className={`font-medium ${
-                  securityStatus?.accountStatus === 'ACTIVE'
-                    ? 'text-status-success'
-                    : 'text-status-error'
-                }`}
-              >
+              <Badge tone={securityStatus?.accountStatus === 'ACTIVE' ? 'green' : 'red'} size="sm">
                 {securityStatus?.accountStatus}
-              </span>
+              </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-text-muted">Locked</span>
-              <span
-                className={`font-medium ${
-                  securityStatus?.isLocked ? 'text-status-error' : 'text-status-success'
-                }`}
-              >
+              <Badge tone={securityStatus?.isLocked ? 'red' : 'green'} size="sm">
                 {securityStatus?.isLocked ? 'Yes' : 'No'}
-              </span>
+              </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-text-muted">Last Login</span>
@@ -54,27 +46,28 @@ export const SecurityDashboardPage: React.FC = () => {
               </span>
             </div>
           </div>
-        </div>
+        </BaseCard>
 
-        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
+        <BaseCard className="p-6">
           <h3 className="font-semibold text-text-primary">Password Status</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
               <span className="text-text-muted">Age</span>
-              <span
-                className={`font-medium ${
+              <Badge
+                tone={
                   securityStatus?.passwordAgeDays !== null &&
                   securityStatus?.passwordAgeDays !== undefined &&
                   securityStatus.passwordAgeDays > 90
-                    ? 'text-status-error'
-                    : 'text-status-success'
-                }`}
+                    ? 'red'
+                    : 'green'
+                }
+                size="sm"
               >
                 {securityStatus?.passwordAgeDays !== null &&
                 securityStatus?.passwordAgeDays !== undefined
                   ? `${securityStatus.passwordAgeDays} days`
                   : 'Not tracked'}
-              </span>
+              </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-text-muted">Account Created</span>
@@ -85,22 +78,19 @@ export const SecurityDashboardPage: React.FC = () => {
               </span>
             </div>
           </div>
-        </div>
+        </BaseCard>
 
-        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
+        <BaseCard className="p-6">
           <h3 className="font-semibold text-text-primary">Failed Attempts</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
               <span className="text-text-muted">Failed Logins</span>
-              <span
-                className={`font-bold text-lg ${
-                  (securityStatus?.failedLoginAttempts ?? 0) > 0
-                    ? 'text-status-error'
-                    : 'text-status-success'
-                }`}
+              <Badge
+                tone={(securityStatus?.failedLoginAttempts ?? 0) > 0 ? 'red' : 'green'}
+                size="sm"
               >
                 {securityStatus?.failedLoginAttempts ?? 0}
-              </span>
+              </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-text-muted">Remaining Attempts</span>
@@ -115,7 +105,7 @@ export const SecurityDashboardPage: React.FC = () => {
               </span>
             </div>
           </div>
-        </div>
+        </BaseCard>
       </div>
 
       {securityStatus?.isLocked && (

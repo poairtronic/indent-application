@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '../../lib/axios';
 import { useAuthStore } from '../../store/authStore';
-import { KeyRound, Loader2, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { KeyRound, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
 const changePasswordSchema = z
   .object({
@@ -94,56 +96,43 @@ export const ChangePasswordPage: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="form-group">
-          <label className="form-label" htmlFor="currentPassword">
-            Current Password
-          </label>
-          <input
-            id="currentPassword"
-            type="password"
-            className="form-input"
-            placeholder="••••••••"
-            {...register('currentPassword')}
-          />
-          {errors.currentPassword && (
-            <div className="form-error">{errors.currentPassword.message}</div>
-          )}
-        </div>
+        <Input
+          id="currentPassword"
+          type="password"
+          label="Current Password"
+          placeholder="••••••••"
+          error={errors.currentPassword?.message}
+          {...register('currentPassword')}
+        />
 
-        <div className="form-group">
-          <label className="form-label" htmlFor="newPassword">
-            New Password
-          </label>
-          <input
-            id="newPassword"
-            type="password"
-            className="form-input"
-            placeholder="••••••••"
-            {...register('newPassword')}
-          />
-          {errors.newPassword && <div className="form-error">{errors.newPassword.message}</div>}
-        </div>
+        <Input
+          id="newPassword"
+          type="password"
+          label="New Password"
+          placeholder="••••••••"
+          error={errors.newPassword?.message}
+          {...register('newPassword')}
+        />
 
-        <div className="form-group">
-          <label className="form-label" htmlFor="confirmPassword">
-            Confirm New Password
-          </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            className="form-input"
-            placeholder="••••••••"
-            {...register('confirmPassword')}
-          />
-          {errors.confirmPassword && (
-            <div className="form-error">{errors.confirmPassword.message}</div>
-          )}
-        </div>
+        <Input
+          id="confirmPassword"
+          type="password"
+          label="Confirm New Password"
+          placeholder="••••••••"
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword')}
+        />
 
-        <button type="submit" className="btn-primary mt-6 mb-6" disabled={loading}>
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <KeyRound size={18} />}
+        <Button
+          type="submit"
+          variant="primary"
+          loading={loading}
+          icon={loading ? undefined : <KeyRound size={16} />}
+          fullWidth
+          className="mt-6 mb-6"
+        >
           {loading ? 'Updating password...' : 'Update Password'}
-        </button>
+        </Button>
 
         <div className="text-center">
           <Link to="/profile" className="auth-link inline-flex items-center gap-1">

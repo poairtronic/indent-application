@@ -4,7 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../lib/axios';
-import { Mail, Loader2, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Mail, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -72,24 +74,25 @@ export const ForgotPasswordPage: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="form-group">
-          <label className="form-label" htmlFor="email">
-            Email Address
-          </label>
-          <input
-            id="email"
-            type="email"
-            className="form-input"
-            placeholder="name@company.com"
-            {...register('email')}
-          />
-          {errors.email && <div className="form-error">{errors.email.message}</div>}
-        </div>
+        <Input
+          id="email"
+          type="email"
+          label="Email Address"
+          placeholder="name@company.com"
+          error={errors.email?.message}
+          {...register('email')}
+        />
 
-        <button type="submit" className="btn-primary mt-6 mb-6" disabled={loading}>
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <Mail size={18} />}
+        <Button
+          type="submit"
+          variant="primary"
+          loading={loading}
+          icon={loading ? undefined : <Mail size={16} />}
+          fullWidth
+          className="mt-6 mb-6"
+        >
           {loading ? 'Sending link...' : 'Send Reset Link'}
-        </button>
+        </Button>
 
         <div className="text-center">
           <Link to="/login" className="auth-link inline-flex items-center gap-1">

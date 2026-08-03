@@ -6,7 +6,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { apiClient } from '../../lib/axios';
-import { LogIn, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { LogIn, AlertCircle, CheckCircle } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -106,33 +108,23 @@ export const LoginPage: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="form-group">
-          <label className="form-label" htmlFor="email">
-            Email Address
-          </label>
-          <input
-            id="email"
-            type="email"
-            className="form-input"
-            placeholder="name@company.com"
-            {...register('email')}
-          />
-          {errors.email && <div className="form-error">{errors.email.message}</div>}
-        </div>
+        <Input
+          id="email"
+          type="email"
+          label="Email Address"
+          placeholder="name@company.com"
+          error={errors.email?.message}
+          {...register('email')}
+        />
 
-        <div className="form-group">
-          <label className="form-label" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            className="form-input"
-            placeholder="••••••••"
-            {...register('password')}
-          />
-          {errors.password && <div className="form-error">{errors.password.message}</div>}
-        </div>
+        <Input
+          id="password"
+          type="password"
+          label="Password"
+          placeholder="••••••••"
+          error={errors.password?.message}
+          {...register('password')}
+        />
 
         <div className="form-group flex items-center justify-between mt-6 mb-6">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -148,10 +140,15 @@ export const LoginPage: React.FC = () => {
           </Link>
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={18} />}
+        <Button
+          type="submit"
+          variant="primary"
+          loading={loading}
+          icon={loading ? undefined : <LogIn size={16} />}
+          fullWidth
+        >
           {loading ? 'Signing in...' : 'Sign In'}
-        </button>
+        </Button>
       </form>
     </div>
   );
