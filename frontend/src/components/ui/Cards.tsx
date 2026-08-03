@@ -1,14 +1,62 @@
 import React from 'react';
 
+type AccentTone = 'primary' | 'info' | 'success' | 'warning' | 'danger';
+
 interface CardProps {
   children?: React.ReactNode;
   className?: string;
 }
 
+const ACCENT_CONFIG: Record<
+  AccentTone,
+  { line: string; icon: string; aura: string; glow: string; value: string; trend: string }
+> = {
+  primary: {
+    line: 'kpi-line-primary',
+    icon: 'kpi-icon-primary',
+    aura: 'kpi-aura-primary',
+    glow: 'hover:shadow-glow',
+    value: 'from-accent-light to-accent-primary',
+    trend: 'text-accent-primary',
+  },
+  info: {
+    line: 'kpi-line-info',
+    icon: 'kpi-icon-info',
+    aura: 'kpi-aura-info',
+    glow: 'hover:shadow-glow-info',
+    value: 'from-info to-accent-light',
+    trend: 'text-info',
+  },
+  success: {
+    line: 'kpi-line-success',
+    icon: 'kpi-icon-success',
+    aura: 'kpi-aura-success',
+    glow: 'hover:shadow-glow-success',
+    value: 'from-emerald-400 to-emerald-600',
+    trend: 'text-status-success',
+  },
+  warning: {
+    line: 'kpi-line-warning',
+    icon: 'kpi-icon-warning',
+    aura: 'kpi-aura-warning',
+    glow: 'hover:shadow-glow-warning',
+    value: 'from-amber-400 to-amber-600',
+    trend: 'text-status-warning',
+  },
+  danger: {
+    line: 'kpi-line-danger',
+    icon: 'kpi-icon-danger',
+    aura: 'kpi-aura-danger',
+    glow: 'hover:shadow-glow-danger',
+    value: 'from-red-400 to-red-600',
+    trend: 'text-status-error',
+  },
+};
+
 export const BaseCard: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
     <div
-      className={`bg-surface-card border border-border-default rounded-xl p-5 font-sans text-xs text-text-primary shadow-sm transition-all duration-200 hover:shadow-md hover:border-border-strong/70 ${className}`}
+      className={`bg-grad-card border border-border-default rounded-xl p-5 font-sans text-xs text-text-primary shadow-card hover:shadow-lg hover:border-border-strong hover-lift ${className}`}
     >
       {children}
     </div>
@@ -18,7 +66,7 @@ export const BaseCard: React.FC<CardProps> = ({ children, className = '' }) => {
 export const GlassCard: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
     <div
-      className={`bg-surface-card/60 backdrop-blur-md border border-border-default rounded-xl p-5 font-sans text-xs text-text-primary shadow-sm transition-all duration-200 hover:shadow-md ${className}`}
+      className={`glass-surface rounded-xl p-5 font-sans text-xs text-text-primary sheen hover-lift ${className}`}
     >
       {children}
     </div>
@@ -47,7 +95,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     ? 'text-status-success'
     : isDown
       ? 'text-status-error'
-      : 'text-text-muted';
+      : 'text-accent-primary';
 
   return (
     <BaseCard className={className}>
@@ -68,44 +116,52 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   );
 };
 
-export const KPICard: React.FC<MetricCardProps & { icon?: React.ReactNode }> = ({
+interface KPICardProps extends MetricCardProps {
+  icon?: React.ReactNode;
+  accent?: AccentTone;
+}
+
+export const KPICard: React.FC<KPICardProps> = ({
   title,
   value,
   trend,
   trendDirection = 'none',
   helperText,
   icon,
+  accent = 'primary',
   className = '',
 }) => {
+  const a = ACCENT_CONFIG[accent];
+
+  const trendColor =
+    trendDirection === 'up'
+      ? 'text-status-success'
+      : trendDirection === 'down'
+        ? 'text-status-error'
+        : a.trend;
+
   return (
-    <BaseCard className={`relative overflow-hidden ${className}`}>
-      <div className="flex justify-between items-start">
+    <BaseCard className={`kpi-card ${a.glow} ${className}`}>
+      <span className={`kpi-line ${a.line}`} />
+      <span className={`kpi-aura ${a.aura}`} />
+      <div className="relative z-10 flex justify-between items-start">
         <div className="space-y-1.5">
           <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider">
             {title}
           </span>
-          <span className="block text-2xl font-black text-text-primary tracking-tight">
+          <span
+            className={`block text-2xl font-black tracking-tight bg-gradient-to-r ${a.value} bg-clip-text text-transparent`}
+          >
             {value}
           </span>
         </div>
-        {icon && (
-          <div className="p-2.5 bg-background-secondary rounded-xl text-accent-primary shrink-0 ring-1 ring-inset ring-border-default/60">
-            {icon}
-          </div>
-        )}
+        {icon && <div className={`p-2.5 rounded-xl shrink-0 ${a.icon}`}>{icon}</div>}
       </div>
       {(trend || helperText) && (
-        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border-default/50 text-[10px]">
+        <div className="relative z-10 flex items-center gap-1.5 mt-3 pt-3 border-t border-border-default/50 text-[10px]">
           {trend && (
-            <span
-              className={`font-extrabold ${
-                trendDirection === 'up'
-                  ? 'text-status-success'
-                  : trendDirection === 'down'
-                    ? 'text-status-error'
-                    : 'text-text-muted'
-              }`}
-            >
+            <span className={`font-extrabold ${trendColor}`}>
+              {trendDirection === 'up' ? '↑ ' : trendDirection === 'down' ? '↓ ' : ''}
               {trend}
             </span>
           )}
@@ -134,12 +190,12 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`bg-surface-card border border-border-default hover:border-accent-primary rounded-xl p-5 font-sans text-xs text-text-primary flex items-start gap-3 cursor-pointer select-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none ${className}`}
+      className={`bg-grad-card border border-border-default hover:border-accent-primary rounded-xl p-5 font-sans text-xs text-text-primary flex items-start gap-3 cursor-pointer select-none shadow-card hover:shadow-glow sheen hover-lift focus-visible:outline-none ${className}`}
     >
-      <div className="p-2.5 bg-background-secondary rounded-xl text-accent-primary shrink-0 ring-1 ring-inset ring-border-default/60">
+      <div className="p-2.5 rounded-xl text-accent-primary shrink-0 ring-1 ring-inset ring-border-default/60 relative z-10 kpi-icon-primary">
         {icon}
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 relative z-10">
         <h4 className="font-bold text-text-primary truncate">{title}</h4>
         <p className="text-[10px] text-text-muted mt-1 leading-normal">{description}</p>
       </div>

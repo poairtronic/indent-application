@@ -2,9 +2,7 @@ import React from 'react';
 
 export const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => {
   return (
-    <div
-      className={`animate-pulse bg-surface-elevated border border-border-default/40 rounded ${className}`}
-    />
+    <div className={`skeleton-shimmer border border-border-default/40 rounded-md ${className}`} />
   );
 };
 

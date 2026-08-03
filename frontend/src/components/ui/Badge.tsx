@@ -4,11 +4,11 @@ import type { UserStatus } from '../../types/user';
 export type BadgeTone = 'green' | 'yellow' | 'red' | 'gray' | 'blue';
 
 const toneClasses: Record<BadgeTone, string> = {
-  green: 'bg-status-success/12 text-status-success',
-  yellow: 'bg-status-warning/12 text-status-warning',
-  red: 'bg-status-error/12 text-status-error',
-  gray: 'bg-background-secondary text-text-secondary',
-  blue: 'bg-accent-primary/12 text-accent-primary',
+  green: 'bg-status-success/12 text-status-success border border-status-success/20',
+  yellow: 'bg-status-warning/12 text-status-warning border border-status-warning/20',
+  red: 'bg-status-error/12 text-status-error border border-status-error/20',
+  gray: 'bg-background-secondary text-text-secondary border border-border-default',
+  blue: 'bg-accent-primary/12 text-accent-primary border border-accent-primary/20',
 };
 
 interface BadgeProps {

@@ -63,7 +63,7 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="border border-border-default rounded-xl p-6 bg-surface-card shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border border-border-default rounded-xl p-6 bg-surface-card shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-up">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-text-primary tracking-tight">
             Welcome, {user?.firstName} {user?.lastName}
@@ -84,30 +84,39 @@ export const DashboardPage: React.FC = () => {
 
       {/* KPI Cards Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <KPICard
-          title="Active Indents Queue"
-          value={kpiData.activeIndents}
-          trend="+12% this week"
-          trendDirection="up"
-          helperText="Dispatched to stores department"
-          icon={<FileText size={16} />}
-        />
-        <KPICard
-          title="Verified Cost Budget"
-          value={kpiData.costLimit}
-          trend="89% threshold limit"
-          trendDirection="none"
-          helperText="Total approved costing sum"
-          icon={<Coins size={16} />}
-        />
-        <KPICard
-          title="Security Monitoring Logs"
-          value={kpiData.activeLogs}
-          trend="Secure"
-          trendDirection="none"
-          helperText="Active sessions monitored"
-          icon={<ShieldAlert size={16} />}
-        />
+        <div className="animate-slide-up delay-50">
+          <KPICard
+            title="Active Indents Queue"
+            value={kpiData.activeIndents}
+            trend="+12% this week"
+            trendDirection="up"
+            helperText="Dispatched to stores department"
+            icon={<FileText size={16} />}
+            accent="primary"
+          />
+        </div>
+        <div className="animate-slide-up delay-150">
+          <KPICard
+            title="Verified Cost Budget"
+            value={kpiData.costLimit}
+            trend="89% threshold limit"
+            trendDirection="none"
+            helperText="Total approved costing sum"
+            icon={<Coins size={16} />}
+            accent="success"
+          />
+        </div>
+        <div className="animate-slide-up delay-250">
+          <KPICard
+            title="Security Monitoring Logs"
+            value={kpiData.activeLogs}
+            trend="Secure"
+            trendDirection="none"
+            helperText="Active sessions monitored"
+            icon={<ShieldAlert size={16} />}
+            accent="info"
+          />
+        </div>
       </div>
 
       {/* Quick Action Links */}
@@ -116,24 +125,30 @@ export const DashboardPage: React.FC = () => {
           Quick Action Portal
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <QuickActionCard
-            title="Create Indent Dispatch"
-            description="Initiate design specifications and dispatch request form."
-            icon={<Plus size={16} />}
-            onClick={() => navigate('/indents')}
-          />
-          <QuickActionCard
-            title="Accounts Costings Portal"
-            description="Verify cost logs, approvals, and transaction thresholds."
-            icon={<CheckCircle size={16} />}
-            onClick={() => navigate('/costings')}
-          />
-          <QuickActionCard
-            title="System Security Shield"
-            description="Inspect login activity histories and session control tokens."
-            icon={<ArrowRight size={16} />}
-            onClick={() => navigate('/security')}
-          />
+          <div className="animate-slide-up delay-100">
+            <QuickActionCard
+              title="Create Indent Dispatch"
+              description="Initiate design specifications and dispatch request form."
+              icon={<Plus size={16} />}
+              onClick={() => navigate('/indents')}
+            />
+          </div>
+          <div className="animate-slide-up delay-200">
+            <QuickActionCard
+              title="Accounts Costings Portal"
+              description="Verify cost logs, approvals, and transaction thresholds."
+              icon={<CheckCircle size={16} />}
+              onClick={() => navigate('/costings')}
+            />
+          </div>
+          <div className="animate-slide-up delay-300">
+            <QuickActionCard
+              title="System Security Shield"
+              description="Inspect login activity histories and session control tokens."
+              icon={<ArrowRight size={16} />}
+              onClick={() => navigate('/security')}
+            />
+          </div>
         </div>
       </div>
 

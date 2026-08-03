@@ -1,50 +1,5 @@
 @import 'tailwindcss';
-
-:root {
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-pressed: #312e81;
-  --bg-main: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --bg-card: #ffffff;
-  --surface-elevated: #f8fafc;
-  --text-main: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #64748b;
-  --text-disabled: #94a3b8;
-  --border-color: #e2e8f0;
-  --border-strong: #cbd5e1;
-
-  --success: #10b981;
-  --success-hover: #059669;
-  --warning: #f59e0b;
-  --warning-hover: #d97706;
-  --danger: #ef4444;
-  --danger-hover: #dc2626;
-
-  /* Deprecated aliases kept for legacy inline usage (auth pages) */
-  --accent: var(--primary);
-  --secondary: var(--text-secondary);
-
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.dark {
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-pressed: #3730a3;
-  --bg-main: #080c14;
-  --bg-secondary: #0d131f;
-  --bg-card: #131b2e;
-  --surface-elevated: #1a243d;
-  --text-main: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-disabled: #64748b;
-  --border-color: #1e293b;
-  --border-strong: #334155;
-}
+@import './tokens.css';
 
 @layer base {
   * {
@@ -107,13 +62,74 @@
 }
 
 /* ============================================================================
-   Glass surfaces
+   Glass surfaces — ECR glassmorphism language
    ============================================================================ */
 .glass-panel {
-  background: color-mix(in srgb, var(--bg-card) 75%, transparent);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md);
+}
+
+.glass-surface {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+/* Translucent topbar — ECR */
+.topbar-glass {
+  background: color-mix(in srgb, var(--bg-card) 85%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-color);
+}
+
+/* Sheen sweep — skewed light sweep across cards on hover */
+.sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.sheen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 50%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, #ffffff 6%, transparent),
+    transparent
+  );
+  transform: skewX(-25deg);
+  transition: left 0.7s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sheen:hover::before {
+  left: 160%;
+}
+
+/* Hover lift — springy overshoot per ECR */
+.hover-lift {
+  transition:
+    transform 0.3s var(--ease-spring),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5);
 }
 
 /* ============================================================================
@@ -170,24 +186,95 @@
   }
 }
 
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
 .animate-slide-in {
-  animation: slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-in 0.25s var(--ease-enter) forwards;
 }
 
 .animate-fade-in {
-  animation: fade-in 0.15s ease-out forwards;
+  animation: fade-in 0.2s ease forwards;
 }
 
 .animate-scale-in {
-  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scale-in 0.2s var(--ease-enter) forwards;
 }
 
 .animate-drawer-in {
-  animation: drawer-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: drawer-in 0.3s var(--ease-enter) forwards;
 }
 
 .animate-toast-in {
-  animation: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toast-in 0.2s var(--ease-enter) forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s var(--ease-enter) forwards;
+}
+
+/* Staggered grid entrances — ECR rhythm */
+.delay-50 {
+  animation-delay: 50ms;
+}
+.delay-100 {
+  animation-delay: 100ms;
+}
+.delay-150 {
+  animation-delay: 150ms;
+}
+.delay-200 {
+  animation-delay: 200ms;
+}
+.delay-250 {
+  animation-delay: 250ms;
+}
+.delay-300 {
+  animation-delay: 300ms;
+}
+.delay-350 {
+  animation-delay: 350ms;
+}
+.delay-400 {
+  animation-delay: 400ms;
+}
+
+/* Skeleton shimmer — ECR stylized loading */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--surface-elevated) 60%, transparent);
+}
+
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, #ffffff 8%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
 /* SVG chart data-point hover (r is a valid CSS property for <circle>) */
@@ -198,7 +285,103 @@
 
 .group:hover .chart-point {
   r: 7px;
-  filter: brightness(1.15);
+  filter: brightness(1.2);
+}
+
+/* ============================================================================
+   Premium KPI card accents — top accent line, colored icon, soft aura
+   Personality: colored, layered, glowing — never flat/monochrome.
+   ============================================================================ */
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.kpi-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  z-index: 1;
+}
+
+.kpi-aura {
+  position: absolute;
+  top: -45%;
+  right: -15%;
+  width: 60%;
+  height: 90%;
+  border-radius: 50%;
+  filter: blur(55px);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s var(--ease-enter);
+}
+
+.kpi-card:hover .kpi-aura {
+  opacity: 0.85;
+  transform: scale(1.15);
+}
+
+.kpi-line-primary {
+  background: var(--grad-primary);
+}
+.kpi-line-info {
+  background: var(--grad-info);
+}
+.kpi-line-success {
+  background: var(--grad-success);
+}
+.kpi-line-warning {
+  background: var(--grad-warning);
+}
+.kpi-line-danger {
+  background: var(--grad-danger);
+}
+
+.kpi-icon-primary {
+  background: var(--primary-soft);
+  color: var(--primary-light);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.kpi-icon-info {
+  background: var(--info-soft);
+  color: var(--info);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--info) 26%, transparent);
+}
+.kpi-icon-success {
+  background: var(--success-soft);
+  color: var(--success);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--success) 26%, transparent);
+}
+.kpi-icon-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warning) 28%, transparent);
+}
+.kpi-icon-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 26%, transparent);
+}
+
+.kpi-aura-primary {
+  background: color-mix(in srgb, #5e6ad2 24%, transparent);
+}
+.kpi-aura-info {
+  background: color-mix(in srgb, #38bdf8 24%, transparent);
+}
+.kpi-aura-success {
+  background: color-mix(in srgb, #28a745 24%, transparent);
+}
+.kpi-aura-warning {
+  background: color-mix(in srgb, #f1a511 26%, transparent);
+}
+.kpi-aura-danger {
+  background: color-mix(in srgb, #e24949 24%, transparent);
 }
 
 /* ============================================================================
@@ -206,13 +389,12 @@
    Styled via design tokens so they render consistently with the rest of IMCMS.
    ============================================================================ */
 .auth-card {
-  background: var(--bg-card);
+  background: var(--grad-card);
   border: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-strong);
   border-radius: 16px;
   padding: 2rem;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.08),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-lg);
   font-family: var(--font-sans);
   width: 100%;
 }
@@ -235,7 +417,7 @@
   width: 100%;
   background: var(--bg-main);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.5625rem 0.75rem;
   font-size: 0.875rem;
   font-family: var(--font-sans);
@@ -248,9 +430,13 @@
   color: var(--text-disabled);
 }
 
+.form-input:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
 .form-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 .form-input:disabled {
@@ -271,25 +457,28 @@
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  background: var(--primary);
+  background: var(--grad-primary);
   color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition: var(--transition);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--primary-hover);
+  box-shadow: var(--glow-primary);
+  transform: translateY(-1px);
 }
 
 .btn-primary:active:not(:disabled) {
   background: var(--primary-pressed);
-  transform: translateY(0.5px);
+  transform: scale(0.98);
 }
 
 .btn-primary:disabled {
@@ -320,11 +509,11 @@
   font-weight: 500;
   line-height: 1.4;
   margin-bottom: 1rem;
-  animation: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toast-in 0.2s var(--ease-enter) forwards;
 }
 
 .toast-success {
-  background: color-mix(in srgb, var(--success) 12%, var(--bg-card));
+  background: var(--success-soft);
   border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
   color: var(--text-main);
 }
@@ -335,7 +524,7 @@
 }
 
 .toast-error {
-  background: color-mix(in srgb, var(--danger) 12%, var(--bg-card));
+  background: var(--danger-soft);
   border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
   color: var(--text-main);
 }

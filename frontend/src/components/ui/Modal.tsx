@@ -57,12 +57,12 @@ export const Modal: React.FC<ModalProps> = ({
       aria-labelledby={titleId}
     >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-black/70 backdrop-blur-[8px] animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
       <div
-        className={`relative w-full ${sizeClasses[size]} bg-surface-card border border-border-default rounded-xl shadow-2xl animate-scale-in`}
+        className={`relative w-full ${sizeClasses[size]} bg-surface-card border border-border-strong rounded-xl shadow-2xl animate-scale-in`}
       >
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border-default">
           <div className="min-w-0">

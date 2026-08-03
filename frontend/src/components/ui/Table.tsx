@@ -116,15 +116,15 @@ export function Table<T>({
             <tbody className="divide-y divide-border-default text-xs text-text-primary">
               {loading ? (
                 Array.from({ length: 5 }).map((_, rIdx) => (
-                  <tr key={rIdx} className="h-12 animate-pulse bg-background-primary/10">
+                  <tr key={rIdx} className="h-12 bg-background-primary/10">
                     {onSelectAllRows && (
                       <td className="px-4 py-3">
-                        <div className="w-4 h-4 bg-surface-elevated rounded mx-auto" />
+                        <div className="w-4 h-4 skeleton-shimmer rounded mx-auto" />
                       </td>
                     )}
                     {columns.map((col) => (
                       <td key={col.key} className="px-4 py-3">
-                        <div className="w-2/3 h-3.5 bg-surface-elevated rounded" />
+                        <div className="w-2/3 h-3.5 skeleton-shimmer rounded" />
                       </td>
                     ))}
                   </tr>

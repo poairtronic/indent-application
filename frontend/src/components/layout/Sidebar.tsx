@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
 
   return (
     <aside
-      className={`bg-background-secondary border-r border-border-default h-screen transition-all duration-300 flex flex-col ${
+      className={`bg-background-secondary border-r border-border-default h-screen transition-[width] duration-300 ease-enter flex flex-col ${
         isOpen ? 'w-64' : 'w-16'
       } ${isMobileOpen ? 'fixed inset-0 z-50' : 'hidden md:flex'}`}
     >
@@ -102,9 +102,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
             return (
               <div
                 key={item.path}
-                className={`group flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all duration-150 ${
+                className={`group flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 ease-enter ${
                   isActive
-                    ? 'bg-accent-primary/10 text-accent-primary font-semibold'
+                    ? 'bg-accent-primary/10 text-accent-primary font-semibold shadow-glow'
                     : 'text-text-secondary hover:bg-surface-card hover:text-text-primary'
                 }`}
               >
@@ -165,7 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                     <button
                       key={path}
                       onClick={() => handleNavigate(path)}
-                      className="w-full flex items-center gap-3 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
+                      className="w-full flex items-center gap-3 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left rounded transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
                     >
                       {renderIcon(item.iconName, 'w-3.5 h-3.5 flex-shrink-0 text-text-muted')}
                       <span className="truncate">{item.label}</span>
@@ -205,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                     <button
                       key={path}
                       onClick={() => handleNavigate(path)}
-                      className="w-full flex items-center gap-3 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
+                      className="w-full flex items-center gap-3 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left rounded transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
                     >
                       {renderIcon(item.iconName, 'w-3.5 h-3.5 flex-shrink-0 text-text-muted')}
                       <span className="truncate">{item.label}</span>

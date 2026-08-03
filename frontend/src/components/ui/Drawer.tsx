@@ -39,11 +39,11 @@ export const Drawer: React.FC<DrawerProps> = ({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-black/60 backdrop-blur-[4px] z-40 transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-surface-card border-l border-border-default shadow-2xl z-50 flex flex-col font-sans transition-all duration-300 animate-drawer-in">
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-surface-card border-l border-border-strong shadow-2xl z-50 flex flex-col font-sans animate-drawer-in">
         <div className="flex items-start justify-between gap-4 p-6 border-b border-border-default">
           <div>
             <h2 className="text-base font-bold text-text-primary tracking-tight">{title}</h2>
