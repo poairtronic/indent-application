@@ -1,7 +1,8 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'success' | 'ghost';
+export type ButtonVariant =
+  'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'ghost' | 'outline' | 'link';
 export type ButtonSize = 'sm' | 'md';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -9,6 +10,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
   loading?: boolean;
   icon?: React.ReactNode;
+  fab?: boolean;
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -20,8 +22,13 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 focus:ring-offset-red-100 dark:focus:ring-offset-gray-800',
   success:
     'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 focus:ring-offset-green-100 dark:focus:ring-offset-gray-800',
+  warning:
+    'bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500 focus:ring-offset-amber-100 dark:focus:ring-offset-gray-800',
   ghost:
     'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-gray-400',
+  outline:
+    'bg-transparent border border-border-default hover:bg-background-secondary text-text-primary focus:ring-accent-primary',
+  link: 'bg-transparent hover:underline text-accent-primary p-0 h-auto focus:ring-0',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -34,6 +41,7 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   loading = false,
   icon,
+  fab = false,
   children,
   className = '',
   disabled,
@@ -41,12 +49,14 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
+        fab ? 'rounded-full p-3 shadow-lg' : `rounded-md ${sizeClasses[size]}`
+      } ${variantClasses[variant]} ${className}`}
       disabled={disabled || loading}
       {...rest}
     >
       {loading ? <Loader2 size={size === 'sm' ? 14 : 16} className="animate-spin" /> : icon}
-      {children}
+      {(!fab || children) && children}
     </button>
   );
 };

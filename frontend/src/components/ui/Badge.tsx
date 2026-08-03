@@ -14,10 +14,32 @@ const toneClasses: Record<BadgeTone, string> = {
 interface BadgeProps {
   tone?: BadgeTone;
   className?: string;
-  children: React.ReactNode;
+  count?: boolean;
+  dot?: boolean;
+  children?: React.ReactNode;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ tone = 'gray', className = '', children }) => {
+export const Badge: React.FC<BadgeProps> = ({
+  tone = 'gray',
+  className = '',
+  count = false,
+  dot = false,
+  children,
+}) => {
+  if (dot) {
+    return <span className={`inline-block w-2 h-2 rounded-full bg-status-error ${className}`} />;
+  }
+
+  if (count) {
+    return (
+      <span
+        className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-status-error text-white ${className}`}
+      >
+        {children}
+      </span>
+    );
+  }
+
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${toneClasses[tone]} ${className}`}
