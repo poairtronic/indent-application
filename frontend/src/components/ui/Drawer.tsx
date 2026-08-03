@@ -39,7 +39,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-[4px] z-40 transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-overlay backdrop-blur-[4px] z-40 transition-opacity animate-fade-in"
         onClick={onClose}
       />
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { IAnalyticsFilters } from '../types/analytics.types';
+import { Button } from '../../../components/ui/Button';
 
 interface AnalyticsFiltersProps {
   onApply: (filters: IAnalyticsFilters) => void;
@@ -80,19 +81,12 @@ export const FilterPanel: React.FC<AnalyticsFiltersProps> = ({
       )}
 
       <div className="flex gap-2 ml-auto">
-        <button
-          type="button"
-          onClick={handleReset}
-          className="px-4 py-2 border border-border-strong text-text-secondary rounded-lg text-sm font-semibold hover:bg-surface-elevated transition-colors"
-        >
+        <Button variant="secondary" size="sm" onClick={handleReset}>
           Reset
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-accent-primary text-white rounded-lg text-sm font-semibold hover:bg-accent-hover transition-colors"
-        >
+        </Button>
+        <Button variant="primary" size="sm">
           Apply Filters
-        </button>
+        </Button>
       </div>
     </form>
   );

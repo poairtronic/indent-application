@@ -26,6 +26,10 @@ export default {
           soft: 'var(--primary-soft)',
           softer: 'var(--primary-softer)',
         },
+        overlay: {
+          DEFAULT: 'var(--overlay)',
+          light: 'var(--overlay-light)',
+        },
         info: {
           DEFAULT: 'var(--info)',
           hover: 'var(--info-hover)',
@@ -42,6 +46,13 @@ export default {
           secondary: 'var(--text-secondary)',
           muted: 'var(--text-muted)',
           disabled: 'var(--text-disabled)',
+        },
+        toast: {
+          action: 'var(--toast-action-bg)',
+          'action-hover': 'var(--toast-action-hover)',
+          'progress-track': 'var(--toast-progress-track)',
+          'progress-fill': 'var(--toast-progress-fill)',
+          dismiss: 'var(--toast-dismiss)',
         },
       },
       fontFamily: {

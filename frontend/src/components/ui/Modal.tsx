@@ -57,7 +57,7 @@ export const Modal: React.FC<ModalProps> = ({
       aria-labelledby={titleId}
     >
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-[8px] animate-fade-in"
+        className="absolute inset-0 bg-overlay backdrop-blur-[8px] animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />

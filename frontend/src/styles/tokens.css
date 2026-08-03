@@ -120,6 +120,21 @@
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --transition: all 0.2s var(--ease-enter);
 
+  /* ── Overlay / Backdrop ────────────────────────────────────────────── */
+  --overlay: rgba(0, 0, 0, 0.65);
+  --overlay-light: rgba(0, 0, 0, 0.45);
+
+  /* ── Toast ─────────────────────────────────────────────────────────── */
+  --toast-action-bg: rgba(255, 255, 255, 0.2);
+  --toast-action-hover: rgba(255, 255, 255, 0.3);
+  --toast-progress-track: rgba(255, 255, 255, 0.25);
+  --toast-progress-fill: #ffffff;
+  --toast-dismiss: rgba(255, 255, 255, 0.7);
+
+  /* ── Switch ────────────────────────────────────────────────────────── */
+  --switch-knob: #ffffff;
+  --switch-knob-inactive: var(--text-muted);
+
   /* ── Z-index scale ──────────────────────────────────────────────────── */
   --z-dropdown: 1000;
   --z-sticky: 1020;

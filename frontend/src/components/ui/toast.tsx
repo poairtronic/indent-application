@@ -90,7 +90,7 @@ export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss 
                     toast.onAction?.();
                     onDismiss(toast.id);
                   }}
-                  className="bg-white/20 hover:bg-white/30 text-white font-bold px-2 py-1 rounded text-[10px] uppercase tracking-wider focus:outline-none"
+                  className="bg-toast-action hover:bg-toast-action-hover text-white font-bold px-2 py-1 rounded text-[10px] uppercase tracking-wider focus:outline-none"
                 >
                   {toast.actionLabel}
                 </button>
@@ -98,7 +98,7 @@ export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss 
               <button
                 type="button"
                 onClick={() => onDismiss(toast.id)}
-                className="text-white/70 hover:text-white transition-colors p-0.5 rounded focus:outline-none"
+                className="text-toast-dismiss hover:text-white transition-colors p-0.5 rounded focus:outline-none"
                 aria-label="Dismiss"
               >
                 <X size={14} />
@@ -107,9 +107,9 @@ export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss 
           </div>
 
           {toast.progress !== undefined && (
-            <div className="w-full h-1 bg-white/25 rounded-full overflow-hidden mt-1">
+            <div className="w-full h-1 bg-toast-progress-track rounded-full overflow-hidden mt-1">
               <div
-                className="h-full bg-white transition-all duration-300"
+                className="h-full bg-toast-progress-fill transition-all duration-300"
                 style={{ width: `${Math.min(100, Math.max(0, toast.progress))}%` }}
               />
             </div>

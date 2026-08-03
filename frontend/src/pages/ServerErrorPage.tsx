@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../components/ui/Button';
 
 export const ServerErrorPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,12 +14,9 @@ export const ServerErrorPage: React.FC = () => {
           The server encountered an unexpected condition that prevented it from fulfilling the
           request. Our cloud systems group has been alerted.
         </p>
-        <button
-          onClick={() => navigate('/dashboard')}
-          className="w-full py-2.5 px-4 bg-accent-primary hover:bg-accent-hover active:bg-accent-pressed text-white font-semibold rounded-lg text-sm transition-all duration-150"
-        >
+        <Button variant="primary" onClick={() => navigate('/dashboard')} className="w-full">
           Return to Dashboard
-        </button>
+        </Button>
       </div>
     </div>
   );

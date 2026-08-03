@@ -4,6 +4,8 @@ import { KpiCard } from '../components/AnalyticsCards';
 import { FilterPanel } from '../components/AnalyticsFilters';
 import { useProductAnalytics } from '../hooks/useAnalytics';
 import type { IAnalyticsFilters } from '../types/analytics.types';
+import { Button } from '../../../components/ui/Button';
+import { RotateCcw } from 'lucide-react';
 
 export const ProductsPage: React.FC = () => {
   const [filters, setFilters] = useState<IAnalyticsFilters>({ limit: 50 });
@@ -31,12 +33,14 @@ export const ProductsPage: React.FC = () => {
       <AnalyticsLayout title="Product Intelligence & Estimation" subtitle="Product costing metrics">
         <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
           <p className="font-semibold mb-2">Error loading product analytics</p>
-          <button
+          <Button
+            variant="danger"
+            size="sm"
+            icon={<RotateCcw size={14} />}
             onClick={() => refetch()}
-            className="px-4 py-1.5 bg-status-error text-white rounded-lg text-sm hover:bg-status-error/90 transition-colors"
           >
             Retry
-          </button>
+          </Button>
         </div>
       </AnalyticsLayout>
     );

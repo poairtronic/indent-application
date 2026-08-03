@@ -1,31 +1,26 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../components/ui/Button';
 
 export const UnauthorizedPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background-primary text-text-primary">
-      <div className="text-center space-y-6">
-        <div className="text-8xl font-bold text-status-error">403</div>
-        <h1 className="text-3xl font-semibold">Access Denied</h1>
-        <p className="text-text-muted max-w-md">
+    <div className="min-h-screen bg-background-primary flex flex-col items-center justify-center p-6 text-center font-sans transition-colors duration-300">
+      <div className="max-w-md w-full bg-surface-card border border-border-default rounded-2xl p-8 shadow-modal">
+        <h1 className="text-6xl font-extrabold text-status-error mb-2">403</h1>
+        <h2 className="text-xl font-bold text-text-primary mb-4">Access Denied</h2>
+        <p className="text-sm text-text-secondary mb-8">
           You do not have the required permissions to access this page. Please contact your system
           administrator if you believe this is an error.
         </p>
-        <div className="flex gap-4 justify-center">
-          <button
-            onClick={() => navigate(-1)}
-            className="px-6 py-2 bg-surface-elevated hover:bg-surface-hover rounded-lg transition-colors"
-          >
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => navigate(-1)} className="w-full">
             Go Back
-          </button>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="px-6 py-2 bg-accent-primary hover:bg-accent-hover rounded-lg transition-colors"
-          >
+          </Button>
+          <Button variant="primary" onClick={() => navigate('/dashboard')} className="w-full">
             Go to Dashboard
-          </button>
+          </Button>
         </div>
       </div>
     </div>

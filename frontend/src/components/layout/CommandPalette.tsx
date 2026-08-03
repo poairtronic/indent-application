@@ -70,7 +70,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4 font-sans">
-      <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-overlay transition-opacity" onClick={onClose} />
 
       <div className="relative w-full max-w-lg bg-surface-card border border-border-default rounded-xl shadow-modal overflow-hidden flex flex-col max-h-[400px]">
         {/* Search Input */}
