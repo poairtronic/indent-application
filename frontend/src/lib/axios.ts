@@ -44,6 +44,12 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    if (error.response && error.response.status === 403) {
+      console.warn('Forbidden access. Redirecting to unauthorized screen.');
+      window.location.href = '/unauthorized';
+      return Promise.reject(error);
+    }
+
     if (!error.response || error.response.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }

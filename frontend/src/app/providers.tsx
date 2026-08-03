@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom';
 import { useThemeStore } from '../store/theme.store';
 import { GlobalErrorBoundary } from '../components/common/GlobalErrorBoundary';
 
+import { useTabSync } from '../hooks/useTabSync';
+import { useSessionTimeout } from '../hooks/useSessionTimeout';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -13,8 +16,13 @@ const queryClient = new QueryClient({
   },
 });
 
+import { OfflineBanner } from '../components/common/OfflineBanner';
+
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { resolvedTheme } = useThemeStore();
+
+  useTabSync();
+  useSessionTimeout();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -30,7 +38,10 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>{children}</BrowserRouter>
+        <BrowserRouter>
+          <OfflineBanner />
+          {children}
+        </BrowserRouter>
       </QueryClientProvider>
     </GlobalErrorBoundary>
   );

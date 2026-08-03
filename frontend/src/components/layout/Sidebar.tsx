@@ -1,146 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  FileSpreadsheet,
-  Coins,
-  GitFork,
-  Factory,
-  Boxes,
-  PackageOpen,
-  Layers,
-  Wrench,
-  Scale,
-  Briefcase,
-  FileText,
-  BarChart3,
-  Users,
-  Shield,
-  Lock,
-  Monitor,
-  History,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  User,
-} from 'lucide-react';
+import * as Lucide from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSidebar } from '../../store/sidebar.store';
+import { useNavigationStore } from '../../store/navigation.store';
+import { menuItems } from '../../config/menuConfig';
 
-interface NavItem {
-  label: string;
-  path: string;
-  icon: React.ReactNode;
-  permission?: string;
-}
+const iconMap: Record<string, React.ComponentType<any>> = {
+  LayoutDashboard: Lucide.LayoutDashboard,
+  FileSpreadsheet: Lucide.FileSpreadsheet,
+  Coins: Lucide.Coins,
+  GitFork: Lucide.GitFork,
+  Factory: Lucide.Factory,
+  Boxes: Lucide.Boxes,
+  PackageOpen: Lucide.PackageOpen,
+  Layers: Lucide.Layers,
+  Wrench: Lucide.Wrench,
+  Scale: Lucide.Scale,
+  Briefcase: Lucide.Briefcase,
+  FileText: Lucide.FileText,
+  BarChart3: Lucide.BarChart3,
+  Users: Lucide.Users,
+  Shield: Lucide.Shield,
+  Lock: Lucide.Lock,
+  Monitor: Lucide.Monitor,
+  History: Lucide.History,
+  Settings: Lucide.Settings,
+};
 
-const sidebarIconClass = 'w-5 h-5 flex-shrink-0';
-
-const navItems: NavItem[] = [
-  {
-    label: 'Dashboard',
-    path: '/dashboard',
-    icon: <LayoutDashboard className={sidebarIconClass} />,
-    permission: 'analytics.view',
-  },
-  {
-    label: 'Indents',
-    path: '/indents',
-    icon: <FileSpreadsheet className={sidebarIconClass} />,
-    permission: 'indent.view',
-  },
-  {
-    label: 'Cost Sheets',
-    path: '/cost-sheets',
-    icon: <Coins className={sidebarIconClass} />,
-    permission: 'costsheet.view',
-  },
-  {
-    label: 'Workflow',
-    path: '/workflow',
-    icon: <GitFork className={sidebarIconClass} />,
-    permission: 'workflow.view',
-  },
-  {
-    label: 'Production',
-    path: '/production',
-    icon: <Factory className={sidebarIconClass} />,
-    permission: 'production.view',
-  },
-  {
-    label: 'Inventory',
-    path: '/inventory',
-    icon: <Boxes className={sidebarIconClass} />,
-    permission: 'inventory.view',
-  },
-  {
-    label: 'Materials',
-    path: '/materials',
-    icon: <PackageOpen className={sidebarIconClass} />,
-    permission: 'materials.view',
-  },
-  {
-    label: 'Products',
-    path: '/products',
-    icon: <Layers className={sidebarIconClass} />,
-    permission: 'products.view',
-  },
-  {
-    label: 'Processes',
-    path: '/manufacturing-processes',
-    icon: <Wrench className={sidebarIconClass} />,
-    permission: 'manufacturing-processes.view',
-  },
-  {
-    label: 'Units',
-    path: '/units',
-    icon: <Scale className={sidebarIconClass} />,
-    permission: 'units.view',
-  },
-  {
-    label: 'Vendors',
-    path: '/vendors',
-    icon: <Briefcase className={sidebarIconClass} />,
-    permission: 'vendors.view',
-  },
-  {
-    label: 'Reports',
-    path: '/reports',
-    icon: <FileText className={sidebarIconClass} />,
-    permission: 'reports.view',
-  },
-  {
-    label: 'Analytics',
-    path: '/analytics',
-    icon: <BarChart3 className={sidebarIconClass} />,
-    permission: 'analytics.view',
-  },
-  {
-    label: 'Users',
-    path: '/users',
-    icon: <Users className={sidebarIconClass} />,
-    permission: 'users.view',
-  },
-  {
-    label: 'Roles',
-    path: '/roles',
-    icon: <Shield className={sidebarIconClass} />,
-    permission: 'roles.view',
-  },
-  { label: 'Security', path: '/security', icon: <Lock className={sidebarIconClass} /> },
-  { label: 'Sessions', path: '/sessions', icon: <Monitor className={sidebarIconClass} /> },
-  {
-    label: 'Login History',
-    path: '/login-history',
-    icon: <History className={sidebarIconClass} />,
-  },
-  {
-    label: 'Settings',
-    path: '/settings',
-    icon: <Settings className={sidebarIconClass} />,
-    permission: 'settings.manage',
-  },
-];
+const renderIcon = (name: string, className: string) => {
+  const IconComponent = iconMap[name];
+  if (!IconComponent) return <Lucide.HelpCircle className={className} />;
+  return <IconComponent className={className} />;
+};
 
 interface SidebarProps {
   isMobileOpen?: boolean;
@@ -152,10 +44,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
   const location = useLocation();
   const { isOpen, toggleSidebar } = useSidebar();
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const user = useAuthStore((s) => s.user);
+  
+  const { favorites, recents, toggleFavorite, addRecent } = useNavigationStore();
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
+  const [isRecentsOpen, setIsRecentsOpen] = useState(true);
 
-  const visibleItems = navItems.filter(
+  const visibleItems = menuItems.filter(
     (item) => !item.permission || hasPermission(item.permission),
   );
+
+  const handleNavigate = (path: string) => {
+    addRecent(path);
+    navigate(path);
+    onCloseMobile?.();
+  };
 
   return (
     <aside
@@ -163,61 +66,146 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
         isOpen ? 'w-64' : 'w-16'
       } ${isMobileOpen ? 'fixed inset-0 z-50' : 'hidden md:flex'}`}
     >
-      {/* Sidebar Header with Pinned Toggle */}
+      {/* Header */}
       <div className="p-4 border-b border-border-default flex items-center justify-between min-h-[64px]">
-        <span
-          className={`font-bold text-sm tracking-wide text-text-primary ${isOpen ? 'block' : 'hidden'}`}
-        >
-          IMCMS Enterprise
+        <span className={`font-bold text-xs tracking-wider text-text-primary uppercase ${isOpen ? 'block' : 'hidden'}`}>
+          IMCMS Portal
         </span>
-        {!isOpen && (
-          <span className="block text-center text-sm font-bold text-accent-primary">IE</span>
-        )}
+        {!isOpen && <span className="block text-center text-sm font-bold text-accent-primary">IE</span>}
         <button
           onClick={() => toggleSidebar()}
-          className="text-text-muted hover:text-text-primary p-1 rounded hover:bg-surface-elevated transition-colors"
+          className="text-text-muted hover:text-text-primary p-1 rounded hover:bg-surface-elevated transition-colors focus:outline-none"
           title={isOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
         >
-          {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          {isOpen ? <Lucide.ChevronLeft className="w-4 h-4" /> : <Lucide.ChevronRight className="w-4 h-4" />}
         </button>
       </div>
 
-      {/* Sidebar Links */}
-      <nav className="flex-1 overflow-y-auto py-2 space-y-0.5 scrollbar-thin scrollbar-thumb-border-default">
-        {visibleItems.map((item) => {
-          const isActive = location.pathname.startsWith(item.path);
-          return (
-            <button
-              key={item.path}
-              onClick={() => {
-                navigate(item.path);
-                onCloseMobile?.();
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium transition-all duration-150 border-l-2 ${
-                isActive
-                  ? 'bg-accent-primary/10 border-accent-primary text-accent-primary'
-                  : 'border-transparent text-text-secondary hover:bg-surface-card hover:text-text-primary'
-              }`}
-              title={!isOpen ? item.label : undefined}
-            >
-              {item.icon}
-              {isOpen && <span>{item.label}</span>}
-            </button>
-          );
-        })}
-      </nav>
+      {/* Navigation List */}
+      <div className="flex-1 overflow-y-auto py-2 space-y-0.5 scrollbar-thin scrollbar-thumb-border-default">
+        {/* Primary Menus */}
+        <div>
+          {visibleItems.map((item) => {
+            const isActive = location.pathname === item.path || (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+            const isFav = favorites.includes(item.path);
 
-      {/* Sidebar Footer */}
-      <div className="p-4 border-t border-border-default min-h-[64px] flex items-center justify-center">
+            return (
+              <div
+                key={item.path}
+                className={`group flex items-center justify-between px-3 py-2 text-xs font-medium transition-all duration-150 border-l-2 ${
+                  isActive
+                    ? 'bg-accent-primary/10 border-accent-primary text-accent-primary'
+                    : 'border-transparent text-text-secondary hover:bg-surface-card hover:text-text-primary'
+                }`}
+              >
+                <button
+                  onClick={() => handleNavigate(item.path)}
+                  className="flex-1 flex items-center gap-3 text-left focus:outline-none"
+                  title={!isOpen ? item.label : undefined}
+                >
+                  {renderIcon(item.iconName, "w-4 h-4 flex-shrink-0")}
+                  {isOpen && <span>{item.label}</span>}
+                </button>
+
+                {isOpen && (
+                  <button
+                    onClick={() => toggleFavorite(item.path)}
+                    className={`ml-2 text-text-muted hover:text-accent-primary transition-colors focus:outline-none ${
+                      isFav ? 'text-accent-primary opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                    title={isFav ? "Remove from Favorites" : "Add to Favorites"}
+                  >
+                    ⭐
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Collapsible Favorites */}
+        {isOpen && favorites.length > 0 && (
+          <div className="mt-4 border-t border-border-default pt-2">
+            <button
+              onClick={() => setIsFavoritesOpen(!isFavoritesOpen)}
+              className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary"
+            >
+              <span>⭐ Favorites</span>
+              <span>{isFavoritesOpen ? '▼' : '▶'}</span>
+            </button>
+            {isFavoritesOpen && (
+              <div className="mt-1 space-y-0.5">
+                {favorites.map((path) => {
+                  const item = menuItems.find((m) => m.path === path);
+                  if (!item) return null;
+                  return (
+                    <button
+                      key={path}
+                      onClick={() => handleNavigate(path)}
+                      className="w-full flex items-center gap-3 px-6 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left focus:outline-none"
+                    >
+                      {renderIcon(item.iconName, "w-3.5 h-3.5 flex-shrink-0 text-text-muted")}
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Collapsible Recents */}
+        {isOpen && recents.length > 0 && (
+          <div className="mt-4 border-t border-border-default pt-2">
+            <button
+              onClick={() => setIsRecentsOpen(!isRecentsOpen)}
+              className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary"
+            >
+              <span>⏱️ Recent Pages</span>
+              <span>{isRecentsOpen ? '▼' : '▶'}</span>
+            </button>
+            {isRecentsOpen && (
+              <div className="mt-1 space-y-0.5">
+                {recents.map((path) => {
+                  const item = menuItems.find((m) => m.path === path);
+                  if (!item) return null;
+                  return (
+                    <button
+                      key={path}
+                      onClick={() => handleNavigate(path)}
+                      className="w-full flex items-center gap-3 px-6 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left focus:outline-none"
+                    >
+                      {renderIcon(item.iconName, "w-3.5 h-3.5 flex-shrink-0 text-text-muted")}
+                      <span className="truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer Profile Shortcut */}
+      <div className="p-4 border-t border-border-default min-h-[64px] flex items-center justify-between">
         <button
-          onClick={() => navigate('/profile')}
-          className={`flex items-center gap-3 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors w-full ${
-            !isOpen ? 'justify-center' : ''
+          onClick={() => handleNavigate('/profile')}
+          className={`flex items-center gap-3 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors ${
+            !isOpen ? 'justify-center w-full' : ''
           }`}
-          title={!isOpen ? 'View Profile' : undefined}
+          title={!isOpen ? "View Profile" : undefined}
         >
-          <User className="w-5 h-5 flex-shrink-0" />
-          {isOpen && <span>My Profile</span>}
+          <Lucide.User className="w-5 h-5 flex-shrink-0" />
+          {isOpen && (
+            <div className="text-left truncate max-w-[120px]">
+              <p className="font-semibold text-text-primary truncate">
+                {user?.firstName || 'My'} Profile
+              </p>
+              <p className="text-[10px] text-text-muted uppercase truncate">
+                {user?.role?.roleName || 'User'}
+              </p>
+            </div>
+          )}
         </button>
       </div>
     </aside>

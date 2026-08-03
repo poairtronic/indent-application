@@ -75,6 +75,12 @@ const LoginHistoryPage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
+const ServerErrorPage = lazy(() =>
+  import('../pages/ServerErrorPage').then((m) => ({ default: m.ServerErrorPage })),
+);
+const MaintenancePage = lazy(() =>
+  import('../pages/MaintenancePage').then((m) => ({ default: m.MaintenancePage })),
+);
 
 // Modules
 const UsersPage = lazy(() =>
@@ -122,6 +128,8 @@ export const AppRouter: React.FC = () => {
 
       <Route path="/account-locked" element={suspended(AccountLockPage)} />
       <Route path="/unauthorized" element={suspended(UnauthorizedPage)} />
+      <Route path="/500" element={suspended(ServerErrorPage)} />
+      <Route path="/maintenance" element={suspended(MaintenancePage)} />
 
       {/* Protected App Routes */}
       <Route
