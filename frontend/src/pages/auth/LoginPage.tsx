@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuthStore } from '../../store/authStore';
 import { apiClient } from '../../lib/axios';
-import { LogIn, AlertCircle, CheckCircle } from 'lucide-react';
+import { useCapsLock } from '../../hooks/useCapsLock';
+import { LogIn, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+
+const REMEMBER_ME_KEY = 'imcms_remembered_email';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -33,21 +36,23 @@ function getLoginErrorMessage(error: unknown): string {
     }
   }
 
-  return 'Login failed. Please try again.';
+  return 'Login failed. Please check your credentials and try again.';
 }
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl');
+
   const { login, isAuthenticated } = useAuthStore();
+  const { isCapsLockOn, checkCapsLock, handleBlur } = useCapsLock();
+
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/profile');
-    }
-  }, [isAuthenticated, navigate]);
+  // Pre-fill remembered email if present
+  const savedEmail = localStorage.getItem(REMEMBER_ME_KEY) || '';
 
   const {
     register,
@@ -56,16 +61,30 @@ export const LoginPage: React.FC = () => {
   } = useForm<LoginFields>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      email: savedEmail,
       password: '',
-      rememberMe: false,
+      rememberMe: Boolean(savedEmail),
     },
   });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/profile';
+      navigate(targetPath, { replace: true });
+    }
+  }, [isAuthenticated, navigate, returnUrl]);
 
   const onSubmit = async (data: LoginFields) => {
     setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
+
+    // Handle Remember Me persistence
+    if (data.rememberMe) {
+      localStorage.setItem(REMEMBER_ME_KEY, data.email);
+    } else {
+      localStorage.removeItem(REMEMBER_ME_KEY);
+    }
 
     try {
       const response = await apiClient.post('/auth/login', {
@@ -77,31 +96,45 @@ export const LoginPage: React.FC = () => {
       login(accessToken, refreshToken, user);
       setSuccessMsg('Login Successful! Redirecting...');
       setTimeout(() => {
-        navigate('/profile');
+        const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/profile';
+        navigate(targetPath, { replace: true });
       }, 1000);
     } catch (error: unknown) {
-      setErrorMsg(getLoginErrorMessage(error));
+      const message = getLoginErrorMessage(error);
+      setErrorMsg(message);
+
+      // Automatic redirect if account is locked
+      if (
+        message.toLowerCase().includes('locked') ||
+        (axios.isAxiosError(error) && error.response?.status === 423)
+      ) {
+        setTimeout(() => {
+          navigate('/account-locked');
+        }, 1500);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const { onBlur: passOnBlur, ...passRegister } = register('password');
+
   return (
-    <div className="auth-card">
+    <div className="auth-card font-sans">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold m-0 mb-2">Indent Portal</h2>
+        <h2 className="text-2xl font-bold m-0 mb-2 text-text-primary">Indent Portal</h2>
         <p className="text-text-muted text-sm m-0">Sign in to manage indents and costing</p>
       </div>
 
       {successMsg && (
-        <div className="toast toast-success">
+        <div className="toast toast-success mb-4" role="status">
           <CheckCircle size={18} />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="toast toast-error">
+        <div className="toast toast-error mb-4" role="alert">
           <AlertCircle size={18} />
           <span>{errorMsg}</span>
         </div>
@@ -117,25 +150,46 @@ export const LoginPage: React.FC = () => {
           {...register('email')}
         />
 
-        <Input
-          id="password"
-          type="password"
-          label="Password"
-          placeholder="••••••••"
-          error={errors.password?.message}
-          {...register('password')}
-        />
+        <div className="relative">
+          <Input
+            id="password"
+            type="password"
+            label="Password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            onKeyDown={checkCapsLock}
+            onKeyUp={checkCapsLock}
+            onBlur={(e) => {
+              handleBlur();
+              passOnBlur(e);
+            }}
+            {...passRegister}
+          />
+
+          {isCapsLockOn && (
+            <div
+              className="flex items-center gap-1 text-[11px] font-semibold text-status-warning mt-1"
+              role="status"
+            >
+              <AlertTriangle size={13} />
+              <span>Caps Lock is ON</span>
+            </div>
+          )}
+        </div>
 
         <div className="form-group flex items-center justify-between mt-6 mb-6">
-          <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-text-primary cursor-pointer select-none">
             <input
               type="checkbox"
               {...register('rememberMe')}
-              className="accent-[var(--primary)]"
+              className="w-4 h-4 rounded border-border-default text-accent-primary focus:ring-accent-primary accent-accent-primary"
             />
             Remember Me
           </label>
-          <Link to="/forgot-password" className="auth-link">
+          <Link
+            to="/forgot-password"
+            className="text-xs font-semibold text-accent-primary hover:underline focus:outline-none focus:ring-1 focus:ring-accent-primary rounded"
+          >
             Forgot Password?
           </Link>
         </div>

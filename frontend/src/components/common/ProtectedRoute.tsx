@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
 interface ProtectedRouteProps {
@@ -18,9 +18,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasAnyPermission = useAuthStore((s) => s.hasAnyPermission);
   const user = useAuthStore((s) => s.user);
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const returnUrl = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?returnUrl=${returnUrl}`} replace />;
   }
 
   if (roles && roles.length > 0) {

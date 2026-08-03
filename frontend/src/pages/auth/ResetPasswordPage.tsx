@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { apiClient } from '../../lib/axios';
-import { ShieldAlert, AlertCircle, CheckCircle } from 'lucide-react';
+import { useCapsLock } from '../../hooks/useCapsLock';
+import { PasswordStrengthIndicator } from '../../components/ui/PasswordStrengthIndicator';
+import { ShieldAlert, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 
@@ -31,19 +33,22 @@ export const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
 
+  const { isCapsLockOn, checkCapsLock, handleBlur } = useCapsLock();
+
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
-      setErrorMsg('Invalid or missing password reset token.');
+      setErrorMsg('Invalid or missing password reset token. Please request a new link.');
     }
   }, [token]);
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ResetPasswordFields>({
     resolver: zodResolver(resetPasswordSchema),
@@ -52,6 +57,8 @@ export const ResetPasswordPage: React.FC = () => {
       confirmPassword: '',
     },
   });
+
+  const passwordValue = useWatch({ control, name: 'password' });
 
   const onSubmit = async (data: ResetPasswordFields) => {
     if (!token) return;
@@ -78,22 +85,24 @@ export const ResetPasswordPage: React.FC = () => {
     }
   };
 
+  const { onBlur: passOnBlur, ...passRegister } = register('password');
+
   return (
-    <div className="auth-card">
+    <div className="auth-card font-sans">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold m-0 mb-2">Reset Password</h2>
+        <h2 className="text-2xl font-bold text-text-primary m-0 mb-2">Reset Password</h2>
         <p className="text-text-muted text-sm m-0">Enter and confirm your new password below</p>
       </div>
 
       {successMsg && (
-        <div className="toast toast-success">
+        <div className="toast toast-success mb-4" role="status">
           <CheckCircle size={18} />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="toast toast-error">
+        <div className="toast toast-error mb-4" role="alert">
           <AlertCircle size={18} />
           <span>{errorMsg}</span>
         </div>
@@ -101,29 +110,54 @@ export const ResetPasswordPage: React.FC = () => {
 
       {!token ? (
         <div className="text-center mt-4">
-          <Link to="/login" className="auth-link">
+          <Link
+            to="/login"
+            className="text-xs font-semibold text-accent-primary hover:underline focus:outline-none focus:ring-1 focus:ring-accent-primary rounded"
+          >
             Return to Sign In
           </Link>
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Input
-            id="password"
-            type="password"
-            label="New Password"
-            placeholder="••••••••"
-            error={errors.password?.message}
-            {...register('password')}
-          />
+          <div>
+            <Input
+              id="password"
+              type="password"
+              label="New Password"
+              placeholder="••••••••"
+              error={errors.password?.message}
+              onKeyDown={checkCapsLock}
+              onKeyUp={checkCapsLock}
+              onBlur={(e) => {
+                handleBlur();
+                passOnBlur(e);
+              }}
+              {...passRegister}
+            />
 
-          <Input
-            id="confirmPassword"
-            type="password"
-            label="Confirm Password"
-            placeholder="••••••••"
-            error={errors.confirmPassword?.message}
-            {...register('confirmPassword')}
-          />
+            {isCapsLockOn && (
+              <div
+                className="flex items-center gap-1 text-[11px] font-semibold text-status-warning mt-1"
+                role="status"
+              >
+                <AlertTriangle size={13} />
+                <span>Caps Lock is ON</span>
+              </div>
+            )}
+
+            <PasswordStrengthIndicator password={passwordValue} />
+          </div>
+
+          <div className="mt-4">
+            <Input
+              id="confirmPassword"
+              type="password"
+              label="Confirm Password"
+              placeholder="••••••••"
+              error={errors.confirmPassword?.message}
+              {...register('confirmPassword')}
+            />
+          </div>
 
           <Button
             type="submit"

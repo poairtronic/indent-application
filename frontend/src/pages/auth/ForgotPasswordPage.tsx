@@ -40,7 +40,7 @@ export const ForgotPasswordPage: React.FC = () => {
         email: data.email,
       });
       setSuccessMsg(
-        'If the email is registered, a password reset token was generated. Please check your developer server logs.',
+        'If the email is registered, a password reset link has been dispatched to your inbox.',
       );
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Something went wrong. Please try again.';
@@ -51,23 +51,23 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="auth-card">
+    <div className="auth-card font-sans">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold m-0 mb-2">Forgot Password</h2>
+        <h2 className="text-2xl font-bold text-text-primary m-0 mb-2">Forgot Password</h2>
         <p className="text-text-muted text-sm m-0">
           Enter your email and we'll send you a password reset link
         </p>
       </div>
 
       {successMsg && (
-        <div className="toast toast-success">
+        <div className="toast toast-success mb-4" role="status">
           <CheckCircle size={18} />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="toast toast-error">
+        <div className="toast toast-error mb-4" role="alert">
           <AlertCircle size={18} />
           <span>{errorMsg}</span>
         </div>
@@ -95,7 +95,10 @@ export const ForgotPasswordPage: React.FC = () => {
         </Button>
 
         <div className="text-center">
-          <Link to="/login" className="auth-link inline-flex items-center gap-1">
+          <Link
+            to="/login"
+            className="text-xs font-semibold text-accent-primary hover:underline inline-flex items-center gap-1 focus:outline-none focus:ring-1 focus:ring-accent-primary rounded"
+          >
             <ArrowLeft size={16} /> Back to Sign In
           </Link>
         </div>

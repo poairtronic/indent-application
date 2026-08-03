@@ -63,6 +63,9 @@ const UnauthorizedPage = lazy(() =>
 const AccountLockPage = lazy(() =>
   import('../pages/AccountLockPage').then((m) => ({ default: m.AccountLockPage })),
 );
+const SessionExpiredPage = lazy(() =>
+  import('../pages/SessionExpiredPage').then((m) => ({ default: m.SessionExpiredPage })),
+);
 const SecurityDashboardPage = lazy(() =>
   import('../pages/SecurityDashboardPage').then((m) => ({ default: m.SecurityDashboardPage })),
 );
@@ -129,6 +132,7 @@ export const AppRouter: React.FC = () => {
       </Route>
 
       <Route path="/account-locked" element={suspended(AccountLockPage)} />
+      <Route path="/session-expired" element={suspended(SessionExpiredPage)} />
       <Route path="/unauthorized" element={suspended(UnauthorizedPage)} />
       <Route path="/500" element={suspended(ServerErrorPage)} />
       <Route path="/maintenance" element={suspended(MaintenancePage)} />
