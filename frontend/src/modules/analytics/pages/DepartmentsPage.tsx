@@ -36,8 +36,8 @@ export const DepartmentsPage: React.FC = () => {
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <KpiCard
-          title="Departments Audited"
-          value={data?.departments.length ?? 0}
+          title="Monitored Departments"
+          value={data?.departments?.length ?? 0}
           loading={isLoading}
           icon={<span>🏢</span>}
         />
@@ -50,7 +50,7 @@ export const DepartmentsPage: React.FC = () => {
         />
         <KpiCard
           title="Live Queue Volume"
-          value={data?.departments.reduce((sum, d) => sum + d.pendingQueue, 0) ?? 0}
+          value={data?.departments?.reduce((sum, d) => sum + d.pendingQueue, 0) ?? 0}
           loading={isLoading}
           icon={<span>⏳</span>}
         />
@@ -58,7 +58,7 @@ export const DepartmentsPage: React.FC = () => {
 
       {!isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {data?.departments.map((dept) => {
+          {data?.departments?.map((dept) => {
             const completedPercentage =
               dept.totalTransactions > 0
                 ? Math.round((dept.completedCount / dept.totalTransactions) * 100)

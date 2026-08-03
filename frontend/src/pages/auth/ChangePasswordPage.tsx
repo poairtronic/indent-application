@@ -74,13 +74,9 @@ export const ChangePasswordPage: React.FC = () => {
 
   return (
     <div className="auth-card">
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
-          Change Password
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
-          Create a new strong password for your account
-        </p>
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold m-0 mb-2">Change Password</h2>
+        <p className="text-text-muted text-sm m-0">Create a new strong password for your account</p>
       </div>
 
       {successMsg && (
@@ -144,26 +140,13 @@ export const ChangePasswordPage: React.FC = () => {
           )}
         </div>
 
-        <button
-          type="submit"
-          className="btn-primary"
-          disabled={loading}
-          style={{ margin: '1.5rem 0' }}
-        >
-          {loading ? (
-            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-          ) : (
-            <KeyRound size={18} />
-          )}
+        <button type="submit" className="btn-primary mt-6 mb-6" disabled={loading}>
+          {loading ? <Loader2 size={18} className="animate-spin" /> : <KeyRound size={18} />}
           {loading ? 'Updating password...' : 'Update Password'}
         </button>
 
-        <div style={{ textAlign: 'center' }}>
-          <Link
-            to="/profile"
-            className="auth-link"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-          >
+        <div className="text-center">
+          <Link to="/profile" className="auth-link inline-flex items-center gap-1">
             <ArrowLeft size={16} /> Back to Profile
           </Link>
         </div>

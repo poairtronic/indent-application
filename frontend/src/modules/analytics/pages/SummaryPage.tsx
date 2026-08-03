@@ -29,7 +29,7 @@ export const SummaryPage: React.FC = () => {
 
   // Map status breakdown values for the donut representation
   const chartData =
-    data?.statusBreakdown.map((item) => ({
+    data?.statusBreakdown?.map((item) => ({
       label: item.status,
       value: item.count,
     })) || [];

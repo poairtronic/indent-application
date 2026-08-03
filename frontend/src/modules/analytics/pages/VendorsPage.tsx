@@ -49,7 +49,7 @@ export const VendorsPage: React.FC = () => {
 
   // Map values for the Horizontal Bar Chart representation
   const chartData =
-    data?.vendors.map((item) => ({
+    data?.vendors?.map((item) => ({
       label: item.vendorName,
       value: item.totalPredictedAmount,
     })) || [];
@@ -108,7 +108,7 @@ export const VendorsPage: React.FC = () => {
               Price Variance Index
             </h3>
             <div className="space-y-4 overflow-y-auto max-h-[360px] pr-2 flex-1">
-              {data?.vendors.map((v) => {
+              {data?.vendors?.map((v) => {
                 const isOver = (v.totalVariance ?? 0) > 0;
                 return (
                   <div key={v.vendorId} className="flex justify-between items-center text-sm">

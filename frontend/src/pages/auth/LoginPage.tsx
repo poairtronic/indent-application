@@ -86,13 +86,9 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="auth-card">
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
-          Indent Portal
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
-          Sign in to manage indents and costing
-        </p>
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold m-0 mb-2">Indent Portal</h2>
+        <p className="text-text-muted text-sm m-0">Sign in to manage indents and costing</p>
       </div>
 
       {successMsg && (
@@ -138,28 +134,12 @@ export const LoginPage: React.FC = () => {
           {errors.password && <div className="form-error">{errors.password.message}</div>}
         </div>
 
-        <div
-          className="form-group"
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            margin: '1.5rem 0',
-          }}
-        >
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-            }}
-          >
+        <div className="form-group flex items-center justify-between mt-6 mb-6">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
               {...register('rememberMe')}
-              style={{ accentColor: 'var(--primary)' }}
+              className="accent-[var(--primary)]"
             />
             Remember Me
           </label>
@@ -169,11 +149,7 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? (
-            <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-          ) : (
-            <LogIn size={18} />
-          )}
+          {loading ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={18} />}
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
       </form>

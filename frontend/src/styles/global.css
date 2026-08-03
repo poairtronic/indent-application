@@ -281,7 +281,9 @@
 /* SVG chart data-point hover (r is a valid CSS property for <circle>) */
 .chart-point {
   r: 5px;
-  transition: r 0.3s ease, filter 0.3s ease;
+  transition:
+    r 0.3s ease,
+    filter 0.3s ease;
 }
 
 .group:hover .chart-point {
@@ -319,7 +321,9 @@
   filter: blur(55px);
   opacity: 0.55;
   pointer-events: none;
-  transition: opacity 0.4s ease, transform 0.4s var(--ease-enter);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s var(--ease-enter);
 }
 
 .kpi-card:hover .kpi-aura {

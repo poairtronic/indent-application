@@ -31,7 +31,7 @@ export const WorkflowPage: React.FC = () => {
   }
 
   const chartData =
-    data?.stageDistribution.map((item) => ({
+    data?.stageDistribution?.map((item) => ({
       label: item.stageName,
       value: item.count,
     })) || [];

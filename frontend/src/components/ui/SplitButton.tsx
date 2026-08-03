@@ -35,7 +35,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
         size={size}
         disabled={disabled}
         onClick={onClick}
-        className="rounded-r-none border-r border-black/10 dark:border-white/10"
+        className="rounded-r-none border-r border-border-default"
       >
         {label}
       </Button>

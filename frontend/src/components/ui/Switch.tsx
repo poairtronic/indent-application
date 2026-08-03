@@ -17,7 +17,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
         </div>
         <label className="relative inline-flex items-center cursor-pointer select-none">
           <input ref={ref} type="checkbox" className={`sr-only peer ${className}`} {...props} />
-          <div className="w-9 h-5 bg-background-primary border border-border-default rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-muted peer-checked:after:bg-white after:border-border-default after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-primary peer-checked:border-accent-primary" />
+          <div className="w-9 h-5 bg-background-primary border border-border-default rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-muted peer-checked:after:bg-white after:border-border-default after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-primary peer-checked:border-accent-primary shadow-[var(--shadow-inset)]" />
         </label>
       </div>
     );

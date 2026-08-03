@@ -64,129 +64,70 @@ export const ProfilePage: React.FC = () => {
   if (!displayUser) return null;
 
   return (
-    <div className="auth-card" style={{ maxWidth: '520px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+    <div className="auth-card max-w-[520px]">
+      <div className="flex items-center gap-4 mb-8">
         <div
-          style={{
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            background: 'var(--grad-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-main)',
-          }}
+          className="w-[60px] h-[60px] rounded-full flex items-center justify-center text-white"
+          style={{ background: 'var(--grad-primary)' }}
         >
           <User size={30} />
         </div>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>
+          <h2 className="text-xl font-bold m-0">
             {displayUser.firstName} {displayUser.lastName}
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0.25rem 0 0 0' }}>
-            Emp Code: {displayUser.employeeCode}
-          </p>
+          <p className="text-text-muted text-sm m-0 mt-1">Emp Code: {displayUser.employeeCode}</p>
         </div>
       </div>
 
       {errorMsg && (
-        <div className="toast toast-error" style={{ marginBottom: '1.5rem' }}>
+        <div className="toast toast-error mb-6">
           <ShieldAlert size={18} />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.75rem',
-            background: 'var(--bg-main)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-color)',
-          }}
-        >
-          <Mail size={18} style={{ color: 'var(--secondary)' }} />
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex items-center gap-3 p-3 bg-background-primary rounded-lg border border-border-default">
+          <Mail size={18} className="text-secondary" />
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Email</div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{displayUser.email}</div>
+            <div className="text-xs text-text-muted">Email</div>
+            <div className="text-sm font-medium">{displayUser.email}</div>
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.75rem',
-            background: 'var(--bg-main)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-color)',
-          }}
-        >
-          <Building2 size={18} style={{ color: 'var(--accent)' }} />
+        <div className="flex items-center gap-3 p-3 bg-background-primary rounded-lg border border-border-default">
+          <Building2 size={18} className="text-accent-primary" />
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Department</div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+            <div className="text-xs text-text-muted">Department</div>
+            <div className="text-sm font-medium">
               {displayUser.department?.departmentName || 'N/A'} (
               {displayUser.department?.departmentCode || 'N/A'})
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.75rem',
-            background: 'var(--bg-main)',
-            borderRadius: '8px',
-            border: '1px solid var(--border-color)',
-          }}
-        >
-          <Award size={18} style={{ color: 'var(--success)' }} />
+        <div className="flex items-center gap-3 p-3 bg-background-primary rounded-lg border border-border-default">
+          <Award size={18} className="text-status-success" />
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Role</div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-              {displayUser.role?.roleName || 'N/A'}
-            </div>
+            <div className="text-xs text-text-muted">Role</div>
+            <div className="text-sm font-medium">{displayUser.role?.roleName || 'N/A'}</div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
+      <div className="flex gap-4">
         <button
           onClick={fetchProfile}
           disabled={loading}
-          className="btn-primary"
-          style={{
-            flex: 1,
-            background: 'none',
-            border: '1px solid var(--border-color)',
-            color: 'var(--text-main)',
-          }}
+          className="btn-primary flex-1 bg-transparent border border-border-default text-white"
         >
-          <RefreshCw
-            size={16}
-            style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}
-          />
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           {loading ? 'Refreshing...' : 'Refresh'}
         </button>
 
-        <Link to="/change-password" style={{ flex: 1, textDecoration: 'none' }}>
-          <button
-            className="btn-primary"
-            style={{
-              width: '100%',
-              background: 'none',
-              border: '1px solid var(--border-color)',
-              color: '#fff',
-            }}
-          >
+        <Link to="/change-password" className="flex-1 no-underline">
+          <button className="btn-primary w-full bg-transparent border border-border-default text-white">
             <KeyRound size={16} />
             Password
           </button>
@@ -195,12 +136,8 @@ export const ProfilePage: React.FC = () => {
 
       <button
         onClick={handleLogout}
-        className="btn-primary"
-        style={{
-          width: '100%',
-          marginTop: '1rem',
-          background: 'var(--grad-danger)',
-        }}
+        className="btn-primary w-full mt-4"
+        style={{ background: 'var(--grad-danger)' }}
       >
         <LogOut size={16} />
         Sign Out

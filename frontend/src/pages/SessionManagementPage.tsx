@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Smartphone, Tablet, Laptop, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useSecurityStore, type Session } from '../store/securityStore';
+import { Button } from '../components/ui/Button';
 
 export const SessionManagementPage: React.FC = () => {
   const {
@@ -25,39 +26,29 @@ export const SessionManagementPage: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button
-          onClick={logoutOtherSessions}
-          disabled={isLoading}
-          className="px-4 py-2 bg-status-warning text-white rounded-lg hover:bg-status-warning/90 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-warning/40"
-        >
+        <Button variant="warning" onClick={logoutOtherSessions} disabled={isLoading}>
           Logout Other Sessions
-        </button>
+        </Button>
         {!confirmLogoutAll ? (
-          <button
-            onClick={() => setConfirmLogoutAll(true)}
-            className="px-4 py-2 bg-status-error text-white rounded-lg hover:bg-status-error/90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-error/40"
-          >
+          <Button variant="danger" onClick={() => setConfirmLogoutAll(true)}>
             Logout All Sessions
-          </button>
+          </Button>
         ) : (
           <div className="flex flex-wrap gap-2 items-center">
             <span className="text-status-error text-sm font-medium">Are you sure?</span>
-            <button
+            <Button
+              variant="danger"
               onClick={async () => {
                 await logoutAllSessions();
                 setConfirmLogoutAll(false);
               }}
               disabled={isLoading}
-              className="px-4 py-2 bg-status-error text-white rounded-lg hover:bg-status-error/90 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-error/40"
             >
               Confirm
-            </button>
-            <button
-              onClick={() => setConfirmLogoutAll(false)}
-              className="px-4 py-2 bg-background-secondary text-text-primary border border-border-default rounded-lg hover:bg-surface-elevated transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
-            >
+            </Button>
+            <Button variant="secondary" onClick={() => setConfirmLogoutAll(false)}>
               Cancel
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -139,13 +130,9 @@ const SessionCard: React.FC<{
           </div>
         </div>
         {isActive && (
-          <button
-            onClick={handleRevoke}
-            disabled={isRevoking}
-            className="px-3 py-1.5 text-sm bg-status-error/12 text-status-error rounded-lg hover:bg-status-error/20 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-error/40"
-          >
+          <Button variant="danger" size="sm" onClick={handleRevoke} disabled={isRevoking}>
             {isRevoking ? 'Revoking...' : 'Revoke'}
-          </button>
+          </Button>
         )}
       </div>
     </div>

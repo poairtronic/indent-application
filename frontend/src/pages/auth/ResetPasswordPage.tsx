@@ -78,13 +78,9 @@ export const ResetPasswordPage: React.FC = () => {
 
   return (
     <div className="auth-card">
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
-          Reset Password
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
-          Enter and confirm your new password below
-        </p>
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold m-0 mb-2">Reset Password</h2>
+        <p className="text-text-muted text-sm m-0">Enter and confirm your new password below</p>
       </div>
 
       {successMsg && (
@@ -102,7 +98,7 @@ export const ResetPasswordPage: React.FC = () => {
       )}
 
       {!token ? (
-        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+        <div className="text-center mt-4">
           <Link to="/login" className="auth-link">
             Return to Sign In
           </Link>
@@ -139,17 +135,8 @@ export const ResetPasswordPage: React.FC = () => {
             )}
           </div>
 
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={loading}
-            style={{ marginTop: '1.5rem' }}
-          >
-            {loading ? (
-              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <ShieldAlert size={18} />
-            )}
+          <button type="submit" className="btn-primary mt-6" disabled={loading}>
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <ShieldAlert size={18} />}
             {loading ? 'Resetting password...' : 'Reset Password'}
           </button>
         </form>

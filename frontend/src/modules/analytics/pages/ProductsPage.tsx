@@ -95,7 +95,7 @@ export const ProductsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-default text-sm text-text-secondary">
-                {data?.products.map((p) => (
+                {data?.products?.map((p) => (
                   <tr key={p.productId} className="hover:bg-surface-elevated transition-colors">
                     <td className="px-6 py-4 font-mono text-text-muted">{p.productCode}</td>
                     <td className="px-6 py-4 font-semibold text-text-primary">{p.productName}</td>
