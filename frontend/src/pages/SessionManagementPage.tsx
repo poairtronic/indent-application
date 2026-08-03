@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Smartphone, Tablet, Laptop, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useSecurityStore, type Session } from '../store/securityStore';
 
 export const SessionManagementPage: React.FC = () => {
@@ -18,44 +19,42 @@ export const SessionManagementPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Session Management</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          Manage your active sessions across devices
-        </p>
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-text-primary tracking-tight">Session Management</h1>
+        <p className="text-text-muted mt-1">Manage your active sessions across devices</p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <button
           onClick={logoutOtherSessions}
           disabled={isLoading}
-          className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-500 disabled:opacity-50 transition-colors"
+          className="px-4 py-2 bg-status-warning text-white rounded-lg hover:bg-status-warning/90 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-warning/40"
         >
           Logout Other Sessions
         </button>
         {!confirmLogoutAll ? (
           <button
             onClick={() => setConfirmLogoutAll(true)}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors"
+            className="px-4 py-2 bg-status-error text-white rounded-lg hover:bg-status-error/90 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-error/40"
           >
             Logout All Sessions
           </button>
         ) : (
-          <div className="flex gap-2 items-center">
-            <span className="text-red-500 text-sm">Are you sure?</span>
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-status-error text-sm font-medium">Are you sure?</span>
             <button
               onClick={async () => {
                 await logoutAllSessions();
                 setConfirmLogoutAll(false);
               }}
               disabled={isLoading}
-              className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 bg-status-error text-white rounded-lg hover:bg-status-error/90 disabled:opacity-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-error/40"
             >
               Confirm
             </button>
             <button
               onClick={() => setConfirmLogoutAll(false)}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
+              className="px-4 py-2 bg-background-secondary text-text-primary border border-border-default rounded-lg hover:bg-surface-elevated transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
             >
               Cancel
             </button>
@@ -64,12 +63,12 @@ export const SessionManagementPage: React.FC = () => {
       </div>
 
       {isLoading && sessions.length === 0 && (
-        <div className="text-gray-500 text-center py-8">Loading sessions...</div>
+        <div className="text-text-muted text-center py-8">Loading sessions...</div>
       )}
 
       {!isLoading && sessions.length === 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center shadow-sm">
-          <p className="text-gray-500">No active sessions found.</p>
+        <div className="bg-surface-card border border-border-default rounded-xl p-8 text-center shadow-sm">
+          <p className="text-text-muted">No active sessions found.</p>
         </div>
       )}
 
@@ -98,30 +97,34 @@ const SessionCard: React.FC<{
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm border-l-4 ${
-        isActive ? 'border-l-green-500' : 'border-l-gray-400'
+      className={`bg-surface-card border border-border-default rounded-xl p-5 shadow-sm border-l-4 transition-colors ${
+        isActive ? 'border-l-status-success' : 'border-l-border-strong'
       }`}
     >
       <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <div className="text-3xl mt-1">{getDeviceIcon(session.device)}</div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900 dark:text-white">
+        <div className="flex items-start gap-4 min-w-0">
+          <div className="w-11 h-11 rounded-xl bg-background-secondary border border-border-default flex items-center justify-center text-accent-primary shrink-0">
+            {getDeviceIcon(session.device)}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-semibold text-text-primary">
                 {session.browser || 'Unknown Browser'}
               </h3>
               {isActive && (
-                <span className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-status-success/12 text-status-success rounded-full">
+                  <ShieldCheck className="w-3 h-3" />
                   Active
                 </span>
               )}
               {!isActive && (
-                <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-background-secondary text-text-secondary rounded-full">
+                  <ShieldAlert className="w-3 h-3" />
                   {session.status}
                 </span>
               )}
             </div>
-            <div className="text-sm text-gray-500 mt-1 space-y-0.5">
+            <div className="text-xs text-text-muted mt-1.5 space-y-0.5">
               <p>
                 Device: {session.device || 'Unknown'} &middot; OS:{' '}
                 {session.operatingSystem || 'Unknown'}
@@ -139,7 +142,7 @@ const SessionCard: React.FC<{
           <button
             onClick={handleRevoke}
             disabled={isRevoking}
-            className="px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 transition-colors"
+            className="px-3 py-1.5 text-sm bg-status-error/12 text-status-error rounded-lg hover:bg-status-error/20 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-error/40"
           >
             {isRevoking ? 'Revoking...' : 'Revoke'}
           </button>
@@ -149,13 +152,13 @@ const SessionCard: React.FC<{
   );
 };
 
-function getDeviceIcon(device: string | null): string {
+function getDeviceIcon(device: string | null): React.ReactNode {
   switch ((device ?? '').toLowerCase()) {
     case 'mobile':
-      return '📱';
+      return <Smartphone className="w-5 h-5" />;
     case 'tablet':
-      return '📟';
+      return <Tablet className="w-5 h-5" />;
     default:
-      return '💻';
+      return <Laptop className="w-5 h-5" />;
   }
 }

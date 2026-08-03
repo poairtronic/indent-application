@@ -15,20 +15,20 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 focus:ring-offset-blue-100 dark:focus:ring-offset-gray-800',
+    'bg-accent-primary hover:bg-accent-hover active:bg-accent-pressed text-white shadow-sm hover:shadow focus-visible:ring-accent-primary/40',
   secondary:
-    'bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 focus:ring-gray-400 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-800',
+    'bg-background-secondary hover:bg-surface-elevated text-text-primary border border-border-default active:bg-background-secondary focus-visible:ring-accent-primary/30',
   danger:
-    'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 focus:ring-offset-red-100 dark:focus:ring-offset-gray-800',
+    'bg-status-error hover:bg-status-error/90 active:bg-status-error/80 text-white shadow-sm hover:shadow focus-visible:ring-status-error/40',
   success:
-    'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 focus:ring-offset-green-100 dark:focus:ring-offset-gray-800',
+    'bg-status-success hover:bg-status-success/90 active:bg-status-success/80 text-white shadow-sm hover:shadow focus-visible:ring-status-success/40',
   warning:
-    'bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500 focus:ring-offset-amber-100 dark:focus:ring-offset-gray-800',
+    'bg-status-warning hover:bg-status-warning/90 active:bg-status-warning/80 text-white shadow-sm hover:shadow focus-visible:ring-status-warning/40',
   ghost:
-    'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 focus:ring-gray-400',
+    'bg-transparent hover:bg-background-secondary active:bg-surface-elevated text-text-secondary hover:text-text-primary focus-visible:ring-accent-primary/30',
   outline:
-    'bg-transparent border border-border-default hover:bg-background-secondary text-text-primary focus:ring-accent-primary',
-  link: 'bg-transparent hover:underline text-accent-primary p-0 h-auto focus:ring-0',
+    'bg-transparent border border-border-default hover:border-border-strong hover:bg-background-secondary text-text-primary focus-visible:ring-accent-primary/30',
+  link: 'bg-transparent hover:underline text-accent-primary hover:text-accent-hover p-0 h-auto focus-visible:ring-0',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -49,8 +49,8 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${
-        fab ? 'rounded-full p-3 shadow-lg' : `rounded-md ${sizeClasses[size]}`
+      className={`inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background-primary disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99] ${
+        fab ? 'rounded-full p-3 shadow-lg' : `${sizeClasses[size]}`
       } ${variantClasses[variant]} ${className}`}
       disabled={disabled || loading}
       {...rest}

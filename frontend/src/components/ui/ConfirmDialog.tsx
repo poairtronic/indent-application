@@ -50,19 +50,15 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <div className="flex items-start gap-3">
         <div
           className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-            tone === 'danger' ? 'bg-red-100 dark:bg-red-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+            tone === 'danger' ? 'bg-status-error/12' : 'bg-accent-primary/12'
           }`}
         >
           <AlertTriangle
             size={20}
-            className={
-              tone === 'danger'
-                ? 'text-red-600 dark:text-red-400'
-                : 'text-blue-600 dark:text-blue-400'
-            }
+            className={tone === 'danger' ? 'text-status-error' : 'text-accent-primary'}
           />
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-300">{message}</div>
+        <div className="text-sm text-text-secondary">{message}</div>
       </div>
     </Modal>
   );

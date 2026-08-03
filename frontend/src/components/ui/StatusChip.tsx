@@ -8,50 +8,50 @@ interface StatusChipProps {
 const statusColorMap: Record<string, { bg: string; text: string; label: string }> = {
   // Loop 1 Manufacturing Workflow
   DRAFT: {
-    bg: 'bg-gray-150 dark:bg-gray-800/40',
-    text: 'text-gray-600 dark:text-gray-400',
+    bg: 'bg-background-secondary',
+    text: 'text-text-secondary',
     label: 'Draft',
   },
   DESIGN_COMPLETED: {
-    bg: 'bg-blue-100 dark:bg-blue-900/20',
-    text: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-accent-primary/10',
+    text: 'text-accent-primary',
     label: 'Design Completed',
   },
   STORES_PROCESSING: {
-    bg: 'bg-amber-100 dark:bg-amber-900/20',
-    text: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-status-warning/12',
+    text: 'text-status-warning',
     label: 'Stores Processing',
   },
   PRODUCTION_PROCESSING: {
-    bg: 'bg-purple-100 dark:bg-purple-900/20',
-    text: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-500/10',
+    text: 'text-purple-400',
     label: 'Production',
   },
   CUSTOMER_DELIVERED: {
-    bg: 'bg-green-100 dark:bg-green-900/20',
-    text: 'text-green-600 dark:text-green-400',
+    bg: 'bg-status-success/12',
+    text: 'text-status-success',
     label: 'Customer Delivered',
   },
 
   // Loop 2 Finance Workflow
   ACCOUNTS_COST_VERIFICATION: {
-    bg: 'bg-indigo-100 dark:bg-indigo-900/20',
-    text: 'text-indigo-600 dark:text-indigo-400',
+    bg: 'bg-indigo-500/10',
+    text: 'text-indigo-400',
     label: 'Cost Verification',
   },
   ACCOUNTS_FINANCIAL_CLOSURE: {
-    bg: 'bg-emerald-100 dark:bg-emerald-900/20',
-    text: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    text: 'text-emerald-400',
     label: 'Financial Closure',
   },
   ARCHIVED: {
-    bg: 'bg-rose-100 dark:bg-rose-900/20',
-    text: 'text-rose-600 dark:text-rose-400',
+    bg: 'bg-status-error/10',
+    text: 'text-status-error',
     label: 'Archived',
   },
   COMPLETED: {
-    bg: 'bg-teal-100 dark:bg-teal-900/20',
-    text: 'text-teal-600 dark:text-teal-400',
+    bg: 'bg-teal-500/10',
+    text: 'text-teal-400',
     label: 'Completed',
   },
 };
@@ -59,8 +59,8 @@ const statusColorMap: Record<string, { bg: string; text: string; label: string }
 export const StatusChip: React.FC<StatusChipProps> = ({ status, className = '' }) => {
   const normKey = status.toUpperCase();
   const cfg = statusColorMap[normKey] || {
-    bg: 'bg-gray-150 dark:bg-gray-800/40',
-    text: 'text-gray-600 dark:text-gray-400',
+    bg: 'bg-background-secondary',
+    text: 'text-text-secondary',
     label: status,
   };
 

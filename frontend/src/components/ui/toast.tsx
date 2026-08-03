@@ -56,10 +56,10 @@ interface ToastViewportProps {
 }
 
 const toastBg = {
-  success: 'bg-green-600',
-  error: 'bg-red-600',
-  info: 'bg-blue-600',
-  warning: 'bg-amber-600',
+  success: 'bg-status-success',
+  error: 'bg-status-error',
+  info: 'bg-accent-primary',
+  warning: 'bg-status-warning',
 };
 
 const toastIcon = {
@@ -75,7 +75,7 @@ export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss 
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`flex flex-col gap-2 rounded-xl p-4 shadow-2xl text-white min-w-72 max-w-sm ${toastBg[toast.type]}`}
+          className={`flex flex-col gap-2 rounded-xl p-4 shadow-2xl text-white min-w-72 max-w-sm animate-toast-in ${toastBg[toast.type]}`}
         >
           <div className="flex items-center gap-2.5">
             <span className="shrink-0">{toastIcon[toast.type]}</span>

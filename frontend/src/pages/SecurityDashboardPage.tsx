@@ -9,43 +9,45 @@ export const SecurityDashboardPage: React.FC = () => {
   }, [fetchSecurityStatus]);
 
   if (isLoading && !securityStatus) {
-    return <div className="text-white text-center p-8">Loading security status...</div>;
+    return <div className="text-text-muted text-center p-8">Loading security status...</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Security Overview</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
-          Account security status and activity
-        </p>
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-text-primary tracking-tight">Security Overview</h1>
+        <p className="text-text-muted mt-1">Account security status and activity</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Account Status</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+          <h3 className="font-semibold text-text-primary">Account Status</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-500">Status</span>
+              <span className="text-text-muted">Status</span>
               <span
                 className={`font-medium ${
-                  securityStatus?.accountStatus === 'ACTIVE' ? 'text-green-500' : 'text-red-500'
+                  securityStatus?.accountStatus === 'ACTIVE'
+                    ? 'text-status-success'
+                    : 'text-status-error'
                 }`}
               >
                 {securityStatus?.accountStatus}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Locked</span>
+              <span className="text-text-muted">Locked</span>
               <span
-                className={`font-medium ${securityStatus?.isLocked ? 'text-red-500' : 'text-green-500'}`}
+                className={`font-medium ${
+                  securityStatus?.isLocked ? 'text-status-error' : 'text-status-success'
+                }`}
               >
                 {securityStatus?.isLocked ? 'Yes' : 'No'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Last Login</span>
-              <span className="text-gray-700 dark:text-gray-300">
+              <span className="text-text-muted">Last Login</span>
+              <span className="text-text-secondary">
                 {securityStatus?.lastLogin
                   ? new Date(securityStatus.lastLogin).toLocaleString()
                   : 'Never'}
@@ -54,18 +56,18 @@ export const SecurityDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Password Status</h3>
+        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+          <h3 className="font-semibold text-text-primary">Password Status</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-500">Age</span>
+              <span className="text-text-muted">Age</span>
               <span
                 className={`font-medium ${
                   securityStatus?.passwordAgeDays !== null &&
                   securityStatus?.passwordAgeDays !== undefined &&
                   securityStatus.passwordAgeDays > 90
-                    ? 'text-red-500'
-                    : 'text-green-500'
+                    ? 'text-status-error'
+                    : 'text-status-success'
                 }`}
               >
                 {securityStatus?.passwordAgeDays !== null &&
@@ -75,8 +77,8 @@ export const SecurityDashboardPage: React.FC = () => {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Account Created</span>
-              <span className="text-gray-700 dark:text-gray-300">
+              <span className="text-text-muted">Account Created</span>
+              <span className="text-text-secondary">
                 {securityStatus?.accountCreatedAt
                   ? new Date(securityStatus.accountCreatedAt).toLocaleDateString()
                   : '-'}
@@ -85,42 +87,48 @@ export const SecurityDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-          <h3 className="font-semibold text-gray-900 dark:text-white">Failed Attempts</h3>
+        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+          <h3 className="font-semibold text-text-primary">Failed Attempts</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-500">Failed Logins</span>
+              <span className="text-text-muted">Failed Logins</span>
               <span
-                className={`font-medium font-bold text-lg ${
-                  (securityStatus?.failedLoginAttempts ?? 0) > 0 ? 'text-red-500' : 'text-green-500'
+                className={`font-bold text-lg ${
+                  (securityStatus?.failedLoginAttempts ?? 0) > 0
+                    ? 'text-status-error'
+                    : 'text-status-success'
                 }`}
               >
                 {securityStatus?.failedLoginAttempts ?? 0}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Remaining Attempts</span>
-              <span className="font-medium">{securityStatus?.remainingAttempts ?? 5}</span>
+              <span className="text-text-muted">Remaining Attempts</span>
+              <span className="font-medium text-text-primary">
+                {securityStatus?.remainingAttempts ?? 5}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Max Attempts</span>
-              <span className="font-medium">{securityStatus?.maxFailedAttempts ?? 5}</span>
+              <span className="text-text-muted">Max Attempts</span>
+              <span className="font-medium text-text-primary">
+                {securityStatus?.maxFailedAttempts ?? 5}
+              </span>
             </div>
           </div>
         </div>
       </div>
 
       {securityStatus?.isLocked && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-          <h3 className="font-semibold text-red-800 dark:text-red-400">Account Locked</h3>
-          <p className="text-red-600 dark:text-red-300 mt-2">
+        <div className="bg-status-error/10 border border-status-error/25 rounded-xl p-6">
+          <h3 className="font-semibold text-status-error">Account Locked</h3>
+          <p className="text-status-error/90 mt-2">
             Your account is locked until{' '}
             {securityStatus.lockedUntil
               ? new Date(securityStatus.lockedUntil).toLocaleString()
               : 'unknown'}
             .
           </p>
-          <p className="text-red-600 dark:text-red-300 mt-1">
+          <p className="text-status-error/90 mt-1">
             Please wait for the lock to expire or contact an administrator.
           </p>
         </div>

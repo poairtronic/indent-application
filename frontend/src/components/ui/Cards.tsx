@@ -8,7 +8,7 @@ interface CardProps {
 export const BaseCard: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
     <div
-      className={`bg-surface-card border border-border-default rounded-xl p-4 font-sans text-xs text-text-primary shadow-sm hover:shadow transition-shadow ${className}`}
+      className={`bg-surface-card border border-border-default rounded-xl p-5 font-sans text-xs text-text-primary shadow-sm transition-all duration-200 hover:shadow-md hover:border-border-strong/70 ${className}`}
     >
       {children}
     </div>
@@ -18,7 +18,7 @@ export const BaseCard: React.FC<CardProps> = ({ children, className = '' }) => {
 export const GlassCard: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
     <div
-      className={`bg-surface-card/60 backdrop-blur-md border border-border-default rounded-xl p-4 font-sans text-xs text-text-primary shadow-sm ${className}`}
+      className={`bg-surface-card/60 backdrop-blur-md border border-border-default rounded-xl p-5 font-sans text-xs text-text-primary shadow-sm transition-all duration-200 hover:shadow-md ${className}`}
     >
       {children}
     </div>
@@ -43,7 +43,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   const isUp = trendDirection === 'up';
   const isDown = trendDirection === 'down';
-  const trendColor = isUp ? 'text-green-500' : isDown ? 'text-status-error' : 'text-text-muted';
+  const trendColor = isUp
+    ? 'text-status-success'
+    : isDown
+      ? 'text-status-error'
+      : 'text-text-muted';
 
   return (
     <BaseCard className={className}>
@@ -85,7 +89,7 @@ export const KPICard: React.FC<MetricCardProps & { icon?: React.ReactNode }> = (
           </span>
         </div>
         {icon && (
-          <div className="p-2 bg-background-secondary rounded-lg text-accent-primary shrink-0">
+          <div className="p-2.5 bg-background-secondary rounded-xl text-accent-primary shrink-0 ring-1 ring-inset ring-border-default/60">
             {icon}
           </div>
         )}
@@ -94,7 +98,13 @@ export const KPICard: React.FC<MetricCardProps & { icon?: React.ReactNode }> = (
         <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border-default/50 text-[10px]">
           {trend && (
             <span
-              className={`font-extrabold ${trendDirection === 'up' ? 'text-green-500' : trendDirection === 'down' ? 'text-status-error' : 'text-text-muted'}`}
+              className={`font-extrabold ${
+                trendDirection === 'up'
+                  ? 'text-status-success'
+                  : trendDirection === 'down'
+                    ? 'text-status-error'
+                    : 'text-text-muted'
+              }`}
             >
               {trend}
             </span>
@@ -124,9 +134,9 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`bg-surface-card border border-border-default hover:border-accent-primary rounded-xl p-4 font-sans text-xs text-text-primary flex items-start gap-3 cursor-pointer select-none transition-all hover:translate-y-[-1px] ${className}`}
+      className={`bg-surface-card border border-border-default hover:border-accent-primary rounded-xl p-5 font-sans text-xs text-text-primary flex items-start gap-3 cursor-pointer select-none transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none ${className}`}
     >
-      <div className="p-2 bg-background-secondary rounded-lg text-accent-primary shrink-0">
+      <div className="p-2.5 bg-background-secondary rounded-xl text-accent-primary shrink-0 ring-1 ring-inset ring-border-default/60">
         {icon}
       </div>
       <div className="min-w-0">

@@ -15,8 +15,8 @@ const sizeClasses = {
 };
 
 const statusClasses = {
-  online: 'bg-green-500 ring-2 ring-white dark:ring-gray-800',
-  offline: 'bg-gray-400 ring-2 ring-white dark:ring-gray-800',
+  online: 'bg-status-success ring-2 ring-background-primary',
+  offline: 'bg-border-strong ring-2 ring-background-primary',
   none: '',
 };
 

@@ -15,8 +15,8 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
     <div
       className={`inline-flex ${
         vertical
-          ? 'flex-col -space-y-px [&>button]:rounded-none [&>button:first-of-type]:rounded-t-md [&>button:last-of-type]:rounded-b-md'
-          : '-space-x-px [&>button]:rounded-none [&>button:first-of-type]:rounded-l-md [&>button:last-of-type]:rounded-r-md'
+          ? 'flex-col -space-y-px [&>button]:rounded-none [&>button:first-of-type]:rounded-t-lg [&>button:last-of-type]:rounded-b-lg'
+          : '-space-x-px [&>button]:rounded-none [&>button:first-of-type]:rounded-l-lg [&>button:last-of-type]:rounded-r-lg'
       } ${className}`}
       role="group"
     >

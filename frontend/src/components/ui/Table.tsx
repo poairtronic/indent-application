@@ -1,5 +1,12 @@
 import React from 'react';
-import { ArrowUp, ArrowDown, ChevronsUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ArrowUp,
+  ArrowDown,
+  ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+} from 'lucide-react';
 
 export interface Column<T> {
   key: string;
@@ -61,9 +68,9 @@ export function Table<T>({
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-background-secondary border-b border-border-default h-11 text-xs text-text-muted font-bold select-none">
+              <tr className="sticky top-0 z-10 bg-background-secondary border-b border-border-default h-11 text-xs text-text-muted font-bold select-none shadow-sm">
                 {onSelectAllRows && (
-                  <th className="w-12 px-4 text-center">
+                  <th className="w-12 px-4 text-center bg-background-secondary">
                     <input
                       type="checkbox"
                       checked={isAllSelected}
@@ -79,7 +86,7 @@ export function Table<T>({
                     <th
                       key={col.key}
                       onClick={() => col.sortable && onSort?.(col.key)}
-                      className={`px-4 py-3 text-xs font-semibold ${
+                      className={`px-4 py-3 text-xs font-semibold bg-background-secondary ${
                         col.sortable
                           ? 'cursor-pointer hover:text-text-primary transition-colors'
                           : ''
@@ -126,16 +133,19 @@ export function Table<T>({
                 <tr>
                   <td
                     colSpan={columns.length + (onSelectAllRows ? 1 : 0)}
-                    className="p-8 text-center text-status-error font-medium"
+                    className="p-10 text-center text-status-error font-medium"
                   >
-                    ⚠️ {error}
+                    <div className="flex flex-col items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-status-error" />
+                      <span>{error}</span>
+                    </div>
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
                   <td
                     colSpan={columns.length + (onSelectAllRows ? 1 : 0)}
-                    className="p-8 text-center text-text-secondary"
+                    className="p-10 text-center text-text-muted"
                   >
                     {emptyMessage}
                   </td>
@@ -148,7 +158,7 @@ export function Table<T>({
                   return (
                     <tr
                       key={rowId}
-                      className={`h-11 hover:bg-background-secondary transition-colors ${
+                      className={`h-11 hover:bg-background-secondary/70 transition-colors duration-100 ${
                         isChecked ? 'bg-accent-primary/5' : ''
                       }`}
                     >

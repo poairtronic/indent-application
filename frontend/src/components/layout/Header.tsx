@@ -85,7 +85,7 @@ export const Header: React.FC = () => {
         <div className="hidden lg:flex items-center gap-4 max-w-xs w-full mx-4">
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="w-full bg-background-primary hover:bg-background-secondary border border-border-default hover:border-text-disabled rounded-lg px-3 py-1.5 text-xs text-text-muted outline-none flex items-center justify-between transition-all shadow-sm focus:outline-none"
+            className="w-full bg-background-primary hover:bg-background-secondary border border-border-default hover:border-border-strong rounded-lg px-3 py-1.5 text-xs text-text-muted outline-none flex items-center justify-between transition-all duration-200 shadow-sm focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:border-accent-primary"
           >
             <span className="flex items-center gap-2">
               <Lucide.Search className="w-3.5 h-3.5 text-text-muted" />
@@ -103,15 +103,17 @@ export const Header: React.FC = () => {
           <div className="hidden sm:flex items-center space-x-1 border-r border-border-default pr-3.5">
             <button
               onClick={() => navigate('/indents')}
-              className="p-1.5 text-text-secondary hover:text-text-primary rounded-lg hover:bg-background-secondary transition-colors"
+              className="p-1.5 text-text-secondary hover:text-text-primary rounded-lg hover:bg-background-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
               title="New Indent Dispatch"
+              aria-label="New Indent Dispatch"
             >
               <Lucide.PlusCircle className="w-4 h-4" />
             </button>
             <button
               onClick={() => navigate('/security')}
-              className="p-1.5 text-text-secondary hover:text-text-primary rounded-lg hover:bg-background-secondary transition-colors"
+              className="p-1.5 text-text-secondary hover:text-text-primary rounded-lg hover:bg-background-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
               title="Security Shield Logs"
+              aria-label="Security Shield Logs"
             >
               <Lucide.ShieldCheck className="w-4 h-4" />
             </button>
@@ -120,8 +122,9 @@ export const Header: React.FC = () => {
           {/* Theme Mode Selector */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="text-text-secondary hover:text-text-primary p-1.5 rounded-lg hover:bg-background-secondary transition-colors focus:outline-none"
+            className="text-text-secondary hover:text-text-primary p-1.5 rounded-lg hover:bg-background-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+            aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
           >
             {theme === 'dark' ? (
               <Lucide.Sun className="w-4.5 h-4.5" />
@@ -134,8 +137,10 @@ export const Header: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsNotificationsOpen(true)}
-              className="text-text-secondary hover:text-text-primary p-1.5 rounded-lg hover:bg-background-secondary transition-colors focus:outline-none"
+              className="text-text-secondary hover:text-text-primary p-1.5 rounded-lg hover:bg-background-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
               title="Toggle notifications panel"
+              aria-label="Toggle notifications panel"
+              aria-expanded={isNotificationsOpen}
             >
               <Lucide.Bell className="w-4.5 h-4.5" />
               {unreadCount > 0 && (
@@ -148,7 +153,9 @@ export const Header: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center space-x-2 p-1 rounded-lg hover:bg-background-secondary transition-colors focus:outline-none"
+              className="flex items-center space-x-2 p-1 rounded-lg hover:bg-background-secondary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
+              aria-label="Open user menu"
+              aria-expanded={isProfileOpen}
             >
               <div className="w-7 h-7 rounded-full bg-accent-primary flex items-center justify-center text-white text-xs font-bold border border-border-default">
                 {user?.firstName?.charAt(0) || 'U'}

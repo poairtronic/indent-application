@@ -266,7 +266,7 @@ export const LineChart: React.FC<LineChartProps> = ({ data, height = 160, color 
               fill={color}
               stroke="#0f172a"
               strokeWidth="2"
-              className="transition-all duration-300 group-hover:r-7"
+              className="chart-point"
             />
             {/* Tooltip on hover */}
             <text

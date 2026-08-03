@@ -19,11 +19,11 @@ interface UserDetailModalProps {
 }
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="py-2.5 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
-    <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:w-36 shrink-0">
+  <div className="py-2.5 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-4 border-b border-border-default last:border-0">
+    <span className="text-xs font-semibold uppercase tracking-wide text-text-muted sm:w-36 shrink-0">
       {label}
     </span>
-    <span className="text-sm text-gray-900 dark:text-white break-words">{value || '-'}</span>
+    <span className="text-sm text-text-primary break-words">{value || '-'}</span>
   </div>
 );
 
@@ -74,26 +74,24 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
         </>
       }
     >
-      <div className="flex items-center gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-4 pb-4 border-b border-border-default">
         {user.profileImage ? (
           <img
             src={user.profileImage}
             alt={fullName}
-            className="w-14 h-14 rounded-full object-cover"
+            className="w-14 h-14 rounded-full object-cover ring-1 ring-border-default"
           />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-400 font-semibold text-lg">
+          <div className="w-14 h-14 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary font-semibold text-lg ring-1 ring-border-default">
             {initials}
           </div>
         )}
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-gray-900 dark:text-white">
-              {fullName}
-            </span>
+            <span className="text-base font-semibold text-text-primary">{fullName}</span>
             <Badge tone={statusTone[user.status]}>{statusLabel[user.status]}</Badge>
           </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">{user.employeeCode}</div>
+          <div className="text-sm text-text-muted">{user.employeeCode}</div>
         </div>
       </div>
 
@@ -104,7 +102,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           value={
             user.phone ? (
               <span className="inline-flex items-center gap-1.5">
-                <Phone size={13} className="text-gray-400" /> {user.phone}
+                <Phone size={13} className="text-text-muted" /> {user.phone}
               </span>
             ) : (
               '-'
@@ -116,7 +114,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           value={
             user.departmentName ? (
               <span className="inline-flex items-center gap-1.5">
-                <Building2 size={13} className="text-gray-400" /> {user.departmentName}
+                <Building2 size={13} className="text-text-muted" /> {user.departmentName}
               </span>
             ) : (
               '-'
@@ -128,7 +126,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           value={
             user.roleName ? (
               <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck size={13} className="text-gray-400" /> {user.roleName}
+                <ShieldCheck size={13} className="text-text-muted" /> {user.roleName}
               </span>
             ) : (
               '-'

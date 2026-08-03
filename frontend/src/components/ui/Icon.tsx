@@ -24,8 +24,8 @@ const toneMap: Record<IconTone, string> = {
   default: 'text-text-primary',
   muted: 'text-text-muted',
   primary: 'text-accent-primary',
-  success: 'text-green-500',
-  warning: 'text-amber-500',
+  success: 'text-status-success',
+  warning: 'text-status-warning',
   error: 'text-status-error',
 };
 

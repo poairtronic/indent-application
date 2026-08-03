@@ -15,6 +15,7 @@ export default {
         },
         border: {
           default: 'var(--border-color)',
+          strong: 'var(--border-strong)',
         },
         accent: {
           primary: 'var(--primary)',

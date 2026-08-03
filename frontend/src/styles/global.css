@@ -13,10 +13,18 @@
   --text-muted: #64748b;
   --text-disabled: #94a3b8;
   --border-color: #e2e8f0;
+  --border-strong: #cbd5e1;
 
   --success: #10b981;
+  --success-hover: #059669;
   --warning: #f59e0b;
+  --warning-hover: #d97706;
   --danger: #ef4444;
+  --danger-hover: #dc2626;
+
+  /* Deprecated aliases kept for legacy inline usage (auth pages) */
+  --accent: var(--primary);
+  --secondary: var(--text-secondary);
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -35,39 +43,82 @@
   --text-muted: #94a3b8;
   --text-disabled: #64748b;
   --border-color: #1e293b;
+  --border-strong: #334155;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg-main);
-  color: var(--text-main);
-  font-family: var(--font-sans);
-  min-height: 100vh;
-  transition: var(--transition);
+@layer base {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    transition: var(--transition);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
+    color: var(--text-main);
+  }
+
+  /* Consistent, accessible focus ring for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline-offset: 1px;
+  }
 }
 
+/* ============================================================================
+   Scrollbars — subtle, theme-aware
+   ============================================================================ */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: var(--border-strong);
   border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-disabled);
+  background-clip: padding-box;
+  border: 2px solid transparent;
 }
 
+/* ============================================================================
+   Glass surfaces
+   ============================================================================ */
 .glass-panel {
-  background: rgba(var(--bg-card), 0.75);
+  background: color-mix(in srgb, var(--bg-card) 75%, transparent);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
 }
 
+/* ============================================================================
+   Keyframes & micro-animations
+   ============================================================================ */
 @keyframes slide-in {
   from {
     transform: translateY(8px);
@@ -88,10 +139,222 @@ body {
   }
 }
 
+@keyframes scale-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .animate-slide-in {
   animation: slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-in {
   animation: fade-in 0.15s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-in {
+  animation: drawer-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-in {
+  animation: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* SVG chart data-point hover (r is a valid CSS property for <circle>) */
+.chart-point {
+  r: 5px;
+  transition: r 0.3s ease, filter 0.3s ease;
+}
+
+.group:hover .chart-point {
+  r: 7px;
+  filter: brightness(1.15);
+}
+
+/* ============================================================================
+   Legacy auth component classes (used by auth pages)
+   Styled via design tokens so they render consistently with the rest of IMCMS.
+   ============================================================================ */
+.auth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.08),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  font-family: var(--font-sans);
+  width: 100%;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 0.375rem;
+}
+
+.form-input {
+  width: 100%;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5625rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  color: var(--text-main);
+  outline: none;
+  transition: var(--transition);
+}
+
+.form-input::placeholder {
+  color: var(--text-disabled);
+}
+
+.form-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.form-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.form-error {
+  font-size: 0.75rem;
+  color: var(--danger);
+  margin-top: 0.375rem;
+  font-weight: 500;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--primary-pressed);
+  transform: translateY(0.5px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-link {
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+  color: var(--primary-hover);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 1rem;
+  animation: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-success {
+  background: color-mix(in srgb, var(--success) 12%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--text-main);
+}
+
+.toast-success svg {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.toast-error {
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--text-main);
+}
+
+.toast-error svg {
+  color: var(--danger);
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Reduced motion — respect user preference
+   ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

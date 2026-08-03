@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 
 export type ModalSize = 'sm' | 'md' | 'lg';
@@ -28,6 +28,8 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   size = 'md',
 }) => {
+  const titleId = useId();
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
@@ -52,30 +54,35 @@ export const Modal: React.FC<ModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
     >
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
       <div
-        className={`relative w-full ${sizeClasses[size]} bg-white dark:bg-gray-800 rounded-lg shadow-xl`}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        className={`relative w-full ${sizeClasses[size]} bg-surface-card border border-border-default rounded-xl shadow-2xl animate-scale-in`}
       >
-        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
-            {description && (
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
-            )}
+        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border-default">
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-base font-bold text-text-primary tracking-tight">
+              {title}
+            </h2>
+            {description && <p className="text-xs text-text-muted mt-1">{description}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+            className="shrink-0 text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-background-secondary transition-colors"
             aria-label="Close"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">{children}</div>
         {footer && (
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+          <div className="px-6 py-4 border-t border-border-default flex justify-end gap-3 bg-background-secondary/60 rounded-b-xl">
             {footer}
           </div>
         )}

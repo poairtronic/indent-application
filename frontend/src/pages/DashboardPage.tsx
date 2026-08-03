@@ -83,7 +83,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* KPI Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <KPICard
           title="Active Indents Queue"
           value={kpiData.activeIndents}
@@ -115,7 +115,7 @@ export const DashboardPage: React.FC = () => {
         <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider">
           Quick Action Portal
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <QuickActionCard
             title="Create Indent Dispatch"
             description="Initiate design specifications and dispatch request form."

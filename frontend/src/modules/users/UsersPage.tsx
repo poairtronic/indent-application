@@ -194,13 +194,11 @@ export const UsersPage: React.FC = () => {
     <div className="space-y-6">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Users</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Manage user accounts, roles, and access
-            </p>
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">Users</h1>
+            <p className="text-text-muted mt-1">Manage user accounts, roles, and access</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -222,7 +220,10 @@ export const UsersPage: React.FC = () => {
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+            />
             <input
               type="text"
               className={`${inputClasses} pl-9`}
@@ -291,7 +292,7 @@ export const UsersPage: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-surface-card border border-border-default rounded-xl shadow-sm overflow-hidden">
         {isError ? (
           <ErrorState
             title="Unable to load users"
@@ -326,37 +327,37 @@ export const UsersPage: React.FC = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900/40">
+              <table className="min-w-full divide-y divide-border-default">
+                <thead className="bg-background-secondary">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
                       User
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
                       Department
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
                       Role
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
                       Last Login
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-text-muted">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-border-default">
                   {items.map((user) => (
                     <tr
                       key={user.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors cursor-pointer"
+                      className="hover:bg-background-secondary/70 transition-colors cursor-pointer"
                       onClick={() => setDetailUser(user)}
                     >
                       <td className="px-6 py-3.5">
@@ -368,33 +369,29 @@ export const UsersPage: React.FC = () => {
                               className="w-9 h-9 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-400 font-semibold text-sm">
+                            <div className="w-9 h-9 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary font-semibold text-sm">
                               {initials(user)}
                             </div>
                           )}
                           <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            <div className="text-sm font-medium text-text-primary">
                               {fullName(user)}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {user.employeeCode}
-                            </div>
+                            <div className="text-xs text-text-muted">{user.employeeCode}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-gray-700 dark:text-gray-300">
-                        {user.email}
-                      </td>
-                      <td className="px-6 py-3.5 text-sm text-gray-700 dark:text-gray-300">
+                      <td className="px-6 py-3.5 text-sm text-text-secondary">{user.email}</td>
+                      <td className="px-6 py-3.5 text-sm text-text-secondary">
                         {user.departmentName ?? '-'}
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-gray-700 dark:text-gray-300">
+                      <td className="px-6 py-3.5 text-sm text-text-secondary">
                         {user.roleName ?? '-'}
                       </td>
                       <td className="px-6 py-3.5">
                         <Badge tone={statusTone[user.status]}>{statusLabel[user.status]}</Badge>
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-6 py-3.5 text-sm text-text-muted">
                         {user.lastLogin ? formatDateTime(user.lastLogin) : 'Never'}
                       </td>
                       <td

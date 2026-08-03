@@ -24,10 +24,11 @@ export const Pagination: React.FC<PaginationProps> = ({
   const pageCount = Math.max(totalPages, 1);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-      <span className="text-sm text-gray-500 dark:text-gray-400">
-        Showing <span className="font-medium">{from}</span>–
-        <span className="font-medium">{to}</span> of <span className="font-medium">{total}</span>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border-default">
+      <span className="text-xs text-text-muted">
+        Showing <span className="font-semibold text-text-primary">{from}</span>–
+        <span className="font-semibold text-text-primary">{to}</span> of{' '}
+        <span className="font-semibold text-text-primary">{total}</span>
       </span>
       <div className="flex items-center gap-2">
         <Button
@@ -39,8 +40,8 @@ export const Pagination: React.FC<PaginationProps> = ({
         >
           Previous
         </Button>
-        <span className="text-sm text-gray-600 dark:text-gray-300">
-          Page <span className="font-medium">{page}</span> of {pageCount}
+        <span className="text-xs text-text-secondary">
+          Page <span className="font-semibold text-text-primary">{page}</span> of {pageCount}
         </span>
         <Button
           variant="secondary"

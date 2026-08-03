@@ -17,11 +17,11 @@ interface UnitDetailModalProps {
 }
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="py-2.5 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
-    <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:w-36 shrink-0">
+  <div className="py-2.5 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-4 border-b border-border-default last:border-0">
+    <span className="text-xs font-semibold uppercase tracking-wide text-text-muted sm:w-36 shrink-0">
       {label}
     </span>
-    <span className="text-sm text-gray-900 dark:text-white break-words">{value || '-'}</span>
+    <span className="text-sm text-text-primary break-words">{value || '-'}</span>
   </div>
 );
 
@@ -58,18 +58,16 @@ export const UnitDetailModal: React.FC<UnitDetailModalProps> = ({
         </>
       }
     >
-      <div className="flex items-center gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
-        <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-400 font-semibold text-lg">
+      <div className="flex items-center gap-4 pb-4 border-b border-border-default">
+        <div className="w-14 h-14 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary font-semibold text-lg ring-1 ring-border-default">
           {unit.unitCode.charAt(0)}
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-gray-900 dark:text-white">
-              {unit.unitName}
-            </span>
+            <span className="text-base font-semibold text-text-primary">{unit.unitName}</span>
             <Badge tone="blue">{unit.symbol}</Badge>
           </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">{unit.unitCode}</div>
+          <div className="text-sm text-text-muted">{unit.unitCode}</div>
         </div>
       </div>
 

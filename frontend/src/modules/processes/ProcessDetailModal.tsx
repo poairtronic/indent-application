@@ -28,11 +28,11 @@ interface ProcessDetailModalProps {
 }
 
 const DetailRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="py-2.5 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
-    <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:w-36 shrink-0">
+  <div className="py-2.5 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-4 border-b border-border-default last:border-0">
+    <span className="text-xs font-semibold uppercase tracking-wide text-text-muted sm:w-36 shrink-0">
       {label}
     </span>
-    <span className="text-sm text-gray-900 dark:text-white break-words">{value || '-'}</span>
+    <span className="text-sm text-text-primary break-words">{value || '-'}</span>
   </div>
 );
 
@@ -69,20 +69,18 @@ export const ProcessDetailModal: React.FC<ProcessDetailModalProps> = ({
         </>
       }
     >
-      <div className="flex items-center gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
-        <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-400 font-semibold text-lg">
+      <div className="flex items-center gap-4 pb-4 border-b border-border-default">
+        <div className="w-14 h-14 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary font-semibold text-lg ring-1 ring-border-default">
           {process.processCode.charAt(0)}
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-gray-900 dark:text-white">
-              {process.processName}
-            </span>
+            <span className="text-base font-semibold text-text-primary">{process.processName}</span>
             <Badge tone={processStatusTone[process.status]}>
               {processStatusLabel[process.status]}
             </Badge>
           </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">{process.processCode}</div>
+          <div className="text-sm text-text-muted">{process.processCode}</div>
         </div>
       </div>
 
@@ -92,7 +90,7 @@ export const ProcessDetailModal: React.FC<ProcessDetailModalProps> = ({
           value={
             process.productCode ? (
               <span className="inline-flex items-center gap-1.5">
-                <Package size={13} className="text-gray-400" /> {process.productCode}
+                <Package size={13} className="text-text-muted" /> {process.productCode}
               </span>
             ) : (
               process.productId
