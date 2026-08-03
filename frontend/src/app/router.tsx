@@ -1,68 +1,129 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
+import React, { Suspense, lazy } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
-import { LoginPage } from '../pages/auth/LoginPage';
-import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
-import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
-import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
-import { ProfilePage } from '../pages/auth/ProfilePage';
-import { DashboardPage } from '../pages/DashboardPage';
-import { UnauthorizedPage } from '../pages/UnauthorizedPage';
-import { AccountLockPage } from '../pages/AccountLockPage';
-import { SecurityDashboardPage } from '../pages/SecurityDashboardPage';
-import { SessionManagementPage } from '../pages/SessionManagementPage';
-import { LoginHistoryPage } from '../pages/LoginHistoryPage';
+import { AuthLayout } from '../components/layout/AuthLayout';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { UsersPage } from '../modules/users/UsersPage';
-import { ProcessesPage } from '../modules/processes/ProcessesPage';
-import { UnitsPage } from '../modules/units/UnitsPage';
-import { VendorsPage } from '../modules/vendors/VendorsPage';
-import {
-  SummaryPage as AnalyticsSummaryPage,
-  WorkflowPage as AnalyticsWorkflowPage,
-  DepartmentsPage as AnalyticsDepartmentsPage,
-  CostsPage as AnalyticsCostsPage,
-  ProductsPage as AnalyticsProductsPage,
-  VendorsPage as AnalyticsVendorsPage,
-} from '../modules/analytics';
+import { SettingsLayout } from '../components/layout/SettingsLayout';
 
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  return !isAuthenticated ? <>{children}</> : <Navigate to="/dashboard" replace />;
-};
+// Loading Fallback Spinner
+const LoadingFallback = () => (
+  <div className="w-full h-full flex flex-col items-center justify-center p-12 min-h-[400px] font-sans">
+    <div className="w-10 h-10 border-4 border-t-accent-primary border-border-default rounded-full animate-spin mb-4" />
+    <p className="text-xs text-text-muted font-medium tracking-wide animate-pulse">
+      Loading interface components...
+    </p>
+  </div>
+);
+
+const suspended = (Component: React.LazyExoticComponent<React.FC<any>>) => (
+  <Suspense fallback={<LoadingFallback />}>
+    <Component />
+  </Suspense>
+);
+
+// Coming Soon Placeholder Card
+const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
+  <div className="bg-surface-card border border-border-default rounded-xl p-8 shadow-card text-center max-w-md mx-auto my-12 font-sans transition-colors duration-300">
+    <div className="w-12 h-12 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+      <span className="text-xl text-accent-primary">⏳</span>
+    </div>
+    <h2 className="text-lg font-bold text-text-primary mb-2">{title} Module</h2>
+    <p className="text-xs text-text-secondary mb-6">
+      This business engine module is currently under active development as per the IMCMS roadmap.
+      All database models and core APIs are secured.
+    </p>
+    <div className="inline-flex items-center text-[10px] bg-background-primary text-text-muted px-2.5 py-1 rounded border border-border-default font-medium uppercase tracking-wider">
+      Future Phase Execution
+    </div>
+  </div>
+);
+
+// Lazy Loaded Page Components
+const LoginPage = lazy(() =>
+  import('../pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import('../pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
+);
+const ResetPasswordPage = lazy(() =>
+  import('../pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
+);
+const ChangePasswordPage = lazy(() =>
+  import('../pages/auth/ChangePasswordPage').then((m) => ({ default: m.ChangePasswordPage })),
+);
+const ProfilePage = lazy(() =>
+  import('../pages/auth/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+);
+const DashboardPage = lazy(() =>
+  import('../pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+);
+const UnauthorizedPage = lazy(() =>
+  import('../pages/UnauthorizedPage').then((m) => ({ default: m.UnauthorizedPage })),
+);
+const AccountLockPage = lazy(() =>
+  import('../pages/AccountLockPage').then((m) => ({ default: m.AccountLockPage })),
+);
+const SecurityDashboardPage = lazy(() =>
+  import('../pages/SecurityDashboardPage').then((m) => ({ default: m.SecurityDashboardPage })),
+);
+const SessionManagementPage = lazy(() =>
+  import('../pages/SessionManagementPage').then((m) => ({ default: m.SessionManagementPage })),
+);
+const LoginHistoryPage = lazy(() =>
+  import('../pages/LoginHistoryPage').then((m) => ({ default: m.LoginHistoryPage })),
+);
+const NotFoundPage = lazy(() =>
+  import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+);
+
+// Modules
+const UsersPage = lazy(() =>
+  import('../modules/users/UsersPage').then((m) => ({ default: m.UsersPage })),
+);
+const ProcessesPage = lazy(() =>
+  import('../modules/processes/ProcessesPage').then((m) => ({ default: m.ProcessesPage })),
+);
+const UnitsPage = lazy(() =>
+  import('../modules/units/UnitsPage').then((m) => ({ default: m.UnitsPage })),
+);
+const VendorsPage = lazy(() =>
+  import('../modules/vendors/VendorsPage').then((m) => ({ default: m.VendorsPage })),
+);
+
+// Analytics Pages
+const AnalyticsSummaryPage = lazy(() =>
+  import('../modules/analytics').then((m) => ({ default: m.SummaryPage })),
+);
+const AnalyticsWorkflowPage = lazy(() =>
+  import('../modules/analytics').then((m) => ({ default: m.WorkflowPage })),
+);
+const AnalyticsDepartmentsPage = lazy(() =>
+  import('../modules/analytics').then((m) => ({ default: m.DepartmentsPage })),
+);
+const AnalyticsCostsPage = lazy(() =>
+  import('../modules/analytics').then((m) => ({ default: m.CostsPage })),
+);
+const AnalyticsProductsPage = lazy(() =>
+  import('../modules/analytics').then((m) => ({ default: m.ProductsPage })),
+);
+const AnalyticsVendorsPage = lazy(() =>
+  import('../modules/analytics').then((m) => ({ default: m.VendorsPage })),
+);
 
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/forgot-password"
-        element={
-          <PublicRoute>
-            <ForgotPasswordPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/reset-password"
-        element={
-          <PublicRoute>
-            <ResetPasswordPage />
-          </PublicRoute>
-        }
-      />
-      <Route path="/account-locked" element={<AccountLockPage />} />
+      {/* Public Auth Routes */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={suspended(LoginPage)} />
+        <Route path="/forgot-password" element={suspended(ForgotPasswordPage)} />
+        <Route path="/reset-password" element={suspended(ResetPasswordPage)} />
+      </Route>
 
-      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      <Route path="/account-locked" element={suspended(AccountLockPage)} />
+      <Route path="/unauthorized" element={suspended(UnauthorizedPage)} />
 
+      {/* Protected App Routes */}
       <Route
         element={
           <ProtectedRoute>
@@ -70,19 +131,31 @@ export const AppRouter: React.FC = () => {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={suspended(DashboardPage)} />
 
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/change-password" element={<ChangePasswordPage />} />
-        <Route path="/security" element={<SecurityDashboardPage />} />
-        <Route path="/sessions" element={<SessionManagementPage />} />
-        <Route path="/login-history" element={<LoginHistoryPage />} />
+        {/* Nested Settings Route Group */}
+        <Route element={<SettingsLayout />}>
+          <Route path="/profile" element={suspended(ProfilePage)} />
+          <Route path="/change-password" element={suspended(ChangePasswordPage)} />
+          <Route path="/security" element={suspended(SecurityDashboardPage)} />
+          <Route path="/sessions" element={suspended(SessionManagementPage)} />
+          <Route path="/login-history" element={suspended(LoginHistoryPage)} />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute permissions={['settings.manage']}>
+                <ComingSoon title="System Configuration Settings" />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
 
+        {/* Business Modules (Coming Soon) */}
         <Route
           path="/indents"
           element={
             <ProtectedRoute permissions={['indent.view']}>
-              <div className="text-white p-8 text-center text-xl">Indents Module (Coming Soon)</div>
+              <ComingSoon title="Indent Management" />
             </ProtectedRoute>
           }
         />
@@ -90,9 +163,7 @@ export const AppRouter: React.FC = () => {
           path="/cost-sheets"
           element={
             <ProtectedRoute permissions={['costsheet.view']}>
-              <div className="text-white p-8 text-center text-xl">
-                Cost Sheets Module (Coming Soon)
-              </div>
+              <ComingSoon title="Cost Sheets" />
             </ProtectedRoute>
           }
         />
@@ -100,9 +171,7 @@ export const AppRouter: React.FC = () => {
           path="/workflow"
           element={
             <ProtectedRoute permissions={['workflow.view']}>
-              <div className="text-white p-8 text-center text-xl">
-                Workflow Module (Coming Soon)
-              </div>
+              <ComingSoon title="Business Workflows" />
             </ProtectedRoute>
           }
         />
@@ -110,9 +179,7 @@ export const AppRouter: React.FC = () => {
           path="/production"
           element={
             <ProtectedRoute permissions={['production.view']}>
-              <div className="text-white p-8 text-center text-xl">
-                Production Module (Coming Soon)
-              </div>
+              <ComingSoon title="Manufacturing Production" />
             </ProtectedRoute>
           }
         />
@@ -120,9 +187,7 @@ export const AppRouter: React.FC = () => {
           path="/inventory"
           element={
             <ProtectedRoute permissions={['inventory.view']}>
-              <div className="text-white p-8 text-center text-xl">
-                Inventory Module (Coming Soon)
-              </div>
+              <ComingSoon title="Inventory & Stock" />
             </ProtectedRoute>
           }
         />
@@ -130,9 +195,7 @@ export const AppRouter: React.FC = () => {
           path="/materials"
           element={
             <ProtectedRoute permissions={['materials.view']}>
-              <div className="text-white p-8 text-center text-xl">
-                Materials Module (Coming Soon)
-              </div>
+              <ComingSoon title="Materials Master" />
             </ProtectedRoute>
           }
         />
@@ -140,33 +203,7 @@ export const AppRouter: React.FC = () => {
           path="/products"
           element={
             <ProtectedRoute permissions={['products.view']}>
-              <div className="text-white p-8 text-center text-xl">
-                Products Module (Coming Soon)
-              </div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manufacturing-processes"
-          element={
-            <ProtectedRoute permissions={['manufacturing-processes.view']}>
-              <ProcessesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/units"
-          element={
-            <ProtectedRoute permissions={['units.view']}>
-              <UnitsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/vendors"
-          element={
-            <ProtectedRoute permissions={['vendors.view']}>
-              <VendorsPage />
+              <ComingSoon title="Products Master" />
             </ProtectedRoute>
           }
         />
@@ -174,63 +211,7 @@ export const AppRouter: React.FC = () => {
           path="/reports"
           element={
             <ProtectedRoute permissions={['reports.view']}>
-              <div className="text-white p-8 text-center text-xl">Reports Module (Coming Soon)</div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics"
-          element={
-            <ProtectedRoute permissions={['analytics.view']}>
-              <AnalyticsSummaryPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics/workflow"
-          element={
-            <ProtectedRoute permissions={['analytics.view']}>
-              <AnalyticsWorkflowPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics/departments"
-          element={
-            <ProtectedRoute permissions={['analytics.view']}>
-              <AnalyticsDepartmentsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics/costs"
-          element={
-            <ProtectedRoute permissions={['analytics.view']}>
-              <AnalyticsCostsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics/products"
-          element={
-            <ProtectedRoute permissions={['analytics.view']}>
-              <AnalyticsProductsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics/vendors"
-          element={
-            <ProtectedRoute permissions={['analytics.view']}>
-              <AnalyticsVendorsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/users"
-          element={
-            <ProtectedRoute permissions={['users.view']}>
-              <UsersPage />
+              <ComingSoon title="Enterprise Document Reporting" />
             </ProtectedRoute>
           }
         />
@@ -238,21 +219,91 @@ export const AppRouter: React.FC = () => {
           path="/roles"
           element={
             <ProtectedRoute permissions={['roles.view']}>
-              <div className="text-white p-8 text-center text-xl">Roles Module (Coming Soon)</div>
+              <ComingSoon title="RBAC Roles Management" />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Master Data Modules */}
+        <Route
+          path="/manufacturing-processes"
+          element={
+            <ProtectedRoute permissions={['manufacturing-processes.view']}>
+              {suspended(ProcessesPage)}
             </ProtectedRoute>
           }
         />
         <Route
-          path="/settings"
+          path="/units"
           element={
-            <ProtectedRoute permissions={['settings.manage']}>
-              <div className="text-white p-8 text-center text-xl">Settings (Coming Soon)</div>
+            <ProtectedRoute permissions={['units.view']}>{suspended(UnitsPage)}</ProtectedRoute>
+          }
+        />
+        <Route
+          path="/vendors"
+          element={
+            <ProtectedRoute permissions={['vendors.view']}>{suspended(VendorsPage)}</ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute permissions={['users.view']}>{suspended(UsersPage)}</ProtectedRoute>
+          }
+        />
+
+        {/* Analytics Module */}
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              {suspended(AnalyticsSummaryPage)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/workflow"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              {suspended(AnalyticsWorkflowPage)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/departments"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              {suspended(AnalyticsDepartmentsPage)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/costs"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              {suspended(AnalyticsCostsPage)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/products"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              {suspended(AnalyticsProductsPage)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics/vendors"
+          element={
+            <ProtectedRoute permissions={['analytics.view']}>
+              {suspended(AnalyticsVendorsPage)}
             </ProtectedRoute>
           }
         />
       </Route>
 
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={suspended(NotFoundPage)} />
     </Routes>
   );
 };

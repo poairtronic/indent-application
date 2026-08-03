@@ -1,5 +1,29 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  FileSpreadsheet,
+  Coins,
+  GitFork,
+  Factory,
+  Boxes,
+  PackageOpen,
+  Layers,
+  Wrench,
+  Scale,
+  Briefcase,
+  FileText,
+  BarChart3,
+  Users,
+  Shield,
+  Lock,
+  Monitor,
+  History,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  User,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSidebar } from '../../store/sidebar.store';
 
@@ -10,41 +34,112 @@ interface NavItem {
   permission?: string;
 }
 
+const sidebarIconClass = 'w-5 h-5 flex-shrink-0';
+
 const navItems: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: <span>📊</span>, permission: 'analytics.view' },
-  { label: 'Indents', path: '/indents', icon: <span>📋</span>, permission: 'indent.view' },
+  {
+    label: 'Dashboard',
+    path: '/dashboard',
+    icon: <LayoutDashboard className={sidebarIconClass} />,
+    permission: 'analytics.view',
+  },
+  {
+    label: 'Indents',
+    path: '/indents',
+    icon: <FileSpreadsheet className={sidebarIconClass} />,
+    permission: 'indent.view',
+  },
   {
     label: 'Cost Sheets',
     path: '/cost-sheets',
-    icon: <span>💰</span>,
+    icon: <Coins className={sidebarIconClass} />,
     permission: 'costsheet.view',
   },
-  { label: 'Workflow', path: '/workflow', icon: <span>🔄</span>, permission: 'workflow.view' },
+  {
+    label: 'Workflow',
+    path: '/workflow',
+    icon: <GitFork className={sidebarIconClass} />,
+    permission: 'workflow.view',
+  },
   {
     label: 'Production',
     path: '/production',
-    icon: <span>🏭</span>,
+    icon: <Factory className={sidebarIconClass} />,
     permission: 'production.view',
   },
-  { label: 'Inventory', path: '/inventory', icon: <span>📦</span>, permission: 'inventory.view' },
-  { label: 'Materials', path: '/materials', icon: <span>🧱</span>, permission: 'materials.view' },
-  { label: 'Products', path: '/products', icon: <span>⚙️</span>, permission: 'products.view' },
   {
-    label: 'Manufacturing Processes',
+    label: 'Inventory',
+    path: '/inventory',
+    icon: <Boxes className={sidebarIconClass} />,
+    permission: 'inventory.view',
+  },
+  {
+    label: 'Materials',
+    path: '/materials',
+    icon: <PackageOpen className={sidebarIconClass} />,
+    permission: 'materials.view',
+  },
+  {
+    label: 'Products',
+    path: '/products',
+    icon: <Layers className={sidebarIconClass} />,
+    permission: 'products.view',
+  },
+  {
+    label: 'Processes',
     path: '/manufacturing-processes',
-    icon: <span>🛠️</span>,
+    icon: <Wrench className={sidebarIconClass} />,
     permission: 'manufacturing-processes.view',
   },
-  { label: 'Units', path: '/units', icon: <span>📐</span>, permission: 'units.view' },
-  { label: 'Vendors', path: '/vendors', icon: <span>🏢</span>, permission: 'vendors.view' },
-  { label: 'Reports', path: '/reports', icon: <span>📈</span>, permission: 'reports.view' },
-  { label: 'Analytics', path: '/analytics', icon: <span>📉</span>, permission: 'analytics.view' },
-  { label: 'Users', path: '/users', icon: <span>👥</span>, permission: 'users.view' },
-  { label: 'Roles', path: '/roles', icon: <span>🔐</span>, permission: 'roles.view' },
-  { label: 'Security', path: '/security', icon: <span>🛡️</span> },
-  { label: 'Sessions', path: '/sessions', icon: <span>🔌</span> },
-  { label: 'Login History', path: '/login-history', icon: <span>📜</span> },
-  { label: 'Settings', path: '/settings', icon: <span>⚙️</span>, permission: 'settings.manage' },
+  {
+    label: 'Units',
+    path: '/units',
+    icon: <Scale className={sidebarIconClass} />,
+    permission: 'units.view',
+  },
+  {
+    label: 'Vendors',
+    path: '/vendors',
+    icon: <Briefcase className={sidebarIconClass} />,
+    permission: 'vendors.view',
+  },
+  {
+    label: 'Reports',
+    path: '/reports',
+    icon: <FileText className={sidebarIconClass} />,
+    permission: 'reports.view',
+  },
+  {
+    label: 'Analytics',
+    path: '/analytics',
+    icon: <BarChart3 className={sidebarIconClass} />,
+    permission: 'analytics.view',
+  },
+  {
+    label: 'Users',
+    path: '/users',
+    icon: <Users className={sidebarIconClass} />,
+    permission: 'users.view',
+  },
+  {
+    label: 'Roles',
+    path: '/roles',
+    icon: <Shield className={sidebarIconClass} />,
+    permission: 'roles.view',
+  },
+  { label: 'Security', path: '/security', icon: <Lock className={sidebarIconClass} /> },
+  { label: 'Sessions', path: '/sessions', icon: <Monitor className={sidebarIconClass} /> },
+  {
+    label: 'Login History',
+    path: '/login-history',
+    icon: <History className={sidebarIconClass} />,
+  },
+  {
+    label: 'Settings',
+    path: '/settings',
+    icon: <Settings className={sidebarIconClass} />,
+    permission: 'settings.manage',
+  },
 ];
 
 interface SidebarProps {
@@ -55,7 +150,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isOpen } = useSidebar();
+  const { isOpen, toggleSidebar } = useSidebar();
   const hasPermission = useAuthStore((s) => s.hasPermission);
 
   const visibleItems = navItems.filter(
@@ -64,16 +159,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
 
   return (
     <aside
-      className={`bg-gray-900 text-white h-screen transition-all duration-300 flex flex-col ${
+      className={`bg-background-secondary border-r border-border-default h-screen transition-all duration-300 flex flex-col ${
         isOpen ? 'w-64' : 'w-16'
       } ${isMobileOpen ? 'fixed inset-0 z-50' : 'hidden md:flex'}`}
     >
-      <div className="p-4 border-b border-gray-700">
-        <h2 className={`font-bold text-lg ${isOpen ? 'block' : 'hidden'}`}>Indent System</h2>
-        {!isOpen && <span className="block text-center text-lg font-bold">IS</span>}
+      {/* Sidebar Header with Pinned Toggle */}
+      <div className="p-4 border-b border-border-default flex items-center justify-between min-h-[64px]">
+        <span
+          className={`font-bold text-sm tracking-wide text-text-primary ${isOpen ? 'block' : 'hidden'}`}
+        >
+          IMCMS Enterprise
+        </span>
+        {!isOpen && (
+          <span className="block text-center text-sm font-bold text-accent-primary">IE</span>
+        )}
+        <button
+          onClick={() => toggleSidebar()}
+          className="text-text-muted hover:text-text-primary p-1 rounded hover:bg-surface-elevated transition-colors"
+          title={isOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
+        >
+          {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-2">
+      {/* Sidebar Links */}
+      <nav className="flex-1 overflow-y-auto py-2 space-y-0.5 scrollbar-thin scrollbar-thumb-border-default">
         {visibleItems.map((item) => {
           const isActive = location.pathname.startsWith(item.path);
           return (
@@ -83,29 +193,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                 navigate(item.path);
                 onCloseMobile?.();
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium transition-all duration-150 border-l-2 ${
                 isActive
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'bg-accent-primary/10 border-accent-primary text-accent-primary'
+                  : 'border-transparent text-text-secondary hover:bg-surface-card hover:text-text-primary'
               }`}
               title={!isOpen ? item.label : undefined}
             >
-              <span className="flex-shrink-0 text-lg">{item.icon}</span>
+              {item.icon}
               {isOpen && <span>{item.label}</span>}
             </button>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-700">
+      {/* Sidebar Footer */}
+      <div className="p-4 border-t border-border-default min-h-[64px] flex items-center justify-center">
         <button
           onClick={() => navigate('/profile')}
-          className={`flex items-center gap-3 text-sm text-gray-300 hover:text-white transition-colors w-full ${
+          className={`flex items-center gap-3 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors w-full ${
             !isOpen ? 'justify-center' : ''
           }`}
+          title={!isOpen ? 'View Profile' : undefined}
         >
-          <span>👤</span>
-          {isOpen && <span>Profile</span>}
+          <User className="w-5 h-5 flex-shrink-0" />
+          {isOpen && <span>My Profile</span>}
         </button>
       </div>
     </aside>

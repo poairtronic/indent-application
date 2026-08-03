@@ -1,13 +1,8 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import React, { useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-
-interface AppContextType {
-  theme: 'light' | 'dark';
-  toggleTheme: () => void;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
+import { useThemeStore } from '../store/theme.store';
+import { GlobalErrorBoundary } from '../components/common/GlobalErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,25 +14,24 @@ const queryClient = new QueryClient({
 });
 
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const { resolvedTheme } = useThemeStore();
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
+  useEffect(() => {
+    const root = document.documentElement;
+    if (resolvedTheme === 'dark') {
+      root.classList.add('dark');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    }
+  }, [resolvedTheme]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppContext.Provider value={{ theme, toggleTheme }}>{children}</AppContext.Provider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <GlobalErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>{children}</BrowserRouter>
+      </QueryClientProvider>
+    </GlobalErrorBoundary>
   );
-};
-
-export const useApp = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within AppProviders');
-  }
-  return context;
 };

@@ -1,43 +1,79 @@
-import { useState, useEffect } from 'react';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-let currentTheme: 'light' | 'dark' = 'light';
-const listeners = new Set<(theme: 'light' | 'dark') => void>();
+export type ThemeMode = 'light' | 'dark' | 'system';
 
-const emit = () => {
-  listeners.forEach((listener) => listener(currentTheme));
+interface ThemeState {
+  theme: ThemeMode;
+  resolvedTheme: 'light' | 'dark';
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
+}
+
+const getSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'light';
 };
 
-export const themeStore = {
-  get theme() {
-    return currentTheme;
-  },
-  setTheme(theme: 'light' | 'dark') {
-    currentTheme = theme;
-    emit();
-  },
-  toggle() {
-    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-    emit();
-  },
-  subscribe(listener: (theme: 'light' | 'dark') => void) {
-    listeners.add(listener);
-    return () => {
-      listeners.delete(listener);
-    };
-  },
+const applyTheme = (resolvedTheme: 'light' | 'dark') => {
+  if (typeof document !== 'undefined') {
+    const root = document.documentElement;
+    if (resolvedTheme === 'dark') {
+      root.classList.add('dark');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    }
+  }
 };
 
-export const useTheme = () => {
-  const [theme, setThemeState] = useState<'light' | 'dark'>(currentTheme);
+export const useThemeStore = create<ThemeState>()(
+  persist(
+    (set, get) => ({
+      theme: 'system',
+      resolvedTheme: getSystemTheme(),
+      setTheme: (theme) => {
+        const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;
+        set({ theme, resolvedTheme });
+        applyTheme(resolvedTheme);
+      },
+      toggleTheme: () => {
+        const { theme, resolvedTheme } = get();
+        let nextTheme: ThemeMode;
+        if (theme === 'system') {
+          nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
+        } else {
+          nextTheme = theme === 'dark' ? 'light' : 'dark';
+        }
+        const nextResolved = nextTheme;
+        set({ theme: nextTheme, resolvedTheme: nextResolved });
+        applyTheme(nextResolved);
+      },
+    }),
+    {
+      name: 'theme_settings',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          const resolved = state.theme === 'system' ? getSystemTheme() : state.theme;
+          state.resolvedTheme = resolved;
+          applyTheme(resolved);
+        }
+      },
+    },
+  ),
+);
 
-  useEffect(() => {
-    return themeStore.subscribe((newTheme) => {
-      setThemeState(newTheme);
-    });
-  }, []);
-
-  return {
-    theme,
-    toggleTheme: () => themeStore.toggle(),
-  };
-};
+// Listener for system media theme updates
+if (typeof window !== 'undefined' && window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    const theme = useThemeStore.getState().theme;
+    if (theme === 'system') {
+      const resolvedTheme = e.matches ? 'dark' : 'light';
+      useThemeStore.setState({ resolvedTheme });
+      applyTheme(resolvedTheme);
+    }
+  });
+}

@@ -6,10 +6,7 @@ import '../styles/global.css';
 const App: React.FC = () => {
   return (
     <AppProviders>
-      <div className="app-container">
-        <h1>Welcome to Indent Application</h1>
-        <AppRouter />
-      </div>
+      <AppRouter />
     </AppProviders>
   );
 };
