@@ -71,11 +71,11 @@ export const ProfilePage: React.FC = () => {
             width: '60px',
             height: '60px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #818cf8, #4f46e5)',
+            background: 'var(--grad-primary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
+            color: 'var(--text-main)',
           }}
         >
           <User size={30} />
@@ -184,7 +184,7 @@ export const ProfilePage: React.FC = () => {
               width: '100%',
               background: 'none',
               border: '1px solid var(--border-color)',
-              color: 'var(--text-main)',
+              color: '#fff',
             }}
           >
             <KeyRound size={16} />
@@ -199,7 +199,7 @@ export const ProfilePage: React.FC = () => {
         style={{
           width: '100%',
           marginTop: '1rem',
-          background: 'linear-gradient(135deg, var(--danger), #dc2626)',
+          background: 'var(--grad-danger)',
         }}
       >
         <LogOut size={16} />

@@ -43,7 +43,7 @@ export const WorkflowTimeline: React.FC<TimelineProps> = ({ items, className = '
     >
       {items.map((item) => (
         <div key={item.id} className="flex-1 flex flex-row md:flex-col items-start gap-3 relative">
-          <div className="w-8 h-8 rounded-full border border-border-default bg-surface-card flex items-center justify-center font-bold text-xs text-text-primary shadow-sm shrink-0 md:mb-2 z-10">
+          <div className="w-8 h-8 rounded-full border border-border-default bg-surface-card flex items-center justify-center font-bold text-xs text-text-primary shadow-card shrink-0 md:mb-2 z-10">
             {item.icon || <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />}
           </div>
           <div>
@@ -66,7 +66,7 @@ export const AuditTimeline: React.FC<TimelineProps> = ({ items, className = '' }
           <div className="absolute left-[9px] top-1 w-3 h-3 rounded-full border border-border-default bg-surface-card flex items-center justify-center shrink-0">
             <span className="w-1 h-1 rounded-full bg-accent-primary" />
           </div>
-          <div className="flex-1 border border-border-default rounded-xl p-3 bg-surface-card shadow-sm space-y-1">
+          <div className="flex-1 border border-border-default rounded-xl p-3 bg-surface-card shadow-card space-y-1">
             <div className="flex justify-between items-center text-[10px]">
               <span className="font-bold text-text-primary">{item.title}</span>
               <span className="text-text-muted">{item.timestamp}</span>

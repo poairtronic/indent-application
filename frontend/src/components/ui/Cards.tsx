@@ -16,7 +16,7 @@ const ACCENT_CONFIG: Record<
     icon: 'kpi-icon-primary',
     aura: 'kpi-aura-primary',
     glow: 'hover:shadow-glow',
-    value: 'from-accent-light to-accent-primary',
+    value: 'bg-grad-primary',
     trend: 'text-accent-primary',
   },
   info: {
@@ -24,7 +24,7 @@ const ACCENT_CONFIG: Record<
     icon: 'kpi-icon-info',
     aura: 'kpi-aura-info',
     glow: 'hover:shadow-glow-info',
-    value: 'from-info to-accent-light',
+    value: 'bg-grad-info',
     trend: 'text-info',
   },
   success: {
@@ -32,7 +32,7 @@ const ACCENT_CONFIG: Record<
     icon: 'kpi-icon-success',
     aura: 'kpi-aura-success',
     glow: 'hover:shadow-glow-success',
-    value: 'from-emerald-400 to-emerald-600',
+    value: 'bg-grad-success',
     trend: 'text-status-success',
   },
   warning: {
@@ -40,7 +40,7 @@ const ACCENT_CONFIG: Record<
     icon: 'kpi-icon-warning',
     aura: 'kpi-aura-warning',
     glow: 'hover:shadow-glow-warning',
-    value: 'from-amber-400 to-amber-600',
+    value: 'bg-grad-warning',
     trend: 'text-status-warning',
   },
   danger: {
@@ -48,7 +48,7 @@ const ACCENT_CONFIG: Record<
     icon: 'kpi-icon-danger',
     aura: 'kpi-aura-danger',
     glow: 'hover:shadow-glow-danger',
-    value: 'from-red-400 to-red-600',
+    value: 'bg-grad-danger',
     trend: 'text-status-error',
   },
 };
@@ -56,7 +56,7 @@ const ACCENT_CONFIG: Record<
 export const BaseCard: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
     <div
-      className={`bg-grad-card border border-border-default rounded-xl p-5 font-sans text-xs text-text-primary shadow-card hover:shadow-lg hover:border-border-strong hover-lift ${className}`}
+      className={`bg-grad-card border border-border-default rounded-xl p-5 font-sans text-xs text-text-primary shadow-card hover:shadow-modal hover:border-border-strong hover-lift ${className}`}
     >
       {children}
     </div>
@@ -150,7 +150,7 @@ export const KPICard: React.FC<KPICardProps> = ({
             {title}
           </span>
           <span
-            className={`block text-2xl font-black tracking-tight bg-gradient-to-r ${a.value} bg-clip-text text-transparent`}
+            className={`block text-2xl font-black tracking-tight ${a.value} bg-clip-text text-transparent`}
           >
             {value}
           </span>

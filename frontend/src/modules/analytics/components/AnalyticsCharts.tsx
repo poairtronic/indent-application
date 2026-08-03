@@ -38,7 +38,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data, size = 200, thickn
             cy={size / 2}
             r={radius}
             fill="transparent"
-            stroke="#334155"
+            stroke="var(--border-strong)"
             strokeWidth={thickness}
             className="opacity-25"
           />
@@ -69,8 +69,10 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data, size = 200, thickn
             })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-2xl font-bold text-white">{total}</span>
-          <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Total</span>
+          <span className="text-2xl font-bold text-text-primary">{total}</span>
+          <span className="text-xs text-text-muted font-medium uppercase tracking-wider">
+            Total
+          </span>
         </div>
       </div>
 
@@ -82,8 +84,8 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data, size = 200, thickn
           return (
             <div key={idx} className="flex items-center gap-3">
               <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-slate-300 text-sm font-medium">{item.label}</span>
-              <span className="text-slate-500 text-sm font-semibold">
+              <span className="text-text-secondary text-sm font-medium">{item.label}</span>
+              <span className="text-text-muted text-sm font-semibold">
                 {item.value} ({percentage}%)
               </span>
             </div>
@@ -110,7 +112,7 @@ export const BarChart: React.FC<BarChartProps> = ({ data, height = 200, color = 
   return (
     <div className="flex flex-col w-full p-4">
       {/* Chart container */}
-      <div className="flex items-end gap-3 md:gap-6 border-b border-slate-700 h-[220px] pb-2 px-4">
+      <div className="flex items-end gap-3 md:gap-6 border-b border-border-default h-[220px] pb-2 px-4">
         {data.map((item, idx) => {
           const pct = item.value / max;
           const barHeight = Math.max(pct * height, 8); // minimal height for visual feedback
@@ -121,16 +123,16 @@ export const BarChart: React.FC<BarChartProps> = ({ data, height = 200, color = 
               className="flex-1 flex flex-col items-center group relative h-full justify-end"
             >
               {/* Tooltip */}
-              <div className="absolute bottom-full mb-2 bg-slate-900 border border-slate-700 text-white text-xs px-2.5 py-1 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
+              <div className="absolute bottom-full mb-2 bg-surface-elevated border border-border-default text-text-primary text-xs px-2.5 py-1 rounded shadow-card opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
                 {item.value} units
               </div>
               {/* Bar representation */}
               <div
                 style={{ height: barHeight, backgroundColor: color }}
-                className="w-full rounded-t transition-all duration-500 ease-out group-hover:brightness-110 shadow-lg shadow-indigo-950/20"
+                className="w-full rounded-t transition-all duration-500 ease-out group-hover:brightness-110 shadow-card"
               />
               {/* X label */}
-              <span className="text-xs text-slate-400 font-semibold mt-2 text-center truncate max-w-[60px] md:max-w-full">
+              <span className="text-xs text-text-muted font-semibold mt-2 text-center truncate max-w-[60px] md:max-w-full">
                 {item.label}
               </span>
             </div>
@@ -164,12 +166,12 @@ export const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
         return (
           <div key={idx} className="space-y-1.5">
             <div className="flex justify-between items-center text-sm">
-              <span className="text-slate-300 font-medium truncate max-w-[200px]">
+              <span className="text-text-secondary font-medium truncate max-w-[200px]">
                 {item.label}
               </span>
-              <span className="text-white font-bold">{item.value}</span>
+              <span className="text-text-primary font-bold">{item.value}</span>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-3.5 border border-slate-700/40 relative overflow-hidden">
+            <div className="w-full bg-surface-elevated rounded-full h-3.5 border border-border-default relative overflow-hidden">
               <div
                 style={{ width: `${percentage}%`, backgroundColor: color }}
                 className="h-full rounded-full transition-all duration-700 ease-out shadow-inner"
@@ -229,7 +231,7 @@ export const LineChart: React.FC<LineChartProps> = ({ data, height = 160, color 
           y1={padding}
           x2={width - padding}
           y2={padding}
-          stroke="#334155"
+          stroke="var(--border-strong)"
           strokeDasharray="4 4"
           className="opacity-40"
         />
@@ -238,7 +240,7 @@ export const LineChart: React.FC<LineChartProps> = ({ data, height = 160, color 
           y1={height - padding}
           x2={width - padding}
           y2={height - padding}
-          stroke="#334155"
+          stroke="var(--border-strong)"
           className="opacity-60"
         />
 
@@ -264,7 +266,7 @@ export const LineChart: React.FC<LineChartProps> = ({ data, height = 160, color 
               cy={p.y}
               r="5"
               fill={color}
-              stroke="#0f172a"
+              stroke="var(--bg-main)"
               strokeWidth="2"
               className="chart-point"
             />
@@ -273,10 +275,10 @@ export const LineChart: React.FC<LineChartProps> = ({ data, height = 160, color 
               x={p.x}
               y={p.y - 10}
               textAnchor="middle"
-              fill="#ffffff"
+              fill="var(--text-primary)"
               fontSize="10"
               fontWeight="bold"
-              className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950 font-sans"
+              className="opacity-0 group-hover:opacity-100 transition-opacity font-sans"
             >
               {p.value}
             </text>
@@ -286,7 +288,7 @@ export const LineChart: React.FC<LineChartProps> = ({ data, height = 160, color 
       {/* X Labels */}
       <div className="flex justify-between px-3 mt-2">
         {data.map((item, idx) => (
-          <span key={idx} className="text-[10px] text-slate-400 font-semibold">
+          <span key={idx} className="text-[10px] text-text-muted font-semibold">
             {item.label}
           </span>
         ))}

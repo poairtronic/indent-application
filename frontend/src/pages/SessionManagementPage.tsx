@@ -19,7 +19,7 @@ export const SessionManagementPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
         <h1 className="text-2xl font-bold text-text-primary tracking-tight">Session Management</h1>
         <p className="text-text-muted mt-1">Manage your active sessions across devices</p>
       </div>
@@ -67,7 +67,7 @@ export const SessionManagementPage: React.FC = () => {
       )}
 
       {!isLoading && sessions.length === 0 && (
-        <div className="bg-surface-card border border-border-default rounded-xl p-8 text-center shadow-sm">
+        <div className="bg-surface-card border border-border-default rounded-xl p-8 text-center shadow-card">
           <p className="text-text-muted">No active sessions found.</p>
         </div>
       )}
@@ -97,7 +97,7 @@ const SessionCard: React.FC<{
 
   return (
     <div
-      className={`bg-surface-card border border-border-default rounded-xl p-5 shadow-sm border-l-4 transition-colors ${
+      className={`bg-surface-card border border-border-default rounded-xl p-5 shadow-card border-l-4 transition-colors ${
         isActive ? 'border-l-status-success' : 'border-l-border-strong'
       }`}
     >

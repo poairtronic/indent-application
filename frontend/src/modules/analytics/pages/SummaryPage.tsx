@@ -10,11 +10,11 @@ export const SummaryPage: React.FC = () => {
   if (error) {
     return (
       <AnalyticsLayout title="Executive Analytics Summary" subtitle="Operational dashboard metrics">
-        <div className="bg-red-950/20 border border-red-800/40 p-6 rounded-xl text-center text-red-400">
+        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
           <p className="font-semibold mb-2">Error loading analytics summary</p>
           <button
             onClick={() => refetch()}
-            className="px-4 py-1.5 bg-red-800 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+            className="px-4 py-1.5 bg-status-error text-white rounded-lg text-sm hover:bg-status-error/90 transition-colors"
           >
             Retry
           </button>
@@ -72,25 +72,29 @@ export const SummaryPage: React.FC = () => {
       {/* Chart Layout */}
       {!isLoading && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl lg:col-span-2">
-            <h3 className="text-white font-bold text-lg mb-4">Transaction Status Distribution</h3>
+          <div className="bg-surface-card border border-border-default p-6 rounded-xl lg:col-span-2">
+            <h3 className="text-text-primary font-bold text-lg mb-4">
+              Transaction Status Distribution
+            </h3>
             {chartData.length > 0 ? (
               <DonutChart data={chartData} />
             ) : (
-              <div className="text-slate-400 text-center py-12 text-sm">
+              <div className="text-text-muted text-center py-12 text-sm">
                 No transaction records found.
               </div>
             )}
           </div>
-          <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl flex flex-col justify-between">
+          <div className="bg-surface-card border border-border-default p-6 rounded-xl flex flex-col justify-between">
             <div>
-              <h3 className="text-white font-bold text-lg mb-2">Passive Executive Monitor</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <h3 className="text-text-primary font-bold text-lg mb-2">
+                Passive Executive Monitor
+              </h3>
+              <p className="text-text-muted text-sm leading-relaxed">
                 Senior Managers & General Managers monitor operations through this dashboard. State
                 changes trigger automated notifications rather than blocking manual approvals.
               </p>
             </div>
-            <div className="border-t border-slate-700/60 pt-4 mt-6 flex justify-between items-center text-xs text-slate-500 font-medium">
+            <div className="border-t border-border-default pt-4 mt-6 flex justify-between items-center text-xs text-text-disabled font-medium">
               <span>Data source: Live Database</span>
               <span>
                 Refreshed:{' '}

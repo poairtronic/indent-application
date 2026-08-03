@@ -11,7 +11,7 @@ export const AuthLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background-primary px-4 py-12 sm:px-6 lg:px-8 font-sans transition-colors duration-300">
-      <div className="max-w-md w-full space-y-8 bg-surface-card border border-border-default rounded-2xl p-8 shadow-xl">
+      <div className="max-w-md w-full space-y-8 bg-surface-card border border-border-default rounded-2xl p-8 shadow-modal">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-text-primary tracking-tight">
             IMCMS Enterprise

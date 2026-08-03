@@ -85,7 +85,7 @@ export const Header: React.FC = () => {
         <div className="hidden lg:flex items-center gap-4 max-w-xs w-full mx-4">
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="w-full bg-background-primary/60 hover:bg-background-secondary/80 border border-border-default hover:border-border-strong rounded-lg px-3 py-1.5 text-xs text-text-muted outline-none flex items-center justify-between transition-all duration-200 ease-enter shadow-sm focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:border-accent-primary"
+            className="w-full bg-background-primary/60 hover:bg-background-secondary/80 border border-border-default hover:border-border-strong rounded-lg px-3 py-1.5 text-xs text-text-muted outline-none flex items-center justify-between transition-all duration-200 ease-enter shadow-card focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:border-accent-primary"
           >
             <span className="flex items-center gap-2">
               <Lucide.Search className="w-3.5 h-3.5 text-text-muted" />

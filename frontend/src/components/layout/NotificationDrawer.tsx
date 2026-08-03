@@ -27,7 +27,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
         onClick={onClose}
       />
 
-      <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-surface-card border-l border-border-default shadow-2xl z-50 flex flex-col font-sans transition-all duration-300">
+      <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-surface-card border-l border-border-default shadow-modal z-50 flex flex-col font-sans transition-all duration-300">
         {/* Header */}
         <div className="p-4 border-b border-border-default flex items-center justify-between">
           <div className="flex items-center gap-2">

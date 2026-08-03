@@ -20,15 +20,15 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({ children, titl
   return (
     <div className="space-y-6 p-6">
       {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-700 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-border-default pb-5">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-1">{title}</h1>
-          {subtitle && <p className="text-slate-400 text-sm">{subtitle}</p>}
+          <h1 className="text-3xl font-extrabold tracking-tight text-text-primary mb-1">{title}</h1>
+          {subtitle && <p className="text-text-muted text-sm">{subtitle}</p>}
         </div>
       </div>
 
       {/* Tabs navigation */}
-      <div className="border-b border-slate-800">
+      <div className="border-b border-border-default">
         <nav className="flex space-x-8 -mb-px overflow-x-auto" aria-label="Tabs">
           {tabs.map((tab) => (
             <NavLink
@@ -38,8 +38,8 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({ children, titl
               className={({ isActive }) =>
                 `whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-all ${
                   isActive
-                    ? 'border-indigo-500 text-indigo-400 font-semibold'
-                    : 'border-transparent text-slate-400 hover:border-slate-300 hover:text-slate-200'
+                    ? 'border-accent-primary text-accent-primary font-semibold'
+                    : 'border-transparent text-text-muted hover:border-border-strong hover:text-text-secondary'
                 }`
               }
             >

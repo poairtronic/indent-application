@@ -11,23 +11,23 @@ interface StatusIndicatorProps {
 
 const indicatorConfig: Record<IndicatorState, { dot: string; glow: string; label: string }> = {
   online: {
-    dot: 'bg-green-500',
-    glow: 'bg-green-500/50',
+    dot: 'bg-status-success',
+    glow: 'bg-status-success/50',
     label: 'Online',
   },
   offline: {
-    dot: 'bg-gray-400',
-    glow: 'bg-gray-400/0',
+    dot: 'bg-text-disabled',
+    glow: 'bg-text-disabled/0',
     label: 'Offline',
   },
   success: {
-    dot: 'bg-emerald-500',
-    glow: 'bg-emerald-500/50',
+    dot: 'bg-status-success',
+    glow: 'bg-status-success/50',
     label: 'Success',
   },
   warning: {
-    dot: 'bg-amber-500',
-    glow: 'bg-amber-500/50',
+    dot: 'bg-status-warning',
+    glow: 'bg-status-warning/50',
     label: 'Warning',
   },
   error: {
@@ -36,13 +36,13 @@ const indicatorConfig: Record<IndicatorState, { dot: string; glow: string; label
     label: 'Error',
   },
   pending: {
-    dot: 'bg-blue-500',
-    glow: 'bg-blue-500/50',
+    dot: 'bg-info',
+    glow: 'bg-info/50',
     label: 'Pending',
   },
   archived: {
-    dot: 'bg-indigo-500',
-    glow: 'bg-indigo-500/50',
+    dot: 'bg-accent-primary',
+    glow: 'bg-accent-primary/50',
     label: 'Archived',
   },
 };

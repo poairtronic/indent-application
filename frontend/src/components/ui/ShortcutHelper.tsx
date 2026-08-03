@@ -44,7 +44,7 @@ export const ShortcutHelper: React.FC = () => {
               {sc.keys.map((k) => (
                 <kbd
                   key={k}
-                  className="px-2 py-1 rounded bg-background-secondary border border-border-default font-mono text-[10px] font-bold text-text-primary shadow-sm"
+                  className="px-2 py-1 rounded bg-background-secondary border border-border-default font-mono text-[10px] font-bold text-text-primary shadow-card"
                 >
                   {k}
                 </kbd>

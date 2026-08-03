@@ -53,7 +53,7 @@ export const Popover: React.FC<PopoverProps> = ({ trigger, children, className =
         createPortal(
           <div
             style={{ top: coords.top + 6, left: coords.left }}
-            className="absolute bg-surface-card border border-border-default rounded-xl shadow-xl p-4 z-[90] min-w-56 font-sans text-xs text-text-primary"
+            className="absolute bg-surface-card border border-border-default rounded-xl shadow-dropdown p-4 z-[90] min-w-56 font-sans text-xs text-text-primary"
             onClick={(e) => e.stopPropagation()}
           >
             {children}
@@ -99,7 +99,7 @@ export const HoverCard: React.FC<HoverCardProps> = ({ trigger, children, classNa
         createPortal(
           <div
             style={{ top: coords.top + 6, left: coords.left }}
-            className="absolute bg-surface-card border border-border-default rounded-xl shadow-xl p-4 z-[90] min-w-56 font-sans text-xs text-text-primary pointer-events-none"
+            className="absolute bg-surface-card border border-border-default rounded-xl shadow-dropdown p-4 z-[90] min-w-56 font-sans text-xs text-text-primary pointer-events-none"
           >
             {children}
           </div>,

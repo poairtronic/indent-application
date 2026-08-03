@@ -181,11 +181,11 @@ export const Rating: React.FC<RatingProps> = ({ label, value, onChange, max = 5,
               key={idx}
               type="button"
               onClick={() => onChange(starVal)}
-              className="focus:outline-none transition-colors text-text-muted hover:text-amber-400"
+              className="focus:outline-none transition-colors text-text-muted hover:text-status-warning"
             >
               <Star
                 size={16}
-                className={isFilled ? 'fill-amber-400 text-amber-400' : 'text-text-muted'}
+                className={isFilled ? 'fill-status-warning text-status-warning' : 'text-text-muted'}
               />
             </button>
           );

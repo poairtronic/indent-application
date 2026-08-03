@@ -124,7 +124,7 @@ export const VendorsPage: React.FC = () => {
       onSuccess: () => {
         addDeleted({
           id: deleteTarget.id,
-          summary: `${deleteTarget.vendorCode} · ${deleteTarget.vendorName}`,
+          summary: `${deleteTarget.vendorCode} Â· ${deleteTarget.vendorName}`,
           deletedAt: new Date().toISOString(),
         });
         show('success', `Vendor "${deleteTarget.vendorName}" deleted.`);
@@ -157,7 +157,7 @@ export const VendorsPage: React.FC = () => {
     <div className="space-y-6">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
 
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-text-primary tracking-tight">Vendors</h1>
@@ -236,7 +236,7 @@ export const VendorsPage: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-surface-card border border-border-default rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface-card border border-border-default rounded-xl shadow-card overflow-hidden">
         {isError ? (
           <ErrorState
             title="Unable to load vendors"
@@ -407,7 +407,7 @@ export const VendorsPage: React.FC = () => {
             <>
               Are you sure you want to delete{' '}
               <span className="font-medium">
-                {deleteTarget.vendorCode} · {deleteTarget.vendorName}
+                {deleteTarget.vendorCode} Â· {deleteTarget.vendorName}
               </span>
               ? Vendors already used in material pricing or cost sheets cannot be deleted. Deleted
               records can be restored later.

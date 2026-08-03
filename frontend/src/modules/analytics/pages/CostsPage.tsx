@@ -29,11 +29,11 @@ export const CostsPage: React.FC = () => {
   if (error) {
     return (
       <AnalyticsLayout title="Cost Estimation & Actual Variance" subtitle="Financial analytics">
-        <div className="bg-red-950/20 border border-red-800/40 p-6 rounded-xl text-center text-red-400">
+        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
           <p className="font-semibold mb-2">Error loading cost analytics</p>
           <button
             onClick={() => refetch()}
-            className="px-4 py-1.5 bg-red-800 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+            className="px-4 py-1.5 bg-status-error text-white rounded-lg text-sm hover:bg-status-error/90 transition-colors"
           >
             Retry
           </button>
@@ -95,46 +95,48 @@ export const CostsPage: React.FC = () => {
 
       {!isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl space-y-4">
-            <h3 className="text-white font-bold text-lg border-b border-slate-700 pb-2">
+          <div className="bg-surface-card border border-border-default p-6 rounded-xl space-y-4">
+            <h3 className="text-text-primary font-bold text-lg border-b border-border-default pb-2">
               Financial Processing Records
             </h3>
             <div className="space-y-4 pt-2">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-400">Finalized Cost Sheets</span>
-                <span className="text-white font-extrabold text-lg">
+                <span className="text-text-muted">Finalized Cost Sheets</span>
+                <span className="text-text-primary font-extrabold text-lg">
                   {data?.finalizedCostSheets}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm border-t border-slate-700/40 pt-3">
-                <span className="text-slate-400">Draft Cost Sheets</span>
-                <span className="text-white font-extrabold text-lg">{data?.draftCostSheets}</span>
+              <div className="flex justify-between items-center text-sm border-t border-border-default pt-3">
+                <span className="text-text-muted">Draft Cost Sheets</span>
+                <span className="text-text-primary font-extrabold text-lg">
+                  {data?.draftCostSheets}
+                </span>
               </div>
-              <div className="flex justify-between items-center text-sm border-t border-slate-700/40 pt-3">
-                <span className="text-slate-400">Total Recorded Cost Sheets</span>
-                <span className="text-white font-extrabold text-lg">
+              <div className="flex justify-between items-center text-sm border-t border-border-default pt-3">
+                <span className="text-text-muted">Total Recorded Cost Sheets</span>
+                <span className="text-text-primary font-extrabold text-lg">
                   {(data?.finalizedCostSheets ?? 0) + (data?.draftCostSheets ?? 0)}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm border-t border-slate-700/40 pt-3">
-                <span className="text-slate-400">Cost Sheets with Actual Entry</span>
-                <span className="text-indigo-400 font-extrabold text-lg">
+              <div className="flex justify-between items-center text-sm border-t border-border-default pt-3">
+                <span className="text-text-muted">Cost Sheets with Actual Entry</span>
+                <span className="text-accent-primary font-extrabold text-lg">
                   {data?.costSheetsWithActuals}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl flex flex-col justify-between">
+          <div className="bg-surface-card border border-border-default p-6 rounded-xl flex flex-col justify-between">
             <div>
-              <h3 className="text-white font-bold text-lg mb-2">Variance Definition</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <h3 className="text-text-primary font-bold text-lg mb-2">Variance Definition</h3>
+              <p className="text-text-muted text-sm leading-relaxed">
                 Variance represents the margin differences calculated during stage transitions
                 inside Loop 2. Negative variance numbers denote favorable financial conditions
                 (savings over planned estimates), while positive numbers point to budget overflows.
               </p>
             </div>
-            <div className="border-t border-slate-700/60 pt-4 mt-6 text-xs text-slate-500 font-medium">
+            <div className="border-t border-border-default pt-4 mt-6 text-xs text-text-disabled font-medium">
               <span>
                 Date Filtering: {data?.dateRange.from ? 'Active' : 'Unfiltered (All Time)'}
               </span>

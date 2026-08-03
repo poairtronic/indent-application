@@ -30,11 +30,11 @@ export const VendorsPage: React.FC = () => {
   if (error) {
     return (
       <AnalyticsLayout title="Vendor Supply & Cost Adherence" subtitle="Vendor analytics">
-        <div className="bg-red-950/20 border border-red-800/40 p-6 rounded-xl text-center text-red-400">
+        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
           <p className="font-semibold mb-2">Error loading vendor analytics</p>
           <button
             onClick={() => refetch()}
-            className="px-4 py-1.5 bg-red-800 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+            className="px-4 py-1.5 bg-status-error text-white rounded-lg text-sm hover:bg-status-error/90 transition-colors"
           >
             Retry
           </button>
@@ -85,20 +85,22 @@ export const VendorsPage: React.FC = () => {
       {!isLoading && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Horizontal Bar Chart showing allocations */}
-          <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl lg:col-span-2">
-            <h3 className="text-white font-bold text-lg mb-4">Vendor Supply Value Allocation</h3>
+          <div className="bg-surface-card border border-border-default p-6 rounded-xl lg:col-span-2">
+            <h3 className="text-text-primary font-bold text-lg mb-4">
+              Vendor Supply Value Allocation
+            </h3>
             {chartData.length > 0 ? (
               <HorizontalBarChart data={chartData} />
             ) : (
-              <div className="text-slate-400 text-center py-12 text-sm">
+              <div className="text-text-muted text-center py-12 text-sm">
                 No vendor allocations found.
               </div>
             )}
           </div>
 
           {/* Adherence List Table */}
-          <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl flex flex-col">
-            <h3 className="text-white font-bold text-lg mb-4 border-b border-slate-700 pb-2">
+          <div className="bg-surface-card border border-border-default p-6 rounded-xl flex flex-col">
+            <h3 className="text-text-primary font-bold text-lg mb-4 border-b border-border-default pb-2">
               Price Variance Index
             </h3>
             <div className="space-y-4 overflow-y-auto max-h-[360px] pr-2 flex-1">
@@ -107,31 +109,31 @@ export const VendorsPage: React.FC = () => {
                 return (
                   <div key={v.vendorId} className="flex justify-between items-center text-sm">
                     <div className="space-y-0.5">
-                      <p className="text-white font-semibold">{v.vendorName}</p>
-                      <p className="text-slate-500 text-xs font-mono">{v.vendorCode}</p>
+                      <p className="text-text-primary font-semibold">{v.vendorName}</p>
+                      <p className="text-text-disabled text-xs font-mono">{v.vendorCode}</p>
                     </div>
                     <div className="text-right space-y-0.5">
-                      <p className="text-white font-bold">
+                      <p className="text-text-primary font-bold">
                         {formatCurrency(v.totalPredictedAmount)}
                       </p>
                       {v.variancePercentage !== null ? (
                         <p
                           className={`text-xs font-semibold ${
-                            isOver ? 'text-rose-400' : 'text-emerald-400'
+                            isOver ? 'text-status-error' : 'text-status-success'
                           }`}
                         >
                           {v.variancePercentage > 0 ? '+' : ''}
                           {v.variancePercentage}% var
                         </p>
                       ) : (
-                        <p className="text-slate-500 text-xs">No actual entries</p>
+                        <p className="text-text-disabled text-xs">No actual entries</p>
                       )}
                     </div>
                   </div>
                 );
               })}
               {data?.vendors.length === 0 && (
-                <div className="text-slate-500 text-center py-8 text-sm">
+                <div className="text-text-disabled text-center py-8 text-sm">
                   No vendor analytics available.
                 </div>
               )}

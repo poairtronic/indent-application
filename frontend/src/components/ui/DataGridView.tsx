@@ -61,7 +61,7 @@ export function DataGridView<T>({
       )}
 
       {view === 'list' && (
-        <div className="border border-border-default rounded-xl bg-surface-card divide-y divide-border-default/50 overflow-hidden shadow-sm">
+        <div className="border border-border-default rounded-xl bg-surface-card divide-y divide-border-default/50 overflow-hidden shadow-card">
           {data.map((item, idx) => (
             <div key={idx} className="p-3 hover:bg-background-secondary transition-colors">
               {renderListItem(item)}

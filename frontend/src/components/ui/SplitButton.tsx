@@ -54,7 +54,7 @@ export const SplitButton: React.FC<SplitButtonProps> = ({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-1.5 w-44 bg-surface-card border border-border-default rounded-lg shadow-lg py-1 z-20 text-xs font-medium">
+          <div className="absolute right-0 top-full mt-1.5 w-44 bg-surface-card border border-border-default rounded-lg shadow-dropdown py-1 z-20 text-xs font-medium">
             {options.map((opt, idx) => (
               <button
                 key={idx}

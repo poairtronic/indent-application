@@ -94,7 +94,7 @@ export const ProductTour: React.FC<ProductTourProps> = ({ steps, active, onClose
   };
 
   return (
-    <div className="fixed bottom-6 left-6 z-[80] max-w-sm bg-surface-card border border-border-default rounded-xl shadow-2xl p-4 font-sans text-xs text-text-primary space-y-3 animate-slide-in">
+    <div className="fixed bottom-6 left-6 z-[80] max-w-sm bg-surface-card border border-border-default rounded-xl shadow-modal p-4 font-sans text-xs text-text-primary space-y-3 animate-slide-in">
       <div>
         <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider">
           Product Walkthrough Tour ({current + 1}/{steps.length})

@@ -62,7 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
         aria-hidden="true"
       />
       <div
-        className={`relative w-full ${sizeClasses[size]} bg-surface-card border border-border-strong rounded-xl shadow-2xl animate-scale-in`}
+        className={`relative w-full ${sizeClasses[size]} bg-surface-card border border-border-strong rounded-xl shadow-modal animate-scale-in`}
       >
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border-default">
           <div className="min-w-0">

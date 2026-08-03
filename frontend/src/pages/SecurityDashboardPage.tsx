@@ -14,13 +14,13 @@ export const SecurityDashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
         <h1 className="text-2xl font-bold text-text-primary tracking-tight">Security Overview</h1>
         <p className="text-text-muted mt-1">Account security status and activity</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
           <h3 className="font-semibold text-text-primary">Account Status</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
@@ -56,7 +56,7 @@ export const SecurityDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
           <h3 className="font-semibold text-text-primary">Password Status</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">
@@ -87,7 +87,7 @@ export const SecurityDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+        <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
           <h3 className="font-semibold text-text-primary">Failed Attempts</h3>
           <div className="mt-3 space-y-2">
             <div className="flex justify-between">

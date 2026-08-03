@@ -72,7 +72,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] px-4 font-sans">
       <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={onClose} />
 
-      <div className="relative w-full max-w-lg bg-surface-card border border-border-default rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[400px]">
+      <div className="relative w-full max-w-lg bg-surface-card border border-border-default rounded-xl shadow-modal overflow-hidden flex flex-col max-h-[400px]">
         {/* Search Input */}
         <div className="flex items-center px-4 py-3 border-b border-border-default gap-3 bg-surface-elevated">
           <Lucide.Search className="w-5 h-5 text-text-muted shrink-0" />

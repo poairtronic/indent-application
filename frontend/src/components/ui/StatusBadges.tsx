@@ -7,13 +7,13 @@ interface PriorityBadgeProps {
 
 const priorityConfig: Record<string, { bg: string; text: string; label: string }> = {
   LOW: {
-    bg: 'bg-blue-500/10 border-blue-500/20',
-    text: 'text-blue-500',
+    bg: 'bg-info/10 border-info/20',
+    text: 'text-info',
     label: 'Low',
   },
   MEDIUM: {
-    bg: 'bg-amber-500/10 border-amber-500/20',
-    text: 'text-amber-500',
+    bg: 'bg-status-warning/10 border-status-warning/20',
+    text: 'text-status-warning',
     label: 'Medium',
   },
   HIGH: {
@@ -26,8 +26,8 @@ const priorityConfig: Record<string, { bg: string; text: string; label: string }
 export const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, className = '' }) => {
   const key = priority.toUpperCase();
   const cfg = priorityConfig[key] || {
-    bg: 'bg-gray-500/10 border-gray-500/20',
-    text: 'text-gray-500',
+    bg: 'bg-text-disabled/10 border-text-disabled/20',
+    text: 'text-text-disabled',
     label: priority,
   };
 
@@ -47,13 +47,13 @@ interface RiskBadgeProps {
 
 const riskConfig: Record<string, { bg: string; text: string; label: string }> = {
   LOW: {
-    bg: 'bg-green-500/10 border-green-500/20',
-    text: 'text-green-500',
+    bg: 'bg-status-success/10 border-status-success/20',
+    text: 'text-status-success',
     label: 'Low Risk',
   },
   MODERATE: {
-    bg: 'bg-amber-500/10 border-amber-500/20',
-    text: 'text-amber-500',
+    bg: 'bg-status-warning/10 border-status-warning/20',
+    text: 'text-status-warning',
     label: 'Moderate Risk',
   },
   CRITICAL: {
@@ -66,8 +66,8 @@ const riskConfig: Record<string, { bg: string; text: string; label: string }> = 
 export const RiskBadge: React.FC<RiskBadgeProps> = ({ risk, className = '' }) => {
   const key = risk.toUpperCase();
   const cfg = riskConfig[key] || {
-    bg: 'bg-gray-500/10 border-gray-500/20',
-    text: 'text-gray-500',
+    bg: 'bg-text-disabled/10 border-text-disabled/20',
+    text: 'text-text-disabled',
     label: risk,
   };
 

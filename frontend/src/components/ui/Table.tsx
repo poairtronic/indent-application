@@ -68,7 +68,7 @@ export function Table<T>({
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="sticky top-0 z-10 bg-background-secondary border-b border-border-default h-11 text-xs text-text-muted font-bold select-none shadow-sm">
+              <tr className="sticky top-0 z-10 bg-background-secondary border-b border-border-default h-11 text-xs text-text-muted font-bold select-none shadow-card">
                 {onSelectAllRows && (
                   <th className="w-12 px-4 text-center bg-background-secondary">
                     <input

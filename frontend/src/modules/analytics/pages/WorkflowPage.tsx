@@ -13,11 +13,11 @@ export const WorkflowPage: React.FC = () => {
         title="Workflow Process Distribution"
         subtitle="Cycle times and transition bottlenecks"
       >
-        <div className="bg-red-950/20 border border-red-800/40 p-6 rounded-xl text-center text-red-400">
+        <div className="bg-status-error/10 border border-status-error/25 p-6 rounded-xl text-center text-status-error">
           <p className="font-semibold mb-2">Error loading workflow analytics</p>
           <button
             onClick={() => refetch()}
-            className="px-4 py-1.5 bg-red-800 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+            className="px-4 py-1.5 bg-status-error text-white rounded-lg text-sm hover:bg-status-error/90 transition-colors"
           >
             Retry
           </button>
@@ -71,12 +71,12 @@ export const WorkflowPage: React.FC = () => {
       </div>
 
       {!isLoading && (
-        <div className="bg-slate-800/50 border border-slate-700/50 p-6 rounded-xl">
-          <h3 className="text-white font-bold text-lg mb-6">Workflow Stage Distribution</h3>
+        <div className="bg-surface-card border border-border-default p-6 rounded-xl">
+          <h3 className="text-text-primary font-bold text-lg mb-6">Workflow Stage Distribution</h3>
           {chartData.length > 0 ? (
             <BarChart data={chartData} color="#8b5cf6" />
           ) : (
-            <div className="text-slate-400 text-center py-12 text-sm">
+            <div className="text-text-muted text-center py-12 text-sm">
               No transaction records found.
             </div>
           )}

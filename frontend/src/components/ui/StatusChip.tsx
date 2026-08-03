@@ -23,8 +23,8 @@ const statusColorMap: Record<string, { bg: string; text: string; label: string }
     label: 'Stores Processing',
   },
   PRODUCTION_PROCESSING: {
-    bg: 'bg-purple-500/10',
-    text: 'text-purple-400',
+    bg: 'bg-accent-primary/10',
+    text: 'text-accent-primary',
     label: 'Production',
   },
   CUSTOMER_DELIVERED: {
@@ -35,13 +35,13 @@ const statusColorMap: Record<string, { bg: string; text: string; label: string }
 
   // Loop 2 Finance Workflow
   ACCOUNTS_COST_VERIFICATION: {
-    bg: 'bg-indigo-500/10',
-    text: 'text-indigo-400',
+    bg: 'bg-info/10',
+    text: 'text-info',
     label: 'Cost Verification',
   },
   ACCOUNTS_FINANCIAL_CLOSURE: {
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-400',
+    bg: 'bg-status-success/10',
+    text: 'text-status-success',
     label: 'Financial Closure',
   },
   ARCHIVED: {
@@ -50,8 +50,8 @@ const statusColorMap: Record<string, { bg: string; text: string; label: string }
     label: 'Archived',
   },
   COMPLETED: {
-    bg: 'bg-teal-500/10',
-    text: 'text-teal-400',
+    bg: 'bg-status-success/10',
+    text: 'text-status-success',
     label: 'Completed',
   },
 };

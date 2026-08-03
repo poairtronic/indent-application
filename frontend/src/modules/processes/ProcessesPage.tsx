@@ -132,7 +132,7 @@ export const ProcessesPage: React.FC = () => {
       onSuccess: () => {
         addDeleted({
           id: deleteTarget.id,
-          summary: `${deleteTarget.processCode} · ${deleteTarget.processName}`,
+          summary: `${deleteTarget.processCode} Â· ${deleteTarget.processName}`,
           deletedAt: new Date().toISOString(),
         });
         show('success', `Process "${deleteTarget.processName}" deleted.`);
@@ -165,7 +165,7 @@ export const ProcessesPage: React.FC = () => {
     <div className="space-y-6">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
 
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-text-primary tracking-tight">
@@ -255,7 +255,7 @@ export const ProcessesPage: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-surface-card border border-border-default rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface-card border border-border-default rounded-xl shadow-card overflow-hidden">
         {isError ? (
           <ErrorState
             title="Unable to load processes"
@@ -430,7 +430,7 @@ export const ProcessesPage: React.FC = () => {
             <>
               Are you sure you want to delete{' '}
               <span className="font-medium">
-                {deleteTarget.processCode} · {deleteTarget.processName}
+                {deleteTarget.processCode} Â· {deleteTarget.processName}
               </span>
               ? Processes already used in indents or cost sheets cannot be deleted. Deleted records
               can be restored later.

@@ -121,7 +121,7 @@ export const UnitsPage: React.FC = () => {
       onSuccess: () => {
         addDeleted({
           id: deleteTarget.id,
-          summary: `${deleteTarget.unitCode} · ${deleteTarget.unitName}`,
+          summary: `${deleteTarget.unitCode} Â· ${deleteTarget.unitName}`,
           deletedAt: new Date().toISOString(),
         });
         show('success', `Unit "${deleteTarget.unitName}" deleted.`);
@@ -154,7 +154,7 @@ export const UnitsPage: React.FC = () => {
     <div className="space-y-6">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
 
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-text-primary tracking-tight">Units</h1>
@@ -218,7 +218,7 @@ export const UnitsPage: React.FC = () => {
         )}
       </div>
 
-      <div className="bg-surface-card border border-border-default rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface-card border border-border-default rounded-xl shadow-card overflow-hidden">
         {isError ? (
           <ErrorState
             title="Unable to load units"
@@ -374,7 +374,7 @@ export const UnitsPage: React.FC = () => {
             <>
               Are you sure you want to delete{' '}
               <span className="font-medium">
-                {deleteTarget.unitCode} · {deleteTarget.unitName}
+                {deleteTarget.unitCode} Â· {deleteTarget.unitName}
               </span>
               ? Units already used by materials, indents, or additional materials cannot be deleted.
               Deleted records can be restored later.

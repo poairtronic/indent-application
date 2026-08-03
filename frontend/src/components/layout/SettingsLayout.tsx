@@ -34,7 +34,7 @@ export const SettingsLayout: React.FC = () => {
                 className={`block px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                   isActive
                     ? 'bg-accent-primary text-white'
-                    : 'text-text-secondary hover:bg-[#111827] hover:text-text-primary'
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                 }`}
               >
                 {item.label}

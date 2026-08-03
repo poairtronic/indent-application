@@ -59,7 +59,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({ trigger, options, cl
         createPortal(
           <div
             style={{ top: coords.top + 6, left: coords.left }}
-            className="absolute bg-surface-card border border-border-default rounded-lg shadow-xl py-1 z-[100] min-w-40 font-sans text-xs font-semibold text-text-primary"
+            className="absolute bg-surface-card border border-border-default rounded-lg shadow-dropdown py-1 z-[100] min-w-40 font-sans text-xs font-semibold text-text-primary"
             onClick={(e) => e.stopPropagation()}
           >
             {options.map((opt, idx) => (
@@ -122,7 +122,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ children, options, cla
         createPortal(
           <div
             style={{ top: coords.top, left: coords.left }}
-            className="absolute bg-surface-card border border-border-default rounded-lg shadow-xl py-1 z-[100] min-w-40 font-sans text-xs font-semibold text-text-primary"
+            className="absolute bg-surface-card border border-border-default rounded-lg shadow-dropdown py-1 z-[100] min-w-40 font-sans text-xs font-semibold text-text-primary"
             onClick={(e) => e.stopPropagation()}
           >
             {options.map((opt, idx) => (

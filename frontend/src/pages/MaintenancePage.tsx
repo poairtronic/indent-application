@@ -3,7 +3,7 @@ import React from 'react';
 export const MaintenancePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background-primary flex flex-col items-center justify-center p-6 text-center font-sans transition-colors duration-300">
-      <div className="max-w-md w-full bg-surface-card border border-border-default rounded-2xl p-8 shadow-xl">
+      <div className="max-w-md w-full bg-surface-card border border-border-default rounded-2xl p-8 shadow-modal">
         <div className="w-16 h-16 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
           <span className="text-3xl text-accent-primary">⚙️</span>
         </div>

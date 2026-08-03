@@ -75,7 +75,7 @@ export const ToastViewport: React.FC<ToastViewportProps> = ({ toasts, onDismiss 
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`flex flex-col gap-2 rounded-xl p-4 shadow-2xl text-white min-w-72 max-w-sm animate-toast-in ${toastBg[toast.type]}`}
+          className={`flex flex-col gap-2 rounded-xl p-4 shadow-modal text-white min-w-72 max-w-sm animate-toast-in ${toastBg[toast.type]}`}
         >
           <div className="flex items-center gap-2.5">
             <span className="shrink-0">{toastIcon[toast.type]}</span>

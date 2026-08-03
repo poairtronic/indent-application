@@ -43,12 +43,12 @@ export const LoginHistoryPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-sm">
+      <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
         <h1 className="text-2xl font-bold text-text-primary tracking-tight">Login History</h1>
         <p className="text-text-muted mt-1">Recent login activity for your account</p>
       </div>
 
-      <div className="bg-surface-card border border-border-default rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface-card border border-border-default rounded-xl shadow-card overflow-hidden">
         {loginHistory.length === 0 ? (
           <div className="p-8 text-center text-text-muted">No login history found.</div>
         ) : (

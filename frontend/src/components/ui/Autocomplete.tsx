@@ -105,7 +105,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 w-full mt-1 bg-surface-card border border-border-default rounded-lg shadow-lg py-1 z-30 max-h-48 overflow-y-auto">
+        <div className="absolute left-0 w-full mt-1 bg-surface-card border border-border-default rounded-lg shadow-dropdown py-1 z-30 max-h-48 overflow-y-auto">
           {filtered.length === 0 ? (
             <div className="px-3 py-2 text-text-muted text-center">No matches found</div>
           ) : (

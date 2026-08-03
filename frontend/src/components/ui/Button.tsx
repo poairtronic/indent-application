@@ -15,15 +15,15 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-accent-primary hover:bg-accent-hover active:bg-accent-pressed text-white shadow-sm hover:shadow-glow focus-visible:ring-accent-primary/40',
+    'bg-accent-primary hover:bg-accent-hover active:bg-accent-pressed text-white shadow-card hover:shadow-glow focus-visible:ring-accent-primary/40',
   secondary:
     'bg-background-secondary hover:bg-surface-elevated text-text-primary border border-border-default active:bg-background-secondary hover:border-border-strong focus-visible:ring-accent-primary/30',
   danger:
-    'bg-status-error hover:bg-status-error/90 active:bg-status-error/80 text-white shadow-sm hover:shadow-md focus-visible:ring-status-error/40',
+    'bg-status-error hover:bg-status-error/90 active:bg-status-error/80 text-white shadow-card hover:shadow-dropdown focus-visible:ring-status-error/40',
   success:
-    'bg-status-success hover:bg-status-success/90 active:bg-status-success/80 text-white shadow-sm hover:shadow-md focus-visible:ring-status-success/40',
+    'bg-status-success hover:bg-status-success/90 active:bg-status-success/80 text-white shadow-card hover:shadow-dropdown focus-visible:ring-status-success/40',
   warning:
-    'bg-status-warning hover:bg-status-warning/90 active:bg-status-warning/80 text-white shadow-sm hover:shadow-md focus-visible:ring-status-warning/40',
+    'bg-status-warning hover:bg-status-warning/90 active:bg-status-warning/80 text-white shadow-card hover:shadow-dropdown focus-visible:ring-status-warning/40',
   ghost:
     'bg-transparent hover:bg-background-secondary active:bg-surface-elevated text-text-secondary hover:text-text-primary focus-visible:ring-accent-primary/30',
   outline:
@@ -50,7 +50,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <button
       className={`inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 ease-enter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none active:scale-[0.98] ${
-        fab ? 'rounded-full p-3 shadow-lg hover:shadow-glow' : `${sizeClasses[size]}`
+        fab ? 'rounded-full p-3 shadow-modal hover:shadow-glow' : `${sizeClasses[size]}`
       } ${variantClasses[variant]} ${className}`}
       disabled={disabled || loading}
       {...rest}

@@ -63,7 +63,7 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="border border-border-default rounded-xl p-6 bg-surface-card shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-up">
+      <div className="border border-border-default rounded-xl p-6 bg-surface-card shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-up">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-text-primary tracking-tight">
             Welcome, {user?.firstName} {user?.lastName}

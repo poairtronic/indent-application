@@ -42,14 +42,14 @@ export const DeletedRecordsModal: React.FC<DeletedRecordsModalProps> = ({
           description="Records you soft-delete during this session will appear here so you can restore them."
         />
       ) : (
-        <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+        <ul className="divide-y divide-border-default">
           {records.map((record) => (
             <li key={record.id} className="py-3 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <div className="text-sm font-medium text-text-primary truncate">
                   {record.summary}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-text-muted">
                   Deleted {formatDateTime(record.deletedAt)}
                 </div>
               </div>

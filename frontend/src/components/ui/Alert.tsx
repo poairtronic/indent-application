@@ -17,13 +17,13 @@ const alertStyles: Record<AlertType, { wrapper: string; text: string; icon: Reac
     icon: <Lucide.Info className="w-4 h-4 shrink-0" />,
   },
   success: {
-    wrapper: 'bg-green-500/10 border-green-500/20 text-text-primary',
-    text: 'text-green-500',
+    wrapper: 'bg-status-success/10 border-status-success/20 text-text-primary',
+    text: 'text-status-success',
     icon: <Lucide.CheckCircle className="w-4 h-4 shrink-0" />,
   },
   warning: {
-    wrapper: 'bg-amber-500/10 border-amber-500/20 text-text-primary',
-    text: 'text-amber-500',
+    wrapper: 'bg-status-warning/10 border-status-warning/20 text-text-primary',
+    text: 'text-status-warning',
     icon: <Lucide.AlertTriangle className="w-4 h-4 shrink-0" />,
   },
   error: {

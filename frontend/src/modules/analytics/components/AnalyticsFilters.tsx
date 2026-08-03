@@ -35,41 +35,41 @@ export const FilterPanel: React.FC<AnalyticsFiltersProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-slate-800/60 border border-slate-700/60 p-4 rounded-xl flex flex-wrap items-end gap-4 shadow-md"
+      className="bg-surface-card border border-border-default p-4 rounded-xl flex flex-wrap items-end gap-4 shadow-card"
     >
       <div className="flex flex-col gap-1.5 min-w-[180px]">
-        <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider">
+        <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
           From Date
         </label>
         <input
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+          className="bg-background-primary border border-border-default rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary transition-colors"
         />
       </div>
 
       <div className="flex flex-col gap-1.5 min-w-[180px]">
-        <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider">
+        <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
           To Date
         </label>
         <input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+          className="bg-background-primary border border-border-default rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary transition-colors"
         />
       </div>
 
       {showLimit && (
         <div className="flex flex-col gap-1.5 min-w-[100px]">
-          <label className="text-slate-400 text-xs font-semibold uppercase tracking-wider">
+          <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
             Limit Size
           </label>
           <select
             value={limit}
             onChange={(e) => setLimit(Number(e.target.value))}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+            className="bg-background-primary border border-border-default rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary transition-colors"
           >
             <option value={10}>10 Items</option>
             <option value={25}>25 Items</option>
@@ -83,13 +83,13 @@ export const FilterPanel: React.FC<AnalyticsFiltersProps> = ({
         <button
           type="button"
           onClick={handleReset}
-          className="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors"
+          className="px-4 py-2 border border-border-strong text-text-secondary rounded-lg text-sm font-semibold hover:bg-surface-elevated transition-colors"
         >
           Reset
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-500 transition-colors"
+          className="px-4 py-2 bg-accent-primary text-white rounded-lg text-sm font-semibold hover:bg-accent-hover transition-colors"
         >
           Apply Filters
         </button>
