@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { FilterPanel } from '../components/AnalyticsFilters';
@@ -21,13 +21,13 @@ export const VendorsPage: React.FC = () => {
     }).format(val);
   };
 
-  const handleApply = (newFilters: IAnalyticsFilters) => {
+  const handleApply = useCallback((newFilters: IAnalyticsFilters) => {
     setFilters(newFilters);
-  };
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setFilters({ limit: 50 });
-  };
+  }, []);
 
   if (error) {
     return (

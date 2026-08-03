@@ -98,22 +98,24 @@ const VendorsPage = lazy(() =>
 
 // Analytics Pages
 const AnalyticsSummaryPage = lazy(() =>
-  import('../modules/analytics').then((m) => ({ default: m.SummaryPage })),
+  import('../modules/analytics/pages/SummaryPage').then((m) => ({ default: m.SummaryPage })),
 );
 const AnalyticsWorkflowPage = lazy(() =>
-  import('../modules/analytics').then((m) => ({ default: m.WorkflowPage })),
+  import('../modules/analytics/pages/WorkflowPage').then((m) => ({ default: m.WorkflowPage })),
 );
 const AnalyticsDepartmentsPage = lazy(() =>
-  import('../modules/analytics').then((m) => ({ default: m.DepartmentsPage })),
+  import('../modules/analytics/pages/DepartmentsPage').then((m) => ({
+    default: m.DepartmentsPage,
+  })),
 );
 const AnalyticsCostsPage = lazy(() =>
-  import('../modules/analytics').then((m) => ({ default: m.CostsPage })),
+  import('../modules/analytics/pages/CostsPage').then((m) => ({ default: m.CostsPage })),
 );
 const AnalyticsProductsPage = lazy(() =>
-  import('../modules/analytics').then((m) => ({ default: m.ProductsPage })),
+  import('../modules/analytics/pages/ProductsPage').then((m) => ({ default: m.ProductsPage })),
 );
 const AnalyticsVendorsPage = lazy(() =>
-  import('../modules/analytics').then((m) => ({ default: m.VendorsPage })),
+  import('../modules/analytics/pages/VendorsPage').then((m) => ({ default: m.VendorsPage })),
 );
 
 export const AppRouter: React.FC = () => {
