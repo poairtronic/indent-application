@@ -5,33 +5,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Refined Enterprise Dark Color Palette
         background: {
-          primary: '#0F172A',
-          secondary: '#111827',
+          primary: 'var(--bg-main)',
+          secondary: 'var(--bg-secondary)',
         },
         surface: {
-          card: '#1E293B',
-          elevated: '#243244',
+          card: 'var(--bg-card)',
+          elevated: 'var(--surface-elevated)',
         },
         border: {
-          default: '#334155',
+          default: 'var(--border-color)',
         },
         accent: {
-          primary: '#3B82F6',
-          hover: '#2563EB',
-          pressed: '#1D4ED8',
+          primary: 'var(--primary)',
+          hover: 'var(--primary-hover)',
+          pressed: 'var(--primary-pressed)',
         },
         status: {
-          success: '#22C55E',
-          warning: '#F59E0B',
-          error: '#EF4444',
+          success: 'var(--success)',
+          warning: 'var(--warning)',
+          error: 'var(--danger)',
         },
         text: {
-          primary: '#F8FAFC',
-          secondary: '#CBD5E1',
-          muted: '#94A3B8',
-          disabled: '#64748B',
+          primary: 'var(--text-main)',
+          secondary: 'var(--text-secondary)',
+          muted: 'var(--text-muted)',
+          disabled: 'var(--text-disabled)',
         },
       },
       fontFamily: {

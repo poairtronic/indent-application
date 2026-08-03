@@ -82,14 +82,16 @@ export const Header: React.FC = () => {
           </nav>
         </div>
 
-        {/* Center: Search Box Trigger */}
         <div className="hidden lg:flex items-center gap-4 max-w-xs w-full mx-4">
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="w-full bg-background-primary border border-border-default rounded-lg px-3 py-1.5 text-xs text-text-muted outline-none flex items-center justify-between hover:bg-background-secondary transition-colors"
+            className="w-full bg-background-primary hover:bg-background-secondary border border-border-default hover:border-text-disabled rounded-lg px-3 py-1.5 text-xs text-text-muted outline-none flex items-center justify-between transition-all shadow-sm focus:outline-none"
           >
-            <span>Search console...</span>
-            <span className="text-[10px] bg-surface-elevated text-text-muted px-1.5 py-0.5 rounded border border-border-default">
+            <span className="flex items-center gap-2">
+              <Lucide.Search className="w-3.5 h-3.5 text-text-muted" />
+              <span>Search console...</span>
+            </span>
+            <span className="text-[10px] bg-surface-elevated text-text-muted px-1.5 py-0.5 rounded border border-border-default font-mono">
               Ctrl + K
             </span>
           </button>

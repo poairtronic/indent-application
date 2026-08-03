@@ -127,7 +127,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                     }`}
                     title={isFav ? 'Remove from Favorites' : 'Add to Favorites'}
                   >
-                    ⭐
+                    <Lucide.Star
+                      className={`w-3 h-3 ${isFav ? 'fill-accent-primary text-accent-primary' : 'text-text-muted'}`}
+                    />
                   </button>
                 )}
               </div>
@@ -140,10 +142,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
           <div className="mt-4 border-t border-border-default pt-2">
             <button
               onClick={() => setIsFavoritesOpen(!isFavoritesOpen)}
-              className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary"
+              className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary focus:outline-none"
             >
-              <span>⭐ Favorites</span>
-              <span>{isFavoritesOpen ? '▼' : '▶'}</span>
+              <span className="flex items-center gap-1.5">
+                <Lucide.Star className="w-3 h-3 text-accent-primary fill-accent-primary" />
+                <span>Favorites</span>
+              </span>
+              <span>
+                {isFavoritesOpen ? (
+                  <Lucide.ChevronDown className="w-3 h-3" />
+                ) : (
+                  <Lucide.ChevronRight className="w-3 h-3" />
+                )}
+              </span>
             </button>
             {isFavoritesOpen && (
               <div className="mt-1 space-y-0.5">
@@ -171,10 +182,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
           <div className="mt-4 border-t border-border-default pt-2">
             <button
               onClick={() => setIsRecentsOpen(!isRecentsOpen)}
-              className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary"
+              className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary focus:outline-none"
             >
-              <span>⏱️ Recent Pages</span>
-              <span>{isRecentsOpen ? '▼' : '▶'}</span>
+              <span className="flex items-center gap-1.5">
+                <Lucide.History className="w-3 h-3 text-accent-primary" />
+                <span>Recent Pages</span>
+              </span>
+              <span>
+                {isRecentsOpen ? (
+                  <Lucide.ChevronDown className="w-3 h-3" />
+                ) : (
+                  <Lucide.ChevronRight className="w-3 h-3" />
+                )}
+              </span>
             </button>
             {isRecentsOpen && (
               <div className="mt-1 space-y-0.5">
