@@ -1,3 +1,5 @@
+import type { CostSheet } from './costing';
+
 export enum IndentStatus {
   DRAFT = 'DRAFT',
   SUBMITTED = 'SUBMITTED',
@@ -85,6 +87,7 @@ export interface Indent {
   indentItems?: IndentItem[];
   attachments?: IndentAttachment[];
   workflowHistory?: WorkflowHistory[];
+  costSheet?: CostSheet;
 
   // Related entities fetched via joins
   product?: any;

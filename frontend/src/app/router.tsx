@@ -130,6 +130,14 @@ const IndentDetailsPage = lazy(() =>
   import('../modules/indent/IndentDetailsPage').then((m) => ({ default: m.IndentDetailsPage })),
 );
 
+// Costing Module Pages
+const CostSheetDashboardPage = lazy(() =>
+  import('../modules/costing/CostSheetDashboardPage').then((m) => ({ default: m.CostSheetDashboardPage })),
+);
+const CostSheetDetailsPage = lazy(() =>
+  import('../modules/costing/CostSheetDetailsPage').then((m) => ({ default: m.CostSheetDetailsPage })),
+);
+
 // Analytics Pages
 const AnalyticsSummaryPage = lazy(() =>
   import('../modules/analytics/pages/SummaryPage').then((m) => ({ default: m.SummaryPage })),
@@ -230,14 +238,24 @@ export const AppRouter: React.FC = () => {
             }
           />
         </Route>
-        <Route
-          path="/cost-sheets"
-          element={
-            <ProtectedRoute permissions={['costsheet.view']}>
-              <ComingSoon title="Cost Sheets" />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/cost-sheets">
+          <Route
+            index
+            element={
+              <ProtectedRoute permissions={['costsheet.view']}>
+                {suspended(CostSheetDashboardPage)}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path=":id"
+            element={
+              <ProtectedRoute permissions={['costsheet.view']}>
+                {suspended(CostSheetDetailsPage)}
+              </ProtectedRoute>
+            }
+          />
+        </Route>
         <Route
           path="/workflow"
           element={

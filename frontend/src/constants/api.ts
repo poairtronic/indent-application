@@ -9,9 +9,9 @@ export const API_ENDPOINTS = {
     ME: '/auth/me',
   },
   INDENTS: {
-    BASE: '/indents',
-    DETAIL: (id: string) => `/indents/${id}`,
-    STATUS: (id: string) => `/indents/${id}/status`,
+    BASE: '/business-transactions',
+    DETAIL: (id: string) => `/business-transactions/${id}`,
+    STATUS: (id: string) => `/business-transactions/${id}/status`,
   },
   USERS: {
     BASE: '/users',

@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { indentService } from '../services/indent.service';
-import { IndentStatus, type Indent } from '../types/indent';
+import { businessTransactionService } from '../services/business-transaction.service';
 
 export const indentKeys = {
   all: ['indents'] as const,
@@ -13,14 +12,14 @@ export const indentKeys = {
 export const useIndents = (filters?: Record<string, any>) => {
   return useQuery({
     queryKey: indentKeys.list(JSON.stringify(filters || {})),
-    queryFn: () => indentService.getAll(filters),
+    queryFn: () => businessTransactionService.getAll(filters),
   });
 };
 
 export const useIndent = (id: string) => {
   return useQuery({
     queryKey: indentKeys.detail(id),
-    queryFn: () => indentService.getById(id),
+    queryFn: () => businessTransactionService.getById(id),
     enabled: !!id,
   });
 };
@@ -29,7 +28,7 @@ export const useCreateIndent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (newIndent: Partial<Indent>) => indentService.create(newIndent),
+    mutationFn: (payload: { indent: any; costSheet: any }) => businessTransactionService.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: indentKeys.lists() });
     },
@@ -40,8 +39,8 @@ export const useUpdateIndent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Indent> }) =>
-      indentService.update(id, data),
+    mutationFn: ({ id, payload }: { id: string; payload: { indent?: any; costSheet?: any } }) =>
+      businessTransactionService.update(id, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: indentKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: indentKeys.lists() });
@@ -49,12 +48,12 @@ export const useUpdateIndent = () => {
   });
 };
 
-export const useUpdateIndentStatus = () => {
+export const useSubmitDesign = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: IndentStatus }) =>
-      indentService.updateStatus(id, status),
+    mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
+      businessTransactionService.submitDesign(id, remarks),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: indentKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: indentKeys.lists() });
@@ -62,12 +61,27 @@ export const useUpdateIndentStatus = () => {
   });
 };
 
-export const useDeleteIndent = () => {
+export const useEnterActualCosts = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => indentService.delete(id),
-    onSuccess: () => {
+    mutationFn: ({ id, dto }: { id: string; dto: any }) =>
+      businessTransactionService.enterActualCosts(id, dto),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: indentKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: indentKeys.lists() });
+    },
+  });
+};
+
+export const useFinancialClose = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: any }) =>
+      businessTransactionService.financialClose(id, dto),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: indentKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: indentKeys.lists() });
     },
   });

@@ -4,8 +4,6 @@ import { useIndent, useCreateIndent, useUpdateIndent } from '../../hooks/useInde
 import { IndentForm } from './components/IndentForm';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
-import type { Indent } from '../../types/indent';
-
 export const IndentFormPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -15,10 +13,10 @@ export const IndentFormPage: React.FC = () => {
   const { mutate: createIndent, isPending: isCreating } = useCreateIndent();
   const { mutate: updateIndent, isPending: isUpdating } = useUpdateIndent();
 
-  const handleSubmit = (data: Partial<Indent>) => {
+  const handleSubmit = (data: { indent: any; costSheet: any }) => {
     if (isEdit && id) {
       updateIndent(
-        { id, data },
+        { id, payload: data },
         {
           onSuccess: () => navigate(`/indents/${id}`),
         },
