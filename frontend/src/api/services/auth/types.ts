@@ -1,23 +1,34 @@
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: AuthUser;
-}
-
 export interface AuthUser {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   employeeCode: string;
-  department: { id: string; departmentCode: string; departmentName: string };
-  role: { id: string; roleName: string };
+  department: {
+    id: string;
+    departmentCode: string;
+    departmentName: string;
+  };
+  role: {
+    id: string;
+    roleName: string;
+  };
   permissions: string[];
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RefreshTokenPayload {
+  refreshToken: string;
 }
 
 export interface ForgotPasswordPayload {
@@ -34,29 +45,47 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
-export interface RefreshTokenPayload {
-  refreshToken: string;
-}
-
 export interface SessionResponse {
   id: string;
-  deviceInfo: string;
-  ipAddress: string;
-  lastActive: string;
-  createdAt: string;
+  userId: string;
+  sessionToken: string;
+  ipAddress: string | null;
+  browser: string | null;
+  operatingSystem: string | null;
+  device: string | null;
+  country: string | null;
+  city: string | null;
+  status: string;
+  loginAt: string;
+  logoutAt: string | null;
+  lastActivity: string | null;
+  expiresAt: string;
 }
 
 export interface LoginHistoryEntry {
   id: string;
-  email: string;
-  ipAddress: string;
-  deviceInfo: string;
-  success: boolean;
-  createdAt: string;
+  activity: string;
+  timestamp: string;
+  ipAddress: string | null;
+  browser: string | null;
+  operatingSystem: string | null;
+  device: string | null;
+  success: boolean | null;
+  failureReason: string | null;
 }
 
 export interface SecurityStatus {
+  userId: string;
+  accountStatus: string;
   isLocked: boolean;
-  failedAttempts: number;
-  lastFailedAt: string | null;
+  lockedAt: string | null;
+  lockedUntil: string | null;
+  lastLogin: string | null;
+  failedLoginAttempts: number;
+  remainingAttempts: number;
+  maxFailedAttempts: number;
+  lockDurationMinutes: number;
+  passwordAgeDays: number | null;
+  accountCreatedAt: string;
+  lastUpdatedAt: string;
 }

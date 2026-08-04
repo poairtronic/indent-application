@@ -3,8 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
-import { apiClient } from '../../lib/axios';
-import { useAuthStore } from '../../store/authStore';
+import { useChangePassword } from '../../api/services/auth';
 import { KeyRound, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -30,10 +29,9 @@ type ChangePasswordFields = z.infer<typeof changePasswordSchema>;
 
 export const ChangePasswordPage: React.FC = () => {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
+  const changePasswordMutation = useChangePassword();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -48,30 +46,29 @@ export const ChangePasswordPage: React.FC = () => {
     },
   });
 
-  const onSubmit = async (data: ChangePasswordFields) => {
-    setLoading(true);
+  const onSubmit = (data: ChangePasswordFields) => {
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    try {
-      await apiClient.post('/auth/change-password', {
-        currentPassword: data.currentPassword,
-        newPassword: data.newPassword,
-      });
-
-      setSuccessMsg('Password updated successfully! Logging out...');
-      setTimeout(() => {
-        logout();
-        navigate('/login');
-      }, 2000);
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        'Failed to update password. Current password may be incorrect.';
-      setErrorMsg(msg);
-    } finally {
-      setLoading(false);
-    }
+    changePasswordMutation.mutate(
+      { currentPassword: data.currentPassword, newPassword: data.newPassword },
+      {
+        onSuccess: () => {
+          setSuccessMsg('Password updated successfully! Logging out...');
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+        },
+        onError: (error: unknown) => {
+          const err = error as { response?: { data?: { message?: string } }; message?: string };
+          const msg =
+            err.response?.data?.message ||
+            err.message ||
+            'Failed to update password. Current password may be incorrect.';
+          setErrorMsg(msg);
+        },
+      },
+    );
   };
 
   return (
@@ -126,12 +123,12 @@ export const ChangePasswordPage: React.FC = () => {
         <Button
           type="submit"
           variant="primary"
-          loading={loading}
-          icon={loading ? undefined : <KeyRound size={16} />}
+          loading={changePasswordMutation.isPending}
+          icon={changePasswordMutation.isPending ? undefined : <KeyRound size={16} />}
           fullWidth
           className="mt-6 mb-6"
         >
-          {loading ? 'Updating password...' : 'Update Password'}
+          {changePasswordMutation.isPending ? 'Updating password...' : 'Update Password'}
         </Button>
 
         <div className="text-center">

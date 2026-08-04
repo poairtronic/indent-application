@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { apiClient } from '../../lib/axios';
+import { useProfile, useLogout } from '../../api/services/auth';
 import {
   User,
   LogOut,
@@ -16,51 +16,24 @@ import { Button } from '../../components/ui/Button';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logout, isAuthenticated } = useAuthStore();
-  const [profileData, setProfileData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { user } = useAuthStore();
+  const profileQuery = useProfile();
+  const logoutMutation = useLogout();
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    }
-  }, [isAuthenticated, navigate]);
-
-  const fetchProfile = async () => {
-    setLoading(true);
-    setErrorMsg(null);
-    try {
-      const response = await apiClient.get('/auth/profile');
-      setProfileData(response.data.data.user);
-    } catch {
-      setErrorMsg('Failed to load profile from server.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProfile();
-    }
-  }, [isAuthenticated]);
-
-  const handleLogout = async () => {
-    try {
-      const refreshToken = localStorage.getItem('auth_refresh_token');
-      if (refreshToken) {
-        await apiClient.post('/auth/logout', { refreshToken });
-      }
-    } catch (e) {
-      console.error('Logout error on server', e);
-    } finally {
-      logout();
+  const handleLogout = () => {
+    const refreshToken = useAuthStore.getState().refreshToken;
+    if (refreshToken) {
+      logoutMutation.mutate(refreshToken, {
+        onSettled: () => {
+          navigate('/login');
+        },
+      });
+    } else {
       navigate('/login');
     }
   };
 
-  const displayUser = profileData || user;
+  const displayUser = profileQuery.data || user;
 
   if (!displayUser) return null;
 
@@ -81,10 +54,10 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {errorMsg && (
+      {profileQuery.isError && (
         <div className="toast toast-error mb-6">
           <ShieldAlert size={18} />
-          <span>{errorMsg}</span>
+          <span>Failed to load profile from server.</span>
         </div>
       )}
 
@@ -117,35 +90,15 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="mb-8">
-        <h3 className="text-sm font-bold text-text-primary mb-3">Recent Activity</h3>
-        <div className="bg-background-primary rounded-lg border border-border-default p-3 space-y-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-text-primary">Logged in</p>
-              <p className="text-xs text-text-muted">192.168.1.104 • Chrome on Windows</p>
-            </div>
-            <span className="text-xs text-text-secondary">Today, 09:45 AM</span>
-          </div>
-          <div className="border-t border-border-default pt-3 flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-text-primary">Password Changed</p>
-              <p className="text-xs text-text-muted">Security Settings</p>
-            </div>
-            <span className="text-xs text-text-secondary">Aug 01, 2026</span>
-          </div>
-        </div>
-      </div>
-
       <div className="flex gap-4">
         <Button
           variant="outline"
-          onClick={fetchProfile}
-          loading={loading}
-          icon={loading ? undefined : <RefreshCw size={16} />}
+          onClick={() => profileQuery.refetch()}
+          loading={profileQuery.isFetching}
+          icon={profileQuery.isFetching ? undefined : <RefreshCw size={16} />}
           fullWidth
         >
-          {loading ? 'Refreshing...' : 'Refresh'}
+          {profileQuery.isFetching ? 'Refreshing...' : 'Refresh'}
         </Button>
 
         <Link to="/change-password" className="flex-1 no-underline">
@@ -158,6 +111,7 @@ export const ProfilePage: React.FC = () => {
       <Button
         variant="danger"
         onClick={handleLogout}
+        loading={logoutMutation.isPending}
         fullWidth
         icon={<LogOut size={16} />}
         className="mt-4"

@@ -1,54 +1,16 @@
 import { create } from 'zustand';
-import { apiClient } from '../lib/axios';
+import { authService } from '../api/services/auth/service';
+import type {
+  SessionResponse as Session,
+  LoginHistoryEntry,
+  SecurityStatus,
+} from '../api/services/auth/types';
 
-export interface Session {
-  id: string;
-  userId: string;
-  sessionToken: string;
-  ipAddress: string | null;
-  browser: string | null;
-  operatingSystem: string | null;
-  device: string | null;
-  country: string | null;
-  city: string | null;
-  status: string;
-  loginAt: string;
-  logoutAt: string | null;
-  lastActivity: string | null;
-  expiresAt: string;
-}
-
-export interface LoginEntry {
-  id: string;
-  activity: string;
-  timestamp: string;
-  ipAddress: string | null;
-  browser: string | null;
-  operatingSystem: string | null;
-  device: string | null;
-  success: boolean | null;
-  failureReason: string | null;
-}
-
-export interface SecurityStatus {
-  userId: string;
-  accountStatus: string;
-  isLocked: boolean;
-  lockedAt: string | null;
-  lockedUntil: string | null;
-  lastLogin: string | null;
-  failedLoginAttempts: number;
-  remainingAttempts: number;
-  maxFailedAttempts: number;
-  lockDurationMinutes: number;
-  passwordAgeDays: number | null;
-  accountCreatedAt: string;
-  lastUpdatedAt: string;
-}
+export type { Session };
 
 interface SecurityState {
   sessions: Session[];
-  loginHistory: LoginEntry[];
+  loginHistory: LoginHistoryEntry[];
   securityStatus: SecurityStatus | null;
   isLoading: boolean;
   error: string | null;
@@ -71,91 +33,77 @@ export const useSecurityStore = create<SecurityState>((set, get) => ({
   fetchSessions: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.get('/auth/sessions');
-      set({ sessions: response.data.data ?? [], isLoading: false });
-    } catch (err: any) {
-      set({
-        error: err.response?.data?.message || 'Failed to fetch sessions',
-        isLoading: false,
-      });
+      const sessions = await authService.getSessions();
+      set({ sessions, isLoading: false });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch sessions';
+      set({ error: message, isLoading: false });
     }
   },
 
   fetchLoginHistory: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.get('/auth/login-history');
-      set({ loginHistory: response.data.data ?? [], isLoading: false });
-    } catch (err: any) {
-      set({
-        error: err.response?.data?.message || 'Failed to fetch login history',
-        isLoading: false,
-      });
+      const loginHistory = await authService.getLoginHistory();
+      set({ loginHistory, isLoading: false });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch login history';
+      set({ error: message, isLoading: false });
     }
   },
 
   fetchSecurityStatus: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.get('/auth/security-status');
-      set({ securityStatus: response.data.data ?? null, isLoading: false });
-    } catch (err: any) {
-      set({
-        error: err.response?.data?.message || 'Failed to fetch security status',
-        isLoading: false,
-      });
+      const securityStatus = await authService.getSecurityStatus();
+      set({ securityStatus, isLoading: false });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch security status';
+      set({ error: message, isLoading: false });
     }
   },
 
   revokeSession: async (sessionId: string) => {
     set({ isLoading: true, error: null });
     try {
-      await apiClient.delete(`/auth/session/${sessionId}`);
+      await authService.revokeSession(sessionId);
       await get().fetchSessions();
-    } catch (err: any) {
-      set({
-        error: err.response?.data?.message || 'Failed to revoke session',
-        isLoading: false,
-      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to revoke session';
+      set({ error: message, isLoading: false });
     }
   },
 
   logoutOtherSessions: async () => {
     set({ isLoading: true, error: null });
     try {
-      await apiClient.post('/auth/logout-other-sessions');
+      await authService.logoutOtherSessions();
       await get().fetchSessions();
-    } catch (err: any) {
-      set({
-        error: err.response?.data?.message || 'Failed to logout other sessions',
-        isLoading: false,
-      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to logout other sessions';
+      set({ error: message, isLoading: false });
     }
   },
 
   logoutAllSessions: async () => {
     set({ isLoading: true, error: null });
     try {
-      await apiClient.post('/auth/logout-all');
+      await authService.logoutAll();
       set({ sessions: [], isLoading: false });
-    } catch (err: any) {
-      set({
-        error: err.response?.data?.message || 'Failed to logout all sessions',
-        isLoading: false,
-      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to logout all sessions';
+      set({ error: message, isLoading: false });
     }
   },
 
   unlockAccount: async () => {
     set({ isLoading: true, error: null });
     try {
-      await apiClient.post('/auth/unlock-account');
+      await authService.unlockAccount();
       await get().fetchSecurityStatus();
-    } catch (err: any) {
-      set({
-        error: err.response?.data?.message || 'Failed to unlock account',
-        isLoading: false,
-      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to unlock account';
+      set({ error: message, isLoading: false });
     }
   },
 }));

@@ -5,9 +5,24 @@ export function useTabSync() {
   const logout = useAuthStore((s) => s.logout);
 
   useEffect(() => {
+    // BroadcastChannel for same-origin multi-tab sync
+    let bc: BroadcastChannel | null = null;
+
+    try {
+      bc = new BroadcastChannel('imcms-auth');
+      bc.onmessage = (event: MessageEvent) => {
+        if (event.data?.type === 'LOGOUT') {
+          logout();
+          window.location.href = '/login';
+        }
+      };
+    } catch {
+      // BroadcastChannel not supported, fall back to storage events
+    }
+
+    // Fallback: storage event for browsers without BroadcastChannel
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'auth_access_token' && !event.newValue) {
-        console.warn('Authentication token removed in another tab. Logging out.');
         logout();
         window.location.href = '/login';
       }
@@ -16,6 +31,7 @@ export function useTabSync() {
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      bc?.close();
     };
   }, [logout]);
 }

@@ -3,7 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { apiClient } from '../../lib/axios';
+import { useResetPassword } from '../../api/services/auth';
 import { useCapsLock } from '../../hooks/useCapsLock';
 import { PasswordStrengthIndicator } from '../../components/ui/PasswordStrengthIndicator';
 import { ShieldAlert, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
@@ -34,10 +34,10 @@ export const ResetPasswordPage: React.FC = () => {
   const token = searchParams.get('token');
 
   const { isCapsLockOn, checkCapsLock, handleBlur } = useCapsLock();
+  const resetPasswordMutation = useResetPassword();
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -60,29 +60,30 @@ export const ResetPasswordPage: React.FC = () => {
 
   const passwordValue = useWatch({ control, name: 'password' });
 
-  const onSubmit = async (data: ResetPasswordFields) => {
+  const onSubmit = (data: ResetPasswordFields) => {
     if (!token) return;
-    setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    try {
-      await apiClient.post('/auth/reset-password', {
-        token,
-        password: data.password,
-      });
-
-      setSuccessMsg('Password has been reset successfully! Redirecting to login...');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message || 'Failed to reset password. The link may have expired.';
-      setErrorMsg(msg);
-    } finally {
-      setLoading(false);
-    }
+    resetPasswordMutation.mutate(
+      { token, password: data.password },
+      {
+        onSuccess: () => {
+          setSuccessMsg('Password has been reset successfully! Redirecting to login...');
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+        },
+        onError: (error: unknown) => {
+          const err = error as { response?: { data?: { message?: string } }; message?: string };
+          const msg =
+            err.response?.data?.message ||
+            err.message ||
+            'Failed to reset password. The link may have expired.';
+          setErrorMsg(msg);
+        },
+      },
+    );
   };
 
   const { onBlur: passOnBlur, ...passRegister } = register('password');
@@ -162,12 +163,12 @@ export const ResetPasswordPage: React.FC = () => {
           <Button
             type="submit"
             variant="primary"
-            loading={loading}
-            icon={loading ? undefined : <ShieldAlert size={16} />}
+            loading={resetPasswordMutation.isPending}
+            icon={resetPasswordMutation.isPending ? undefined : <ShieldAlert size={16} />}
             fullWidth
             className="mt-6"
           >
-            {loading ? 'Resetting password...' : 'Reset Password'}
+            {resetPasswordMutation.isPending ? 'Resetting password...' : 'Reset Password'}
           </Button>
         </form>
       )}

@@ -3,9 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import { useLogin } from '../../api/services/auth';
 import { useAuthStore } from '../../store/authStore';
-import { apiClient } from '../../lib/axios';
 import { useCapsLock } from '../../hooks/useCapsLock';
 import { LogIn, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -22,18 +21,22 @@ const loginSchema = z.object({
 type LoginFields = z.infer<typeof loginSchema>;
 
 function getLoginErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    if (error.response?.data?.message && typeof error.response.data.message === 'string') {
-      return error.response.data.message;
-    }
+  const err = error as {
+    response?: { data?: { message?: string }; status?: number };
+    code?: string;
+    message?: string;
+  };
 
-    if (error.code === 'ERR_NETWORK') {
-      return 'Unable to reach the server. Make sure the backend is running and try again.';
-    }
+  if (err.response?.data?.message && typeof err.response.data.message === 'string') {
+    return err.response.data.message;
+  }
 
-    if (error.response?.status && error.response.status >= 500) {
-      return 'The server encountered an error while signing you in. Please try again.';
-    }
+  if (err.code === 'ERR_NETWORK') {
+    return 'Unable to reach the server. Make sure the backend is running and try again.';
+  }
+
+  if (err.response?.status && err.response.status >= 500) {
+    return 'The server encountered an error while signing you in. Please try again.';
   }
 
   return 'Login failed. Please check your credentials and try again.';
@@ -44,14 +47,13 @@ export const LoginPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
 
-  const { login, isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { isCapsLockOn, checkCapsLock, handleBlur } = useCapsLock();
+  const loginMutation = useLogin();
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  // Pre-fill remembered email if present
   const savedEmail = localStorage.getItem(REMEMBER_ME_KEY) || '';
 
   const {
@@ -69,52 +71,46 @@ export const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/profile';
+      const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
       navigate(targetPath, { replace: true });
     }
   }, [isAuthenticated, navigate, returnUrl]);
 
-  const onSubmit = async (data: LoginFields) => {
-    setLoading(true);
+  const onSubmit = (data: LoginFields) => {
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    // Handle Remember Me persistence
     if (data.rememberMe) {
       localStorage.setItem(REMEMBER_ME_KEY, data.email);
     } else {
       localStorage.removeItem(REMEMBER_ME_KEY);
     }
 
-    try {
-      const response = await apiClient.post('/auth/login', {
-        email: data.email,
-        password: data.password,
-      });
-      const { accessToken, refreshToken, user } = response.data.data;
+    loginMutation.mutate(
+      { email: data.email, password: data.password },
+      {
+        onSuccess: () => {
+          setSuccessMsg('Login Successful! Redirecting...');
+          setTimeout(() => {
+            const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
+            navigate(targetPath, { replace: true });
+          }, 1000);
+        },
+        onError: (error: unknown) => {
+          const message = getLoginErrorMessage(error);
+          setErrorMsg(message);
 
-      login(accessToken, refreshToken, user);
-      setSuccessMsg('Login Successful! Redirecting...');
-      setTimeout(() => {
-        const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/profile';
-        navigate(targetPath, { replace: true });
-      }, 1000);
-    } catch (error: unknown) {
-      const message = getLoginErrorMessage(error);
-      setErrorMsg(message);
-
-      // Automatic redirect if account is locked
-      if (
-        message.toLowerCase().includes('locked') ||
-        (axios.isAxiosError(error) && error.response?.status === 423)
-      ) {
-        setTimeout(() => {
-          navigate('/account-locked');
-        }, 1500);
-      }
-    } finally {
-      setLoading(false);
-    }
+          if (
+            message.toLowerCase().includes('locked') ||
+            (error as { response?: { status?: number } })?.response?.status === 423
+          ) {
+            setTimeout(() => {
+              navigate('/account-locked');
+            }, 1500);
+          }
+        },
+      },
+    );
   };
 
   const { onBlur: passOnBlur, ...passRegister } = register('password');
@@ -197,11 +193,11 @@ export const LoginPage: React.FC = () => {
         <Button
           type="submit"
           variant="primary"
-          loading={loading}
-          icon={loading ? undefined : <LogIn size={16} />}
+          loading={loginMutation.isPending}
+          icon={loginMutation.isPending ? undefined : <LogIn size={16} />}
           fullWidth
         >
-          {loading ? 'Signing in...' : 'Sign In'}
+          {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
         </Button>
       </form>
     </div>

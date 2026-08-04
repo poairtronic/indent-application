@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link } from 'react-router-dom';
-import { apiClient } from '../../lib/axios';
+import { useForgotPassword } from '../../api/services/auth';
 import { Mail, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -17,7 +17,7 @@ type ForgotPasswordFields = z.infer<typeof forgotPasswordSchema>;
 export const ForgotPasswordPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const forgotPasswordMutation = useForgotPassword();
 
   const {
     register,
@@ -30,24 +30,26 @@ export const ForgotPasswordPage: React.FC = () => {
     },
   });
 
-  const onSubmit = async (data: ForgotPasswordFields) => {
-    setLoading(true);
+  const onSubmit = (data: ForgotPasswordFields) => {
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    try {
-      await apiClient.post('/auth/forgot-password', {
-        email: data.email,
-      });
-      setSuccessMsg(
-        'If the email is registered, a password reset link has been dispatched to your inbox.',
-      );
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Something went wrong. Please try again.';
-      setErrorMsg(msg);
-    } finally {
-      setLoading(false);
-    }
+    forgotPasswordMutation.mutate(
+      { email: data.email },
+      {
+        onSuccess: () => {
+          setSuccessMsg(
+            'If the email is registered, a password reset link has been dispatched to your inbox.',
+          );
+        },
+        onError: (error: unknown) => {
+          const err = error as { response?: { data?: { message?: string } }; message?: string };
+          const msg =
+            err.response?.data?.message || err.message || 'Something went wrong. Please try again.';
+          setErrorMsg(msg);
+        },
+      },
+    );
   };
 
   return (
@@ -86,12 +88,12 @@ export const ForgotPasswordPage: React.FC = () => {
         <Button
           type="submit"
           variant="primary"
-          loading={loading}
-          icon={loading ? undefined : <Mail size={16} />}
+          loading={forgotPasswordMutation.isPending}
+          icon={forgotPasswordMutation.isPending ? undefined : <Mail size={16} />}
           fullWidth
           className="mt-6 mb-6"
         >
-          {loading ? 'Sending link...' : 'Send Reset Link'}
+          {forgotPasswordMutation.isPending ? 'Sending link...' : 'Send Reset Link'}
         </Button>
 
         <div className="text-center">

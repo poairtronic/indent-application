@@ -1,37 +1,14 @@
 import { create } from 'zustand';
-
-interface UserRole {
-  id: string;
-  roleName: string;
-}
-
-interface UserDepartment {
-  id: string;
-  departmentCode: string;
-  departmentName: string;
-}
-
-interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  employeeCode: string;
-  department: UserDepartment;
-  role: UserRole;
-}
+import type { AuthUser } from '../api/services/auth/types';
 
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   accessToken: string | null;
+  refreshToken: string | null;
   permissions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (
-    accessToken: string,
-    refreshToken: string,
-    user: User & { permissions?: string[] },
-  ) => void;
+  login: (accessToken: string, refreshToken: string, user: AuthUser) => void;
   logout: () => void;
   setAccessToken: (token: string) => void;
   setLoading: (loading: boolean) => void;
@@ -40,49 +17,120 @@ interface AuthState {
   hasRole: (role: string) => boolean;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => {
-  const savedUser = localStorage.getItem('auth_user');
-  const savedToken = localStorage.getItem('auth_access_token');
-  const savedPermissions = localStorage.getItem('auth_permissions');
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'auth_access_token',
+  REFRESH_TOKEN: 'auth_refresh_token',
+  USER: 'auth_user',
+  PERMISSIONS: 'auth_permissions',
+} as const;
 
-  return {
-    user: savedUser ? JSON.parse(savedUser) : null,
-    accessToken: savedToken || null,
-    permissions: savedPermissions ? JSON.parse(savedPermissions) : [],
-    isAuthenticated: !!savedToken,
-    isLoading: false,
-    login: (accessToken, refreshToken, user) => {
-      const perms = user.permissions ?? [];
-      localStorage.setItem('auth_access_token', accessToken);
-      localStorage.setItem('auth_refresh_token', refreshToken);
-      localStorage.setItem('auth_user', JSON.stringify(user));
-      localStorage.setItem('auth_permissions', JSON.stringify(perms));
-      set({ accessToken, user, permissions: perms, isAuthenticated: true });
-    },
-    logout: () => {
-      localStorage.removeItem('auth_access_token');
-      localStorage.removeItem('auth_refresh_token');
-      localStorage.removeItem('auth_user');
-      localStorage.removeItem('auth_permissions');
-      set({ accessToken: null, user: null, permissions: [], isAuthenticated: false });
-    },
-    setAccessToken: (accessToken) => {
-      localStorage.setItem('auth_access_token', accessToken);
-      set({ accessToken, isAuthenticated: true });
-    },
-    setLoading: (isLoading) => set({ isLoading }),
-    hasPermission: (permission) => {
-      const { permissions } = get();
-      return permissions.some((p) => p.toLowerCase() === permission.toLowerCase());
-    },
-    hasAnyPermission: (perms) => {
-      const { permissions } = get();
-      return perms.some((p) => permissions.some((up) => up.toLowerCase() === p.toLowerCase()));
-    },
-    hasRole: (role) => {
-      const { user } = get();
-      if (!user) return false;
-      return user.role.roleName.toUpperCase() === role.toUpperCase();
-    },
-  };
-});
+function loadPersistedState() {
+  try {
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    const userJson = localStorage.getItem(STORAGE_KEYS.USER);
+    const permsJson = localStorage.getItem(STORAGE_KEYS.PERMISSIONS);
+
+    const user = userJson ? JSON.parse(userJson) : null;
+    const permissions = permsJson ? JSON.parse(permsJson) : [];
+
+    return {
+      user: user as AuthUser | null,
+      accessToken: token,
+      refreshToken,
+      permissions: permissions as string[],
+      isAuthenticated: !!token,
+      isLoading: false,
+    };
+  } catch {
+    return {
+      user: null,
+      accessToken: null,
+      refreshToken: null,
+      permissions: [],
+      isAuthenticated: false,
+      isLoading: false,
+    };
+  }
+}
+
+function persistAuthState(accessToken: string, refreshToken: string, user: AuthUser) {
+  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  localStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(user.permissions ?? []));
+}
+
+function clearPersistedState() {
+  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.USER);
+  localStorage.removeItem(STORAGE_KEYS.PERMISSIONS);
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  ...loadPersistedState(),
+
+  login: (accessToken, refreshToken, user) => {
+    persistAuthState(accessToken, refreshToken, user);
+    set({
+      accessToken,
+      refreshToken,
+      user,
+      permissions: user.permissions ?? [],
+      isAuthenticated: true,
+    });
+
+    // Broadcast login to other tabs
+    try {
+      const bc = new BroadcastChannel('imcms-auth');
+      bc.postMessage({ type: 'LOGIN', accessToken, refreshToken, user });
+      bc.close();
+    } catch {
+      // BroadcastChannel not supported or already closed
+    }
+  },
+
+  logout: () => {
+    clearPersistedState();
+    set({
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+      permissions: [],
+      isAuthenticated: false,
+    });
+
+    // Broadcast logout to other tabs
+    try {
+      const bc = new BroadcastChannel('imcms-auth');
+      bc.postMessage({ type: 'LOGOUT' });
+      bc.close();
+    } catch {
+      // BroadcastChannel not supported
+    }
+  },
+
+  setAccessToken: (accessToken) => {
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    set({ accessToken, isAuthenticated: true });
+  },
+
+  setLoading: (isLoading) => set({ isLoading }),
+
+  hasPermission: (permission) => {
+    const { permissions } = get();
+    return permissions.some((p) => p.toLowerCase() === permission.toLowerCase());
+  },
+
+  hasAnyPermission: (perms) => {
+    const { permissions } = get();
+    return perms.some((p) => permissions.some((up) => up.toLowerCase() === p.toLowerCase()));
+  },
+
+  hasRole: (role) => {
+    const { user } = get();
+    if (!user) return false;
+    return user.role.roleName.toUpperCase() === role.toUpperCase();
+  },
+}));
