@@ -4,7 +4,6 @@ import { NodemailerProvider } from '../providers/nodemailer.provider';
 import { TemplateEngine } from '../templates/template.engine';
 import { QueueService } from './queue.service';
 import { IJobPayload, EmailState } from './queue.constants';
-import { SMTPException } from '../exceptions/communication.exceptions';
 
 @Injectable()
 export class QueueProcessor {
@@ -65,7 +64,7 @@ export class QueueProcessor {
   private async handleFailure(
     payload: IJobPayload,
     errorMessage: string,
-    duration: number,
+    _duration: number,
   ): Promise<void> {
     const nextRetryAttempt = payload.retryCount + 1;
     const maxRetries = parseInt(process.env.SMTP_MAX_RETRIES || '4', 10);
@@ -137,8 +136,8 @@ export class QueueProcessor {
   private async finalizeLogStatus(
     jobId: string,
     status: EmailState,
-    durationMs: number,
-    messageId?: string,
+    _durationMs: number,
+    _messageId?: string,
   ): Promise<void> {
     try {
       // Match logs with details

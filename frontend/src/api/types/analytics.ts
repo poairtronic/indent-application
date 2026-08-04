@@ -17,49 +17,75 @@ export interface AnalyticsSummary {
   totalTransactions: number;
   activeTransactions: number;
   completedTransactions: number;
-  totalCost: number;
-  avgCompletionTime: number;
+  archivedTransactions: number;
+  pendingTransactions: number;
+  statusBreakdown: Array<{ status: string; count: number }>;
+  generatedAt: string;
 }
 
 export interface WorkflowAnalytics {
-  byState: Array<{ state: string; count: number }>;
-  byDepartment: Array<{ department: string; count: number }>;
-  avgTimeByState: Array<{ state: string; avgDays: number }>;
+  stageDistribution: Array<{ stageName: string; count: number; percentage: number }>;
+  completionRate: number;
+  averageCycleDays: number | null;
+  bottleneckStage: string | null;
+  stalledTransactions: number;
+  generatedAt: string;
 }
 
 export interface DepartmentAnalytics {
-  departmentId: string;
-  departmentName: string;
-  totalTransactions: number;
-  completedTransactions: number;
-  totalCost: number;
+  departments: Array<{
+    departmentId: string;
+    departmentName: string;
+    departmentCode: string;
+    totalTransactions: number;
+    pendingQueue: number;
+    completedCount: number;
+  }>;
+  highestWorkload: string | null;
+  generatedAt: string;
 }
 
 export interface CostAnalytics {
-  totalPredicted: number;
-  totalActual: number;
-  totalVariance: number;
-  variancePercentage: number;
-  costByMaterial: Array<{
-    materialId: string;
-    materialName: string;
-    predicted: number;
-    actual: number;
-  }>;
+  totalPlannedCost: number;
+  totalActualCost: number;
+  totalVarianceAmount: number;
+  averageVariancePercentage: number;
+  costSheetsWithActuals: number;
+  finalizedCostSheets: number;
+  draftCostSheets: number;
+  dateRange: { from: string | null; to: string | null };
+  generatedAt: string;
 }
 
 export interface ProductAnalytics {
-  productId: string;
-  productName: string;
-  transactionCount: number;
-  totalCost: number;
-  avgCost: number;
+  products: Array<{
+    productId: string;
+    productCode: string;
+    productName: string;
+    indentCount: number;
+    averagePlannedCost: number;
+    averageActualCost: number | null;
+    highestPlannedCost: number;
+    lowestPlannedCost: number;
+  }>;
+  mostProducedProduct: string | null;
+  highestCostProduct: string | null;
+  lowestCostProduct: string | null;
+  generatedAt: string;
 }
 
 export interface VendorAnalytics {
-  vendorId: string;
-  vendorName: string;
-  transactionCount: number;
-  totalCost: number;
-  avgCost: number;
+  vendors: Array<{
+    vendorId: string;
+    vendorCode: string;
+    vendorName: string;
+    totalCostItems: number;
+    totalPredictedAmount: number;
+    totalActualAmount: number | null;
+    totalVariance: number | null;
+    variancePercentage: number | null;
+  }>;
+  highestUsageVendor: string | null;
+  bestPerformingVendor: string | null;
+  generatedAt: string;
 }

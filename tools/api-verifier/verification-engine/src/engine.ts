@@ -6,7 +6,10 @@ export class ApiVerificationEngine {
     const backendEndpoints: BackendEndpoint[] = backendData.controllers 
       ? Object.values(backendData.controllers).flat() as BackendEndpoint[]
       : [];
-    const frontendEndpoints: FrontendEndpoint[] = frontendData.endpoints || [];
+    const frontendEndpoints: FrontendEndpoint[] = (frontendData.endpoints || []).filter((endpoint: FrontendEndpoint) => {
+      const url = endpoint.url || '';
+      return typeof url === 'string' && url !== 'unknown' && url !== 'path' && !url.startsWith('${this.basePath}') && !url.startsWith('this.basePath');
+    });
     const duplicateHooks = frontendData.qualityIssues?.duplicateHooks || [];
 
     const matrix: ComparisonRow[] = [];
@@ -23,13 +26,14 @@ export class ApiVerificationEngine {
 
     // Normalize URLs for comparison
     const normalizeUrl = (url: string) => {
-      // 1. Remove base prefix if any (e.g., frontend might have raw strings)
-      // 2. Replace :id or ${id} with {param}
+      if (!url) return '';
       return url
         .replace(/^\/?api/, '')
         .replace(/^\//, '')
         .replace(/\/:[a-zA-Z0-9_]+/g, '/{param}')
         .replace(/\/\$\{[a-zA-Z0-9_]+\}/g, '/{param}')
+        .replace(/\{[a-zA-Z0-9_]+\}/g, '{param}')
+        .replace(/\/\d+(?=\/|$)/g, '/{param}')
         .toLowerCase();
     };
 

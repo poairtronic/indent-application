@@ -25,23 +25,20 @@ class AnalyticsService extends BaseService {
     return this.get<WorkflowAnalytics>('/analytics/workflow');
   }
 
-  async getDepartments(): Promise<DepartmentAnalytics[]> {
-    return this.get<DepartmentAnalytics[]>('/analytics/departments');
+  async getDepartments(): Promise<DepartmentAnalytics> {
+    return this.get<DepartmentAnalytics>('/analytics/departments');
   }
 
   async getCosts(params?: CostAnalyticsQuery): Promise<CostAnalytics> {
     return this.get<CostAnalytics>('/analytics/costs', params as ListQueryParams | undefined);
   }
 
-  async getProducts(params?: ProductAnalyticsQuery): Promise<ProductAnalytics[]> {
-    return this.get<ProductAnalytics[]>(
-      '/analytics/products',
-      params as ListQueryParams | undefined,
-    );
+  async getProducts(params?: ProductAnalyticsQuery): Promise<ProductAnalytics> {
+    return this.get<ProductAnalytics>('/analytics/products', params as ListQueryParams | undefined);
   }
 
-  async getVendors(params?: VendorAnalyticsQuery): Promise<VendorAnalytics[]> {
-    return this.get<VendorAnalytics[]>('/analytics/vendors', params as ListQueryParams | undefined);
+  async getVendors(params?: VendorAnalyticsQuery): Promise<VendorAnalytics> {
+    return this.get<VendorAnalytics>('/analytics/vendors', params as ListQueryParams | undefined);
   }
 }
 

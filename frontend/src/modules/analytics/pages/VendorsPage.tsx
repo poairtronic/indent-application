@@ -95,7 +95,7 @@ export const VendorsPage: React.FC = () => {
             <h3 className="text-text-primary font-bold text-lg mb-4 border-b border-border-default pb-2">
               Price Variance Index
             </h3>
-            <div className="space-y-4 overflow-y-auto max-h-[360px] pr-2 flex-1">
+            <div className="space-y-4 overflow-y-auto max-h-90 pr-2 flex-1">
               {data?.vendors?.map((v) => {
                 const isOver = (v.totalVariance ?? 0) > 0;
                 return (
