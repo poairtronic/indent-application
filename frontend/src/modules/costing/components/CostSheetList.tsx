@@ -44,6 +44,9 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
 
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
 
+  const formatCurrency = (value?: number) =>
+    value !== undefined ? `Rs.${value.toLocaleString()}` : '--';
+
   const gridRender = (item: IndentData) => (
     <div
       className="flex flex-col gap-2 p-4 border border-border-default rounded-xl bg-surface-card shadow-sm hover:shadow-card transition-shadow cursor-pointer"
@@ -66,11 +69,11 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
       <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border-default">
         <div>
           <p className="text-[10px] text-text-muted uppercase">Planned</p>
-          <p className="font-medium text-sm">₹{item.predictedTotal?.toLocaleString() || '—'}</p>
+          <p className="font-medium text-sm">{formatCurrency(item.predictedTotal)}</p>
         </div>
         <div>
           <p className="text-[10px] text-text-muted uppercase">Cost Number</p>
-          <p className="font-medium text-sm text-accent-primary">{item.costNumber || '—'}</p>
+          <p className="font-medium text-sm text-accent-primary">{item.costNumber || '--'}</p>
         </div>
       </div>
     </div>
@@ -118,30 +121,62 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
                     <th className="py-3 px-4">Product</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Planned Cost</th>
+                    <th className="py-3 px-4 text-right">Actual Cost</th>
+                    <th className="py-3 px-4 text-right">Variance</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-default/50 text-text-primary">
-                  {indents.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-background-primary/40 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/cost-sheets/${item.id}`)}
-                    >
-                      <td className="py-3.5 px-4 font-mono font-bold text-accent-primary">
-                        {item.costNumber || '—'}
-                      </td>
-                      <td className="py-3.5 px-4">{item.indentNumber}</td>
-                      <td className="py-3.5 px-4 font-medium">{item.productName || 'N/A'}</td>
-                      <td className="py-3.5 px-4">
-                        <Badge tone={statusTone[item.currentState] ?? 'gray'}>
-                          {formatStatus(item.currentState)}
-                        </Badge>
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-medium">
-                        ₹{item.predictedTotal?.toLocaleString() || '—'}
-                      </td>
-                    </tr>
-                  ))}
+                  {indents.map((item) => {
+                    const actualTotal = item.costSheet?.actualTotal;
+                    const variance =
+                      actualTotal !== undefined && item.predictedTotal !== undefined
+                        ? actualTotal - item.predictedTotal
+                        : null;
+                    const varianceColor =
+                      variance !== null
+                        ? variance > 0
+                          ? 'text-status-error'
+                          : variance < 0
+                            ? 'text-status-success'
+                            : ''
+                        : '';
+
+                    return (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-background-primary/40 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/cost-sheets/${item.id}`)}
+                      >
+                        <td className="py-3.5 px-4 font-mono font-bold text-accent-primary">
+                          {item.costNumber || '--'}
+                        </td>
+                        <td className="py-3.5 px-4">{item.indentNumber}</td>
+                        <td className="py-3.5 px-4 font-medium">{item.productName || 'N/A'}</td>
+                        <td className="py-3.5 px-4">
+                          <Badge tone={statusTone[item.currentState] ?? 'gray'}>
+                            {formatStatus(item.currentState)}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-medium">
+                          {formatCurrency(item.predictedTotal)}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-medium">
+                          {actualTotal !== undefined ? (
+                            <span className="text-accent-primary">
+                              {formatCurrency(actualTotal)}
+                            </span>
+                          ) : (
+                            '--'
+                          )}
+                        </td>
+                        <td className={`py-3.5 px-4 text-right font-medium ${varianceColor}`}>
+                          {variance !== null
+                            ? `${variance > 0 ? '+' : ''}Rs.${Math.abs(variance).toLocaleString()}`
+                            : '--'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

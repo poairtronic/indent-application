@@ -1,10 +1,13 @@
-export type CostSheetStatus = 'DRAFT' | 'PENDING_VERIFICATION' | 'FINALIZED' | 'CLOSED';
+import type { CostSheetStatus, VendorProcessType } from '../api/types/enums';
+
+export type { CostSheetStatus, VendorProcessType };
 
 export interface CostItem {
   id: string;
-  costSheetId: string;
   materialId: string;
+  material?: { id: string; materialName: string };
   vendorId?: string;
+  vendor?: { id: string; vendorName: string };
   predictedRate: number;
   predictedQuantity: number;
   predictedAmount: number;
@@ -14,17 +17,12 @@ export interface CostItem {
   varianceAmount?: number;
   variancePercentage?: number;
   remarks?: string;
-  // Relations
-  material?: any; // To be mapped with proper Material type
-  vendor?: any;
 }
-
-export type VendorProcessType = 'IN_HOUSE' | 'OUTSOURCED';
 
 export interface ProcessCost {
   id: string;
-  costSheetId: string;
   processId: string;
+  process?: { id: string; processName: string };
   predictedCost: number;
   estimatedHours: number;
   vendorType: VendorProcessType;
@@ -34,24 +32,18 @@ export interface ProcessCost {
   varianceAmount?: number;
   variancePercentage?: number;
   remarks?: string;
-  // Relations
-  process?: any;
 }
 
 export interface CostSheet {
   id: string;
   costNumber: string;
-  indentId: string;
-  preparedBy: string;
   predictedTotal: number;
   actualTotal?: number;
   varianceAmount?: number;
   variancePercentage?: number;
   status: CostSheetStatus;
-
   costItems: CostItem[];
   processCosts: ProcessCost[];
-
   createdAt: string;
   updatedAt: string;
 }

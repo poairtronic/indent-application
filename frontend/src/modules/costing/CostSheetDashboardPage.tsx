@@ -1,16 +1,34 @@
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useIndents } from '../../api/services/indents/hooks';
 import { useIndentStore } from '../../store/useIndentStore';
+import { useAuthStore } from '../../store/authStore';
 import { CostSheetList } from './components/CostSheetList';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Search, Filter, Grid, List as ListIcon, TrendingUp } from 'lucide-react';
+import { Search, Filter, Grid, List as ListIcon, TrendingUp, Plus } from 'lucide-react';
 import { Select } from '../../components/ui/Select';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { AppPermission } from '../../constants/permissions';
 import type { WorkflowState } from '../../api/types/enums';
 
+const COST_RELEVANT_STATES: { label: string; value: string }[] = [
+  { label: 'All Statuses', value: '' },
+  { label: 'Design Completed', value: 'DESIGN_COMPLETED' },
+  { label: 'Stores Processing', value: 'STORES_PROCESSING' },
+  { label: 'Cost Verification Pending', value: 'ACCOUNTS_COST_VERIFICATION' },
+  { label: 'Actual Cost Updated', value: 'ACTUAL_COST_UPDATED' },
+  { label: 'Financial Closure Pending', value: 'ACCOUNTS_FINANCIAL_CLOSURE' },
+  { label: 'Completed', value: 'COMPLETED' },
+];
+
 export const CostSheetDashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const { filters, setFilters, viewMode, setViewMode } = useIndentStore();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+
+  const canView = hasPermission(AppPermission.COSTSHEET_VIEW);
+  const canCreate = hasPermission(AppPermission.INDENT_CREATE);
 
   const [searchInput, setSearchInput] = useState(filters.search || '');
   const search = useDebouncedValue(searchInput, 300);
@@ -43,6 +61,20 @@ export const CostSheetDashboardPage: React.FC = () => {
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center">
+        <div className="w-16 h-16 bg-status-error/10 rounded-full flex items-center justify-center mb-4">
+          <span className="text-2xl">🔒</span>
+        </div>
+        <h2 className="text-lg font-bold text-text-primary mb-2">Access Denied</h2>
+        <p className="text-sm text-text-secondary">
+          You don't have permission to view cost sheets.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -54,6 +86,17 @@ export const CostSheetDashboardPage: React.FC = () => {
             Track planned vs actual manufacturing costs
           </p>
         </div>
+        {canCreate && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => navigate('/indents/create')}
+            className="flex items-center gap-2"
+          >
+            <Plus size={16} />
+            New Indent
+          </Button>
+        )}
       </div>
 
       <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -69,18 +112,7 @@ export const CostSheetDashboardPage: React.FC = () => {
           </div>
           <div className="w-full sm:w-64">
             <Select
-              options={[
-                { label: 'All Statuses', value: '' },
-                {
-                  label: 'Cost Verification Pending',
-                  value: 'ACCOUNTS_COST_VERIFICATION',
-                },
-                {
-                  label: 'Financial Closure Pending',
-                  value: 'ACCOUNTS_FINANCIAL_CLOSURE',
-                },
-                { label: 'Completed', value: 'COMPLETED' },
-              ]}
+              options={COST_RELEVANT_STATES}
               value={filters.status || ''}
               onChange={(e) => handleStatusChange(e.target.value)}
             />

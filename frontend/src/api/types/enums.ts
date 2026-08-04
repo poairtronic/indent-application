@@ -4,9 +4,9 @@ export type VendorStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING_APPROVAL' | 'BLACKLI
 
 export type ProcessStatus = 'ACTIVE' | 'INACTIVE';
 
-export type CostSheetStatus = 'DRAFT' | 'PENDING_VERIFICATION' | 'FINALIZED' | 'CLOSED';
+export type CostSheetStatus = 'DRAFT' | 'FINALIZED' | 'CANCELLED';
 
-export type VendorProcessType = 'IN_HOUSE' | 'OUTSOURCED_VENDOR';
+export type VendorProcessType = 'IN_HOUSE' | 'OUTSOURCED';
 
 export type IndentPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 

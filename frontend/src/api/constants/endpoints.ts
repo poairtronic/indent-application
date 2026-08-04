@@ -90,18 +90,6 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/materials/${id}`,
     RESTORE: (id: string) => `/materials/${id}/restore`,
   },
-  INDENTS: {
-    BASE: '/indents',
-    DETAIL: (id: string) => `/indents/${id}`,
-    STATUS: (id: string) => `/indents/${id}/status`,
-    ITEMS: (id: string) => `/indents/${id}/items`,
-    ATTACHMENTS: (id: string) => `/indents/${id}/attachments`,
-  },
-  COST_SHEETS: {
-    BASE: '/cost-sheets',
-    DETAIL: (id: string) => `/cost-sheets/${id}`,
-    ITEMS: (id: string) => `/cost-sheets/${id}/items`,
-  },
   NOTIFICATIONS: {
     BASE: '/notifications',
     DETAIL: (id: string) => `/notifications/${id}`,
