@@ -1,6 +1,5 @@
 import { BaseService } from '../base.service';
 import type {
-  CommunicationLog,
   PaginatedCommunicationLogs,
   CommunicationLogQueryParams,
   CommunicationHealth,
@@ -16,11 +15,14 @@ class CommunicationService extends BaseService {
   }
 
   async getLogs(params?: CommunicationLogQueryParams): Promise<PaginatedCommunicationLogs> {
-    return this.getList<CommunicationLog>(params as ListQueryParams | undefined);
+    return this.get<PaginatedCommunicationLogs>(
+      '/communication/logs',
+      params as ListQueryParams | undefined,
+    );
   }
 
-  async testEmail(payload: TestEmailPayload): Promise<void> {
-    await this.post('/communication/test', payload);
+  async testEmail(payload: TestEmailPayload): Promise<{ success: boolean; jobId?: string }> {
+    return this.post<{ success: boolean; jobId?: string }>('/communication/test', payload);
   }
 
   async getHealth(): Promise<CommunicationHealth> {

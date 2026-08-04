@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { useNotifications } from '../store/notification.store';
+import {
+  useNotifications,
+  useMarkAllNotificationsRead,
+  useUnreadNotificationCount,
+} from '../api/services/notifications/hooks';
 import {
   useAnalyticsSummary,
   useWorkflowAnalytics,
@@ -49,8 +53,14 @@ export const DashboardPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
 
-  // Notifications Store
-  const { notifications, markAsRead } = useNotifications();
+  // Notifications API
+  const { data: notificationsData, isLoading: isNotificationsLoading } = useNotifications({
+    page: 1,
+    limit: 5,
+  });
+  const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
+  const { data: unreadNotificationCount = 0 } = useUnreadNotificationCount();
+  const notifications = notificationsData?.items ?? [];
 
   // Live Date & Time ticker
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -125,9 +135,13 @@ export const DashboardPage: React.FC = () => {
     refetchCosts();
   }, [refetchSummary, refetchWorkflow, refetchDept, refetchCosts]);
 
-  const handleMarkAllRead = useCallback(() => {
-    notifications.forEach((n) => markAsRead(n.id));
-  }, [notifications, markAsRead]);
+  const handleMarkAllRead = useCallback(async () => {
+    try {
+      await markAllAsRead();
+    } catch {
+      // silent
+    }
+  }, [markAllAsRead]);
 
   const formatCurrency = (val?: number) => {
     if (val === undefined || val === null) return '₹4,20,000';
@@ -144,11 +158,6 @@ export const DashboardPage: React.FC = () => {
       navigate(`/indents?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
-
-  const unreadNotificationCount = useMemo(
-    () => notifications.filter((n) => !n.isRead).length,
-    [notifications],
-  );
 
   // Workflow Timeline Items
   const workflowTimelineItems = useMemo(
@@ -616,7 +625,19 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <div className="bg-surface-card border border-border-default rounded-xl p-4 space-y-3 shadow-card min-h-[220px]">
-            {notifications.length === 0 ? (
+            {isNotificationsLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={`notif-skel-${i}`}
+                    className="p-3 rounded-lg border border-border-default animate-pulse"
+                  >
+                    <div className="h-3 bg-background-secondary rounded w-3/4 mb-2" />
+                    <div className="h-2 bg-background-secondary rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="text-center py-8 text-text-muted space-y-1">
                 <Bell size={24} className="mx-auto text-text-muted/50 mb-2" />
                 <p className="text-xs font-semibold">No notifications</p>
@@ -626,8 +647,7 @@ export const DashboardPage: React.FC = () => {
               notifications.slice(0, 3).map((item) => (
                 <div
                   key={item.id}
-                  onClick={() => markAsRead(item.id)}
-                  className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+                  className={`p-3 rounded-lg border transition-colors ${
                     item.isRead
                       ? 'bg-background-primary/50 border-border-default/40 opacity-75'
                       : 'bg-accent-primary/5 border-accent-primary/20'

@@ -4,5 +4,8 @@ export interface AppNotification {
   message: string;
   isRead: boolean;
   type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR';
+  entityType?: string;
+  entityId?: string;
+  referenceModule?: string;
   createdAt: string;
 }

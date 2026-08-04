@@ -95,6 +95,18 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/notifications/${id}`,
     READ: (id: string) => `/notifications/${id}/read`,
     READ_ALL: '/notifications/read-all',
+    UNREAD_COUNT: '/notifications/unread-count',
+  },
+  AUDIT_LOGS: {
+    BASE: '/audit-logs',
+  },
+  COMMUNICATION: {
+    BASE: '/communication',
+    LOGS: '/communication/logs',
+    TEST: '/communication/test',
+    HEALTH: '/communication/health',
+    QUEUE: '/communication/queue',
+    METRICS: '/communication/metrics',
   },
   ANALYTICS: {
     BASE: '/analytics',

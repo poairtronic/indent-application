@@ -42,6 +42,8 @@ export const queryKeys = {
   indents: createKeyFactory('indents'),
   costSheets: createKeyFactory('cost-sheets'),
   notifications: createKeyFactory('notifications'),
+  audit: createKeyFactory('audit'),
+  communication: createKeyFactory('communication'),
   analytics: createKeyFactory('analytics'),
   uploads: createKeyFactory('uploads'),
 } as const;

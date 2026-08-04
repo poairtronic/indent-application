@@ -75,6 +75,11 @@ const SettingsPage = lazy(() =>
 const AuditLogPage = lazy(() =>
   import('../pages/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
 );
+const CommunicationPage = lazy(() =>
+  import('../modules/communication/CommunicationPage').then((m) => ({
+    default: m.CommunicationPage,
+  })),
+);
 const SessionManagementPage = lazy(() =>
   import('../pages/SessionManagementPage').then((m) => ({ default: m.SessionManagementPage })),
 );
@@ -228,8 +233,16 @@ export const AppRouter: React.FC = () => {
           <Route
             path="/audit-logs"
             element={
-              <ProtectedRoute permissions={['settings.manage']}>
+              <ProtectedRoute permissions={['audit.view']}>
                 {suspended(AuditLogPage)}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/communication"
+            element={
+              <ProtectedRoute permissions={['audit.view']}>
+                {suspended(CommunicationPage)}
               </ProtectedRoute>
             }
           />

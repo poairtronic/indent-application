@@ -5,9 +5,17 @@ export interface NotificationResponse {
   message: string;
   type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR';
   isRead: boolean;
+  readAt?: string | null;
   eventId?: string;
   entityType?: string;
   entityId?: string;
+  referenceModule?: string;
+  createdBy?: string;
+  creator?: {
+    firstName: string;
+    lastName: string;
+    employeeCode: string;
+  } | null;
   createdAt: string;
 }
 
@@ -34,9 +42,15 @@ export interface CommunicationLog {
   id: string;
   to: string;
   subject: string;
-  status: 'SENT' | 'FAILED' | 'PENDING';
-  eventType?: string;
-  createdAt: string;
+  status: 'SENT' | 'FAILED' | 'PENDING' | 'QUEUED';
+  errorMessage?: string | null;
+  retryCount?: number;
+  sentAt: string;
+  user?: {
+    firstName: string;
+    lastName: string;
+    employeeCode: string;
+  } | null;
 }
 
 export interface PaginatedCommunicationLogs {
@@ -55,21 +69,31 @@ export interface CommunicationLogQueryParams {
 
 export interface CommunicationHealth {
   status: string;
-  smtpConnected: boolean;
-  queueSize: number;
+  redis: string;
+  timestamp: string;
 }
 
 export interface CommunicationQueueStats {
-  waiting: number;
-  active: number;
-  completed: number;
-  failed: number;
+  mailQueue: {
+    active: number;
+    waiting: number;
+    delayed: number;
+    failed: number;
+  };
+  deadQueue: {
+    total: number;
+  };
+  timestamp: string;
 }
 
 export interface CommunicationMetrics {
-  sentToday: number;
-  failedToday: number;
-  avgProcessingTime: number;
+  throughput: {
+    totalProcessed: number;
+    completed: number;
+    failed: number;
+    successRatePercentage: number;
+  };
+  timestamp: string;
 }
 
 export interface TestEmailPayload {

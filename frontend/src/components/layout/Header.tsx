@@ -3,7 +3,7 @@ import { useLocation, Link, useNavigate } from 'react-router-dom';
 import * as Lucide from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/theme.store';
-import { useNotifications } from '../../store/notification.store';
+import { useUnreadNotificationCount } from '../../api/services/notifications/hooks';
 import { NotificationDrawer } from './NotificationDrawer';
 import { CommandPalette } from './CommandPalette';
 
@@ -13,14 +13,13 @@ export const Header: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const { theme, setTheme } = useThemeStore();
-  const { notifications } = useNotifications();
+  const { data: unreadCount = 0 } = useUnreadNotificationCount();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const pathnames = location.pathname.split('/').filter((x) => x);
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
   const environment = import.meta.env.VITE_APP_ENV || 'DEV';
 
   // Listen to Ctrl + K command

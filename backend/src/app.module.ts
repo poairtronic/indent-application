@@ -18,6 +18,8 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { BusinessTransactionModule } from './business-transaction/business-transaction.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { CommunicationModule } from './communication/communication.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { CommunicationModule } from './communication/communication.module';
     BusinessTransactionModule,
     AnalyticsModule,
     CommunicationModule,
+    NotificationsModule,
+    AuditModule,
   ],
   controllers: [],
   providers: [

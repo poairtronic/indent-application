@@ -10,5 +10,6 @@ export * from './materials';
 export * from './products';
 export * from './indents';
 export * from './notifications';
+export * from './audit';
 export * from './analytics';
 export * from './communication';
