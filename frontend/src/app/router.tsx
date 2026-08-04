@@ -148,6 +148,13 @@ const CostSheetDetailsPage = lazy(() =>
   })),
 );
 
+// Notification Module Pages
+const NotificationsPage = lazy(() =>
+  import('../modules/notifications/NotificationsPage').then((m) => ({
+    default: m.NotificationsPage,
+  })),
+);
+
 // Reports Module Pages
 const ReportsDashboardPage = lazy(() =>
   import('../modules/reports/ReportsDashboardPage').then((m) => ({
@@ -281,6 +288,14 @@ export const AppRouter: React.FC = () => {
             }
           />
         </Route>
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute permissions={['notifications.view']}>
+              {suspended(NotificationsPage)}
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/workflow"
           element={

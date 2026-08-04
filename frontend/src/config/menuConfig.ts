@@ -30,6 +30,12 @@ export const menuItems: MenuItem[] = [
   { label: 'Vendors', path: '/vendors', iconName: 'Briefcase', permission: 'vendors.view' },
   { label: 'Reports', path: '/reports', iconName: 'FileText', permission: 'reports.view' },
   { label: 'Analytics', path: '/analytics', iconName: 'BarChart3', permission: 'analytics.view' },
+  {
+    label: 'Notifications',
+    path: '/notifications',
+    iconName: 'Bell',
+    permission: 'notifications.view',
+  },
   { label: 'Users', path: '/users', iconName: 'Users', permission: 'users.view' },
   { label: 'Roles', path: '/roles', iconName: 'Shield', permission: 'roles.view' },
   { label: 'Security', path: '/security', iconName: 'Lock' },

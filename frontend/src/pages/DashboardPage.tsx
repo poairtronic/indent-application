@@ -80,39 +80,43 @@ export const DashboardPage: React.FC = () => {
   }, []);
 
   // Fetch summary and analytics metrics via React Query
+  const hasAnalyticsAccess = useAuthStore((s) => s.hasAnyPermission(['analytics.view']));
+
   const {
     data: summary,
     isLoading: isSummaryLoading,
     error: summaryError,
     refetch: refetchSummary,
-  } = useAnalyticsSummary();
+  } = useAnalyticsSummary(hasAnalyticsAccess);
 
   const {
     data: workflowData,
     isLoading: isWorkflowLoading,
     error: workflowError,
     refetch: refetchWorkflow,
-  } = useWorkflowAnalytics();
+  } = useWorkflowAnalytics(hasAnalyticsAccess);
 
   const {
     data: departmentData,
     isLoading: isDeptLoading,
     error: deptError,
     refetch: refetchDept,
-  } = useDepartmentAnalytics();
+  } = useDepartmentAnalytics(hasAnalyticsAccess);
 
   const {
     data: costsData,
     isLoading: isCostsLoading,
     error: costsError,
     refetch: refetchCosts,
-  } = useCostAnalytics();
+  } = useCostAnalytics(undefined, hasAnalyticsAccess);
 
-  const { data: productsData } = useProductAnalytics();
-  const { data: vendorsData } = useVendorAnalytics();
+  const { data: productsData } = useProductAnalytics(undefined, hasAnalyticsAccess);
+  const { data: vendorsData } = useVendorAnalytics(undefined, hasAnalyticsAccess);
 
-  const isLoading = isSummaryLoading || isWorkflowLoading || isDeptLoading || isCostsLoading;
-  const isError = summaryError || workflowError || deptError || costsError;
+  const isLoading =
+    hasAnalyticsAccess &&
+    (isSummaryLoading || isWorkflowLoading || isDeptLoading || isCostsLoading);
+  const isError = hasAnalyticsAccess && (summaryError || workflowError || deptError || costsError);
 
   const handleRefetchAll = useCallback(() => {
     refetchSummary();
@@ -319,95 +323,98 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Error State Handler */}
-      {isError && (
-        <ErrorState
-          title="Dashboard Analytics Unavailable"
-          message="Could not retrieve real-time summary indicators from backend services."
-          onRetry={handleRefetchAll}
-        />
+      {hasAnalyticsAccess && (
+        <>
+          {/* ENTERPRISE KPI GRID */}
+          {isError ? (
+            <ErrorState
+              title="Dashboard Analytics Unavailable"
+              message="Could not retrieve real-time summary indicators from backend services."
+              onRetry={handleRefetchAll}
+            />
+          ) : (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                Enterprise Key Performance Indicators
+              </h3>
+
+              {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                    <div
+                      key={n}
+                      className="bg-surface-card border border-border-default rounded-xl p-5 space-y-3"
+                    >
+                      <Skeleton className="h-3 w-24 rounded" />
+                      <Skeleton className="h-8 w-16 rounded" />
+                      <Skeleton className="h-3 w-32 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KPICard
+                    title="Total Indents"
+                    value={summary?.totalTransactions ?? 128}
+                    trend="Lifetime Indents"
+                    icon={<FileText size={18} />}
+                    accent="primary"
+                  />
+                  <KPICard
+                    title="Pending Indents"
+                    value={summary?.pendingTransactions ?? 18}
+                    trend="Awaiting Action"
+                    icon={<Clock size={18} />}
+                    accent="warning"
+                  />
+                  <KPICard
+                    title="Active Production"
+                    value={summary?.activeTransactions ?? 24}
+                    trend="In Processing"
+                    icon={<Activity size={18} />}
+                    accent="info"
+                  />
+                  <KPICard
+                    title="Completed Orders"
+                    value={summary?.completedTransactions ?? 86}
+                    trend="Delivered & Closed"
+                    icon={<CheckCircle2 size={18} />}
+                    accent="success"
+                  />
+                  <KPICard
+                    title="Products Catalog"
+                    value={productsData?.products?.length ?? 42}
+                    trend="Active SKUs"
+                    icon={<Package size={18} />}
+                    accent="primary"
+                  />
+                  <KPICard
+                    title="Approved Vendors"
+                    value={vendorsData?.vendors?.length ?? 18}
+                    trend="Suppliers Network"
+                    icon={<Truck size={18} />}
+                    accent="primary"
+                  />
+                  <KPICard
+                    title="Operating Departments"
+                    value={departmentData?.departments?.length ?? 8}
+                    trend="Business Units"
+                    icon={<Building2 size={18} />}
+                    accent="primary"
+                  />
+                  <KPICard
+                    title="Monthly Planned Cost"
+                    value={formatCurrency(costsData?.totalPlannedCost)}
+                    trend="Expenditure Limit"
+                    icon={<Coins size={18} />}
+                    accent="success"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
-
-      {/* KPI Cards Grid (8 Widgets) */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
-          Enterprise Key Performance Indicators
-        </h3>
-
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-              <div
-                key={n}
-                className="bg-surface-card border border-border-default rounded-xl p-5 space-y-3"
-              >
-                <Skeleton className="h-3 w-24 rounded" />
-                <Skeleton className="h-8 w-16 rounded" />
-                <Skeleton className="h-3 w-32 rounded" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard
-              title="Total Indents"
-              value={summary?.totalTransactions ?? 128}
-              trend="Lifetime Indents"
-              icon={<FileText size={18} />}
-              accent="primary"
-            />
-            <KPICard
-              title="Pending Indents"
-              value={summary?.pendingTransactions ?? 18}
-              trend="Awaiting Action"
-              icon={<Clock size={18} />}
-              accent="warning"
-            />
-            <KPICard
-              title="Active Production"
-              value={summary?.activeTransactions ?? 24}
-              trend="In Processing"
-              icon={<Activity size={18} />}
-              accent="info"
-            />
-            <KPICard
-              title="Completed Orders"
-              value={summary?.completedTransactions ?? 86}
-              trend="Delivered & Closed"
-              icon={<CheckCircle2 size={18} />}
-              accent="success"
-            />
-            <KPICard
-              title="Products Catalog"
-              value={productsData?.products?.length ?? 42}
-              trend="Active SKUs"
-              icon={<Package size={18} />}
-              accent="primary"
-            />
-            <KPICard
-              title="Approved Vendors"
-              value={vendorsData?.vendors?.length ?? 18}
-              trend="Suppliers Network"
-              icon={<Truck size={18} />}
-              accent="primary"
-            />
-            <KPICard
-              title="Operating Departments"
-              value={departmentData?.departments?.length ?? 8}
-              trend="Business Units"
-              icon={<Building2 size={18} />}
-              accent="primary"
-            />
-            <KPICard
-              title="Monthly Planned Cost"
-              value={formatCurrency(costsData?.totalPlannedCost)}
-              trend="Expenditure Limit"
-              icon={<Coins size={18} />}
-              accent="success"
-            />
-          </div>
-        )}
-      </div>
 
       {/* Quick Action Portal (8 Actions) */}
       <div className="space-y-3">

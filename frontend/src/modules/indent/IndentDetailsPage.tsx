@@ -1,25 +1,30 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useIndent, useSubmitIndent } from '../../api/services/indents/hooks';
+import { useIndent } from '../../api/services/indents/hooks';
 import { IndentDetails } from './components/IndentDetails';
-import { ArrowLeft, Edit, Printer, Copy, Send } from 'lucide-react';
+import { WorkflowActions } from './components/WorkflowActions';
+import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { useAuthStore } from '../../store/authStore';
 import { AppPermission } from '../../constants/permissions';
+import {
+  getWorkflowStage,
+  formatWorkflowState,
+  getWorkflowStateTone,
+  getWorkflowProgress,
+} from '../../constants/workflow';
+import { ArrowLeft, Edit, Printer, Copy, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import type { WorkflowState } from '../../constants/workflow';
 
 export const IndentDetailsPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toasts, show, dismiss } = useToasts();
   const hasPermission = useAuthStore((s) => s.hasPermission);
-  const { data: indent, isLoading } = useIndent(id || '');
-  const { mutateAsync: submitIndent, isPending: isSubmitting } = useSubmitIndent();
-  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const { data: indent, isLoading, refetch } = useIndent(id || '');
 
   const canEdit = hasPermission(AppPermission.INDENT_EDIT);
-  const canSubmit = hasPermission(AppPermission.INDENT_SUBMIT);
 
   if (isLoading) {
     return (
@@ -36,21 +41,18 @@ export const IndentDetailsPage: React.FC = () => {
     return <div className="flex justify-center p-12 text-status-error">Indent not found.</div>;
   }
 
-  const isDraft = indent.currentState === 'DRAFT';
+  const currentState = indent.currentState as WorkflowState;
+  const stage = getWorkflowStage(currentState);
+  const progress = getWorkflowProgress(currentState);
+  const isDraft = currentState === 'DRAFT';
+  const isCompleted = currentState === 'COMPLETED';
 
-  const handleSubmit = async () => {
-    if (!id) return;
-    try {
-      await submitIndent({ id });
-      show('success', `Indent ${indent.indentNumber} submitted successfully.`);
-      setShowSubmitDialog(false);
-    } catch {
-      show('error', 'Failed to submit indent. Please try again.');
-    }
+  const handleWorkflowSuccess = () => {
+    show('success', 'Workflow action completed successfully.');
+    refetch();
   };
 
   const handleDuplicate = () => {
-    // Navigate to create with the current indent data as initial state
     navigate('/indents/create', { state: { duplicateFrom: indent } });
   };
 
@@ -58,16 +60,20 @@ export const IndentDetailsPage: React.FC = () => {
     <div className="space-y-6">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
 
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="sm" onClick={() => navigate('/indents')} className="p-2">
             <ArrowLeft size={16} />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-text-primary">Indent {indent.indentNumber}</h1>
-            <p className="text-sm text-text-secondary mt-1">
-              View comprehensive details and workflow progress
-            </p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-text-primary">Indent {indent.indentNumber}</h1>
+              <Badge tone={getWorkflowStateTone(currentState)}>
+                {formatWorkflowState(currentState)}
+              </Badge>
+            </div>
+            <p className="text-sm text-text-secondary mt-1">{stage.description}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -100,32 +106,69 @@ export const IndentDetailsPage: React.FC = () => {
               Edit
             </Button>
           )}
-          {isDraft && canSubmit && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowSubmitDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Send size={16} />
-              Submit Design
-            </Button>
-          )}
         </div>
       </div>
 
-      <IndentDetails indent={indent} />
+      {/* Workflow Progress Bar */}
+      <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-accent-primary" />
+            <span className="text-sm font-bold text-text-primary">
+              Workflow Progress -{' '}
+              {stage.loop === 'MANUFACTURING_LOOP' ? 'Manufacturing Loop' : 'Financial Loop'}
+            </span>
+          </div>
+          <span className="text-xs font-medium text-text-secondary">
+            Step {progress.currentSequence} of {progress.totalSteps} ({progress.percentage}%)
+          </span>
+        </div>
+        <div className="w-full h-2 bg-surface-elevated rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent-primary transition-all duration-500 ease-out rounded-full"
+            style={{ width: `${progress.percentage}%` }}
+          />
+        </div>
+        {progress.isLoopBoundary && (
+          <div className="flex items-center gap-1 mt-2">
+            <CheckCircle size={12} className="text-status-success" />
+            <span className="text-[10px] text-status-success font-medium">
+              {stage.isTerminalState ? 'Transaction Closed' : 'Loop Boundary Reached'}
+            </span>
+          </div>
+        )}
+      </div>
 
-      <ConfirmDialog
-        open={showSubmitDialog}
-        onCancel={() => setShowSubmitDialog(false)}
-        onConfirm={handleSubmit}
-        title={`Submit Indent: ${indent.indentNumber}`}
-        message="This will submit the design for Stores processing. The indent will no longer be editable. Continue?"
-        tone="primary"
-        confirmLabel="Submit Design"
-        loading={isSubmitting}
-      />
+      {/* Workflow Actions */}
+      {!isCompleted && (
+        <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle size={16} className="text-accent-primary" />
+            <span className="text-sm font-bold text-text-primary">Available Actions</span>
+          </div>
+          <WorkflowActions
+            currentState={currentState}
+            indentId={indent.id}
+            indentNumber={indent.indentNumber}
+            onSuccess={handleWorkflowSuccess}
+          />
+        </div>
+      )}
+
+      {isCompleted && (
+        <div className="bg-status-success/10 rounded-xl p-4 border border-status-success/20 flex items-center gap-3">
+          <CheckCircle size={20} className="text-status-success" />
+          <div>
+            <p className="text-sm font-bold text-status-success">Transaction Completed</p>
+            <p className="text-xs text-text-secondary">
+              This business transaction has been fully completed and archived.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Indent Details */}
+      <IndentDetails indent={indent} />
     </div>
   );
 };
