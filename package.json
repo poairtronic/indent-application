@@ -1,8 +1,27 @@
 {
-  "devDependencies": {
-    "prisma": "^6.19.3"
+  "name": "imcms-enterprise",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise Manufacturing Indent & Costing Management System",
+  "scripts": {
+    "verify-api": "ts-node scripts/verify-api.ts",
+    "verify-api:ci": "ts-node scripts/verify-api.ts --ci",
+    "verify-api:strict": "ts-node scripts/verify-api.ts --p0-threshold 0 --p1-threshold 0",
+    "verify-api:runtime": "ts-node scripts/verify-api.ts --runtime",
+    "scan:backend": "ts-node tools/api-verifier/backend-scanner/src/index.ts -p backend/tsconfig.json -o tools/api-verifier/reports",
+    "scan:frontend": "ts-node tools/api-verifier/frontend-scanner/src/index.ts -p frontend/tsconfig.app.json -o tools/api-verifier/reports"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.8.3",
+    "commander": "^11.0.0",
+    "axios": "^1.19.0",
+    "@faker-js/faker": "^10.5.0",
+    "ts-morph": "^19.0.0",
+    "@types/node": "^22.0.0"
   }
 }

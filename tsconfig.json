@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "outDir": "./dist-scripts",
+    "rootDir": "."
+  },
+  "include": ["scripts/**/*", "tools/**/*"],
+  "exclude": ["node_modules", "backend", "frontend", "database"]
+}

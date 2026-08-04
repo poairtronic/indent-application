@@ -1,0 +1,170 @@
+name: API Contract Verification
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master, dev]
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: 'Run live endpoint testing'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  api-verification:
+    name: API Contract Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: indent_user
+          POSTGRES_PASSWORD: indent_password
+          POSTGRES_DB: indent_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Install Backend Dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        working-directory: backend
+
+      - name: Run Database Migrations
+        run: npx prisma migrate deploy
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://indent_user:indent_password@localhost:5432/indent_db?schema=public
+
+      - name: Seed Database (optional)
+        run: npx ts-node database/seed.ts || true
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://indent_user:indent_password@localhost:5432/indent_db?schema=public
+
+      - name: Start Backend Server
+        run: |
+          npx ts-node src/main.ts &
+          sleep 8
+          curl -f http://localhost:3001/api-json || echo "Swagger not ready yet"
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://indent_user:indent_password@localhost:5432/indent_db?schema=public
+          PORT: 3001
+          JWT_SECRET: ci_test_secret_key
+          JWT_REFRESH_SECRET: ci_test_refresh_secret
+          JWT_EXPIRES_IN: 15m
+          JWT_REFRESH_EXPIRES_IN: 7d
+          REDIS_URL: redis://localhost:6379
+
+      - name: Run API Verification (Contract Only)
+        run: npm run verify-api -- --ci --no-archive
+        env:
+          SWAGGER_URL: http://localhost:3001/api-json
+
+      - name: Run API Verification (with Runtime)
+        if: github.event.inputs.runtime == 'true' || github.ref == 'refs/heads/main'
+        run: npm run verify-api -- --ci --runtime --no-archive
+        env:
+          SWAGGER_URL: http://localhost:3001/api-json
+          BACKEND_URL: http://localhost:3001/api
+
+      - name: Upload Verification Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-verification-reports
+          path: tools/api-verifier/reports/
+          retention-days: 30
+
+      - name: Upload CI Output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-verification-ci-output
+          path: tools/api-verifier/reports/api-verification.json
+          retention-days: 90
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const reportPath = 'tools/api-verifier/reports/api-verification.json';
+
+            if (!fs.existsSync(reportPath)) {
+              return;
+            }
+
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf-8'));
+            const icon = report.overallResult === 'PASS' ? '✅' : '❌';
+
+            let body = `## ${icon} API Contract Verification: ${report.overallResult}\n\n`;
+            body += `| Metric | Value |\n|--------|-------|\n`;
+            body += `| P0 Errors (Missing Endpoints) | ${report.summary.p0Errors} |\n`;
+            body += `| P1 Errors (Method Mismatch) | ${report.summary.p1Errors} |\n`;
+            body += `| P2 Errors (DTO Mismatch) | ${report.summary.p2Errors} |\n`;
+            body += `| P3 Dead Endpoints | ${report.summary.p3DeadEndpoints} |\n`;
+            body += `| Coverage | ${report.summary.coverage}% |\n`;
+            body += `| Swagger Available | ${report.summary.swaggerAvailable ? 'Yes' : 'No'} |\n`;
+            body += `| Swagger Mismatches | ${report.summary.swaggerMismatches} |\n`;
+
+            if (report.steps) {
+              body += `\n### Pipeline Steps\n`;
+              body += `| Step | Status |\n|------|--------|\n`;
+              body += `| Backend Scanner | ${report.steps.backendScanner ? '✅' : '❌'} |\n`;
+              body += `| Frontend Scanner | ${report.steps.frontendScanner ? '✅' : '❌'} |\n`;
+              body += `| Verification Engine | ${report.steps.verificationEngine ? '✅' : '❌'} |\n`;
+              body += `| Swagger Verification | ${report.steps.swaggerVerification ? '✅' : '❌'} |\n`;
+              body += `| Runtime Verification | ${report.steps.runtimeVerification ? '✅' : '❌'} |\n`;
+            }
+
+            body += `\n<sub>Generated by IMCMS API Verification Tool • ${report.timestamp}</sub>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

@@ -1,0 +1,151 @@
+# Azure DevOps Pipeline - API Contract Verification
+# Runs the full 5-step verification pipeline on every PR and push to main
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+      - dev
+  paths:
+    include:
+      - backend/src/**
+      - frontend/src/**
+      - tools/api-verifier/**
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+      - dev
+
+variables:
+  NODE_VERSION: '20'
+  POSTGRES_USER: 'indent_user'
+  POSTGRES_PASSWORD: 'indent_password'
+  POSTGRES_DB: 'indent_db'
+  DATABASE_URL: 'postgresql://indent_user:indent_password@localhost:5432/indent_db?schema=public'
+  JWT_SECRET: 'ci_test_secret_key'
+  JWT_REFRESH_SECRET: 'ci_test_refresh_secret'
+  PORT: '3001'
+
+stages:
+  # ─── Stage 1: Static Contract Verification ──────────────────────────────
+  - stage: ContractVerification
+    displayName: 'Static Contract Verification'
+    jobs:
+      - job: VerifyContract
+        displayName: 'Scan & Verify API Contracts'
+        timeoutInMinutes: 15
+        pool:
+          vmImage: 'ubuntu-latest'
+
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Setup Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: npm ci
+            displayName: 'Install Root Dependencies'
+
+          - script: npm ci
+            displayName: 'Install Backend Dependencies'
+            workingDirectory: backend
+
+          - script: npm ci
+            displayName: 'Install Frontend Dependencies'
+            workingDirectory: frontend
+
+          - script: npm run verify-api -- --ci --no-archive
+            displayName: 'Run API Verification Pipeline'
+            name: verifyApi
+            env:
+              SWAGGER_URL: 'http://localhost:3001/api-json'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish Verification Results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'tools/api-verifier/reports/**/*.xml'
+              mergeTestResults: true
+            continueOnError: true
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Verification Reports'
+            condition: always()
+            inputs:
+              pathToPublish: 'tools/api-verifier/reports'
+              artifactName: 'api-verification-reports'
+              publishLocation: 'Container'
+
+          - script: |
+              if [ -f tools/api-verifier/reports/api-verification.json ]; then
+                RESULT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('tools/api-verifier/reports/api-verification.json','utf-8')).overallResult)")
+                echo "##vso[task.setvariable variable=verificationResult]$RESULT"
+                if [ "$RESULT" = "FAIL" ]; then
+                  echo "##vso[task.logissue type=error]API Verification FAILED — review reports"
+                  exit 1
+                fi
+              fi
+            displayName: 'Check Verification Result'
+
+  # ─── Stage 2: Runtime Verification (main branch only) ──────────────────
+  - stage: RuntimeVerification
+    displayName: 'Runtime Endpoint Verification'
+    dependsOn: ContractVerification
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: RuntimeTest
+        displayName: 'Live Endpoint Testing'
+        timeoutInMinutes: 20
+        pool:
+          vmImage: 'ubuntu-latest'
+
+        services:
+          postgres: postgres:16-alpine
+          redis: redis:7-alpine
+
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Setup Node.js $(NODE_VERSION)'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - script: npm ci
+            displayName: 'Install Dependencies'
+
+          - script: |
+              cd backend
+              npm ci
+              npx prisma generate
+              npx prisma migrate deploy
+            displayName: 'Setup Backend'
+
+          - script: |
+              cd backend
+              npx ts-node src/main.ts &
+              sleep 10
+              curl -f http://localhost:3001/api-json || echo "Swagger not ready"
+            displayName: 'Start Backend Server'
+
+          - script: |
+              npm run verify-api -- --ci --runtime --no-archive
+            displayName: 'Run Full Verification (with Runtime)'
+            env:
+              SWAGGER_URL: 'http://localhost:3001/api-json'
+              BACKEND_URL: 'http://localhost:3001/api'
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish All Reports'
+            condition: always()
+            inputs:
+              pathToPublish: 'tools/api-verifier/reports'
+              artifactName: 'api-runtime-reports'
+              publishLocation: 'Container'

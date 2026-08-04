@@ -51,3 +51,6 @@ tmp/
 coverage/
 *.tsbuildinfo
 .eslintcache
+
+# API Verification Reports (generated artifacts)
+tools/api-verifier/reports/
