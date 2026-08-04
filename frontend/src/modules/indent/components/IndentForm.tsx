@@ -6,7 +6,13 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { TextArea } from '../../../components/ui/TextArea';
-import { Priority, type Indent } from '../../../types/indent';
+import { Priority } from '../../../types/indent';
+import { useDepartmentOptions } from '../../../api/services/departments/hooks';
+import { useMaterials } from '../../../api/services/materials/hooks';
+import { useUnits } from '../../../api/services/units/hooks';
+import { useProcesses } from '../../../api/services/processes/hooks';
+import { useProducts } from '../../../api/services/products/hooks';
+import type { IndentData } from '../../../api/services/indents/service';
 
 const indentSchema = z.object({
   indent: z.object({
@@ -50,8 +56,8 @@ const indentSchema = z.object({
 type IndentFormData = z.infer<typeof indentSchema>;
 
 interface IndentFormProps {
-  initialData?: Indent;
-  onSubmit: (data: any) => void;
+  initialData?: IndentData;
+  onSubmit: (data: IndentFormData) => void;
   isLoading?: boolean;
 }
 
@@ -63,17 +69,17 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
     setValue,
     formState: { errors },
   } = useForm<IndentFormData>({
-    resolver: zodResolver(indentSchema) as any,
+    resolver: zodResolver(indentSchema) as never,
     defaultValues: initialData
       ? {
           indent: {
             productId: initialData.productId,
             departmentId: initialData.departmentId,
-            priority: initialData.priority,
+            priority: initialData.priority as Priority,
             requiredDate: initialData.requiredDate.split('T')[0],
             purpose: initialData.purpose || '',
             remarks: initialData.remarks || '',
-            items: initialData.indentItems?.map((item) => ({
+            items: initialData.items?.map((item) => ({
               materialId: item.materialId,
               quantity: Number(item.quantity),
               unitId: item.unitId,
@@ -129,10 +135,22 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
     name: 'costSheet.processCosts',
   });
 
-  // Watch for material changes to sync with costItems
   const watchedItems = useWatch({ control, name: 'indent.items' });
   const watchedCostItems = useWatch({ control, name: 'costSheet.costItems' });
   const watchedProcesses = useWatch({ control, name: 'costSheet.processCosts' });
+
+  // Live API data for dropdowns
+  const { data: departmentsData } = useDepartmentOptions();
+  const { data: materialsData } = useMaterials({ page: 1, limit: 200 });
+  const { data: unitsData } = useUnits({ page: 1, limit: 200 });
+  const { data: processesData } = useProcesses({ page: 1, limit: 200 });
+  const { data: productsData } = useProducts({ page: 1, limit: 200 });
+
+  const departments = departmentsData ?? [];
+  const materials = materialsData?.items ?? [];
+  const units = unitsData?.items ?? [];
+  const processes = processesData?.items ?? [];
+  const products = productsData?.items ?? [];
 
   // Sync items to costItems when materials are added/removed
   useEffect(() => {
@@ -150,7 +168,6 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
       };
     });
 
-    // Prevent infinite loop by checking if we really need to update
     const needsUpdate =
       newCostItems.length !== (watchedCostItems?.length || 0) ||
       newCostItems.some(
@@ -178,29 +195,6 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
 
   const predictedTotal = useWatch({ control, name: 'costSheet.predictedTotal' });
 
-  // Mock data for dropdowns (in real app, use queries)
-  const products = [
-    { id: '1', name: 'Product A' },
-    { id: '2', name: 'Product B' },
-  ];
-  const departments = [
-    { id: '1', name: 'Design Dept' },
-    { id: '2', name: 'Stores Dept' },
-  ];
-  const materials = [
-    { id: '1', name: 'Steel' },
-    { id: '2', name: 'Aluminum' },
-  ];
-  const units = [
-    { id: '1', name: 'kg' },
-    { id: '2', name: 'pcs' },
-  ];
-  const processes = [
-    { id: '1', name: 'Turning' },
-    { id: '2', name: 'Milling' },
-    { id: '3', name: 'Heat Treatment' },
-  ];
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-5xl">
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
@@ -212,7 +206,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             render={({ field }) => (
               <Select
                 label="Product"
-                options={products.map((p) => ({ label: p.name, value: p.id }))}
+                options={products.map((p) => ({ label: p.productName, value: p.id }))}
                 error={errors.indent?.productId?.message}
                 {...field}
               />
@@ -224,7 +218,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             render={({ field }) => (
               <Select
                 label="Department"
-                options={departments.map((d) => ({ label: d.name, value: d.id }))}
+                options={departments.map((d) => ({ label: d.label, value: d.value }))}
                 error={errors.indent?.departmentId?.message}
                 {...field}
               />
@@ -295,7 +289,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   render={({ field }) => (
                     <Select
                       label="Material"
-                      options={materials.map((m) => ({ label: m.name, value: m.id }))}
+                      options={materials.map((m) => ({
+                        label: `${m.materialCode} - ${m.materialName}`,
+                        value: m.id,
+                      }))}
                       error={errors.indent?.items?.[index]?.materialId?.message}
                       {...field}
                     />
@@ -318,7 +315,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   render={({ field }) => (
                     <Select
                       label="Unit"
-                      options={units.map((u) => ({ label: u.name, value: u.id }))}
+                      options={units.map((u) => ({
+                        label: `${u.symbol || u.unitName}`,
+                        value: u.id,
+                      }))}
                       error={errors.indent?.items?.[index]?.unitId?.message}
                       {...field}
                     />
@@ -387,7 +387,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   render={({ field }) => (
                     <Select
                       label="Process"
-                      options={processes.map((p) => ({ label: p.name, value: p.id }))}
+                      options={processes.map((p) => ({
+                        label: p.processName,
+                        value: p.id,
+                      }))}
                       error={errors.costSheet?.processCosts?.[index]?.processId?.message}
                       {...field}
                     />

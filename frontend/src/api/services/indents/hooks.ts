@@ -8,6 +8,13 @@ import type {
   UpdateIndentPayload,
 } from './service';
 
+function invalidateIndent(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+  if (id) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.indents.detail('indents', id) });
+  }
+}
+
 export function useIndents(params: IndentQueryParams) {
   return useQuery({
     queryKey: [...queryKeys.indents.list('indents'), params],
@@ -18,7 +25,8 @@ export function useIndents(params: IndentQueryParams) {
 export function useIndent(id: string) {
   return useQuery({
     queryKey: queryKeys.indents.detail('indents', id),
-    queryFn: () => indentService.getById<IndentData>(id),
+    queryFn: () => indentService.getDetail(id),
+    enabled: Boolean(id),
   });
 }
 
@@ -27,7 +35,7 @@ export function useCreateIndent() {
   return useMutation({
     mutationFn: (payload: CreateIndentPayload) => indentService.create<IndentData>(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+      invalidateIndent(queryClient);
     },
   });
 }
@@ -37,8 +45,8 @@ export function useUpdateIndent() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateIndentPayload }) =>
       indentService.update<IndentData>(id, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
     },
   });
 }
@@ -48,8 +56,8 @@ export function useSubmitIndent() {
   return useMutation({
     mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
       indentService.submit(id, remarks),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
     },
   });
 }
@@ -58,8 +66,8 @@ export function useVerifyStores() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => indentService.verifyStores(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+    onSuccess: (_data, id) => {
+      invalidateIndent(queryClient, id);
     },
   });
 }
@@ -69,8 +77,63 @@ export function useIssueStores() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
       indentService.issueStores(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useReceiveProduction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
+      indentService.receiveProduction(id, remarks),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useStartProduction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
+      indentService.startProduction(id, remarks),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useUpdateProgress() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      indentService.updateProgress(id, data),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useCompleteProduction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
+      indentService.completeProduction(id, remarks),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useDeliverCustomer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      indentService.deliverCustomer(id, data),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
     },
   });
 }
@@ -80,8 +143,8 @@ export function useVerifyAccounts() {
   return useMutation({
     mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
       indentService.verifyAccounts(id, remarks),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
     },
   });
 }
@@ -91,8 +154,19 @@ export function useEnterActualCosts() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       indentService.enterActualCosts(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useUpdateMaterialCost() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      indentService.updateMaterialCost(id, data),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
     },
   });
 }
@@ -102,8 +176,8 @@ export function useFinancialClose() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data?: Record<string, unknown> }) =>
       indentService.financialClose(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
     },
   });
 }
@@ -113,8 +187,64 @@ export function useArchiveIndent() {
   return useMutation({
     mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
       indentService.archive(id, remarks),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useCompleteIndent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, remarks }: { id: string; remarks?: string }) =>
+      indentService.complete(id, remarks),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useUploadAttachment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      file,
+      remarks,
+      onProgress,
+    }: {
+      id: string;
+      file: File;
+      remarks?: string;
+      onProgress?: (progress: number) => void;
+    }) => indentService.uploadAttachment(id, file, remarks, onProgress),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
+export function useDownloadAttachment() {
+  return useMutation({
+    mutationFn: (fileName: string) => indentService.downloadAttachment(fileName),
+  });
+}
+
+export function useAttachmentSummary(id: string) {
+  return useQuery({
+    queryKey: [...queryKeys.indents.detail('indents', id), 'attachments', 'summary'],
+    queryFn: () => indentService.getAttachmentSummary(id),
+    enabled: Boolean(id),
+  });
+}
+
+export function useRemoveAttachment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, attachmentId }: { id: string; attachmentId: string }) =>
+      indentService.removeAttachment(id, attachmentId),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
     },
   });
 }

@@ -1,51 +1,61 @@
 import React from 'react';
 import { WorkflowTimeline as UIWorkflowTimeline } from '../../../components/ui/DataTimeline';
-import { IndentStatus } from '../../../types/indent';
 
 interface IndentWorkflowProps {
-  currentStatus: IndentStatus;
+  currentStatus: string;
   className?: string;
 }
 
-// Ordered stages for the timeline
 const WORKFLOW_STAGES = [
-  { id: '1', title: 'Draft', status: IndentStatus.DRAFT, description: 'Design Dept' },
-  { id: '2', title: 'Design', status: IndentStatus.DESIGN_COMPLETED, description: 'Design Dept' },
-  { id: '3', title: 'Stores', status: IndentStatus.STORES_PROCESSING, description: 'Stores Dept' },
-  {
-    id: '4',
-    title: 'Production',
-    status: IndentStatus.PRODUCTION_PROCESSING,
-    description: 'Production Dept',
-  },
+  { id: '1', title: 'Draft', state: 'DRAFT', description: 'Design Dept' },
+  { id: '2', title: 'Design Submitted', state: 'DESIGN_COMPLETED', description: 'Design Dept' },
+  { id: '3', title: 'Stores Processing', state: 'STORES_PROCESSING', description: 'Stores Dept' },
+  { id: '4', title: 'Materials Issued', state: 'MATERIALS_ISSUED', description: 'Stores Dept' },
   {
     id: '5',
-    title: 'Delivery',
-    status: IndentStatus.CUSTOMER_DELIVERED,
+    title: 'Production Processing',
+    state: 'PRODUCTION_PROCESSING',
     description: 'Production Dept',
   },
   {
     id: '6',
-    title: 'Accounts',
-    status: IndentStatus.ACCOUNTS_COST_VERIFICATION,
-    description: 'Accounts Dept',
+    title: 'Production Completed',
+    state: 'PRODUCTION_COMPLETED',
+    description: 'Production Dept',
   },
   {
     id: '7',
-    title: 'Closure',
-    status: IndentStatus.ACCOUNTS_FINANCIAL_CLOSURE,
+    title: 'Customer Delivered',
+    state: 'CUSTOMER_DELIVERED',
+    description: 'Production Dept',
+  },
+  {
+    id: '8',
+    title: 'Accounts Verification',
+    state: 'ACCOUNTS_COST_VERIFICATION',
     description: 'Accounts Dept',
   },
-  { id: '8', title: 'Archive', status: IndentStatus.ARCHIVED, description: 'System' },
-  { id: '9', title: 'Completed', status: IndentStatus.COMPLETED, description: 'System' },
+  {
+    id: '9',
+    title: 'Actual Cost Updated',
+    state: 'ACTUAL_COST_UPDATED',
+    description: 'Accounts Dept',
+  },
+  {
+    id: '10',
+    title: 'Financial Closure',
+    state: 'ACCOUNTS_FINANCIAL_CLOSURE',
+    description: 'Accounts Dept',
+  },
+  { id: '11', title: 'Archived', state: 'ARCHIVED', description: 'System' },
+  { id: '12', title: 'Completed', state: 'COMPLETED', description: 'System' },
 ];
 
 export const IndentWorkflowTimeline: React.FC<IndentWorkflowProps> = ({
   currentStatus,
   className = '',
 }) => {
-  // Find index of current status. Fallback to -1 if custom/unmapped status.
-  const currentIndex = WORKFLOW_STAGES.findIndex((s) => s.status === currentStatus);
+  const currentIndex = WORKFLOW_STAGES.findIndex((s) => s.state === currentStatus);
 
   const items = WORKFLOW_STAGES.map((stage, index) => {
     const isCompleted = index < currentIndex;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { useIndents } from '../../api/services/indents/hooks';
 import { useIndentStore } from '../../store/useIndentStore';
 import { CostSheetList } from './components/CostSheetList';
@@ -6,14 +6,42 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Search, Filter, Grid, List as ListIcon, TrendingUp } from 'lucide-react';
 import { Select } from '../../components/ui/Select';
-import { IndentStatus } from '../../types/indent';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import type { WorkflowState } from '../../api/types/enums';
 
 export const CostSheetDashboardPage: React.FC = () => {
   const { filters, setFilters, viewMode, setViewMode } = useIndentStore();
-  const { data, isLoading, refetch } = useIndents(filters);
 
-  // The Accounts department mainly focuses on items in ACCOUNTS_COST_VERIFICATION or FINISHED
-  // but they can see all for tracking
+  const [searchInput, setSearchInput] = useState(filters.search || '');
+  const search = useDebouncedValue(searchInput, 300);
+
+  const queryParams = {
+    page: filters.page,
+    limit: filters.limit,
+    search: search || undefined,
+    state: (filters.status || undefined) as WorkflowState | undefined,
+  };
+
+  const { data, isLoading, refetch, isFetching } = useIndents(queryParams);
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInput(value);
+      setFilters({ page: 1 });
+    },
+    [setFilters],
+  );
+
+  const handleStatusChange = useCallback(
+    (value: string) => {
+      setFilters({ status: value, page: 1 });
+    },
+    [setFilters],
+  );
+
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <div className="space-y-6">
@@ -34,8 +62,8 @@ export const CostSheetDashboardPage: React.FC = () => {
             <Search className="absolute left-3 top-2.5 text-text-muted" size={16} />
             <Input
               placeholder="Search cost sheets..."
-              value={filters.search || ''}
-              onChange={(e) => setFilters({ search: e.target.value })}
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-9"
             />
           </div>
@@ -45,16 +73,16 @@ export const CostSheetDashboardPage: React.FC = () => {
                 { label: 'All Statuses', value: '' },
                 {
                   label: 'Cost Verification Pending',
-                  value: IndentStatus.ACCOUNTS_COST_VERIFICATION,
+                  value: 'ACCOUNTS_COST_VERIFICATION',
                 },
                 {
                   label: 'Financial Closure Pending',
-                  value: IndentStatus.ACCOUNTS_FINANCIAL_CLOSURE,
+                  value: 'ACCOUNTS_FINANCIAL_CLOSURE',
                 },
-                { label: 'Completed', value: IndentStatus.COMPLETED },
+                { label: 'Completed', value: 'COMPLETED' },
               ]}
               value={filters.status || ''}
-              onChange={(e) => setFilters({ status: e.target.value })}
+              onChange={(e) => handleStatusChange(e.target.value)}
             />
           </div>
         </div>
@@ -64,10 +92,11 @@ export const CostSheetDashboardPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => refetch()}
+            disabled={isFetching}
             className="flex items-center gap-2"
           >
             <Filter size={14} />
-            Refresh
+            {isFetching ? 'Refreshing...' : 'Refresh'}
           </Button>
           <div className="flex bg-background-primary rounded-lg border border-border-default p-1">
             <button
@@ -87,13 +116,14 @@ export const CostSheetDashboardPage: React.FC = () => {
       </div>
 
       <CostSheetList
-        indents={data?.data || []}
+        indents={items}
         isLoading={isLoading}
         onRefresh={refetch}
         pagination={{
           page: filters.page || 1,
           limit: filters.limit || 10,
-          total: data?.total || 0,
+          total,
+          totalPages,
         }}
         onPageChange={(page) => setFilters({ page })}
         viewMode={viewMode}

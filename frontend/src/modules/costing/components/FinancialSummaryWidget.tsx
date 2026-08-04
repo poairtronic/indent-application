@@ -1,9 +1,9 @@
 import React from 'react';
-import type { CostSheet } from '../../../types/costing';
+import type { CostSheetData } from '../../../api/services/indents/service';
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 
 interface FinancialSummaryWidgetProps {
-  costSheet: CostSheet | undefined;
+  costSheet: CostSheetData | undefined;
 }
 
 export const FinancialSummaryWidget: React.FC<FinancialSummaryWidgetProps> = ({ costSheet }) => {

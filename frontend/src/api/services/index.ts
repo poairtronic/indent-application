@@ -10,7 +10,6 @@ export * from './materials';
 export * from './products';
 export * from './indents';
 export * from './cost-sheets';
-export * from './business-transactions';
 export * from './notifications';
 export * from './analytics';
 export * from './communication';

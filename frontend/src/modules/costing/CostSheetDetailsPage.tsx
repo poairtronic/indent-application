@@ -10,11 +10,12 @@ import { Button } from '../../components/ui/Button';
 import { FinancialSummaryWidget } from './components/FinancialSummaryWidget';
 import { CostBreakdownChart } from './components/CostBreakdownChart';
 import { Input } from '../../components/ui/Input';
-import { IndentStatus } from '../../types/indent';
+import { ToastViewport, useToasts } from '../../components/ui/toast';
 
 export const CostSheetDetailsPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toasts, show, dismiss } = useToasts();
   const { data: indent, isLoading } = useIndent(id || '');
   const { mutateAsync: saveActualCosts, isPending: isSaving } = useEnterActualCosts();
   const { mutateAsync: financialClose, isPending: isClosing } = useFinancialClose();
@@ -27,13 +28,15 @@ export const CostSheetDetailsPage: React.FC = () => {
     processes: {},
   });
 
-  const isAccountsStage = indent?.status === IndentStatus.ACCOUNTS_COST_VERIFICATION;
+  const isAccountsStage =
+    indent?.currentState === 'ACCOUNTS_COST_VERIFICATION' ||
+    indent?.currentState === 'ACTUAL_COST_UPDATED';
 
   // Initialize actuals form state when data loads
   React.useEffect(() => {
     if (indent?.costSheet && isAccountsStage) {
-      const matActuals: any = {};
-      const procActuals: any = {};
+      const matActuals: Record<string, { actualRate: number; actualQuantity: number }> = {};
+      const procActuals: Record<string, { actualCost: number; actualHours: number }> = {};
 
       indent.costSheet.costItems?.forEach((item) => {
         matActuals[item.id] = {
@@ -54,7 +57,14 @@ export const CostSheetDetailsPage: React.FC = () => {
   }, [indent, isAccountsStage]);
 
   if (isLoading) {
-    return <div className="flex justify-center p-12">Loading cost sheet details...</div>;
+    return (
+      <div className="flex justify-center p-12">
+        <div className="flex items-center gap-3 text-text-muted">
+          <div className="w-5 h-5 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
+          Loading cost sheet details...
+        </div>
+      </div>
+    );
   }
 
   if (!indent || !indent.costSheet) {
@@ -64,38 +74,46 @@ export const CostSheetDetailsPage: React.FC = () => {
   const handleSaveActuals = async () => {
     if (!id) return;
 
-    // Format payload for actual costs
     const payload = {
-      costItems: Object.entries(actuals.materials).map(([itemId, vals]) => ({
-        id: itemId,
+      costItems: Object.entries(actuals.materials).map(([costItemId, vals]) => ({
+        costItemId,
         actualRate: vals.actualRate,
         actualQuantity: vals.actualQuantity,
       })),
-      processCosts: Object.entries(actuals.processes).map(([processId, vals]) => ({
-        id: processId,
+      processCosts: Object.entries(actuals.processes).map(([processCostId, vals]) => ({
+        processCostId,
         actualCost: vals.actualCost,
         actualHours: vals.actualHours,
       })),
+      remarks: 'Actual costs updated',
     };
 
-    await saveActualCosts({ id, dto: payload });
-    alert('Actual costs updated successfully!');
+    try {
+      await saveActualCosts({ id, data: payload });
+      show('success', 'Actual costs updated successfully!');
+    } catch {
+      show('error', 'Failed to save actual costs. Please try again.');
+    }
   };
 
   const handleFinancialClose = async () => {
     if (!id) return;
-    if (
-      confirm(
-        'Are you sure you want to finalize this Cost Sheet? It cannot be edited after closure.',
-      )
-    ) {
-      await financialClose({ id, dto: { remarks: 'Financial closure approved' } });
-      alert('Cost Sheet finalized.');
+
+    try {
+      await financialClose({
+        id,
+        data: { closureNotes: 'Financial closure approved', remarks: 'Financial closure approved' },
+      });
+      show('success', 'Cost Sheet finalized successfully!');
+    } catch {
+      show('error', 'Failed to finalize cost sheet. Please try again.');
     }
   };
 
   return (
     <div className="space-y-6">
+      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <Button
@@ -155,20 +173,16 @@ export const CostSheetDetailsPage: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-border-default text-xs text-text-secondary uppercase">
-                <th className="py-3 px-4 font-medium">Material</th>
-                <th className="py-3 px-4 font-medium">Planned Qty</th>
-                <th className="py-3 px-4 font-medium">Planned Rate</th>
-                <th className="py-3 px-4 font-medium">Planned Amt</th>
-                <th className="py-3 px-4 font-medium bg-surface-elevated/50 rounded-tl-md">
-                  Actual Qty
-                </th>
-                <th className="py-3 px-4 font-medium bg-surface-elevated/50">Actual Rate</th>
-                <th className="py-3 px-4 font-medium bg-surface-elevated/50 rounded-tr-md">
-                  Actual Amt
-                </th>
+              <tr className="border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
+                <th className="py-3 px-4">Material</th>
+                <th className="py-3 px-4">Planned Qty</th>
+                <th className="py-3 px-4">Planned Rate</th>
+                <th className="py-3 px-4">Planned Amt</th>
+                <th className="py-3 px-4 bg-surface-elevated/50 rounded-tl-md">Actual Qty</th>
+                <th className="py-3 px-4 bg-surface-elevated/50">Actual Rate</th>
+                <th className="py-3 px-4 bg-surface-elevated/50 rounded-tr-md">Actual Amt</th>
               </tr>
             </thead>
             <tbody>
@@ -178,7 +192,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                   className="border-b border-border-default/50 hover:bg-background-primary/50 text-sm"
                 >
                   <td className="py-3 px-4 font-medium text-text-primary">
-                    Material #{item.materialId}
+                    {item.material?.materialName || `Material #${item.materialId}`}
                   </td>
                   <td className="py-3 px-4">{item.predictedQuantity}</td>
                   <td className="py-3 px-4">₹{item.predictedRate}</td>
@@ -204,7 +218,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                         }
                       />
                     ) : (
-                      <span>{item.actualQuantity || '-'}</span>
+                      <span>{item.actualQuantity || '—'}</span>
                     )}
                   </td>
                   <td className="py-2 px-4 bg-surface-elevated/20">
@@ -227,7 +241,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                         }
                       />
                     ) : (
-                      <span>{item.actualRate ? `₹${item.actualRate}` : '-'}</span>
+                      <span>{item.actualRate ? `₹${item.actualRate}` : '—'}</span>
                     )}
                   </td>
                   <td className="py-3 px-4 font-medium bg-surface-elevated/20 text-accent-primary">
@@ -235,7 +249,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                       ? `₹${((actuals.materials[item.id]?.actualRate || 0) * (actuals.materials[item.id]?.actualQuantity || 0)).toFixed(2)}`
                       : item.actualAmount
                         ? `₹${item.actualAmount}`
-                        : '-'}
+                        : '—'}
                   </td>
                 </tr>
               ))}
@@ -259,18 +273,14 @@ export const CostSheetDetailsPage: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-border-default text-xs text-text-secondary uppercase">
-                <th className="py-3 px-4 font-medium">Process</th>
-                <th className="py-3 px-4 font-medium">Planned Hours</th>
-                <th className="py-3 px-4 font-medium">Planned Cost</th>
-                <th className="py-3 px-4 font-medium bg-surface-elevated/50 rounded-tl-md">
-                  Actual Hours
-                </th>
-                <th className="py-3 px-4 font-medium bg-surface-elevated/50 rounded-tr-md">
-                  Actual Cost
-                </th>
+              <tr className="border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
+                <th className="py-3 px-4">Process</th>
+                <th className="py-3 px-4">Planned Hours</th>
+                <th className="py-3 px-4">Planned Cost</th>
+                <th className="py-3 px-4 bg-surface-elevated/50 rounded-tl-md">Actual Hours</th>
+                <th className="py-3 px-4 bg-surface-elevated/50 rounded-tr-md">Actual Cost</th>
               </tr>
             </thead>
             <tbody>
@@ -280,7 +290,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                   className="border-b border-border-default/50 hover:bg-background-primary/50 text-sm"
                 >
                   <td className="py-3 px-4 font-medium text-text-primary">
-                    Process #{item.processId}
+                    {item.process?.processName || `Process #${item.processId}`}
                   </td>
                   <td className="py-3 px-4">{item.estimatedHours}</td>
                   <td className="py-3 px-4">₹{item.predictedCost}</td>
@@ -305,7 +315,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                         }
                       />
                     ) : (
-                      <span>{item.actualHours || '-'}</span>
+                      <span>{item.actualHours || '—'}</span>
                     )}
                   </td>
                   <td className="py-2 px-4 bg-surface-elevated/20">
@@ -329,7 +339,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                       />
                     ) : (
                       <span className="font-medium text-indigo-500">
-                        {item.actualCost ? `₹${item.actualCost}` : '-'}
+                        {item.actualCost ? `₹${item.actualCost}` : '—'}
                       </span>
                     )}
                   </td>

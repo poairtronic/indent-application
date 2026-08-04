@@ -1,21 +1,37 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table } from '../../../components/ui/Table';
-import { StatusChip } from '../../../components/ui/StatusChip';
-import type { Indent } from '../../../types/indent';
+import { Pagination } from '../../../components/ui/Pagination';
+import { Badge } from '../../../components/ui/Badge';
+import type { IndentData } from '../../../api/services/indents/service';
 
 interface CostSheetListProps {
-  indents: Indent[];
+  indents: IndentData[];
   isLoading: boolean;
   onRefresh: () => void;
   pagination: {
     page: number;
     limit: number;
     total: number;
+    totalPages: number;
   };
   onPageChange: (page: number) => void;
   viewMode: 'list' | 'grid';
 }
+
+const statusTone: Record<string, 'green' | 'yellow' | 'red' | 'blue' | 'gray'> = {
+  DRAFT: 'gray',
+  DESIGN_COMPLETED: 'blue',
+  STORES_PROCESSING: 'yellow',
+  MATERIALS_ISSUED: 'yellow',
+  PRODUCTION_PROCESSING: 'yellow',
+  PRODUCTION_COMPLETED: 'yellow',
+  CUSTOMER_DELIVERED: 'blue',
+  ACCOUNTS_COST_VERIFICATION: 'yellow',
+  ACTUAL_COST_UPDATED: 'yellow',
+  ACCOUNTS_FINANCIAL_CLOSURE: 'blue',
+  ARCHIVED: 'gray',
+  COMPLETED: 'green',
+};
 
 export const CostSheetList: React.FC<CostSheetListProps> = ({
   indents,
@@ -26,63 +42,9 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  const columns = [
-    {
-      key: 'costNumber',
-      label: 'Cost Sheet #',
-      render: (item: Indent) => (
-        <span className="font-medium text-text-primary">{item.costSheet?.costNumber || 'N/A'}</span>
-      ),
-    },
-    {
-      key: 'indentNumber',
-      label: 'Indent #',
-      render: (item: Indent) => <span className="text-text-secondary">{item.indentNumber}</span>,
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      header: 'Status',
-      render: (item: Indent) => <StatusChip status={item.status} />,
-    },
-    {
-      key: 'plannedCost',
-      label: 'Planned Cost (₹)',
-      render: (item: Indent) => (
-        <span className="font-medium text-text-primary">
-          {item.costSheet?.predictedTotal
-            ? `₹${item.costSheet.predictedTotal.toLocaleString()}`
-            : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'actualCost',
-      label: 'Actual Cost (₹)',
-      render: (item: Indent) => (
-        <span className="font-medium text-accent-primary">
-          {item.costSheet?.actualTotal ? `₹${item.costSheet.actualTotal.toLocaleString()}` : '-'}
-        </span>
-      ),
-    },
-    {
-      key: 'variance',
-      label: 'Variance %',
-      render: (item: Indent) => {
-        const variance = item.costSheet?.variancePercentage;
-        if (variance === undefined || variance === null) return '-';
-        const color = variance > 0 ? 'text-status-error' : 'text-status-success';
-        return (
-          <span className={`font-bold ${color}`}>
-            {variance > 0 ? '+' : ''}
-            {variance.toFixed(2)}%
-          </span>
-        );
-      },
-    },
-  ];
+  const formatStatus = (state: string) => state.replace(/_/g, ' ');
 
-  const gridRender = (item: Indent) => (
+  const gridRender = (item: IndentData) => (
     <div
       className="flex flex-col gap-2 p-4 border border-border-default rounded-xl bg-surface-card shadow-sm hover:shadow-card transition-shadow cursor-pointer"
       onClick={() => navigate(`/cost-sheets/${item.id}`)}
@@ -90,51 +52,117 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
       <div className="flex justify-between items-start">
         <div>
           <span className="font-bold text-text-primary text-sm block">
-            {item.costSheet?.costNumber || 'N/A'}
+            {item.costNumber || 'N/A'}
           </span>
           <span className="text-xs text-text-muted">{item.indentNumber}</span>
         </div>
-        <StatusChip status={item.status} />
+        <Badge tone={statusTone[item.currentState] ?? 'gray'}>
+          {formatStatus(item.currentState)}
+        </Badge>
+      </div>
+      <div className="text-xs text-text-secondary mt-1">
+        <p>{item.productName || 'N/A'}</p>
       </div>
       <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border-default">
         <div>
           <p className="text-[10px] text-text-muted uppercase">Planned</p>
-          <p className="font-medium text-sm">
-            ₹{item.costSheet?.predictedTotal?.toLocaleString() || '-'}
-          </p>
+          <p className="font-medium text-sm">₹{item.predictedTotal?.toLocaleString() || '—'}</p>
         </div>
         <div>
-          <p className="text-[10px] text-text-muted uppercase">Actual</p>
-          <p className="font-medium text-sm text-accent-primary">
-            ₹{item.costSheet?.actualTotal?.toLocaleString() || '-'}
-          </p>
+          <p className="text-[10px] text-text-muted uppercase">Cost Number</p>
+          <p className="font-medium text-sm text-accent-primary">{item.costNumber || '—'}</p>
         </div>
       </div>
     </div>
   );
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={`skeleton-${i}`}
+            className="bg-surface-card border border-border-default rounded-xl p-5 space-y-4 shadow-card animate-pulse"
+          >
+            <div className="h-4 bg-background-secondary rounded w-3/4" />
+            <div className="h-3 bg-background-secondary rounded w-1/2" />
+            <div className="h-3 bg-background-secondary rounded w-2/3" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (indents.length === 0) {
+    return (
+      <div className="bg-surface-card border border-border-default rounded-xl p-8 text-center">
+        <p className="text-sm font-medium text-text-primary mb-1">No cost sheets found</p>
+        <p className="text-xs text-text-muted">
+          No cost sheets match your search criteria. Try adjusting your filters.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       {viewMode === 'list' ? (
-        <Table
-          data={indents}
-          columns={columns as any}
-          loading={isLoading}
-          page={pagination.page}
-          totalPages={Math.ceil(pagination.total / pagination.limit)}
-          onPageChange={onPageChange}
-          emptyMessage="There are currently no cost sheets matching your criteria."
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {indents.map((item, idx) => (
-            <div key={idx}>{gridRender(item)}</div>
-          ))}
-          {indents.length === 0 && !isLoading && (
-            <div className="col-span-full text-center py-12 text-text-muted">
-              There are currently no cost sheets matching your criteria.
+        <>
+          <div className="bg-surface-card border border-border-default rounded-xl overflow-hidden shadow-card">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-background-secondary/60 border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-4">Cost Sheet #</th>
+                    <th className="py-3 px-4">Indent #</th>
+                    <th className="py-3 px-4">Product</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Planned Cost</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-default/50 text-text-primary">
+                  {indents.map((item) => (
+                    <tr
+                      key={item.id}
+                      className="hover:bg-background-primary/40 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/cost-sheets/${item.id}`)}
+                    >
+                      <td className="py-3.5 px-4 font-mono font-bold text-accent-primary">
+                        {item.costNumber || '—'}
+                      </td>
+                      <td className="py-3.5 px-4">{item.indentNumber}</td>
+                      <td className="py-3.5 px-4 font-medium">{item.productName || 'N/A'}</td>
+                      <td className="py-3.5 px-4">
+                        <Badge tone={statusTone[item.currentState] ?? 'gray'}>
+                          {formatStatus(item.currentState)}
+                        </Badge>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-medium">
+                        ₹{item.predictedTotal?.toLocaleString() || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {pagination.total > pagination.limit && (
+            <div className="mt-4">
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                limit={pagination.limit}
+                onPageChange={onPageChange}
+              />
             </div>
           )}
+        </>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {indents.map((item) => (
+            <div key={item.id}>{gridRender(item)}</div>
+          ))}
         </div>
       )}
     </div>

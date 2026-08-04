@@ -1,8 +1,8 @@
 import React from 'react';
-import type { CostSheet } from '../../../types/costing';
+import type { CostSheetData } from '../../../api/services/indents/service';
 
 interface CostBreakdownChartProps {
-  costSheet: CostSheet | undefined;
+  costSheet: CostSheetData | undefined;
 }
 
 export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costSheet }) => {

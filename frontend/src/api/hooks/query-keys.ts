@@ -34,7 +34,6 @@ export const queryKeys = {
   roles: createKeyFactory('roles'),
   permissions: createKeyFactory('permissions'),
   departments: createKeyFactory('departments'),
-  businessTransactions: createKeyFactory('business-transactions'),
   processes: createKeyFactory('processes'),
   units: createKeyFactory('units'),
   vendors: createKeyFactory('vendors'),
