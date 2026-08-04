@@ -132,10 +132,14 @@ const IndentDetailsPage = lazy(() =>
 
 // Costing Module Pages
 const CostSheetDashboardPage = lazy(() =>
-  import('../modules/costing/CostSheetDashboardPage').then((m) => ({ default: m.CostSheetDashboardPage })),
+  import('../modules/costing/CostSheetDashboardPage').then((m) => ({
+    default: m.CostSheetDashboardPage,
+  })),
 );
 const CostSheetDetailsPage = lazy(() =>
-  import('../modules/costing/CostSheetDetailsPage').then((m) => ({ default: m.CostSheetDetailsPage })),
+  import('../modules/costing/CostSheetDetailsPage').then((m) => ({
+    default: m.CostSheetDetailsPage,
+  })),
 );
 
 // Analytics Pages

@@ -48,10 +48,10 @@ export interface CostSheet {
   varianceAmount?: number;
   variancePercentage?: number;
   status: CostSheetStatus;
-  
+
   costItems: CostItem[];
   processCosts: ProcessCost[];
-  
+
   createdAt: string;
   updatedAt: string;
 }

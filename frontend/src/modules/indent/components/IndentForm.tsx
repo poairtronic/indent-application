@@ -35,16 +35,16 @@ const indentSchema = z.object({
         predictedRate: z.number().min(0, 'Rate must be >= 0'),
         predictedQuantity: z.number(),
         predictedAmount: z.number(),
-      })
+      }),
     ),
     processCosts: z.array(
       z.object({
         processId: z.string().min(1, 'Process is required'),
         predictedCost: z.number().min(0, 'Cost must be >= 0'),
         estimatedHours: z.number().min(0, 'Hours must be >= 0'),
-      })
-    )
-  })
+      }),
+    ),
+  }),
 });
 
 type IndentFormData = z.infer<typeof indentSchema>;
@@ -82,18 +82,19 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
           },
           costSheet: {
             predictedTotal: initialData.costSheet?.predictedTotal || 0,
-            costItems: initialData.costSheet?.costItems?.map(ci => ({
+            costItems: initialData.costSheet?.costItems?.map((ci) => ({
               materialId: ci.materialId,
               predictedRate: ci.predictedRate,
               predictedQuantity: ci.predictedQuantity,
               predictedAmount: ci.predictedAmount,
             })) || [{ materialId: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 }],
-            processCosts: initialData.costSheet?.processCosts?.map(pc => ({
-              processId: pc.processId,
-              predictedCost: pc.predictedCost,
-              estimatedHours: pc.estimatedHours,
-            })) || [],
-          }
+            processCosts:
+              initialData.costSheet?.processCosts?.map((pc) => ({
+                processId: pc.processId,
+                predictedCost: pc.predictedCost,
+                estimatedHours: pc.estimatedHours,
+              })) || [],
+          },
         }
       : {
           indent: {
@@ -102,18 +103,28 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
           },
           costSheet: {
             predictedTotal: 0,
-            costItems: [{ materialId: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 }],
+            costItems: [
+              { materialId: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
+            ],
             processCosts: [],
-          }
+          },
         },
   });
 
-  const { fields: itemFields, append: appendItem, remove: removeItem } = useFieldArray({
+  const {
+    fields: itemFields,
+    append: appendItem,
+    remove: removeItem,
+  } = useFieldArray({
     control,
     name: 'indent.items',
   });
-  
-  const { fields: processFields, append: appendProcess, remove: removeProcess } = useFieldArray({
+
+  const {
+    fields: processFields,
+    append: appendProcess,
+    remove: removeProcess,
+  } = useFieldArray({
     control,
     name: 'costSheet.processCosts',
   });
@@ -126,7 +137,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
   // Sync items to costItems when materials are added/removed
   useEffect(() => {
     if (!watchedItems) return;
-    
+
     const newCostItems = watchedItems.map((item, index) => {
       const existingCostItem = watchedCostItems?.[index];
       const rate = existingCostItem?.predictedRate || 0;
@@ -138,11 +149,16 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
         predictedAmount: rate * qty,
       };
     });
-    
+
     // Prevent infinite loop by checking if we really need to update
-    const needsUpdate = newCostItems.length !== (watchedCostItems?.length || 0) || 
-      newCostItems.some((nci, i) => nci.materialId !== watchedCostItems?.[i]?.materialId || nci.predictedQuantity !== watchedCostItems?.[i]?.predictedQuantity);
-      
+    const needsUpdate =
+      newCostItems.length !== (watchedCostItems?.length || 0) ||
+      newCostItems.some(
+        (nci, i) =>
+          nci.materialId !== watchedCostItems?.[i]?.materialId ||
+          nci.predictedQuantity !== watchedCostItems?.[i]?.predictedQuantity,
+      );
+
     if (needsUpdate) {
       setValue('costSheet.costItems', newCostItems);
     }
@@ -234,14 +250,24 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
           />
         </div>
         <div className="mt-4 grid grid-cols-1 gap-4">
-          <TextArea label="Purpose" {...register('indent.purpose')} error={errors.indent?.purpose?.message} />
-          <TextArea label="Remarks" {...register('indent.remarks')} error={errors.indent?.remarks?.message} />
+          <TextArea
+            label="Purpose"
+            {...register('indent.purpose')}
+            error={errors.indent?.purpose?.message}
+          />
+          <TextArea
+            label="Remarks"
+            {...register('indent.remarks')}
+            error={errors.indent?.remarks?.message}
+          />
         </div>
       </div>
 
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-bold text-text-primary">Material Requirements & Planned Material Cost</h3>
+          <h3 className="text-sm font-bold text-text-primary">
+            Material Requirements & Planned Material Cost
+          </h3>
           <Button
             type="button"
             variant="outline"
@@ -304,13 +330,13 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   label="Est. Rate (₹)"
                   type="number"
                   step="0.01"
-                  {...register(`costSheet.costItems.${index}.predictedRate`, { 
+                  {...register(`costSheet.costItems.${index}.predictedRate`, {
                     valueAsNumber: true,
                     onChange: (e) => {
                       const rate = parseFloat(e.target.value) || 0;
                       const qty = watchedItems?.[index]?.quantity || 0;
                       setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
-                    }
+                    },
                   })}
                   error={errors.costSheet?.costItems?.[index]?.predictedRate?.message}
                 />
@@ -335,7 +361,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
 
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-bold text-text-primary">Planned Manufacturing Process Costs</h3>
+          <h3 className="text-sm font-bold text-text-primary">
+            Planned Manufacturing Process Costs
+          </h3>
           <Button
             type="button"
             variant="outline"
@@ -371,7 +399,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   label="Est. Hours"
                   type="number"
                   step="0.5"
-                  {...register(`costSheet.processCosts.${index}.estimatedHours`, { valueAsNumber: true })}
+                  {...register(`costSheet.processCosts.${index}.estimatedHours`, {
+                    valueAsNumber: true,
+                  })}
                   error={errors.costSheet?.processCosts?.[index]?.estimatedHours?.message}
                 />
               </div>
@@ -380,24 +410,35 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   label="Predicted Cost (₹)"
                   type="number"
                   step="0.01"
-                  {...register(`costSheet.processCosts.${index}.predictedCost`, { valueAsNumber: true })}
+                  {...register(`costSheet.processCosts.${index}.predictedCost`, {
+                    valueAsNumber: true,
+                  })}
                   error={errors.costSheet?.processCosts?.[index]?.predictedCost?.message}
                 />
               </div>
               <div className="md:col-span-1 flex justify-end mt-6">
-                <Button type="button" variant="danger" size="sm" onClick={() => removeProcess(index)}>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => removeProcess(index)}
+                >
                   Rem
                 </Button>
               </div>
             </div>
           ))}
         </div>
-        
+
         <div className="mt-8 flex justify-end border-t border-border-default pt-4">
           <div className="text-right">
             <p className="text-sm text-text-secondary">Total Planned Process Cost Sheet</p>
             <p className="text-2xl font-bold text-accent-primary">
-              ₹{(predictedTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹
+              {(predictedTotal || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </p>
           </div>
         </div>

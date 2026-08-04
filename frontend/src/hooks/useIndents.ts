@@ -28,7 +28,8 @@ export const useCreateIndent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: { indent: any; costSheet: any }) => businessTransactionService.create(payload),
+    mutationFn: (payload: { indent: any; costSheet: any }) =>
+      businessTransactionService.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: indentKeys.lists() });
     },

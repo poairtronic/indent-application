@@ -9,13 +9,17 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costShee
   if (!costSheet) return null;
 
   // Planned totals
-  const plannedMaterialCost = costSheet.costItems?.reduce((acc, curr) => acc + (curr.predictedAmount || 0), 0) || 0;
-  const plannedProcessCost = costSheet.processCosts?.reduce((acc, curr) => acc + (curr.predictedCost || 0), 0) || 0;
+  const plannedMaterialCost =
+    costSheet.costItems?.reduce((acc, curr) => acc + (curr.predictedAmount || 0), 0) || 0;
+  const plannedProcessCost =
+    costSheet.processCosts?.reduce((acc, curr) => acc + (curr.predictedCost || 0), 0) || 0;
   const plannedTotal = plannedMaterialCost + plannedProcessCost;
 
   // Actual totals
-  const actualMaterialCost = costSheet.costItems?.reduce((acc, curr) => acc + (curr.actualAmount || 0), 0) || 0;
-  const actualProcessCost = costSheet.processCosts?.reduce((acc, curr) => acc + (curr.actualCost || 0), 0) || 0;
+  const actualMaterialCost =
+    costSheet.costItems?.reduce((acc, curr) => acc + (curr.actualAmount || 0), 0) || 0;
+  const actualProcessCost =
+    costSheet.processCosts?.reduce((acc, curr) => acc + (curr.actualCost || 0), 0) || 0;
   const actualTotal = actualMaterialCost + actualProcessCost;
 
   // Max value for scaling bars
@@ -29,7 +33,7 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costShee
     return (
       <div className="h-6 w-full bg-surface-elevated rounded flex overflow-hidden">
         {materialPct > 0 && (
-          <div 
+          <div
             className="h-full bg-accent-primary transition-all duration-500 ease-out flex items-center justify-center text-[10px] text-white font-medium"
             style={{ width: `${materialPct}%` }}
             title={`Materials: ₹${materialCost.toLocaleString()}`}
@@ -38,7 +42,7 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costShee
           </div>
         )}
         {processPct > 0 && (
-          <div 
+          <div
             className="h-full bg-indigo-500 transition-all duration-500 ease-out flex items-center justify-center text-[10px] text-white font-medium"
             style={{ width: `${processPct}%` }}
             title={`Processes: ₹${processCost.toLocaleString()}`}
@@ -53,7 +57,7 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costShee
   return (
     <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card h-full">
       <h3 className="text-sm font-bold text-text-primary mb-6">Cost Breakdown Analysis</h3>
-      
+
       <div className="space-y-6">
         <div>
           <div className="flex justify-between text-xs font-medium mb-2">

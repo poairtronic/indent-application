@@ -37,9 +37,7 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
     {
       key: 'indentNumber',
       label: 'Indent #',
-      render: (item: Indent) => (
-        <span className="text-text-secondary">{item.indentNumber}</span>
-      ),
+      render: (item: Indent) => <span className="text-text-secondary">{item.indentNumber}</span>,
     },
     {
       key: 'status',
@@ -52,7 +50,9 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
       label: 'Planned Cost (₹)',
       render: (item: Indent) => (
         <span className="font-medium text-text-primary">
-          {item.costSheet?.predictedTotal ? `₹${item.costSheet.predictedTotal.toLocaleString()}` : '-'}
+          {item.costSheet?.predictedTotal
+            ? `₹${item.costSheet.predictedTotal.toLocaleString()}`
+            : '-'}
         </span>
       ),
     },
@@ -72,7 +72,12 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
         const variance = item.costSheet?.variancePercentage;
         if (variance === undefined || variance === null) return '-';
         const color = variance > 0 ? 'text-status-error' : 'text-status-success';
-        return <span className={`font-bold ${color}`}>{variance > 0 ? '+' : ''}{variance.toFixed(2)}%</span>;
+        return (
+          <span className={`font-bold ${color}`}>
+            {variance > 0 ? '+' : ''}
+            {variance.toFixed(2)}%
+          </span>
+        );
       },
     },
   ];
@@ -84,7 +89,9 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
     >
       <div className="flex justify-between items-start">
         <div>
-          <span className="font-bold text-text-primary text-sm block">{item.costSheet?.costNumber || 'N/A'}</span>
+          <span className="font-bold text-text-primary text-sm block">
+            {item.costSheet?.costNumber || 'N/A'}
+          </span>
           <span className="text-xs text-text-muted">{item.indentNumber}</span>
         </div>
         <StatusChip status={item.status} />
@@ -92,11 +99,15 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
       <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border-default">
         <div>
           <p className="text-[10px] text-text-muted uppercase">Planned</p>
-          <p className="font-medium text-sm">₹{item.costSheet?.predictedTotal?.toLocaleString() || '-'}</p>
+          <p className="font-medium text-sm">
+            ₹{item.costSheet?.predictedTotal?.toLocaleString() || '-'}
+          </p>
         </div>
         <div>
           <p className="text-[10px] text-text-muted uppercase">Actual</p>
-          <p className="font-medium text-sm text-accent-primary">₹{item.costSheet?.actualTotal?.toLocaleString() || '-'}</p>
+          <p className="font-medium text-sm text-accent-primary">
+            ₹{item.costSheet?.actualTotal?.toLocaleString() || '-'}
+          </p>
         </div>
       </div>
     </div>

@@ -14,7 +14,7 @@ export const CostSheetDashboardPage: React.FC = () => {
 
   // The Accounts department mainly focuses on items in ACCOUNTS_COST_VERIFICATION or FINISHED
   // but they can see all for tracking
-  
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -43,8 +43,14 @@ export const CostSheetDashboardPage: React.FC = () => {
             <Select
               options={[
                 { label: 'All Statuses', value: '' },
-                { label: 'Cost Verification Pending', value: IndentStatus.ACCOUNTS_COST_VERIFICATION },
-                { label: 'Financial Closure Pending', value: IndentStatus.ACCOUNTS_FINANCIAL_CLOSURE },
+                {
+                  label: 'Cost Verification Pending',
+                  value: IndentStatus.ACCOUNTS_COST_VERIFICATION,
+                },
+                {
+                  label: 'Financial Closure Pending',
+                  value: IndentStatus.ACCOUNTS_FINANCIAL_CLOSURE,
+                },
                 { label: 'Completed', value: IndentStatus.COMPLETED },
               ]}
               value={filters.status || ''}

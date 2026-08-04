@@ -10,7 +10,9 @@ export const businessTransactionService = {
     });
   },
 
-  getAll: async (params?: Record<string, any>): Promise<{ data: Indent[]; total: number; meta?: any }> => {
+  getAll: async (
+    params?: Record<string, any>,
+  ): Promise<{ data: Indent[]; total: number; meta?: any }> => {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return apiFetch(`${API_ENDPOINTS.INDENTS.BASE}${query}`);
   },
