@@ -5,7 +5,6 @@ export * from './constants';
 export * from './utils';
 export * from './interceptors';
 export * from './client';
-export * from './services';
 export {
   useApiQuery,
   useApiListQuery,
@@ -19,3 +18,6 @@ export {
 export { createQueryClient } from './hooks/query-client';
 export { queryKeys } from './hooks/query-keys';
 export { invalidateModule, invalidateDetail, invalidateAll } from './hooks/invalidate';
+export { BaseService } from './services/base.service';
+export type { ServiceConfig } from './services/base.service';
+export * from './services';

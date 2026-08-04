@@ -23,11 +23,7 @@ export class BaseService {
     this.timeout = config.timeout ?? TIMEOUTS.DEFAULT;
   }
 
-  protected async get<T>(
-    path: string,
-    params?: ListQueryParams,
-    config?: AxiosRequestConfig,
-  ): Promise<T> {
+  async get<T>(path: string, params?: ListQueryParams, config?: AxiosRequestConfig): Promise<T> {
     const queryParams = params ? buildQueryParams(params) : undefined;
     const response = await apiClient.get<ApiResponse<T>>(path, {
       params: queryParams,
@@ -37,7 +33,7 @@ export class BaseService {
     return unwrap(response.data);
   }
 
-  protected async getById<T>(id: string, config?: AxiosRequestConfig): Promise<T> {
+  async getById<T>(id: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await apiClient.get<ApiResponse<T>>(`${this.basePath}/${id}`, {
       timeout: this.timeout,
       ...config,
@@ -45,7 +41,7 @@ export class BaseService {
     return unwrap(response.data);
   }
 
-  protected async post<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+  async post<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const payload =
       data && typeof data === 'object' ? serializePayload(data as Record<string, unknown>) : data;
     const response = await apiClient.post<ApiResponse<T>>(path, payload, {
@@ -55,7 +51,7 @@ export class BaseService {
     return unwrap(response.data);
   }
 
-  protected async put<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+  async put<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const payload =
       data && typeof data === 'object' ? serializePayload(data as Record<string, unknown>) : data;
     const response = await apiClient.put<ApiResponse<T>>(path, payload, {
@@ -65,7 +61,7 @@ export class BaseService {
     return unwrap(response.data);
   }
 
-  protected async patch<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+  async patch<T>(path: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const payload =
       data && typeof data === 'object' ? serializePayload(data as Record<string, unknown>) : data;
     const response = await apiClient.patch<ApiResponse<T>>(path, payload, {
@@ -75,7 +71,7 @@ export class BaseService {
     return unwrap(response.data);
   }
 
-  protected async delete<T>(path: string, config?: AxiosRequestConfig): Promise<T> {
+  async delete<T>(path: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await apiClient.delete<ApiResponse<T>>(path, {
       timeout: this.timeout,
       ...config,
@@ -83,30 +79,30 @@ export class BaseService {
     return unwrap(response.data);
   }
 
-  protected async getList<T>(
+  async getList<T>(
     params?: ListQueryParams,
     config?: AxiosRequestConfig,
   ): Promise<PaginatedData<T>> {
     return this.get<PaginatedData<T>>(this.basePath, params, config);
   }
 
-  protected async create<T>(data: unknown, config?: AxiosRequestConfig): Promise<T> {
+  async create<T>(data: unknown, config?: AxiosRequestConfig): Promise<T> {
     return this.post<T>(this.basePath, data, config);
   }
 
-  protected async update<T>(id: string, data: unknown, config?: AxiosRequestConfig): Promise<T> {
+  async update<T>(id: string, data: unknown, config?: AxiosRequestConfig): Promise<T> {
     return this.patch<T>(`${this.basePath}/${id}`, data, config);
   }
 
-  protected async remove<T>(id: string, config?: AxiosRequestConfig): Promise<T> {
+  async remove<T>(id: string, config?: AxiosRequestConfig): Promise<T> {
     return this.delete<T>(`${this.basePath}/${id}`, config);
   }
 
-  protected async restore<T>(id: string, config?: AxiosRequestConfig): Promise<T> {
+  async restore<T>(id: string, config?: AxiosRequestConfig): Promise<T> {
     return this.patch<T>(`${this.basePath}/${id}/restore`, undefined, config);
   }
 
-  protected async upload<T>(
+  async upload<T>(
     path: string,
     file: File,
     additionalData?: Record<string, string>,
@@ -138,11 +134,7 @@ export class BaseService {
     return unwrap(response.data);
   }
 
-  protected async download(
-    path: string,
-    filename: string,
-    config?: AxiosRequestConfig,
-  ): Promise<void> {
+  async download(path: string, filename: string, config?: AxiosRequestConfig): Promise<void> {
     const response = await apiClient.get(path, {
       responseType: 'blob',
       timeout: TIMEOUTS.UPLOAD,
@@ -160,7 +152,7 @@ export class BaseService {
     window.URL.revokeObjectURL(url);
   }
 
-  protected async bulkCreate<T>(data: unknown[], config?: AxiosRequestConfig): Promise<T[]> {
+  async bulkCreate<T>(data: unknown[], config?: AxiosRequestConfig): Promise<T[]> {
     const results: T[] = [];
     const promises = data.map((item) => this.create<T>(item, config));
     const settled = await Promise.allSettled(promises);
@@ -176,7 +168,7 @@ export class BaseService {
     return results;
   }
 
-  protected async bulkRemove(ids: string[], config?: AxiosRequestConfig): Promise<void> {
+  async bulkRemove(ids: string[], config?: AxiosRequestConfig): Promise<void> {
     const promises = ids.map((id) => this.remove(id, config));
     await Promise.allSettled(promises);
   }

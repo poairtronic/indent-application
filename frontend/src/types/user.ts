@@ -100,3 +100,25 @@ export interface DepartmentOption {
   id: string;
   name: string;
 }
+
+export interface RoleResponse {
+  id: string;
+  roleName: string;
+  description?: string | null;
+  isSystem?: boolean;
+  permissions?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRolePayload {
+  roleName: string;
+  description?: string;
+  permissionIds?: string[];
+}
+
+export interface UpdateRolePayload {
+  roleName?: string;
+  description?: string;
+  permissionIds?: string[];
+}
