@@ -5,7 +5,10 @@ import { TIMEOUTS } from '../constants';
 import { createAuthInterceptor } from '../interceptors/auth';
 import { createRequestLogger, createResponseLogger } from '../interceptors/logging';
 import { createErrorInterceptor } from '../interceptors/error';
+import { createHeaderInterceptor } from '../interceptors/headers';
 import { useAuthStore } from '../../store/authStore';
+import { cancelAllRequests, cleanupStaleRequests } from '../utils/cancellation';
+import { apiLogger } from '../utils/logger';
 
 let clientInstance: AxiosInstance | null = null;
 
@@ -22,8 +25,10 @@ function createApiClient(): AxiosInstance {
     withCredentials: true,
   });
 
+  client.interceptors.request.use(createHeaderInterceptor());
   client.interceptors.request.use(createAuthInterceptor());
   client.interceptors.request.use(createRequestLogger(featureFlags.enableRequestLogging));
+
   client.interceptors.response.use(createResponseLogger(featureFlags.enableResponseLogging));
 
   client.interceptors.response.use(
@@ -36,6 +41,7 @@ function createApiClient(): AxiosInstance {
         return { accessToken, refreshToken: newRefreshToken };
       },
       () => {
+        cancelAllRequests();
         useAuthStore.getState().logout();
         window.location.href = '/login';
       },
@@ -50,6 +56,25 @@ function createApiClient(): AxiosInstance {
 }
 
 export const apiClient = createApiClient();
+
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+export function startCleanupScheduler(intervalMs: number = 60000): void {
+  if (cleanupIntervalId) return;
+  cleanupIntervalId = setInterval(() => {
+    const cleaned = cleanupStaleRequests();
+    if (cleaned > 0) {
+      apiLogger.debug(`Cleaned up ${cleaned} stale requests`);
+    }
+  }, intervalMs);
+}
+
+export function stopCleanupScheduler(): void {
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+}
 
 export function createCancelToken(): CancelTokenSource {
   return axios.CancelToken.source();

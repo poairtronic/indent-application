@@ -9,6 +9,8 @@ import type {
 } from '@tanstack/react-query';
 import type { ApiResponse, PaginatedData } from '../types/api-response';
 import { ApiError } from '../errors';
+import { isCancel } from '../client';
+import { invalidateModule, invalidateDetail } from './invalidate';
 
 type QueryKey = readonly unknown[];
 
@@ -25,10 +27,6 @@ export function useApiQuery<TData, TError = ApiError>(
 ): UseQueryResult<ApiResponse<TData>, TError> {
   return useQuery({
     ...options,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -45,10 +43,6 @@ export function useApiListQuery<TData, TError = ApiError>(
 ): UseQueryResult<ApiResponse<PaginatedData<TData>>, TError> {
   return useQuery({
     ...options,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    retry: 2,
-    refetchOnWindowFocus: false,
   });
 }
 
@@ -68,12 +62,13 @@ export function useApiMutation<TData, TVariables, TError = ApiError>(
 
   return useMutation({
     ...mutationOptions,
-    onSuccess: () => {
+    onSuccess: (...args) => {
       if (invalidateQueries) {
         for (const key of invalidateQueries) {
           queryClient.invalidateQueries({ queryKey: key });
         }
       }
+      mutationOptions.onSuccess?.(...args);
     },
   });
 }
@@ -93,12 +88,11 @@ export function useApiInfiniteQuery<TData, TError = ApiError>(
   return useInfiniteQuery({
     ...options,
     initialPageParam: 1,
-    gcTime: 10 * 60 * 1000,
-    retry: 2,
   });
 }
 
 export function getQueryErrorMessage(error: unknown): string {
+  if (isCancel(error)) return 'Request was cancelled';
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error) return error.message;
   return 'An unexpected error occurred';
@@ -107,4 +101,14 @@ export function getQueryErrorMessage(error: unknown): string {
 export function getFieldErrors(error: unknown): Record<string, string> {
   if (error instanceof ApiError) return error.getFieldErrors();
   return {};
+}
+
+export function useInvalidateModule(module: string) {
+  const queryClient = useQueryClient();
+  return () => invalidateModule(queryClient, module);
+}
+
+export function useInvalidateDetail(module: string, id: string) {
+  const queryClient = useQueryClient();
+  return () => invalidateDetail(queryClient, module, id);
 }

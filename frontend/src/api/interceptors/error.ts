@@ -1,22 +1,41 @@
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { createApiError, UnauthorizedError, ForbiddenError } from '../errors';
 import type { ApiErrorResponse } from '../types/api-response';
+import { apiLogger } from '../utils/logger';
+import {
+  shouldRetry,
+  calculateRetryDelay,
+  getRetryAttempt,
+  incrementRetryAttempt,
+  sleep,
+} from '../utils/retry';
+import { DEFAULT_RETRY_CONFIG } from '../utils/retry';
+import type { RetryConfig } from '../utils/retry';
 
 let isRefreshing = false;
-let failedQueue: Array<{
+let refreshAttempts = 0;
+const MAX_REFRESH_ATTEMPTS = 3;
+
+interface QueueEntry {
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
-}> = [];
+}
+
+let failedQueue: QueueEntry[] = [];
 
 function processQueue(error: unknown, token: string | null = null): void {
-  for (const prom of failedQueue) {
+  for (const entry of failedQueue) {
     if (token) {
-      prom.resolve(token);
+      entry.resolve(token);
     } else {
-      prom.reject(error);
+      entry.reject(error);
     }
   }
   failedQueue = [];
+}
+
+function isRefreshEndpoint(url?: string): boolean {
+  return !!url && (url.includes('/auth/login') || url.includes('/auth/refresh'));
 }
 
 export function createErrorInterceptor(
@@ -30,6 +49,26 @@ export function createErrorInterceptor(
     if (error.response?.status === 403) {
       onForbidden?.();
       throw new ForbiddenError();
+    }
+
+    const retryConfig: RetryConfig = {
+      ...DEFAULT_RETRY_CONFIG,
+      ...originalRequest.retry,
+    };
+    const currentAttempt = getRetryAttempt(originalRequest);
+
+    if (!originalRequest.skipRetry && shouldRetry(error, currentAttempt, retryConfig)) {
+      incrementRetryAttempt(originalRequest);
+      const delay = calculateRetryDelay(
+        currentAttempt,
+        retryConfig,
+        error.response?.headers?.['retry-after'],
+      );
+
+      apiLogger.retryAttempt(originalRequest.metadata?.requestId ?? '', currentAttempt + 1, delay);
+
+      await sleep(delay);
+      return import('axios').then(({ default: axios }) => axios(originalRequest));
     }
 
     if (
@@ -49,10 +88,7 @@ export function createErrorInterceptor(
       );
     }
 
-    if (
-      originalRequest.url?.includes('/auth/login') ||
-      originalRequest.url?.includes('/auth/refresh')
-    ) {
+    if (isRefreshEndpoint(originalRequest.url)) {
       throw createApiError(401, error.message);
     }
 
@@ -65,8 +101,15 @@ export function createErrorInterceptor(
       });
     }
 
+    if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
+      processQueue(error, null);
+      onLogout();
+      throw new UnauthorizedError('Maximum refresh attempts exceeded');
+    }
+
     originalRequest._retry = true;
     isRefreshing = true;
+    refreshAttempts++;
 
     try {
       const refreshToken = localStorage.getItem('auth_refresh_token');
@@ -76,11 +119,14 @@ export function createErrorInterceptor(
 
       const { accessToken: newAccessToken } = await onAuthRefresh(refreshToken);
 
+      apiLogger.authRefresh(true);
+      refreshAttempts = 0;
       processQueue(null, newAccessToken);
       originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
       return import('axios').then(({ default: axios }) => axios(originalRequest));
     } catch (refreshError) {
+      apiLogger.authRefresh(false);
       processQueue(refreshError, null);
       onLogout();
       throw refreshError;
@@ -88,4 +134,10 @@ export function createErrorInterceptor(
       isRefreshing = false;
     }
   };
+}
+
+export function resetRefreshState(): void {
+  isRefreshing = false;
+  refreshAttempts = 0;
+  failedQueue = [];
 }

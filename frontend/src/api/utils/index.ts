@@ -30,3 +30,36 @@ export {
 } from './filter';
 export { unwrap, unwrapPaginated, isSuccess, getMessage, getTimestamp } from './response';
 export { serializePayload, sanitizePayload } from './serializer';
+export {
+  generateCorrelationId,
+  generateRequestId,
+  createRequestContext,
+  APP_NAME,
+  CLIENT_VERSION,
+  getClientTimezone,
+  getClientLocale,
+} from './context';
+export {
+  shouldRetry,
+  calculateRetryDelay,
+  getRetryAttempt,
+  incrementRetryAttempt,
+  sleep,
+  DEFAULT_RETRY_CONFIG,
+} from './retry';
+export type { RetryConfig } from './retry';
+export {
+  createDeduplicationKey,
+  registerRequest,
+  unregisterRequest,
+  cancelByDeduplicationKey,
+  cancelRouteRequests,
+  registerRouteController,
+  unregisterRouteController,
+  cancelAllRequests,
+  getActiveRequestCount,
+  isStaleRequest,
+  cleanupStaleRequests,
+} from './cancellation';
+export { apiLogger } from './logger';
+export type { LogLevel, LogEntry } from './logger';

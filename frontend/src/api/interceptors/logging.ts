@@ -1,18 +1,55 @@
 import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
-
-let requestIdCounter = 0;
+import { createRequestContext } from '../utils/context';
+import { apiLogger } from '../utils/logger';
+import {
+  createDeduplicationKey,
+  registerRequest,
+  cancelByDeduplicationKey,
+} from '../utils/cancellation';
+import { environment } from '../config';
 
 export function createRequestLogger(enableLogging: boolean) {
   return (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
-    if (!enableLogging) return config;
+    const ctx = createRequestContext(config.metadata?.module, config.metadata?.action);
 
-    const requestId = `req_${++requestIdCounter}_${Date.now()}`;
-    config.metadata = { requestId, startTime: Date.now() };
+    config.metadata = {
+      ...config.metadata,
+      ...ctx,
+    };
 
-    console.info(
-      `[API] ${config.method?.toUpperCase()} ${config.url}`,
-      config.params ? { params: config.params } : '',
-    );
+    const dedupKey = createDeduplicationKey(config);
+    if (dedupKey) {
+      const wasCancelled = cancelByDeduplicationKey(dedupKey);
+      if (wasCancelled && environment === 'development') {
+        apiLogger.debug(`Cancelled duplicate request: ${config.method} ${config.url}`);
+      }
+    }
+
+    if (config.signal) {
+      const controller = new AbortController();
+      const existingSignal = config.signal;
+
+      if (existingSignal instanceof AbortController) {
+        existingSignal.signal.addEventListener('abort', () => {
+          controller.abort(existingSignal.signal.reason);
+        });
+      }
+
+      if (dedupKey) {
+        registerRequest(dedupKey, controller);
+      }
+    }
+
+    if (enableLogging) {
+      apiLogger.requestStart({
+        method: config.method?.toUpperCase() ?? 'GET',
+        url: config.url ?? '',
+        startTime: ctx.startTime,
+        correlationId: ctx.correlationId,
+        requestId: ctx.requestId,
+        attempt: config.metadata.attempt ?? 0,
+      });
+    }
 
     return config;
   };
@@ -20,17 +57,15 @@ export function createRequestLogger(enableLogging: boolean) {
 
 export function createResponseLogger(enableLogging: boolean) {
   return (response: AxiosResponse): AxiosResponse => {
-    if (!enableLogging) return response;
+    const requestId = response.config.metadata?.requestId;
 
-    const duration = response.config.metadata?.startTime
-      ? Date.now() - response.config.metadata.startTime
-      : 0;
+    if (enableLogging && requestId) {
+      const contentLength = response.headers['content-length'];
+      const payloadSize =
+        typeof contentLength === 'string' ? parseInt(contentLength, 10) : undefined;
 
-    console.info(
-      `[API] ${response.config.method?.toUpperCase()} ${response.config.url}`,
-      `-> ${response.status}`,
-      `${duration}ms`,
-    );
+      apiLogger.requestEnd(requestId, response.status, payloadSize);
+    }
 
     return response;
   };

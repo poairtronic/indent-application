@@ -6,6 +6,7 @@ import { buildQueryParams } from '../utils/query-builder';
 import { unwrap } from '../utils/response';
 import { serializePayload } from '../utils/serializer';
 import { ApiError, createApiError } from '../errors';
+import { TIMEOUTS } from '../constants';
 
 export interface ServiceConfig {
   basePath: string;
@@ -19,7 +20,7 @@ export class BaseService {
 
   constructor(config: ServiceConfig) {
     this.basePath = config.basePath;
-    this.timeout = config.timeout ?? 30000;
+    this.timeout = config.timeout ?? TIMEOUTS.DEFAULT;
   }
 
   protected async get<T>(
@@ -103,6 +104,81 @@ export class BaseService {
 
   protected async restore<T>(id: string, config?: AxiosRequestConfig): Promise<T> {
     return this.patch<T>(`${this.basePath}/${id}/restore`, undefined, config);
+  }
+
+  protected async upload<T>(
+    path: string,
+    file: File,
+    additionalData?: Record<string, string>,
+    onProgress?: (progress: number) => void,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (additionalData) {
+      for (const [key, value] of Object.entries(additionalData)) {
+        formData.append(key, value);
+      }
+    }
+
+    const response = await apiClient.post<ApiResponse<T>>(path, formData, {
+      timeout: TIMEOUTS.UPLOAD,
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: onProgress
+        ? (progressEvent) => {
+            const percent = progressEvent.total
+              ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              : 0;
+            onProgress(percent);
+          }
+        : undefined,
+      ...config,
+    });
+    return unwrap(response.data);
+  }
+
+  protected async download(
+    path: string,
+    filename: string,
+    config?: AxiosRequestConfig,
+  ): Promise<void> {
+    const response = await apiClient.get(path, {
+      responseType: 'blob',
+      timeout: TIMEOUTS.UPLOAD,
+      ...config,
+    });
+
+    const blob = new Blob([response.data]);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+
+  protected async bulkCreate<T>(data: unknown[], config?: AxiosRequestConfig): Promise<T[]> {
+    const results: T[] = [];
+    const promises = data.map((item) => this.create<T>(item, config));
+    const settled = await Promise.allSettled(promises);
+
+    for (const result of settled) {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        throw result.reason;
+      }
+    }
+
+    return results;
+  }
+
+  protected async bulkRemove(ids: string[], config?: AxiosRequestConfig): Promise<void> {
+    const promises = ids.map((id) => this.remove(id, config));
+    await Promise.allSettled(promises);
   }
 
   protected createCancelToken(): CancelTokenSource {

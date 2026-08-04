@@ -37,3 +37,17 @@ export const SORT_ORDERS = {
   ASC: 'asc',
   DESC: 'desc',
 } as const;
+
+export const RETRY = {
+  MAX_RETRIES: 3,
+  RETRY_DELAY: 1000,
+  BACKOFF_FACTOR: 2,
+  MAX_DELAY: 30000,
+  RETRY_ON: [408, 429, 500, 502, 503, 504],
+  NON_RETRYABLE: [400, 401, 403, 404, 405, 409, 422, 451],
+} as const;
+
+export const CANCELLATION = {
+  STALE_REQUEST_AGE: 30000,
+  CLEANUP_INTERVAL: 60000,
+} as const;
