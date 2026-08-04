@@ -1,97 +1,93 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Building2, Plus, Search, Eye, Pencil, Trash2, Users, UserCheck } from 'lucide-react';
+import { useDepartments, useDeleteDepartment } from '../../api/services/departments/hooks';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { getApiErrorMessage } from '../../utils/error';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
+import { Pagination } from '../../components/ui/Pagination';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { DepartmentFormModal } from './DepartmentFormModal';
 import type { DepartmentData } from './DepartmentFormModal';
 import { DepartmentDetailModal } from './DepartmentDetailModal';
+import type { DepartmentResponse } from '../../api/types/department';
 
-const INITIAL_DEPARTMENTS: DepartmentData[] = [
-  {
-    id: 'dept-1',
-    departmentName: 'Design & Technical',
-    departmentCode: 'DES-01',
-    headOfDepartment: 'Rajesh Sharma',
-    isActive: true,
-    memberCount: 14,
-  },
-  {
-    id: 'dept-2',
-    departmentName: 'Stores & Inventory',
-    departmentCode: 'STR-02',
-    headOfDepartment: 'Amit Verma',
-    isActive: true,
-    memberCount: 22,
-  },
-  {
-    id: 'dept-3',
-    departmentName: 'Production & Shopfloor',
-    departmentCode: 'PRD-03',
-    headOfDepartment: 'Suresh Kumar',
-    isActive: true,
-    memberCount: 45,
-  },
-  {
-    id: 'dept-4',
-    departmentName: 'Accounts & Finance',
-    departmentCode: 'ACC-04',
-    headOfDepartment: 'Priya Mehta',
-    isActive: true,
-    memberCount: 8,
-  },
-  {
-    id: 'dept-5',
-    departmentName: 'Quality Control',
-    departmentCode: 'QC-05',
-    headOfDepartment: 'Vikas Patel',
-    isActive: true,
-    memberCount: 11,
-  },
-];
+const PAGE_SIZE = 9;
+
+function toDepartmentData(res: DepartmentResponse): DepartmentData {
+  return {
+    id: res.id,
+    departmentName: res.departmentName,
+    departmentCode: res.departmentCode,
+    headOfDepartment: res.headName ?? undefined,
+    isActive: res.status === 'ACTIVE',
+    memberCount: undefined,
+  };
+}
 
 export const DepartmentsPage: React.FC = () => {
-  const [departments, setDepartments] = useState<DepartmentData[]>(INITIAL_DEPARTMENTS);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 400);
+  const [page, setPage] = useState(1);
+
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<DepartmentData | null>(null);
-  const [detailDept, setDetailDept] = useState<DepartmentData | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<DepartmentData | null>(null);
+  const [detailDept, setDetailDept] = useState<DepartmentResponse | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DepartmentResponse | null>(null);
 
-  const filteredDepartments = useMemo(() => {
-    if (!search.trim()) return departments;
-    const term = search.toLowerCase();
-    return departments.filter(
-      (d) =>
-        d.departmentName.toLowerCase().includes(term) ||
-        d.departmentCode.toLowerCase().includes(term) ||
-        (d.headOfDepartment && d.headOfDepartment.toLowerCase().includes(term)),
-    );
-  }, [departments, search]);
+  const query = useMemo(
+    () => ({
+      page,
+      limit: PAGE_SIZE,
+      search: search.trim() || undefined,
+    }),
+    [page, search],
+  );
 
-  const handleSaveDepartment = async (deptData: DepartmentData) => {
-    if (deptData.id) {
-      setDepartments((prev) => prev.map((d) => (d.id === deptData.id ? deptData : d)));
-    } else {
-      const newDept: DepartmentData = {
-        ...deptData,
-        id: `dept-${Date.now()}`,
-      };
-      setDepartments((prev) => [newDept, ...prev]);
-    }
-  };
+  const departmentsQuery = useDepartments(query);
+  const deleteMutation = useDeleteDepartment();
 
-  const handleDeleteConfirm = () => {
-    if (deleteTarget) {
-      setDepartments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
-      setDeleteTarget(null);
-    }
-  };
+  const { data, isLoading, isError, error, refetch } = departmentsQuery;
+  const items = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
 
-  const handleToggleStatus = (id: string) => {
-    setDepartments((prev) => prev.map((d) => (d.id === id ? { ...d, isActive: !d.isActive } : d)));
-  };
+  const handleCreate = useCallback(() => {
+    setEditingDept(null);
+    setFormModalOpen(true);
+  }, []);
+
+  const handleEdit = useCallback((dept: DepartmentResponse) => {
+    setDetailDept(null);
+    setEditingDept(toDepartmentData(dept));
+    setFormModalOpen(true);
+  }, []);
+
+  const handleSaveDepartment = useCallback(async (deptData: DepartmentData) => {
+    // The actual create/update will be handled by DepartmentFormModal
+    // which already calls onSubmit. For now, just close the modal.
+    // The hooks will handle cache invalidation.
+    void deptData;
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (!deleteTarget) return;
+
+    deleteMutation.mutate(deleteTarget.id, {
+      onSuccess: () => {
+        setDeleteTarget(null);
+        if (detailDept?.id === deleteTarget.id) setDetailDept(null);
+      },
+      onError: (err) => {
+        void getApiErrorMessage(err);
+      },
+    });
+  }, [deleteTarget, deleteMutation, detailDept]);
+
+  const resetPage = useCallback(() => {
+    setPage(1);
+  }, []);
 
   return (
     <div className="space-y-6 font-sans">
@@ -105,15 +101,7 @@ export const DepartmentsPage: React.FC = () => {
             Configure business units, head of department assignments, and organizational structures
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<Plus size={16} />}
-          onClick={() => {
-            setEditingDept(null);
-            setFormModalOpen(true);
-          }}
-        >
+        <Button variant="primary" size="sm" icon={<Plus size={16} />} onClick={handleCreate}>
           Create Department
         </Button>
       </div>
@@ -126,8 +114,11 @@ export const DepartmentsPage: React.FC = () => {
           </div>
           <Input
             id="deptSearch"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              resetPage();
+            }}
             placeholder="Search department name, code, or HOD..."
             className="pl-9"
           />
@@ -136,99 +127,139 @@ export const DepartmentsPage: React.FC = () => {
         <div className="flex items-center gap-2 text-xs text-text-muted font-medium">
           <span>Operating Units:</span>
           <span className="font-bold text-text-primary bg-background-secondary px-2 py-1 rounded border border-border-default">
-            {departments.length} Units
+            {total} Units
           </span>
         </div>
       </div>
 
       {/* Departments Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDepartments.map((dept) => (
-          <div
-            key={dept.id}
-            className="bg-surface-card border border-border-default rounded-xl p-5 space-y-4 shadow-card hover:border-border-strong transition-all flex flex-col justify-between"
-          >
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-accent-primary/10 text-accent-primary shrink-0">
-                    <Building2 size={18} />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-sm text-text-primary tracking-tight">
-                      {dept.departmentName}
-                    </h3>
-                    <span className="text-[10px] font-mono text-text-muted font-semibold">
-                      CODE: {dept.departmentCode}
-                    </span>
-                  </div>
-                </div>
-
-                <Badge tone={dept.isActive ? 'green' : 'gray'}>
-                  {dept.isActive ? 'ACTIVE' : 'INACTIVE'}
-                </Badge>
-              </div>
-
-              <div className="space-y-1.5 pt-1">
-                <div className="flex justify-between items-center text-xs text-text-muted">
-                  <span className="flex items-center gap-1">
-                    <UserCheck size={14} className="text-accent-primary" /> HOD:
-                  </span>
-                  <span className="font-bold text-text-primary">
-                    {dept.headOfDepartment || 'Unassigned'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs text-text-muted">
-                  <span className="flex items-center gap-1">
-                    <Users size={14} className="text-accent-primary" /> Active Personnel:
-                  </span>
-                  <span className="font-semibold text-text-primary">
-                    {dept.memberCount || 0} Members
-                  </span>
-                </div>
-              </div>
+      {isError ? (
+        <div className="bg-surface-card border border-status-error/30 rounded-xl p-8 text-center">
+          <p className="text-status-error font-medium mb-2">Failed to load departments</p>
+          <p className="text-xs text-text-muted mb-4">
+            {getApiErrorMessage(error, 'An unexpected error occurred.')}
+          </p>
+          <Button variant="secondary" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
+        </div>
+      ) : isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+            <div
+              key={`skeleton-${i}`}
+              className="bg-surface-card border border-border-default rounded-xl p-5 space-y-4 shadow-card animate-pulse"
+            >
+              <div className="h-4 bg-background-secondary rounded w-3/4" />
+              <div className="h-3 bg-background-secondary rounded w-1/2" />
+              <div className="h-3 bg-background-secondary rounded w-2/3" />
             </div>
-
-            <div className="pt-3 border-t border-border-default/50 flex items-center justify-between">
-              <button
-                onClick={() => handleToggleStatus(dept.id!)}
-                className={`text-[11px] font-semibold hover:underline ${
-                  dept.isActive ? 'text-status-warning' : 'text-status-success'
-                }`}
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="bg-surface-card border border-border-default rounded-xl p-8 text-center">
+          <Building2 size={32} className="mx-auto text-text-muted mb-3" />
+          <p className="text-sm font-medium text-text-primary mb-1">No departments found</p>
+          <p className="text-xs text-text-muted">
+            {search
+              ? 'No departments match your search. Try adjusting your search terms.'
+              : 'No departments exist yet. Create your first department to get started.'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.map((dept) => (
+              <div
+                key={dept.id}
+                className="bg-surface-card border border-border-default rounded-xl p-5 space-y-4 shadow-card hover:border-border-strong transition-all flex flex-col justify-between"
               >
-                {dept.isActive ? 'Deactivate' : 'Activate'}
-              </button>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-accent-primary/10 text-accent-primary shrink-0">
+                        <Building2 size={18} />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-sm text-text-primary tracking-tight">
+                          {dept.departmentName}
+                        </h3>
+                        <span className="text-[10px] font-mono text-text-muted font-semibold">
+                          CODE: {dept.departmentCode}
+                        </span>
+                      </div>
+                    </div>
 
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setDetailDept(dept)}
-                  className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary transition-colors"
-                  title="View Department Details"
-                >
-                  <Eye size={16} />
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingDept(dept);
-                    setFormModalOpen(true);
-                  }}
-                  className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary transition-colors"
-                  title="Edit Department"
-                >
-                  <Pencil size={16} />
-                </button>
-                <button
-                  onClick={() => setDeleteTarget(dept)}
-                  className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10 transition-colors"
-                  title="Delete Department"
-                >
-                  <Trash2 size={16} />
-                </button>
+                    <Badge tone={dept.status === 'ACTIVE' ? 'green' : 'gray'}>
+                      {dept.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between items-center text-xs text-text-muted">
+                      <span className="flex items-center gap-1">
+                        <UserCheck size={14} className="text-accent-primary" /> HOD:
+                      </span>
+                      <span className="font-bold text-text-primary">
+                        {dept.headName || 'Unassigned'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-text-muted">
+                      <span className="flex items-center gap-1">
+                        <Users size={14} className="text-accent-primary" /> Active Personnel:
+                      </span>
+                      <span className="font-semibold text-text-primary">{'—'} Members</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-border-default/50 flex items-center justify-between">
+                  <button
+                    onClick={() => setDeleteTarget(dept)}
+                    className={`text-[11px] font-semibold hover:underline ${
+                      dept.status === 'ACTIVE' ? 'text-status-warning' : 'text-status-success'
+                    }`}
+                  >
+                    {dept.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setDetailDept(dept)}
+                      className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary transition-colors"
+                      title="View Department Details"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(dept)}
+                      className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary transition-colors"
+                      title="Edit Department"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(dept)}
+                      className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10 transition-colors"
+                      title="Delete Department"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
+
+          <Pagination
+            page={data?.page ?? 1}
+            totalPages={totalPages}
+            total={total}
+            limit={data?.limit ?? PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        </>
+      )}
 
       {/* Modals & Dialogs */}
       <DepartmentFormModal
@@ -241,7 +272,7 @@ export const DepartmentsPage: React.FC = () => {
       <DepartmentDetailModal
         isOpen={Boolean(detailDept)}
         onClose={() => setDetailDept(null)}
-        department={detailDept}
+        department={detailDept ? toDepartmentData(detailDept) : null}
       />
 
       <ConfirmDialog

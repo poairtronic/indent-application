@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { AppPermission, MODULE_PERMISSIONS } from '../../constants/permissions';
+import { usePermissionModules, usePermissions } from '../../api/services/permissions/hooks';
+import {
+  useCreateRole,
+  useUpdateRole,
+  useRolePermissions,
+  useUpdateRolePermissions,
+} from '../../api/services/roles/hooks';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { TextArea } from '../../components/ui/TextArea';
 import { Modal } from '../../components/ui/Modal';
 import { Shield, Check } from 'lucide-react';
+import { useToasts } from '../../components/ui/toast';
 
 export interface RoleData {
   id?: string;
@@ -29,8 +36,18 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
   const [roleName, setRoleName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { show } = useToasts();
+  const createRole = useCreateRole();
+  const updateRole = useUpdateRole();
+  const updatePermissions = useUpdateRolePermissions();
+
+  const isEditing = Boolean(initialData?.id);
+
+  const { data: modules = [] } = usePermissionModules();
+  const { data: allPermissions = [] } = usePermissions();
+  const { data: rolePermissions } = useRolePermissions(initialData?.id ?? '');
 
   useEffect(() => {
     if (initialData) {
@@ -45,19 +62,24 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
     setError(null);
   }, [initialData, isOpen]);
 
+  useEffect(() => {
+    if (isEditing && rolePermissions) {
+      setSelectedPermissions(rolePermissions.map((p) => p.code));
+    }
+  }, [isEditing, rolePermissions]);
+
   const togglePermission = (perm: string) => {
     setSelectedPermissions((prev) =>
       prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm],
     );
   };
 
-  const toggleCategory = (categoryPermissions: AppPermission[]) => {
-    const permStrings = categoryPermissions as string[];
-    const allSelected = permStrings.every((p) => selectedPermissions.includes(p));
+  const toggleCategory = (modulePermissions: string[]) => {
+    const allSelected = modulePermissions.every((p) => selectedPermissions.includes(p));
     if (allSelected) {
-      setSelectedPermissions((prev) => prev.filter((p) => !permStrings.includes(p)));
+      setSelectedPermissions((prev) => prev.filter((p) => !modulePermissions.includes(p)));
     } else {
-      setSelectedPermissions((prev) => Array.from(new Set([...prev, ...permStrings])));
+      setSelectedPermissions((prev) => Array.from(new Set([...prev, ...modulePermissions])));
     }
   };
 
@@ -67,10 +89,38 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
       setError('Role name is required');
       return;
     }
-    setLoading(true);
     setError(null);
 
     try {
+      if (isEditing && initialData?.id) {
+        await updateRole.mutateAsync({
+          id: initialData.id,
+          payload: { roleName: roleName.trim(), description: description.trim() },
+        });
+        const permissionIds = allPermissions
+          .filter((p) => selectedPermissions.includes(p.code))
+          .map((p) => p.id);
+        await updatePermissions.mutateAsync({
+          id: initialData.id,
+          permissionIds,
+        });
+        show('success', `Role "${roleName}" updated successfully.`);
+      } else {
+        const created = await createRole.mutateAsync({
+          roleName: roleName.trim(),
+          description: description.trim(),
+        });
+        if (selectedPermissions.length > 0) {
+          const permissionIds = allPermissions
+            .filter((p) => selectedPermissions.includes(p.code))
+            .map((p) => p.id);
+          await updatePermissions.mutateAsync({
+            id: created.id,
+            permissionIds,
+          });
+        }
+        show('success', `Role "${roleName}" created successfully.`);
+      }
       await onSubmit({
         id: initialData?.id,
         roleName: roleName.trim(),
@@ -78,18 +128,22 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
         permissions: selectedPermissions,
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save role');
-    } finally {
-      setLoading(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save role';
+      setError(message);
     }
   };
+
+  const groupedByModule = modules.map((mod) => ({
+    module: mod,
+    permissions: allPermissions.filter((p) => p.module === mod).map((p) => p.code),
+  }));
 
   return (
     <Modal
       open={isOpen}
       onClose={onClose}
-      title={initialData ? 'Edit Role & Permissions' : 'Create New Role'}
+      title={isEditing ? 'Edit Role & Permissions' : 'Create New Role'}
       description="Define role identity and assign permission scopes"
       size="lg"
     >
@@ -119,7 +173,6 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
           />
         </div>
 
-        {/* Permission Mapping Category Matrix */}
         <div className="space-y-3 pt-2 border-t border-border-default/50">
           <div className="flex justify-between items-center">
             <h4 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
@@ -132,18 +185,18 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
           </div>
 
           <div className="max-h-[320px] overflow-y-auto space-y-4 pr-1">
-            {Object.entries(MODULE_PERMISSIONS).map(([category, perms]) => {
-              const permStrings = perms as string[];
-              const isAllSelected = permStrings.every((p) => selectedPermissions.includes(p));
+            {groupedByModule.map(({ module: mod, permissions: perms }) => {
+              const isAllSelected =
+                perms.length > 0 && perms.every((p) => selectedPermissions.includes(p));
 
               return (
                 <div
-                  key={category}
+                  key={mod}
                   className="border border-border-default rounded-xl p-3 bg-background-primary/40 space-y-2"
                 >
                   <div className="flex items-center justify-between border-b border-border-default/40 pb-2">
                     <span className="font-bold text-xs text-text-primary capitalize">
-                      {category} Module
+                      {mod} Module
                     </span>
                     <button
                       type="button"
@@ -191,8 +244,13 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
           <Button variant="secondary" size="sm" onClick={onClose} type="button">
             Cancel
           </Button>
-          <Button variant="primary" size="sm" loading={loading} type="submit">
-            {initialData ? 'Update Role' : 'Create Role'}
+          <Button
+            variant="primary"
+            size="sm"
+            loading={createRole.isPending || updateRole.isPending || updatePermissions.isPending}
+            type="submit"
+          >
+            {isEditing ? 'Update Role' : 'Create Role'}
           </Button>
         </div>
       </form>
