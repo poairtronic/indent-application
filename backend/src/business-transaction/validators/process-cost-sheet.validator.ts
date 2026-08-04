@@ -16,9 +16,6 @@ export class ProcessCostSheetValidator {
       errors.push('Process Cost Sheet must contain at least one material cost item.');
     } else {
       dto.costItems.forEach((item, index) => {
-        if (!item.materialId) {
-          errors.push(`Material Cost Item #${index + 1}: Material ID is required.`);
-        }
         if (item.predictedRate < 0) {
           errors.push(`Material Cost Item #${index + 1}: Predicted rate cannot be negative.`);
         }

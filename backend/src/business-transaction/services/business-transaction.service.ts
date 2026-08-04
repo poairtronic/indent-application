@@ -45,6 +45,33 @@ export class BusinessTransactionService {
     };
   }
 
+  private async resolveMaterial(
+    tx: Pick<PrismaService, 'material'>,
+    materialName: string,
+    unitId: string,
+    userId: string,
+    index: number,
+  ) {
+    const normalizedName = materialName.trim();
+    const existing = await tx.material.findFirst({
+      where: { materialName: normalizedName, isDeleted: false },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const uniqueSuffix = `${Date.now().toString().slice(-6)}-${index}`;
+    return tx.material.create({
+      data: {
+        materialName: normalizedName,
+        materialCode: `MAT-${uniqueSuffix}`,
+        unitId,
+        category: 'General',
+        createdBy: userId,
+      },
+    });
+  }
+
   /**
    * Create a new Business Transaction (Indent + Process Cost Sheet) in DRAFT state.
    */
@@ -83,6 +110,19 @@ export class BusinessTransactionService {
           },
         }));
 
+      const resolvedMaterialIds: string[] = [];
+      for (let i = 0; i < dto.indent.items.length; i++) {
+        const item = dto.indent.items[i];
+        const material = await this.resolveMaterial(
+          tx,
+          item.materialName,
+          item.unitId,
+          userId,
+          i,
+        );
+        resolvedMaterialIds.push(material.id);
+      }
+
       // 1. Create Indent record
       const createdIndent = await tx.indent.create({
         data: {
@@ -101,8 +141,8 @@ export class BusinessTransactionService {
           version: 1,
           isLocked: false,
           indentItems: {
-            create: dto.indent.items.map((item) => ({
-              materialId: item.materialId,
+            create: dto.indent.items.map((item, index) => ({
+              materialId: resolvedMaterialIds[index],
               quantity: item.quantity,
               unitId: item.unitId,
               remarks: item.remarks || null,
@@ -141,8 +181,8 @@ export class BusinessTransactionService {
           status: 'DRAFT',
           createdBy: userId,
           costItems: {
-            create: dto.costSheet.costItems.map((ci) => ({
-              materialId: ci.materialId,
+            create: dto.costSheet.costItems.map((ci, index) => ({
+              materialId: resolvedMaterialIds[index],
               vendorId: ci.vendorId || null,
               predictedRate: ci.predictedRate,
               predictedQuantity: ci.predictedQuantity,

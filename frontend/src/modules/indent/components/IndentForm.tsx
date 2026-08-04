@@ -7,7 +7,6 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { TextArea } from '../../../components/ui/TextArea';
 import { Priority } from '../../../types/indent';
-import { useMaterials } from '../../../api/services/materials/hooks';
 import { useUnits } from '../../../api/services/units/hooks';
 import { useProcesses } from '../../../api/services/processes/hooks';
 import type { IndentData } from '../../../api/services/indents/service';
@@ -23,7 +22,7 @@ const indentSchema = z.object({
     items: z
       .array(
         z.object({
-          materialId: z.string().min(1, 'Material is required'),
+          materialName: z.string().trim().min(1, 'Material is required'),
           quantity: z.number().min(0.01, 'Quantity must be greater than 0'),
           unitId: z.string().min(1, 'Unit is required'),
           remarks: z.string().optional(),
@@ -35,7 +34,7 @@ const indentSchema = z.object({
     predictedTotal: z.number(),
     costItems: z.array(
       z.object({
-        materialId: z.string(),
+        materialName: z.string(),
         predictedRate: z.number().min(0, 'Rate must be >= 0'),
         predictedQuantity: z.number(),
         predictedAmount: z.number(),
@@ -78,20 +77,20 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             purpose: initialData.purpose || '',
             remarks: initialData.remarks || '',
             items: initialData.items?.map((item) => ({
-              materialId: item.materialId,
+              materialName: item.material?.materialName ?? '',
               quantity: Number(item.quantity),
               unitId: item.unitId,
               remarks: item.remarks || '',
-            })) || [{ materialId: '', quantity: 1, unitId: '', remarks: '' }],
+            })) || [{ materialName: '', quantity: 1, unitId: '', remarks: '' }],
           },
           costSheet: {
             predictedTotal: initialData.costSheet?.predictedTotal || 0,
             costItems: initialData.costSheet?.costItems?.map((ci) => ({
-              materialId: ci.materialId,
+              materialName: ci.material?.materialName ?? '',
               predictedRate: ci.predictedRate,
               predictedQuantity: ci.predictedQuantity,
               predictedAmount: ci.predictedAmount,
-            })) || [{ materialId: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 }],
+            })) || [{ materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 }],
             processCosts:
               initialData.costSheet?.processCosts?.map((pc) => ({
                 processId: pc.processId,
@@ -103,12 +102,12 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
       : {
           indent: {
             priority: Priority.MEDIUM,
-            items: [{ materialId: '', quantity: 1, unitId: '', remarks: '' }],
+            items: [{ materialName: '', quantity: 1, unitId: '', remarks: '' }],
           },
           costSheet: {
             predictedTotal: 0,
             costItems: [
-              { materialId: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
+              { materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
             ],
             processCosts: [],
           },
@@ -138,11 +137,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
   const watchedProcesses = useWatch({ control, name: 'costSheet.processCosts' });
 
   // Live API data for the master-data fields below.
-  const { data: materialsData } = useMaterials({ page: 1, limit: 200 });
   const { data: unitsData } = useUnits({ page: 1, limit: 200 });
   const { data: processesData } = useProcesses({ page: 1, limit: 200 });
 
-  const materials = materialsData?.items ?? [];
   const units = unitsData?.items ?? [];
   const processes = processesData?.items ?? [];
 
@@ -155,7 +152,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
       const rate = existingCostItem?.predictedRate || 0;
       const qty = item.quantity || 0;
       return {
-        materialId: item.materialId,
+        materialName: item.materialName,
         predictedRate: rate,
         predictedQuantity: qty,
         predictedAmount: rate * qty,
@@ -166,7 +163,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
       newCostItems.length !== (watchedCostItems?.length || 0) ||
       newCostItems.some(
         (nci, i) =>
-          nci.materialId !== watchedCostItems?.[i]?.materialId ||
+          nci.materialName !== watchedCostItems?.[i]?.materialName ||
           nci.predictedQuantity !== watchedCostItems?.[i]?.predictedQuantity,
       );
 
@@ -248,7 +245,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => appendItem({ materialId: '', quantity: 1, unitId: '', remarks: '' })}
+            onClick={() => appendItem({ materialName: '', quantity: 1, unitId: '', remarks: '' })}
           >
             Add Material
           </Button>
@@ -265,20 +262,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
               className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start p-4 border border-border-default rounded-lg bg-background-primary"
             >
               <div className="md:col-span-3">
-                <Controller
-                  control={control}
-                  name={`indent.items.${index}.materialId`}
-                  render={({ field }) => (
-                    <Select
-                      label="Material"
-                      options={materials.map((m) => ({
-                        label: `${m.materialCode} - ${m.materialName}`,
-                        value: m.id,
-                      }))}
-                      error={errors.indent?.items?.[index]?.materialId?.message}
-                      {...field}
-                    />
-                  )}
+                <Input
+                  label="Material"
+                  placeholder="Type a material name"
+                  {...register(`indent.items.${index}.materialName`)}
+                  error={errors.indent?.items?.[index]?.materialName?.message}
                 />
               </div>
               <div className="md:col-span-2">

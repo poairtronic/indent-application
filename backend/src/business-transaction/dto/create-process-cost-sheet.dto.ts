@@ -13,9 +13,9 @@ import { Type } from 'class-transformer';
 import { VendorProcessType } from '../enums/workflow-state.enum';
 
 export class CostItemDto {
-  @IsUUID()
-  @IsNotEmpty()
-  materialId: string;
+  @IsString()
+  @IsOptional()
+  materialName?: string;
 
   @IsUUID()
   @IsOptional()

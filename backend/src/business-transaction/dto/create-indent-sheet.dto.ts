@@ -28,9 +28,9 @@ export class IndentProcessDto {
 }
 
 export class IndentItemDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
-  materialId: string;
+  materialName: string;
 
   @IsNumber()
   @Min(0.0001)

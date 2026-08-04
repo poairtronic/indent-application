@@ -36,16 +36,22 @@ export class BusinessTransactionValidator {
 
     // Synchronicity check: materials listed in Indent Sheet must be present in Process Cost Sheet
     if (dto.indent && dto.costSheet && dto.indent.items && dto.costSheet.costItems) {
-      const indentMaterials = new Set(dto.indent.items.map((i) => i.materialId));
-      const costMaterials = new Set(dto.costSheet.costItems.map((c) => c.materialId));
-
-      indentMaterials.forEach((materialId) => {
-        if (!costMaterials.has(materialId)) {
-          warnings.push(
-            `Material ID ${materialId} is specified in Indent Sheet but missing in Process Cost Sheet planned costs.`,
-          );
-        }
-      });
+      if (dto.indent.items.length !== dto.costSheet.costItems.length) {
+        warnings.push(
+          'Indent Sheet material count does not match Process Cost Sheet material cost item count.',
+        );
+      } else {
+        dto.indent.items.forEach((item, index) => {
+          const costItem = dto.costSheet!.costItems[index];
+          const indentName = item.materialName.trim();
+          const costName = costItem.materialName?.trim() || indentName;
+          if (indentName !== costName) {
+            warnings.push(
+              `Material '${indentName}' at row #${index + 1} does not match Process Cost Sheet entry '${costName}'.`,
+            );
+          }
+        });
+      }
     }
 
     return {

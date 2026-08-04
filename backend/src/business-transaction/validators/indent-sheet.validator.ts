@@ -20,8 +20,8 @@ export class IndentSheetValidator {
       errors.push('Indent Sheet must contain at least one material item.');
     } else {
       dto.items.forEach((item, index) => {
-        if (!item.materialId) {
-          errors.push(`Item #${index + 1}: Material ID is required.`);
+        if (!item.materialName?.trim()) {
+          errors.push(`Item #${index + 1}: Material is required.`);
         }
         if (!item.quantity || item.quantity <= 0) {
           errors.push(`Item #${index + 1}: Quantity must be greater than zero.`);
