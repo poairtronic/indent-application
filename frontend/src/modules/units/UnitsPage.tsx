@@ -8,7 +8,7 @@ import {
   useRestoreUnit,
   useUnits,
   useUpdateUnit,
-} from '../../hooks/useUnits';
+} from '../../api/services/units/hooks';
 import { useDeletedRecords } from '../../hooks/useDeletedRecords';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/error';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useIndent } from '../../hooks/useIndents';
+import { useIndent } from '../../api/services/indents/hooks';
 import { IndentDetails } from './components/IndentDetails';
 import { ArrowLeft, Edit, Printer, Copy } from 'lucide-react';
 import { Button } from '../../components/ui/Button';

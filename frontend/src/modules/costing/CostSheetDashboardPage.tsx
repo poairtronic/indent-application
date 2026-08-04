@@ -1,5 +1,5 @@
 import React from 'react';
-import { useIndents } from '../../hooks/useIndents';
+import { useIndents } from '../../api/services/indents/hooks';
 import { useIndentStore } from '../../store/useIndentStore';
 import { CostSheetList } from './components/CostSheetList';
 import { Button } from '../../components/ui/Button';

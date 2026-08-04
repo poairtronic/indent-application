@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Package,
   Plus,
@@ -9,17 +9,21 @@ import {
   Download,
   Archive,
   CheckCircle2,
-  Coins,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { KPICard } from '../../components/ui/Cards';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { Pagination } from '../../components/ui/Pagination';
+import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { ProductFormModal } from './ProductFormModal';
 import type { ProductData } from './ProductFormModal';
 import { ProductDetailModal } from './ProductDetailModal';
 import { downloadFile } from '../../utils/download';
+import { useAuthStore } from '../../store/authStore';
+import { AppPermission } from '../../constants/permissions';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import {
   useProducts,
   useCreateProduct,
@@ -31,6 +35,8 @@ import type {
   CreateProductPayload,
   UpdateProductPayload,
 } from '../../api/types/product';
+
+const PAGE_SIZE = 10;
 
 const responseToProductData = (item: ProductResponse): ProductData => ({
   id: item.id,
@@ -44,50 +50,42 @@ const responseToProductData = (item: ProductResponse): ProductData => ({
 });
 
 export const ProductsMasterPage: React.FC = () => {
-  const [search, setSearch] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const { toasts, show, dismiss } = useToasts();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 300);
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(10);
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
   const [detailProduct, setDetailProduct] = useState<ProductData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProductData | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchTerm(search);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, setPage]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [categoryFilter, setPage]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter, setPage]);
+  const canCreate = hasPermission(AppPermission.PRODUCTS_CREATE);
+  const canUpdate = hasPermission(AppPermission.PRODUCTS_UPDATE);
 
   const queryParams = useMemo(
     () => ({
       page,
-      limit: rowsPerPage,
-      search: searchTerm || undefined,
+      limit: PAGE_SIZE,
+      search: search || undefined,
       status: statusFilter !== 'ALL' ? (statusFilter as 'ACTIVE' | 'INACTIVE') : undefined,
     }),
-    [page, rowsPerPage, searchTerm, statusFilter],
+    [page, search, statusFilter],
   );
 
-  const { data: paginatedData, isLoading, error } = useProducts(queryParams);
+  const { data: paginatedData, isLoading, error, refetch } = useProducts(queryParams);
   const products = useMemo(() => paginatedData?.items ?? [], [paginatedData]);
   const total = paginatedData?.total ?? 0;
+  const totalPages = paginatedData?.totalPages ?? 1;
 
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+
+  const resetPage = useCallback(() => setPage(1), []);
 
   const handleSaveProduct = useCallback(
     async (productData: ProductData) => {
@@ -98,6 +96,7 @@ export const ProductsMasterPage: React.FC = () => {
           description: productData.description,
         };
         await updateProduct.mutateAsync({ id: productData.id, payload });
+        show('success', `Product "${productData.productName}" updated successfully.`);
       } else {
         const payload: CreateProductPayload = {
           productCode: productData.productCode,
@@ -105,17 +104,20 @@ export const ProductsMasterPage: React.FC = () => {
           description: productData.description,
         };
         await createProduct.mutateAsync(payload);
+        show('success', `Product "${productData.productName}" created successfully.`);
+        resetPage();
       }
     },
-    [createProduct, updateProduct],
+    [createProduct, updateProduct, show, resetPage],
   );
 
   const handleDeleteConfirm = useCallback(async () => {
     if (deleteTarget?.id) {
       await deleteProduct.mutateAsync(deleteTarget.id);
+      show('success', `Product "${deleteTarget.productName}" deleted.`);
       setDeleteTarget(null);
     }
-  }, [deleteTarget, deleteProduct]);
+  }, [deleteTarget, deleteProduct, show]);
 
   const handleToggleArchive = useCallback(
     async (id: string) => {
@@ -125,8 +127,12 @@ export const ProductsMasterPage: React.FC = () => {
         status: product.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE',
       };
       await updateProduct.mutateAsync({ id, payload });
+      show(
+        'success',
+        `Product "${product.productName}" ${product.status === 'ACTIVE' ? 'deactivated' : 'activated'}.`,
+      );
     },
-    [products, updateProduct],
+    [products, updateProduct, show],
   );
 
   const handleExportCSV = useCallback(() => {
@@ -141,13 +147,6 @@ export const ProductsMasterPage: React.FC = () => {
     downloadFile(csvContent, 'products_master.csv', 'text/csv');
   }, [products]);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
-
   const activeCount = useMemo(
     () => products.filter((p) => p.status === 'ACTIVE').length,
     [products],
@@ -156,11 +155,6 @@ export const ProductsMasterPage: React.FC = () => {
     () => products.filter((p) => p.status !== 'ACTIVE').length,
     [products],
   );
-  const avgCost = useMemo(() => {
-    if (products.length === 0) return 0;
-    const totalCost = products.reduce((acc) => acc + 0, 0);
-    return Math.round(totalCost / products.length);
-  }, [products]);
 
   if (error) {
     return (
@@ -175,11 +169,14 @@ export const ProductsMasterPage: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="bg-surface-card border border-border-default rounded-xl p-8 shadow-card text-center">
-          <p className="text-status-error font-medium">
+        <div className="bg-surface-card border border-status-error/30 rounded-xl p-8 shadow-card text-center">
+          <p className="text-status-error font-medium mb-2">
             Failed to load products. Please try again.
           </p>
-          <p className="text-xs text-text-muted mt-1">{error.message}</p>
+          <p className="text-xs text-text-muted mb-4">{error.message}</p>
+          <Button variant="secondary" size="sm" onClick={() => refetch()}>
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -187,7 +184,8 @@ export const ProductsMasterPage: React.FC = () => {
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Header */}
+      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-text-primary tracking-tight">
@@ -206,22 +204,23 @@ export const ProductsMasterPage: React.FC = () => {
           >
             Export CSV
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Plus size={16} />}
-            onClick={() => {
-              setEditingProduct(null);
-              setFormModalOpen(true);
-            }}
-          >
-            Create Product
-          </Button>
+          {canCreate && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setEditingProduct(null);
+                setFormModalOpen(true);
+              }}
+            >
+              Create Product
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Statistics Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KPICard
           title="Total SKUs Catalog"
           value={total}
@@ -243,16 +242,8 @@ export const ProductsMasterPage: React.FC = () => {
           icon={<Archive size={18} />}
           accent="warning"
         />
-        <KPICard
-          title="Average Est. Cost"
-          value={formatCurrency(avgCost)}
-          trend="Base Unit Cost"
-          icon={<Coins size={18} />}
-          accent="info"
-        />
       </div>
 
-      {/* Controls Header: Search & Filters */}
       <div className="bg-surface-card border border-border-default rounded-xl p-4 shadow-card flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
@@ -260,8 +251,11 @@ export const ProductsMasterPage: React.FC = () => {
           </div>
           <Input
             id="productSearch"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              resetPage();
+            }}
             placeholder="Search product code or SKU description..."
             className="pl-9"
           />
@@ -272,7 +266,10 @@ export const ProductsMasterPage: React.FC = () => {
             <span>Category:</span>
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                resetPage();
+              }}
               className="bg-background-primary border border-border-default rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none"
             >
               <option value="ALL">All Categories</option>
@@ -288,7 +285,10 @@ export const ProductsMasterPage: React.FC = () => {
             <span>Status:</span>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                resetPage();
+              }}
               className="bg-background-primary border border-border-default rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none"
             >
               <option value="ALL">All Status</option>
@@ -299,7 +299,6 @@ export const ProductsMasterPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Products Data Table */}
       <div className="bg-surface-card border border-border-default rounded-xl overflow-hidden shadow-card">
         <div className="overflow-x-auto">
           {isLoading ? (
@@ -337,16 +336,18 @@ export const ProductsMasterPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={() => handleToggleArchive(p.id)}
-                            className={`px-2 py-1 rounded text-[10px] font-bold ${
-                              p.status === 'ACTIVE'
-                                ? 'text-status-warning hover:bg-status-warning/10'
-                                : 'text-status-success hover:bg-status-success/10'
-                            }`}
-                          >
-                            {p.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                          </button>
+                          {canUpdate && (
+                            <button
+                              onClick={() => handleToggleArchive(p.id)}
+                              className={`px-2 py-1 rounded text-[10px] font-bold ${
+                                p.status === 'ACTIVE'
+                                  ? 'text-status-warning hover:bg-status-warning/10'
+                                  : 'text-status-success hover:bg-status-success/10'
+                              }`}
+                            >
+                              {p.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                            </button>
+                          )}
                           <button
                             onClick={() => setDetailProduct(responseToProductData(p))}
                             className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
@@ -354,16 +355,18 @@ export const ProductsMasterPage: React.FC = () => {
                           >
                             <Eye size={15} />
                           </button>
-                          <button
-                            onClick={() => {
-                              setEditingProduct(responseToProductData(p));
-                              setFormModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
-                            title="Edit Product"
-                          >
-                            <Pencil size={15} />
-                          </button>
+                          {canUpdate && (
+                            <button
+                              onClick={() => {
+                                setEditingProduct(responseToProductData(p));
+                                setFormModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
+                              title="Edit Product"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                          )}
                           <button
                             onClick={() => setDeleteTarget(responseToProductData(p))}
                             className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10"
@@ -382,7 +385,16 @@ export const ProductsMasterPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modals & Dialogs */}
+      {total > PAGE_SIZE && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={PAGE_SIZE}
+          onPageChange={setPage}
+        />
+      )}
+
       <ProductFormModal
         open={formModalOpen}
         onClose={() => setFormModalOpen(false)}
@@ -404,6 +416,7 @@ export const ProductsMasterPage: React.FC = () => {
         message="Are you sure you want to remove this product SKU from the master catalog?"
         tone="danger"
         confirmLabel="Delete SKU"
+        loading={deleteProduct.isPending}
       />
     </div>
   );

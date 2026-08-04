@@ -8,7 +8,7 @@ import {
   useRestoreProcess,
   useUpdateProcess,
   useProcesses,
-} from '../../hooks/useProcesses';
+} from '../../api/services/processes/hooks';
 import { useDeletedRecords } from '../../hooks/useDeletedRecords';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/error';

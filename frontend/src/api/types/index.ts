@@ -40,7 +40,6 @@ export type {
   PermissionAction,
   NotificationEventType,
   AuditEventType,
-  PaginatedData as PaginatedDataCompat,
 } from './enums';
 
 export type {

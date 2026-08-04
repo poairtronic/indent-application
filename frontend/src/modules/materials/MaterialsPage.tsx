@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Layers, Plus, Search, Eye, Pencil, Trash2, Download } from 'lucide-react';
 import {
   useMaterials,
@@ -6,6 +6,9 @@ import {
   useUpdateMaterial,
   useDeleteMaterial,
 } from '../../api/services/materials/hooks';
+import { useUnits } from '../../api/services/units/hooks';
+import { useAuthStore } from '../../store/authStore';
+import { AppPermission } from '../../constants/permissions';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/error';
 import { downloadFile } from '../../utils/download';
@@ -34,7 +37,8 @@ function toMaterialData(res: MaterialResponse): MaterialData {
     materialCode: res.materialCode,
     materialName: res.materialName,
     category: res.category ?? '',
-    unitOfMeasure: res.unitName ?? res.unitId,
+    unitOfMeasure: res.unitId,
+    unitOfMeasureLabel: res.unitName ?? res.unitId,
     reorderPoint: res.minStock ?? 0,
     isActive: res.status === 'ACTIVE',
   };
@@ -42,6 +46,7 @@ function toMaterialData(res: MaterialResponse): MaterialData {
 
 export const MaterialsPage: React.FC = () => {
   const { toasts, show, dismiss } = useToasts();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 400);
@@ -52,6 +57,10 @@ export const MaterialsPage: React.FC = () => {
   const [editingMat, setEditingMat] = useState<MaterialData | null>(null);
   const [detailMat, setDetailMat] = useState<MaterialData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MaterialData | null>(null);
+
+  const canCreate = hasPermission(AppPermission.MATERIALS_CREATE);
+  const canUpdate = hasPermission(AppPermission.MATERIALS_UPDATE);
+  const canDelete = hasPermission(AppPermission.MATERIALS_DELETE);
 
   const query = useMemo(
     () => ({
@@ -64,28 +73,66 @@ export const MaterialsPage: React.FC = () => {
   );
 
   const materialsQuery = useMaterials(query);
+  const unitsQuery = useUnits({ page: 1, limit: 100 });
   const createMutation = useCreateMaterial();
   const updateMutation = useUpdateMaterial();
   const deleteMutation = useDeleteMaterial();
 
   const { data, isLoading, isError, error, refetch } = materialsQuery;
   const items = data?.items ?? [];
+  const unitOptions = useMemo(
+    () =>
+      (unitsQuery.data?.items ?? []).map((u) => ({
+        id: u.id,
+        label: u.unitName,
+        symbol: u.symbol,
+      })),
+    [unitsQuery.data],
+  );
 
   const filteredMaterials = useMemo(() => items.map(toMaterialData), [items]);
 
   const hasActiveFilters = Boolean(search || categoryFilter);
 
-  const resetPage = () => setPage(1);
+  const resetPage = useCallback(() => setPage(1), []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchInput('');
     setCategoryFilter('');
     resetPage();
-  };
+  }, [resetPage]);
 
-  const handleSaveMaterial = async (matData: MaterialData) => {
-    if (matData.id) {
-      const payload: UpdateMaterialPayload = {
+  const handleSaveMaterial = useCallback(
+    async (matData: MaterialData) => {
+      if (matData.id) {
+        const payload: UpdateMaterialPayload = {
+          materialCode: matData.materialCode,
+          materialName: matData.materialName,
+          category: matData.category,
+          unitId: matData.unitOfMeasure,
+          minStock: matData.reorderPoint,
+          status: matData.isActive ? 'ACTIVE' : 'INACTIVE',
+        };
+        return new Promise<void>((resolve, reject) => {
+          updateMutation.mutate(
+            { id: matData.id!, payload },
+            {
+              onSuccess: () => {
+                show('success', `Material "${matData.materialName}" updated successfully.`);
+                setFormModalOpen(false);
+                setEditingMat(null);
+                resolve();
+              },
+              onError: (err: unknown) => {
+                show('error', getApiErrorMessage(err));
+                reject(err);
+              },
+            },
+          );
+        });
+      }
+
+      const payload: CreateMaterialPayload = {
         materialCode: matData.materialCode,
         materialName: matData.materialName,
         category: matData.category,
@@ -94,72 +141,49 @@ export const MaterialsPage: React.FC = () => {
         status: matData.isActive ? 'ACTIVE' : 'INACTIVE',
       };
       return new Promise<void>((resolve, reject) => {
-        updateMutation.mutate(
-          { id: matData.id!, payload },
-          {
-            onSuccess: () => {
-              show('success', `Material "${matData.materialName}" updated successfully.`);
-              setFormModalOpen(false);
-              setEditingMat(null);
-              resolve();
-            },
-            onError: (err: unknown) => {
-              show('error', getApiErrorMessage(err));
-              reject(err);
-            },
+        createMutation.mutate(payload, {
+          onSuccess: () => {
+            show('success', `Material "${matData.materialName}" created successfully.`);
+            setFormModalOpen(false);
+            resetPage();
+            resolve();
           },
-        );
+          onError: (err: unknown) => {
+            show('error', getApiErrorMessage(err));
+            reject(err);
+          },
+        });
       });
-    }
+    },
+    [createMutation, updateMutation, show, resetPage],
+  );
 
-    const payload: CreateMaterialPayload = {
-      materialCode: matData.materialCode,
-      materialName: matData.materialName,
-      category: matData.category,
-      unitId: matData.unitOfMeasure,
-      minStock: matData.reorderPoint,
-      status: matData.isActive ? 'ACTIVE' : 'INACTIVE',
-    };
-    return new Promise<void>((resolve, reject) => {
-      createMutation.mutate(payload, {
-        onSuccess: () => {
-          show('success', `Material "${matData.materialName}" created successfully.`);
-          setFormModalOpen(false);
-          resetPage();
-          resolve();
+  const handleToggleStatus = useCallback(
+    (mat: MaterialData) => {
+      if (!mat.id) return;
+      const payload: UpdateMaterialPayload = {
+        status: mat.isActive ? 'INACTIVE' : 'ACTIVE',
+      };
+      updateMutation.mutate(
+        { id: mat.id, payload },
+        {
+          onSuccess: () => {
+            show(
+              'success',
+              `Material "${mat.materialName}" ${mat.isActive ? 'deactivated' : 'activated'}.`,
+            );
+          },
+          onError: (err: unknown) => {
+            show('error', getApiErrorMessage(err));
+          },
         },
-        onError: (err: unknown) => {
-          show('error', getApiErrorMessage(err));
-          reject(err);
-        },
-      });
-    });
-  };
+      );
+    },
+    [updateMutation, show],
+  );
 
-  const handleToggleStatus = (mat: MaterialData) => {
-    if (!mat.id) return;
-    const payload: UpdateMaterialPayload = {
-      status: mat.isActive ? 'INACTIVE' : 'ACTIVE',
-    };
-    updateMutation.mutate(
-      { id: mat.id, payload },
-      {
-        onSuccess: () => {
-          show(
-            'success',
-            `Material "${mat.materialName}" ${mat.isActive ? 'deactivated' : 'activated'}.`,
-          );
-        },
-        onError: (err: unknown) => {
-          show('error', getApiErrorMessage(err));
-        },
-      },
-    );
-  };
-
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = useCallback(() => {
     if (!deleteTarget?.id) return;
-
     deleteMutation.mutate(deleteTarget.id, {
       onSuccess: () => {
         show('success', `Material "${deleteTarget.materialName}" deleted.`);
@@ -170,9 +194,9 @@ export const MaterialsPage: React.FC = () => {
         show('error', getApiErrorMessage(err));
       },
     });
-  };
+  }, [deleteTarget, deleteMutation, detailMat, show]);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = useCallback(() => {
     const headers = [
       'Material Code',
       'Material Name',
@@ -185,13 +209,13 @@ export const MaterialsPage: React.FC = () => {
       m.materialCode,
       `"${m.materialName.replace(/"/g, '""')}"`,
       m.category,
-      m.unitOfMeasure,
+      m.unitOfMeasureLabel,
       m.reorderPoint.toString(),
       m.isActive ? 'ACTIVE' : 'INACTIVE',
     ]);
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     downloadFile(csvContent, 'materials_master.csv', 'text/csv');
-  };
+  }, [filteredMaterials]);
 
   return (
     <div className="space-y-6 font-sans">
@@ -215,17 +239,19 @@ export const MaterialsPage: React.FC = () => {
           >
             Export CSV
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Plus size={16} />}
-            onClick={() => {
-              setEditingMat(null);
-              setFormModalOpen(true);
-            }}
-          >
-            Create Material
-          </Button>
+          {canCreate && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setEditingMat(null);
+                setFormModalOpen(true);
+              }}
+            >
+              Create Material
+            </Button>
+          )}
         </div>
       </div>
 
@@ -300,7 +326,7 @@ export const MaterialsPage: React.FC = () => {
               <Button variant="secondary" size="sm" onClick={clearFilters}>
                 Clear filters
               </Button>
-            ) : (
+            ) : canCreate ? (
               <Button
                 size="sm"
                 icon={<Plus size={14} />}
@@ -311,7 +337,7 @@ export const MaterialsPage: React.FC = () => {
               >
                 Create Material
               </Button>
-            )
+            ) : null
           }
         />
       ) : (
@@ -351,21 +377,23 @@ export const MaterialsPage: React.FC = () => {
                     <div className="flex justify-between items-center text-text-muted">
                       <span>Reorder Threshold:</span>
                       <span className="font-bold text-status-warning">
-                        {mat.reorderPoint} {mat.unitOfMeasure}
+                        {mat.reorderPoint} {mat.unitOfMeasureLabel}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="pt-3 border-t border-border-default/50 flex items-center justify-between">
-                  <button
-                    onClick={() => handleToggleStatus(mat)}
-                    className={`text-[11px] font-semibold hover:underline ${
-                      mat.isActive ? 'text-status-warning' : 'text-status-success'
-                    }`}
-                  >
-                    {mat.isActive ? 'Deactivate' : 'Activate'}
-                  </button>
+                  {canUpdate && (
+                    <button
+                      onClick={() => handleToggleStatus(mat)}
+                      className={`text-[11px] font-semibold hover:underline ${
+                        mat.isActive ? 'text-status-warning' : 'text-status-success'
+                      }`}
+                    >
+                      {mat.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                  )}
 
                   <div className="flex items-center gap-1">
                     <button
@@ -375,23 +403,27 @@ export const MaterialsPage: React.FC = () => {
                     >
                       <Eye size={16} />
                     </button>
-                    <button
-                      onClick={() => {
-                        setEditingMat(mat);
-                        setFormModalOpen(true);
-                      }}
-                      className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
-                      title="Edit Material"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(mat)}
-                      className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10"
-                      title="Delete Material"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {canUpdate && (
+                      <button
+                        onClick={() => {
+                          setEditingMat(mat);
+                          setFormModalOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
+                        title="Edit Material"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeleteTarget(mat)}
+                        className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10"
+                        title="Delete Material"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -416,6 +448,7 @@ export const MaterialsPage: React.FC = () => {
         }}
         onSubmit={handleSaveMaterial}
         initialData={editingMat}
+        unitOptions={unitOptions}
       />
 
       <MaterialDetailModal

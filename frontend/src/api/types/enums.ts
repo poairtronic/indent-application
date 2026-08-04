@@ -49,11 +49,3 @@ export type AuditEventType =
   | 'VERIFY_COSTS'
   | 'FINANCIAL_CLOSURE'
   | 'ARCHIVE_TRANSACTION';
-
-export interface PaginatedData<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}

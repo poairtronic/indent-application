@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Shield, Plus, Search, Eye, Pencil, Trash2, Users } from 'lucide-react';
 import { useRoles, useDeleteRole } from '../../api/services/roles/hooks';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useAuthStore } from '../../store/authStore';
+import { AppPermission } from '../../constants/permissions';
 import { getApiErrorMessage } from '../../utils/error';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -22,12 +24,17 @@ function toRoleData(role: RoleResponse): RoleData {
 }
 
 export const RolesPage: React.FC = () => {
+  const hasPermission = useAuthStore((s) => s.hasPermission);
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleData | null>(null);
   const [detailRole, setDetailRole] = useState<RoleResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RoleResponse | null>(null);
+
+  const canCreate = hasPermission(AppPermission.ROLES_CREATE);
+  const canUpdate = hasPermission(AppPermission.ROLES_UPDATE);
+  const canDelete = hasPermission(AppPermission.ROLES_DELETE);
 
   const rolesQuery = useRoles();
   const deleteMutation = useDeleteRole();
@@ -73,17 +80,19 @@ export const RolesPage: React.FC = () => {
             Configure enterprise RBAC security roles, permission matrices, and access control scopes
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<Plus size={16} />}
-          onClick={() => {
-            setEditingRole(null);
-            setFormModalOpen(true);
-          }}
-        >
-          Create New Role
-        </Button>
+        {canCreate && (
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus size={16} />}
+            onClick={() => {
+              setEditingRole(null);
+              setFormModalOpen(true);
+            }}
+          >
+            Create New Role
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-surface-card border border-border-default rounded-xl p-4 shadow-card">
@@ -185,23 +194,27 @@ export const RolesPage: React.FC = () => {
                   >
                     <Eye size={16} />
                   </button>
-                  <button
-                    onClick={() => {
-                      setEditingRole(toRoleData(role));
-                      setFormModalOpen(true);
-                    }}
-                    className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary transition-colors"
-                    title="Edit Role & Permissions"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(role)}
-                    className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10 transition-colors"
-                    title="Delete Role"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {canUpdate && (
+                    <button
+                      onClick={() => {
+                        setEditingRole(toRoleData(role));
+                        setFormModalOpen(true);
+                      }}
+                      className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary transition-colors"
+                      title="Edit Role & Permissions"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => setDeleteTarget(role)}
+                      className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10 transition-colors"
+                      title="Delete Role"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

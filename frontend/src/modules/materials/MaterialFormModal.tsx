@@ -9,8 +9,15 @@ export interface MaterialData {
   materialName: string;
   category: string;
   unitOfMeasure: string;
+  unitOfMeasureLabel?: string;
   reorderPoint: number;
   isActive: boolean;
+}
+
+interface UnitOption {
+  id: string;
+  label: string;
+  symbol: string;
 }
 
 interface MaterialFormModalProps {
@@ -18,18 +25,30 @@ interface MaterialFormModalProps {
   onClose: () => void;
   onSubmit: (material: MaterialData) => Promise<void>;
   initialData?: MaterialData | null;
+  unitOptions?: UnitOption[];
 }
+
+const DEFAULT_UNITS: UnitOption[] = [
+  { id: 'KG', label: 'Kilograms', symbol: 'KG' },
+  { id: 'METERS', label: 'Meters', symbol: 'M' },
+  { id: 'PCS', label: 'Pieces', symbol: 'PCS' },
+  { id: 'LITERS', label: 'Liters', symbol: 'L' },
+  { id: 'SHEETS', label: 'Sheets', symbol: 'SHT' },
+];
 
 export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
   open,
   onClose,
   onSubmit,
   initialData,
+  unitOptions,
 }) => {
+  const units = unitOptions && unitOptions.length > 0 ? unitOptions : DEFAULT_UNITS;
+
   const [materialCode, setMaterialCode] = useState('');
   const [materialName, setMaterialName] = useState('');
   const [category, setCategory] = useState('METALS');
-  const [unitOfMeasure, setUnitOfMeasure] = useState('KG');
+  const [unitOfMeasure, setUnitOfMeasure] = useState(units[0]?.id ?? 'KG');
   const [reorderPoint, setReorderPoint] = useState<number>(100);
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -47,12 +66,12 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
       setMaterialCode('');
       setMaterialName('');
       setCategory('METALS');
-      setUnitOfMeasure('KG');
+      setUnitOfMeasure(units[0]?.id ?? 'KG');
       setReorderPoint(100);
       setIsActive(true);
     }
     setError(null);
-  }, [initialData, open]);
+  }, [initialData, open, units]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,8 +93,9 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
         isActive,
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save material');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save material';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -145,11 +165,11 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
               onChange={(e) => setUnitOfMeasure(e.target.value)}
               className="w-full bg-surface-card border border-border-default rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent-primary"
             >
-              <option value="KG">KG (Kilograms)</option>
-              <option value="METERS">METERS (Meters)</option>
-              <option value="PCS">PCS (Pieces)</option>
-              <option value="LITERS">LITERS (Liters)</option>
-              <option value="SHEETS">SHEETS (Sheets)</option>
+              {units.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.symbol} ({u.label})
+                </option>
+              ))}
             </select>
           </div>
 

@@ -1,6 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Building2, Plus, Search, Eye, Pencil, Trash2, Users, UserCheck } from 'lucide-react';
-import { useDepartments, useDeleteDepartment } from '../../api/services/departments/hooks';
+import {
+  useDepartments,
+  useCreateDepartment,
+  useUpdateDepartment,
+  useDeleteDepartment,
+} from '../../api/services/departments/hooks';
+import { useAuthStore } from '../../store/authStore';
+import { AppPermission } from '../../constants/permissions';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/error';
 import { Button } from '../../components/ui/Button';
@@ -8,10 +15,15 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Pagination } from '../../components/ui/Pagination';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { DepartmentFormModal } from './DepartmentFormModal';
 import type { DepartmentData } from './DepartmentFormModal';
 import { DepartmentDetailModal } from './DepartmentDetailModal';
-import type { DepartmentResponse } from '../../api/types/department';
+import type {
+  DepartmentResponse,
+  CreateDepartmentPayload,
+  UpdateDepartmentPayload,
+} from '../../api/types/department';
 
 const PAGE_SIZE = 9;
 
@@ -27,6 +39,9 @@ function toDepartmentData(res: DepartmentResponse): DepartmentData {
 }
 
 export const DepartmentsPage: React.FC = () => {
+  const { toasts, show, dismiss } = useToasts();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 400);
   const [page, setPage] = useState(1);
@@ -35,6 +50,11 @@ export const DepartmentsPage: React.FC = () => {
   const [editingDept, setEditingDept] = useState<DepartmentData | null>(null);
   const [detailDept, setDetailDept] = useState<DepartmentResponse | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DepartmentResponse | null>(null);
+  const [statusTarget, setStatusTarget] = useState<DepartmentResponse | null>(null);
+
+  const canCreate = hasPermission(AppPermission.DEPARTMENTS_CREATE);
+  const canUpdate = hasPermission(AppPermission.DEPARTMENTS_UPDATE);
+  const canDelete = hasPermission(AppPermission.DEPARTMENTS_DELETE);
 
   const query = useMemo(
     () => ({
@@ -46,6 +66,8 @@ export const DepartmentsPage: React.FC = () => {
   );
 
   const departmentsQuery = useDepartments(query);
+  const createMutation = useCreateDepartment();
+  const updateMutation = useUpdateDepartment();
   const deleteMutation = useDeleteDepartment();
 
   const { data, isLoading, isError, error, refetch } = departmentsQuery;
@@ -64,26 +86,89 @@ export const DepartmentsPage: React.FC = () => {
     setFormModalOpen(true);
   }, []);
 
-  const handleSaveDepartment = useCallback(async (deptData: DepartmentData) => {
-    // The actual create/update will be handled by DepartmentFormModal
-    // which already calls onSubmit. For now, just close the modal.
-    // The hooks will handle cache invalidation.
-    void deptData;
-  }, []);
+  const handleSaveDepartment = useCallback(
+    async (deptData: DepartmentData) => {
+      if (deptData.id) {
+        const payload: UpdateDepartmentPayload = {
+          departmentCode: deptData.departmentCode,
+          departmentName: deptData.departmentName,
+          status: deptData.isActive ? 'ACTIVE' : 'INACTIVE',
+        };
+        return new Promise<void>((resolve, reject) => {
+          updateMutation.mutate(
+            { id: deptData.id!, payload },
+            {
+              onSuccess: () => {
+                show('success', `Department "${deptData.departmentName}" updated successfully.`);
+                setFormModalOpen(false);
+                setEditingDept(null);
+                resolve();
+              },
+              onError: (err: unknown) => {
+                show('error', getApiErrorMessage(err));
+                reject(err);
+              },
+            },
+          );
+        });
+      }
+
+      const payload: CreateDepartmentPayload = {
+        departmentCode: deptData.departmentCode,
+        departmentName: deptData.departmentName,
+        status: deptData.isActive ? 'ACTIVE' : 'INACTIVE',
+      };
+      return new Promise<void>((resolve, reject) => {
+        createMutation.mutate(payload, {
+          onSuccess: () => {
+            show('success', `Department "${deptData.departmentName}" created successfully.`);
+            setFormModalOpen(false);
+            resetPage();
+            resolve();
+          },
+          onError: (err: unknown) => {
+            show('error', getApiErrorMessage(err));
+            reject(err);
+          },
+        });
+      });
+    },
+    [createMutation, updateMutation, show],
+  );
+
+  const handleStatusConfirm = useCallback(() => {
+    if (!statusTarget) return;
+    const newStatus = statusTarget.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    updateMutation.mutate(
+      { id: statusTarget.id, payload: { status: newStatus } },
+      {
+        onSuccess: () => {
+          show(
+            'success',
+            `Department "${statusTarget.departmentName}" ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'}.`,
+          );
+          setStatusTarget(null);
+        },
+        onError: (err: unknown) => {
+          show('error', getApiErrorMessage(err));
+        },
+      },
+    );
+  }, [statusTarget, updateMutation, show]);
 
   const handleDeleteConfirm = useCallback(() => {
     if (!deleteTarget) return;
-
     deleteMutation.mutate(deleteTarget.id, {
       onSuccess: () => {
+        show('success', `Department "${deleteTarget.departmentName}" deleted.`);
         setDeleteTarget(null);
         if (detailDept?.id === deleteTarget.id) setDetailDept(null);
       },
-      onError: (err) => {
-        void getApiErrorMessage(err);
+      onError: (err: unknown) => {
+        show('error', getApiErrorMessage(err));
       },
     });
-  }, [deleteTarget, deleteMutation, detailDept]);
+  }, [deleteTarget, deleteMutation, detailDept, show]);
 
   const resetPage = useCallback(() => {
     setPage(1);
@@ -91,7 +176,8 @@ export const DepartmentsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Page Header */}
+      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-text-primary tracking-tight">
@@ -101,12 +187,13 @@ export const DepartmentsPage: React.FC = () => {
             Configure business units, head of department assignments, and organizational structures
           </p>
         </div>
-        <Button variant="primary" size="sm" icon={<Plus size={16} />} onClick={handleCreate}>
-          Create Department
-        </Button>
+        {canCreate && (
+          <Button variant="primary" size="sm" icon={<Plus size={16} />} onClick={handleCreate}>
+            Create Department
+          </Button>
+        )}
       </div>
 
-      {/* Toolbar & Search */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-surface-card border border-border-default rounded-xl p-4 shadow-card">
         <div className="relative flex-1 max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
@@ -132,7 +219,6 @@ export const DepartmentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Departments Grid */}
       {isError ? (
         <div className="bg-surface-card border border-status-error/30 rounded-xl p-8 text-center">
           <p className="text-status-error font-medium mb-2">Failed to load departments</p>
@@ -214,14 +300,16 @@ export const DepartmentsPage: React.FC = () => {
                 </div>
 
                 <div className="pt-3 border-t border-border-default/50 flex items-center justify-between">
-                  <button
-                    onClick={() => setDeleteTarget(dept)}
-                    className={`text-[11px] font-semibold hover:underline ${
-                      dept.status === 'ACTIVE' ? 'text-status-warning' : 'text-status-success'
-                    }`}
-                  >
-                    {dept.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                  </button>
+                  {canUpdate && (
+                    <button
+                      onClick={() => setStatusTarget(dept)}
+                      className={`text-[11px] font-semibold hover:underline ${
+                        dept.status === 'ACTIVE' ? 'text-status-warning' : 'text-status-success'
+                      }`}
+                    >
+                      {dept.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                    </button>
+                  )}
 
                   <div className="flex items-center gap-1">
                     <button
@@ -231,20 +319,24 @@ export const DepartmentsPage: React.FC = () => {
                     >
                       <Eye size={16} />
                     </button>
-                    <button
-                      onClick={() => handleEdit(dept)}
-                      className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary transition-colors"
-                      title="Edit Department"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(dept)}
-                      className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10 transition-colors"
-                      title="Delete Department"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {canUpdate && (
+                      <button
+                        onClick={() => handleEdit(dept)}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary transition-colors"
+                        title="Edit Department"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => setDeleteTarget(dept)}
+                        className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10 transition-colors"
+                        title="Delete Department"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -261,7 +353,6 @@ export const DepartmentsPage: React.FC = () => {
         </>
       )}
 
-      {/* Modals & Dialogs */}
       <DepartmentFormModal
         isOpen={formModalOpen}
         onClose={() => setFormModalOpen(false)}
@@ -276,6 +367,20 @@ export const DepartmentsPage: React.FC = () => {
       />
 
       <ConfirmDialog
+        open={Boolean(statusTarget)}
+        onCancel={() => setStatusTarget(null)}
+        onConfirm={handleStatusConfirm}
+        title={`${statusTarget?.status === 'ACTIVE' ? 'Deactivate' : 'Activate'} Department: ${statusTarget?.departmentName}`}
+        message={
+          statusTarget?.status === 'ACTIVE'
+            ? 'Are you sure you want to deactivate this department? It will be hidden from active listings.'
+            : 'Are you sure you want to activate this department?'
+        }
+        tone={statusTarget?.status === 'ACTIVE' ? 'warning' : 'success'}
+        confirmLabel={statusTarget?.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+      />
+
+      <ConfirmDialog
         open={Boolean(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
@@ -283,6 +388,7 @@ export const DepartmentsPage: React.FC = () => {
         message="Are you sure you want to delete this department? Members assigned to this department will require re-assignment."
         tone="danger"
         confirmLabel="Delete Department"
+        loading={deleteMutation.isPending}
       />
     </div>
   );

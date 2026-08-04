@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useIndents } from '../../hooks/useIndents';
+import { useIndents } from '../../api/services/indents/hooks';
 import { useIndentStore } from '../../store/useIndentStore';
 import { IndentList } from './components/IndentList';
 import { Button } from '../../components/ui/Button';

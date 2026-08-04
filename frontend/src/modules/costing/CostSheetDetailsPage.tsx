@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useIndent, useEnterActualCosts, useFinancialClose } from '../../hooks/useIndents';
+import {
+  useIndent,
+  useEnterActualCosts,
+  useFinancialClose,
+} from '../../api/services/indents/hooks';
 import { ArrowLeft, Save, FileText, CheckCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { FinancialSummaryWidget } from './components/FinancialSummaryWidget';

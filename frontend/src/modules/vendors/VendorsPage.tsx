@@ -8,7 +8,7 @@ import {
   useRestoreVendor,
   useUpdateVendor,
   useVendors,
-} from '../../hooks/useVendors';
+} from '../../api/services/vendors/hooks';
 import { useDeletedRecords } from '../../hooks/useDeletedRecords';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/error';

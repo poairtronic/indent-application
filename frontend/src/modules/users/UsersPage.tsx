@@ -5,12 +5,12 @@ import { AppPermission } from '../../constants/permissions';
 import {
   useCreateUser,
   useDeleteUser,
-  useDepartmentOptions,
-  useRoles,
   useUpdateUser,
   useUpdateUserStatus,
   useUsers,
-} from '../../hooks/useUsers';
+  useUserRoles,
+} from '../../api/services/users/hooks';
+import { useDepartmentOptions } from '../../api/services/departments/hooks';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/error';
 import { formatDateTime } from '../../utils/date';
@@ -74,9 +74,9 @@ export const UsersPage: React.FC = () => {
   );
 
   const usersQuery = useUsers(query);
-  const rolesQuery = useRoles();
+  const rolesQuery = useUserRoles();
   const departmentQuery = useDepartmentOptions();
-  const departments = departmentQuery.options;
+  const departments = departmentQuery.data ?? [];
   const roles = rolesQuery.data ?? [];
 
   const createMutation = useCreateUser();

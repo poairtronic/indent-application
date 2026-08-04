@@ -39,4 +39,4 @@ export interface DepartmentQueryParams {
   status?: 'ACTIVE' | 'INACTIVE';
 }
 
-export type PaginatedDepartments = import('../types/enums').PaginatedData<DepartmentResponse>;
+export type PaginatedDepartments = import('./api-response').PaginatedData<DepartmentResponse>;

@@ -43,4 +43,4 @@ export interface MaterialQueryParams {
   status?: 'ACTIVE' | 'INACTIVE';
 }
 
-export type PaginatedMaterials = import('../types/enums').PaginatedData<MaterialResponse>;
+export type PaginatedMaterials = import('./api-response').PaginatedData<MaterialResponse>;

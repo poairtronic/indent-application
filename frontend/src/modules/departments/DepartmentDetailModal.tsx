@@ -63,7 +63,7 @@ export const DepartmentDetailModal: React.FC<DepartmentDetailModalProps> = ({
               <Users size={14} className="text-accent-primary" /> Assigned Personnel:
             </span>
             <span className="font-bold text-text-primary">
-              {department.memberCount || 12} Active Members
+              {department.memberCount ?? '—'} Members
             </span>
           </div>
         </div>

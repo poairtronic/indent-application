@@ -33,4 +33,4 @@ export interface ProductQueryParams {
   status?: 'ACTIVE' | 'INACTIVE';
 }
 
-export type PaginatedProducts = import('../types/enums').PaginatedData<ProductResponse>;
+export type PaginatedProducts = import('./api-response').PaginatedData<ProductResponse>;
