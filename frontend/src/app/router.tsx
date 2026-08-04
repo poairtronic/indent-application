@@ -69,6 +69,12 @@ const SessionExpiredPage = lazy(() =>
 const SecurityDashboardPage = lazy(() =>
   import('../pages/SecurityDashboardPage').then((m) => ({ default: m.SecurityDashboardPage })),
 );
+const SettingsPage = lazy(() =>
+  import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+);
+const AuditLogPage = lazy(() =>
+  import('../pages/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
+);
 const SessionManagementPage = lazy(() =>
   import('../pages/SessionManagementPage').then((m) => ({ default: m.SessionManagementPage })),
 );
@@ -142,6 +148,13 @@ const CostSheetDetailsPage = lazy(() =>
   })),
 );
 
+// Reports Module Pages
+const ReportsDashboardPage = lazy(() =>
+  import('../modules/reports/ReportsDashboardPage').then((m) => ({
+    default: m.ReportsDashboardPage,
+  })),
+);
+
 // Analytics Pages
 const AnalyticsSummaryPage = lazy(() =>
   import('../modules/analytics/pages/SummaryPage').then((m) => ({ default: m.SummaryPage })),
@@ -201,7 +214,15 @@ export const AppRouter: React.FC = () => {
             path="/settings"
             element={
               <ProtectedRoute permissions={['settings.manage']}>
-                <ComingSoon title="System Configuration Settings" />
+                {suspended(SettingsPage)}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit-logs"
+            element={
+              <ProtectedRoute permissions={['settings.manage']}>
+                {suspended(AuditLogPage)}
               </ProtectedRoute>
             }
           />
@@ -304,7 +325,7 @@ export const AppRouter: React.FC = () => {
           path="/reports"
           element={
             <ProtectedRoute permissions={['reports.view']}>
-              <ComingSoon title="Enterprise Document Reporting" />
+              {suspended(ReportsDashboardPage)}
             </ProtectedRoute>
           }
         />

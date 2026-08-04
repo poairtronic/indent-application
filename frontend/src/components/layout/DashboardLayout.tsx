@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { Breadcrumbs } from '../ui/Breadcrumbs';
 
 export const DashboardLayout: React.FC = () => {
   return (
@@ -15,6 +16,7 @@ export const DashboardLayout: React.FC = () => {
             <div className="absolute top-1/3 -right-32 w-[420px] h-[420px] rounded-full bg-info/10 blur-[120px]" />
           </div>
           <div className="relative mx-auto max-w-7xl">
+            <Breadcrumbs />
             <Outlet />
           </div>
         </main>

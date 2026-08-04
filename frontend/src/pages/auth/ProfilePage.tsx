@@ -117,6 +117,26 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
+      <div className="mb-8">
+        <h3 className="text-sm font-bold text-text-primary mb-3">Recent Activity</h3>
+        <div className="bg-background-primary rounded-lg border border-border-default p-3 space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-text-primary">Logged in</p>
+              <p className="text-xs text-text-muted">192.168.1.104 • Chrome on Windows</p>
+            </div>
+            <span className="text-xs text-text-secondary">Today, 09:45 AM</span>
+          </div>
+          <div className="border-t border-border-default pt-3 flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-text-primary">Password Changed</p>
+              <p className="text-xs text-text-muted">Security Settings</p>
+            </div>
+            <span className="text-xs text-text-secondary">Aug 01, 2026</span>
+          </div>
+        </div>
+      </div>
+
       <div className="flex gap-4">
         <Button
           variant="outline"
