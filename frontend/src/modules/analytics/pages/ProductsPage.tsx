@@ -99,7 +99,7 @@ export const ProductsPage: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-                {data?.products.length === 0 && (
+                {data?.products?.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-8">
                       <EmptyState title="No data" description="No product statistics available." />

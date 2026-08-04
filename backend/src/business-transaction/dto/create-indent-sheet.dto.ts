@@ -66,13 +66,13 @@ export class IndentAttachmentDto {
 }
 
 export class CreateIndentSheetDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
-  productId: string;
+  productName: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
-  departmentId: string;
+  departmentName: string;
 
   @IsEnum(IndentPriority)
   @IsNotEmpty()

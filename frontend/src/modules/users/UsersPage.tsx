@@ -247,7 +247,7 @@ export const UsersPage: React.FC = () => {
             <option value="">All Departments</option>
             {departments.map((department) => (
               <option key={department.id} value={department.id}>
-                {department.name}
+                {department.departmentName}
               </option>
             ))}
           </select>

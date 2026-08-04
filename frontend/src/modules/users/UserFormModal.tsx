@@ -268,7 +268,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             <option value="">Select department</option>
             {departments.map((department) => (
               <option key={department.id} value={department.id}>
-                {department.name}
+                {department.departmentName}
               </option>
             ))}
           </select>

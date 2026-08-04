@@ -46,16 +46,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const user = useAuthStore((s) => s.user);
 
-  const { favorites, recents, toggleFavorite, addRecent } = useNavigationStore();
+  const { favorites, toggleFavorite } = useNavigationStore();
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
-  const [isRecentsOpen, setIsRecentsOpen] = useState(true);
 
   const visibleItems = menuItems.filter(
     (item) => !item.permission || hasPermission(item.permission),
   );
 
   const handleNavigate = (path: string) => {
-    addRecent(path);
     navigate(path);
     onCloseMobile?.();
   };
@@ -197,45 +195,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
           </div>
         )}
 
-        {/* Collapsible Recents */}
-        {isOpen && recents.length > 0 && (
-          <div className="mt-4 border-t border-border-default pt-2">
-            <button
-              onClick={() => setIsRecentsOpen(!isRecentsOpen)}
-              className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
-            >
-              <span className="flex items-center gap-1.5">
-                <Lucide.History className="w-3 h-3 text-accent-primary" />
-                <span>Recent Pages</span>
-              </span>
-              <span>
-                {isRecentsOpen ? (
-                  <Lucide.ChevronDown className="w-3 h-3" />
-                ) : (
-                  <Lucide.ChevronRight className="w-3 h-3" />
-                )}
-              </span>
-            </button>
-            {isRecentsOpen && (
-              <div className="mt-1 space-y-0.5">
-                {recents.map((path) => {
-                  const item = menuItems.find((m) => m.path === path);
-                  if (!item) return null;
-                  return (
-                    <button
-                      key={path}
-                      onClick={() => handleNavigate(path)}
-                      className="w-full flex items-center gap-3 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left rounded transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
-                    >
-                      {renderIcon(item.iconName, 'w-3.5 h-3.5 flex-shrink-0 text-text-muted')}
-                      <span className="truncate">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Footer Profile Card */}

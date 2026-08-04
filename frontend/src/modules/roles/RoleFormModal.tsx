@@ -64,7 +64,7 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
 
   useEffect(() => {
     if (isEditing && rolePermissions) {
-      setSelectedPermissions(rolePermissions.map((p) => p.code));
+      setSelectedPermissions(rolePermissions);
     }
   }, [isEditing, rolePermissions]);
 

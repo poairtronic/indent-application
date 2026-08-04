@@ -79,8 +79,10 @@ export class NotificationsController {
       type: n.type,
       isRead: n.recipients[0]?.isRead ?? false,
       readAt: n.recipients[0]?.readAt ?? null,
-      entityType: n.entityType,
-      entityId: n.entityId,
+      // The persisted notification model uses a generic module/id reference.
+      // Preserve the frontend's legacy field names in the API response.
+      entityType: n.referenceModule,
+      entityId: n.referenceId,
       referenceModule: n.referenceModule,
       createdBy: n.createdBy,
       creator: n.creator,

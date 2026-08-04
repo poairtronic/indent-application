@@ -7,17 +7,15 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { TextArea } from '../../../components/ui/TextArea';
 import { Priority } from '../../../types/indent';
-import { useDepartmentOptions } from '../../../api/services/departments/hooks';
 import { useMaterials } from '../../../api/services/materials/hooks';
 import { useUnits } from '../../../api/services/units/hooks';
 import { useProcesses } from '../../../api/services/processes/hooks';
-import { useProducts } from '../../../api/services/products/hooks';
 import type { IndentData } from '../../../api/services/indents/service';
 
 const indentSchema = z.object({
   indent: z.object({
-    productId: z.string().min(1, 'Product is required'),
-    departmentId: z.string().min(1, 'Department is required'),
+    productName: z.string().trim().min(1, 'Product is required'),
+    departmentName: z.string().trim().min(1, 'Department is required'),
     priority: z.nativeEnum(Priority),
     requiredDate: z.string().min(1, 'Required date is required'),
     purpose: z.string().optional(),
@@ -73,8 +71,8 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
     defaultValues: initialData
       ? {
           indent: {
-            productId: initialData.productId,
-            departmentId: initialData.departmentId,
+            productName: initialData.productName ?? '',
+            departmentName: initialData.departmentName ?? '',
             priority: initialData.priority as Priority,
             requiredDate: initialData.requiredDate.split('T')[0],
             purpose: initialData.purpose || '',
@@ -139,18 +137,14 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
   const watchedCostItems = useWatch({ control, name: 'costSheet.costItems' });
   const watchedProcesses = useWatch({ control, name: 'costSheet.processCosts' });
 
-  // Live API data for dropdowns
-  const { data: departmentsData } = useDepartmentOptions();
+  // Live API data for the master-data fields below.
   const { data: materialsData } = useMaterials({ page: 1, limit: 200 });
   const { data: unitsData } = useUnits({ page: 1, limit: 200 });
   const { data: processesData } = useProcesses({ page: 1, limit: 200 });
-  const { data: productsData } = useProducts({ page: 1, limit: 200 });
 
-  const departments = departmentsData ?? [];
   const materials = materialsData?.items ?? [];
   const units = unitsData?.items ?? [];
   const processes = processesData?.items ?? [];
-  const products = productsData?.items ?? [];
 
   // Sync items to costItems when materials are added/removed
   useEffect(() => {
@@ -200,29 +194,17 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
         <h3 className="text-sm font-bold text-text-primary mb-4">Basic Information (Indent)</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Controller
-            control={control}
-            name="indent.productId"
-            render={({ field }) => (
-              <Select
-                label="Product"
-                options={products.map((p) => ({ label: p.productName, value: p.id }))}
-                error={errors.indent?.productId?.message}
-                {...field}
-              />
-            )}
+          <Input
+            label="Product"
+            placeholder="Type a product name"
+            {...register('indent.productName')}
+            error={errors.indent?.productName?.message}
           />
-          <Controller
-            control={control}
-            name="indent.departmentId"
-            render={({ field }) => (
-              <Select
-                label="Department"
-                options={departments.map((d) => ({ label: d.label, value: d.value }))}
-                error={errors.indent?.departmentId?.message}
-                {...field}
-              />
-            )}
+          <Input
+            label="Department"
+            placeholder="Type a department name"
+            {...register('indent.departmentName')}
+            error={errors.indent?.departmentName?.message}
           />
           <Controller
             control={control}

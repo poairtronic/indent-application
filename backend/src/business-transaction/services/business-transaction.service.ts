@@ -60,12 +60,35 @@ export class BusinessTransactionService {
     const prismaDraftStatus = WorkflowStateMapper.toPrisma(WorkflowState.DRAFT);
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const productName = dto.indent.productName.trim();
+      const departmentName = dto.indent.departmentName.trim();
+      const uniqueSuffix = Date.now().toString().slice(-6);
+
+      const product =
+        (await tx.product.findFirst({ where: { productName, isDeleted: false } })) ??
+        (await tx.product.create({
+          data: {
+            productName,
+            productCode: `PRD-${uniqueSuffix}`,
+            createdBy: userId,
+          },
+        }));
+      const department =
+        (await tx.department.findFirst({ where: { departmentName, isDeleted: false } })) ??
+        (await tx.department.create({
+          data: {
+            departmentName,
+            departmentCode: `DEP-${uniqueSuffix}`,
+            createdBy: userId,
+          },
+        }));
+
       // 1. Create Indent record
       const createdIndent = await tx.indent.create({
         data: {
           indentNumber,
-          productId: dto.indent.productId,
-          departmentId: dto.indent.departmentId,
+          productId: product.id,
+          departmentId: department.id,
           priority: dto.indent.priority,
           status: prismaDraftStatus,
           requiredDate: new Date(dto.indent.requiredDate),
@@ -141,7 +164,7 @@ export class BusinessTransactionService {
       await tx.workflowHistory.create({
         data: {
           indentId: createdIndent.id,
-          toDepartmentId: dto.indent.departmentId,
+          toDepartmentId: department.id,
           movedBy: userId,
           remarks: 'Created initial Business Transaction draft.',
         },

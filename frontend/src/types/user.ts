@@ -98,7 +98,8 @@ export interface RoleOption {
 
 export interface DepartmentOption {
   id: string;
-  name: string;
+  departmentCode: string;
+  departmentName: string;
 }
 
 export interface RoleResponse {

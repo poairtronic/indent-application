@@ -70,7 +70,7 @@ export const VendorsPage: React.FC = () => {
         />
         <KpiCard
           title="Vendors Evaluated"
-          value={data?.vendors.length ?? 0}
+          value={data?.vendors?.length ?? 0}
           loading={isLoading}
           icon={<span>📈</span>}
         />
@@ -124,7 +124,7 @@ export const VendorsPage: React.FC = () => {
                   </div>
                 );
               })}
-              {data?.vendors.length === 0 && (
+              {data?.vendors?.length === 0 && (
                 <EmptyState title="No data" description="No vendor analytics available." />
               )}
             </div>

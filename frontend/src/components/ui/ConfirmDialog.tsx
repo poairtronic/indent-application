@@ -9,7 +9,7 @@ interface ConfirmDialogProps {
   message: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  tone?: 'danger' | 'primary';
+  tone?: 'danger' | 'primary' | 'success' | 'warning';
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -38,7 +38,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {cancelLabel}
           </Button>
           <Button
-            variant={tone === 'danger' ? 'danger' : 'primary'}
+            variant={tone}
             onClick={onConfirm}
             loading={loading}
           >
@@ -50,12 +50,26 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <div className="flex items-start gap-3">
         <div
           className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-            tone === 'danger' ? 'bg-status-error/12' : 'bg-accent-primary/12'
+            tone === 'danger'
+              ? 'bg-status-error/12'
+              : tone === 'warning'
+                ? 'bg-status-warning/12'
+                : tone === 'success'
+                  ? 'bg-status-success/12'
+                  : 'bg-accent-primary/12'
           }`}
         >
           <AlertTriangle
             size={20}
-            className={tone === 'danger' ? 'text-status-error' : 'text-accent-primary'}
+            className={
+              tone === 'danger'
+                ? 'text-status-error'
+                : tone === 'warning'
+                  ? 'text-status-warning'
+                  : tone === 'success'
+                    ? 'text-status-success'
+                    : 'text-accent-primary'
+            }
           />
         </div>
         <div className="text-sm text-text-secondary">{message}</div>

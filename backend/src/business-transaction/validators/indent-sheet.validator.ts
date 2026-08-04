@@ -8,12 +8,12 @@ export class IndentSheetValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    if (!dto.productId) {
-      errors.push('Product ID is required for Indent Sheet.');
+    if (!dto.productName) {
+      errors.push('Product is required for Indent Sheet.');
     }
 
-    if (!dto.departmentId) {
-      errors.push('Department ID is required for Indent Sheet.');
+    if (!dto.departmentName) {
+      errors.push('Department is required for Indent Sheet.');
     }
 
     if (!dto.items || dto.items.length === 0) {

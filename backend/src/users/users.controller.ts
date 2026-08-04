@@ -43,7 +43,7 @@ export class UsersController {
   }
 
   @Get()
-  @Permissions('users.read')
+  @Permissions('users.view')
   @ApiOperation({ summary: 'Retrieve paginated users list with filters and search' })
   @ApiResponse({ status: 200, description: 'Paginated user records list.' })
   async findAllUsers(@Query() query: UserQueryDto) {
@@ -58,7 +58,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Permissions('users.read')
+  @Permissions('users.view')
   @ApiOperation({ summary: 'Retrieve user details by User UUID' })
   @ApiParam({ name: 'id', description: 'User UUID v4' })
   @ApiResponse({ status: 200, description: 'User record found.', type: UserResponseDto })
@@ -82,7 +82,7 @@ export class UsersController {
   }
 
   @Patch(':id/status')
-  @Permissions('users.status.update')
+  @Permissions('users.update')
   @ApiOperation({ summary: 'Update user active/inactive/suspended status' })
   @ApiParam({ name: 'id', description: 'User UUID v4' })
   @ApiResponse({ status: 200, description: 'User status updated.', type: UserResponseDto })
@@ -109,7 +109,7 @@ export class UsersController {
   }
 
   @Patch(':id/restore')
-  @Permissions('users.restore')
+  @Permissions('users.update')
   @ApiOperation({ summary: 'Restore a soft-deleted user account' })
   @ApiParam({ name: 'id', description: 'User UUID v4' })
   @ApiResponse({ status: 200, description: 'User account restored.', type: UserResponseDto })
