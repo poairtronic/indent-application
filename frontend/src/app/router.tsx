@@ -119,6 +119,17 @@ const MasterDataDashboardPage = lazy(() =>
   })),
 );
 
+// Indent Module Pages
+const IndentDashboardPage = lazy(() =>
+  import('../modules/indent/IndentDashboardPage').then((m) => ({ default: m.IndentDashboardPage })),
+);
+const IndentFormPage = lazy(() =>
+  import('../modules/indent/IndentFormPage').then((m) => ({ default: m.IndentFormPage })),
+);
+const IndentDetailsPage = lazy(() =>
+  import('../modules/indent/IndentDetailsPage').then((m) => ({ default: m.IndentDetailsPage })),
+);
+
 // Analytics Pages
 const AnalyticsSummaryPage = lazy(() =>
   import('../modules/analytics/pages/SummaryPage').then((m) => ({ default: m.SummaryPage })),
@@ -184,15 +195,41 @@ export const AppRouter: React.FC = () => {
           />
         </Route>
 
-        {/* Business Modules (Coming Soon) */}
-        <Route
-          path="/indents"
-          element={
-            <ProtectedRoute permissions={['indent.view']}>
-              <ComingSoon title="Indent Management" />
-            </ProtectedRoute>
-          }
-        />
+        {/* Business Modules */}
+        <Route path="/indents">
+          <Route
+            index
+            element={
+              <ProtectedRoute permissions={['indent.view']}>
+                {suspended(IndentDashboardPage)}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="create"
+            element={
+              <ProtectedRoute permissions={['indent.create']}>
+                {suspended(IndentFormPage)}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path=":id"
+            element={
+              <ProtectedRoute permissions={['indent.view']}>
+                {suspended(IndentDetailsPage)}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path=":id/edit"
+            element={
+              <ProtectedRoute permissions={['indent.edit']}>
+                {suspended(IndentFormPage)}
+              </ProtectedRoute>
+            }
+          />
+        </Route>
         <Route
           path="/cost-sheets"
           element={
