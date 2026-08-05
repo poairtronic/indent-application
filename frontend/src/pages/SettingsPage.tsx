@@ -1,11 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FormField } from '../components/ui/FormField';
 import { Select } from '../components/ui/Select';
 import { Switch } from '../components/ui/Switch';
 import { Button } from '../components/ui/Button';
 import { Save } from 'lucide-react';
+import { useThemeStore } from '../store/theme.store';
+import { useSettingsStore } from '../store/settingsStore';
+import { useToasts } from '../components/ui/toast';
 
 export const SettingsPage: React.FC = () => {
+  const { theme, setTheme } = useThemeStore();
+  const settings = useSettingsStore();
+  const { show } = useToasts();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      show('success', 'Your enterprise configuration has been saved successfully.');
+    }, 600);
+  };
+
   return (
     <div className="max-w-4xl animate-fade-in">
       <div className="mb-6">
@@ -29,8 +45,8 @@ export const SettingsPage: React.FC = () => {
                   { label: 'Enterprise Light', value: 'light' },
                   { label: 'Enterprise Dark', value: 'dark' },
                 ]}
-                value="system"
-                onChange={() => {}}
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as any)}
               />
             </FormField>
 
@@ -40,8 +56,8 @@ export const SettingsPage: React.FC = () => {
                   { label: 'Compact', value: 'compact' },
                   { label: 'Comfortable', value: 'comfortable' },
                 ]}
-                value="comfortable"
-                onChange={() => {}}
+                value={settings.dataDensity}
+                onChange={(e) => settings.updateSettings({ dataDensity: e.target.value as any })}
               />
             </FormField>
           </div>
@@ -57,8 +73,8 @@ export const SettingsPage: React.FC = () => {
               <Switch
                 label="Email Notifications"
                 description="Receive daily digests of your tasks"
-                checked={true}
-                onChange={() => {}}
+                checked={settings.emailNotifications}
+                onChange={(e) => settings.updateSettings({ emailNotifications: e.target.checked })}
               />
             </div>
 
@@ -66,8 +82,8 @@ export const SettingsPage: React.FC = () => {
               <Switch
                 label="Workflow Alerts"
                 description="Instant alerts when an indent requires your attention"
-                checked={true}
-                onChange={() => {}}
+                checked={settings.workflowAlerts}
+                onChange={(e) => settings.updateSettings({ workflowAlerts: e.target.checked })}
               />
             </div>
 
@@ -75,8 +91,10 @@ export const SettingsPage: React.FC = () => {
               <Switch
                 label="Cost Deviation Warnings"
                 description="Alert when a cost sheet exceeds predicted budget by &gt; 10%"
-                checked={true}
-                onChange={() => {}}
+                checked={settings.costDeviationWarnings}
+                onChange={(e) =>
+                  settings.updateSettings({ costDeviationWarnings: e.target.checked })
+                }
               />
             </div>
           </div>
@@ -95,8 +113,8 @@ export const SettingsPage: React.FC = () => {
                   { label: 'UTC', value: 'utc' },
                   { label: 'America/New_York (EST)', value: 'est' },
                 ]}
-                value="ist"
-                onChange={() => {}}
+                value={settings.timezone}
+                onChange={(e) => settings.updateSettings({ timezone: e.target.value })}
               />
             </FormField>
 
@@ -107,16 +125,20 @@ export const SettingsPage: React.FC = () => {
                   { label: 'US Dollar ($)', value: 'usd' },
                   { label: 'Euro (€)', value: 'eur' },
                 ]}
-                value="inr"
-                onChange={() => {}}
+                value={settings.currencyFormat}
+                onChange={(e) => settings.updateSettings({ currencyFormat: e.target.value })}
               />
             </FormField>
           </div>
         </section>
 
         <div className="flex justify-end gap-3 pt-4">
-          <Button variant="outline">Reset Defaults</Button>
-          <Button icon={<Save size={16} />}>Save Configuration</Button>
+          <Button variant="outline" onClick={settings.resetSettings}>
+            Reset Defaults
+          </Button>
+          <Button icon={<Save size={16} />} onClick={handleSave} loading={isSaving}>
+            Save Configuration
+          </Button>
         </div>
       </div>
     </div>

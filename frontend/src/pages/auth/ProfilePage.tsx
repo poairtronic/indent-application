@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useProfile, useLogout } from '../../api/services/auth';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../api/hooks/query-keys';
 import {
   User,
   LogOut,
@@ -19,6 +21,7 @@ export const ProfilePage: React.FC = () => {
   const { user } = useAuthStore();
   const profileQuery = useProfile();
   const logoutMutation = useLogout();
+  const queryClient = useQueryClient();
 
   const handleLogout = () => {
     const refreshToken = useAuthStore.getState().refreshToken;
@@ -93,7 +96,10 @@ export const ProfilePage: React.FC = () => {
       <div className="flex gap-4">
         <Button
           variant="outline"
-          onClick={() => profileQuery.refetch()}
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.auth.detail('auth', 'profile') });
+            profileQuery.refetch();
+          }}
           loading={profileQuery.isFetching}
           icon={profileQuery.isFetching ? undefined : <RefreshCw size={16} />}
           fullWidth
