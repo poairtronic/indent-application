@@ -39,11 +39,11 @@ export class WorkflowStateTransitionValidator {
 
     // Validate department ownership (except SYSTEM automated states)
     if (
-      currentDef.owningDepartmentCode !== 'SYSTEM' &&
-      currentDef.owningDepartmentCode !== userDepartmentCode
+      targetDef.owningDepartmentCode !== 'SYSTEM' &&
+      targetDef.owningDepartmentCode !== userDepartmentCode
     ) {
       errors.push(
-        `Department ${userDepartmentCode} is not authorized to trigger transition from ${currentState}. Required department: ${currentDef.owningDepartmentCode}.`,
+        `Department ${userDepartmentCode} is not authorized to trigger transition from ${currentState}. Required department: ${targetDef.owningDepartmentCode}.`,
       );
     }
 

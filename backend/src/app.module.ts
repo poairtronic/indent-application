@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { UsersModule } from './users/users.module';
-import { IndentModule } from './indent/indent.module';
 import { ProcessesModule } from './processes/processes.module';
 import { UnitsModule } from './units/units.module';
 import { VendorsModule } from './vendors/vendors.module';
@@ -29,7 +28,6 @@ import { MasterDataModule } from './master-data/master-data.module';
     RolesModule,
     PermissionsModule,
     UsersModule,
-    IndentModule,
     ProcessesModule,
     UnitsModule,
     VendorsModule,
