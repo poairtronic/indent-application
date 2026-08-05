@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { AuthLayout } from '../components/layout/AuthLayout';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
@@ -192,6 +192,7 @@ const AnalyticsVendorsPage = lazy(() =>
 export const AppRouter: React.FC = () => {
   return (
     <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       {/* Public Auth Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={suspended(LoginPage)} />
