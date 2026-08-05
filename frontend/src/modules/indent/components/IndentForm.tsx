@@ -90,7 +90,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
               predictedRate: ci.predictedRate,
               predictedQuantity: ci.predictedQuantity,
               predictedAmount: ci.predictedAmount,
-            })) || [{ materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 }],
+            })) || [
+              { materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
+            ],
             processCosts:
               initialData.costSheet?.processCosts?.map((pc) => ({
                 processId: pc.processId,

@@ -14,7 +14,7 @@ import type {
   IAnalyticsFilters,
 } from '../types/analytics.types';
 
-const unwrap = <T,>(response: { data: T | { data?: T } }): T => {
+const unwrap = <T>(response: { data: T | { data?: T } }): T => {
   const payload = response.data;
   return typeof payload === 'object' && payload !== null && 'data' in payload
     ? (payload.data as T)

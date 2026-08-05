@@ -113,13 +113,7 @@ export class BusinessTransactionService {
       const resolvedMaterialIds: string[] = [];
       for (let i = 0; i < dto.indent.items.length; i++) {
         const item = dto.indent.items[i];
-        const material = await this.resolveMaterial(
-          tx,
-          item.materialName,
-          item.unitId,
-          userId,
-          i,
-        );
+        const material = await this.resolveMaterial(tx, item.materialName, item.unitId, userId, i);
         resolvedMaterialIds.push(material.id);
       }
 

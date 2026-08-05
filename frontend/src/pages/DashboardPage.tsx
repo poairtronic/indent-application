@@ -14,6 +14,7 @@ import {
   useProductAnalytics,
   useVendorAnalytics,
 } from '../modules/analytics/hooks/useAnalytics';
+import { useAuditLogs } from '../api/services/audit/hooks';
 import { KPICard, QuickActionCard } from '../components/ui/Cards';
 import { ChartWrapper } from '../components/ui/ChartWrapper';
 import { ActivityTimeline, WorkflowTimeline } from '../components/ui/DataTimeline';
@@ -123,6 +124,14 @@ export const DashboardPage: React.FC = () => {
   const { data: productsData } = useProductAnalytics(undefined, hasAnalyticsAccess);
   const { data: vendorsData } = useVendorAnalytics(undefined, hasAnalyticsAccess);
 
+  const { data: auditData, isLoading: isAuditLoading } = useAuditLogs({
+    page: 1,
+    limit: 5,
+    sortOrder: 'desc',
+    sortBy: 'createdAt',
+  });
+  const auditLogs = auditData?.items ?? [];
+
   const isLoading =
     hasAnalyticsAccess &&
     (isSummaryLoading || isWorkflowLoading || isDeptLoading || isCostsLoading);
@@ -160,91 +169,46 @@ export const DashboardPage: React.FC = () => {
   };
 
   // Workflow Timeline Items
-  const workflowTimelineItems = useMemo(
-    () => [
-      {
-        id: 'stage-1',
-        title: 'Draft Creation',
-        description: 'Design Specs Initialized',
-        timestamp: 'Stage 1',
-        icon: <FileText size={14} className="text-accent-primary" />,
-      },
-      {
-        id: 'stage-2',
-        title: 'Design Completed',
-        description: 'Engineering Approved',
-        timestamp: 'Stage 2',
-        icon: <CheckCircle2 size={14} className="text-status-success" />,
-      },
-      {
-        id: 'stage-3',
-        title: 'Stores Processing',
-        description: 'Stock & Allocation Audit',
-        timestamp: 'Stage 3',
-        icon: <Package size={14} className="text-status-warning" />,
-      },
-      {
-        id: 'stage-4',
-        title: 'Production Processing',
-        description: 'Manufacturing Run Active',
-        timestamp: 'Stage 4',
-        icon: <Activity size={14} className="text-info" />,
-      },
-      {
-        id: 'stage-5',
-        title: 'Customer Delivered',
-        description: 'Accounts Financial Closure',
-        timestamp: 'Stage 5',
-        icon: <ShieldCheck size={14} className="text-status-success" />,
-      },
-    ],
-    [],
-  );
+  const workflowTimelineItems = useMemo(() => {
+    if (!workflowData?.stageDistribution?.length) return [];
+
+    const icons = [
+      <FileText size={14} className="text-accent-primary" />,
+      <CheckCircle2 size={14} className="text-status-success" />,
+      <Package size={14} className="text-status-warning" />,
+      <Activity size={14} className="text-info" />,
+      <ShieldCheck size={14} className="text-status-success" />,
+    ];
+
+    return workflowData.stageDistribution.map((stage, idx) => ({
+      id: `stage-${idx}`,
+      title: stage.stageName,
+      description: `${stage.count} Indents (${stage.percentage.toFixed(1)}%)`,
+      timestamp: `Stage ${idx + 1}`,
+      icon: icons[idx % icons.length],
+    }));
+  }, [workflowData]);
 
   // Recent User Activity Feed Items
-  const recentActivities = useMemo(
-    () => [
-      {
-        id: 'act-1',
-        title: 'Indent #IND-9024 Created',
-        description: 'Design department dispatched a raw material specification sheet for Batch A.',
-        timestamp: '10 mins ago',
-      },
-      {
-        id: 'act-2',
-        title: 'Cost Verification Finalized',
-        description: 'Accounts verified variance within 2.5% threshold for Indent #IND-8910.',
-        timestamp: '45 mins ago',
-      },
-      {
-        id: 'act-3',
-        title: 'Security Terminal Alert Cleared',
-        description:
-          'Authorized login attempt from terminal ID #029 verified by system administrator.',
-        timestamp: '2 hours ago',
-      },
-      {
-        id: 'act-4',
-        title: 'Stores Allocation Dispatch',
-        description: 'Material requisition approved for 50 units of Steel Sheet Grade 304.',
-        timestamp: '4 hours ago',
-      },
-    ],
-    [],
-  );
+  const recentActivities = useMemo(() => {
+    if (!auditLogs.length) return [];
+    return auditLogs.map((log, index) => ({
+      id: log.id || `act-${index}`,
+      title: `${log.module} - ${log.action}`,
+      description: `Record ID: ${log.recordId} ${log.user ? `by ${log.user.firstName} ${log.user.lastName}` : ''}`,
+      timestamp: new Date(log.createdAt).toLocaleString(),
+    }));
+  }, [auditLogs]);
 
-  // Chart Data for Monthly Cost Trends
-  const costTrendChartData = useMemo(
-    () => [
-      { label: 'Jan', value: 340000 },
-      { label: 'Feb', value: 410000 },
-      { label: 'Mar', value: 380000 },
-      { label: 'Apr', value: 450000 },
-      { label: 'May', value: 420000 },
-      { label: 'Jun', value: costsData?.totalPlannedCost || 480000 },
-    ],
-    [costsData],
-  );
+  // Chart Data for Monthly Cost Trends -> adapted to Planned vs Actual
+  const costTrendChartData = useMemo(() => {
+    if (!costsData) return [];
+    return [
+      { label: 'Planned Cost', value: costsData.totalPlannedCost ?? 0 },
+      { label: 'Actual Cost', value: costsData.totalActualCost ?? 0 },
+      { label: 'Variance', value: Math.abs(costsData.totalVarianceAmount ?? 0) },
+    ];
+  }, [costsData]);
 
   return (
     <div className="space-y-6 font-sans">
@@ -364,56 +328,56 @@ export const DashboardPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <KPICard
                     title="Total Indents"
-                    value={summary?.totalTransactions ?? 128}
+                    value={summary?.totalTransactions ?? 0}
                     trend="Lifetime Indents"
                     icon={<FileText size={18} />}
                     accent="primary"
                   />
                   <KPICard
                     title="Pending Indents"
-                    value={summary?.pendingTransactions ?? 18}
+                    value={summary?.pendingTransactions ?? 0}
                     trend="Awaiting Action"
                     icon={<Clock size={18} />}
                     accent="warning"
                   />
                   <KPICard
                     title="Active Production"
-                    value={summary?.activeTransactions ?? 24}
+                    value={summary?.activeTransactions ?? 0}
                     trend="In Processing"
                     icon={<Activity size={18} />}
                     accent="info"
                   />
                   <KPICard
                     title="Completed Orders"
-                    value={summary?.completedTransactions ?? 86}
+                    value={summary?.completedTransactions ?? 0}
                     trend="Delivered & Closed"
                     icon={<CheckCircle2 size={18} />}
                     accent="success"
                   />
                   <KPICard
                     title="Products Catalog"
-                    value={productsData?.products?.length ?? 42}
+                    value={productsData?.products?.length ?? 0}
                     trend="Active SKUs"
                     icon={<Package size={18} />}
                     accent="primary"
                   />
                   <KPICard
                     title="Approved Vendors"
-                    value={vendorsData?.vendors?.length ?? 18}
+                    value={vendorsData?.vendors?.length ?? 0}
                     trend="Suppliers Network"
                     icon={<Truck size={18} />}
                     accent="primary"
                   />
                   <KPICard
                     title="Operating Departments"
-                    value={departmentData?.departments?.length ?? 8}
+                    value={departmentData?.departments?.length ?? 0}
                     trend="Business Units"
                     icon={<Building2 size={18} />}
                     accent="primary"
                   />
                   <KPICard
                     title="Monthly Planned Cost"
-                    value={formatCurrency(costsData?.totalPlannedCost)}
+                    value={formatCurrency(costsData?.totalPlannedCost ?? 0)}
                     trend="Expenditure Limit"
                     icon={<Coins size={18} />}
                     accent="success"
@@ -487,9 +451,15 @@ export const DashboardPage: React.FC = () => {
         {/* Cost & Expenditure Trend Chart */}
         <div className="lg:col-span-2 space-y-3">
           <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
-            Planned Expenditure Trend
+            Planned vs Actual Costs
           </h3>
-          <ChartWrapper title="Monthly Planned Costs (INR)" data={costTrendChartData} type="bar" />
+          {costTrendChartData.length > 0 ? (
+            <ChartWrapper title="Cost Comparison (INR)" data={costTrendChartData} type="bar" />
+          ) : (
+            <div className="bg-surface-card border border-border-default rounded-xl p-5 shadow-card flex items-center justify-center min-h-[200px]">
+              <span className="text-text-muted text-sm">No cost data available</span>
+            </div>
+          )}
         </div>
 
         {/* Workflow Progress Snapshot */}
@@ -501,7 +471,7 @@ export const DashboardPage: React.FC = () => {
             <div className="flex justify-between items-center border-b border-border-default/50 pb-2">
               <span className="text-xs font-bold text-text-primary">Manufacturing Throughput</span>
               <span className="text-xs font-bold text-status-success">
-                {workflowData?.completionRate ?? 84.5}% Completion
+                {workflowData?.completionRate?.toFixed(1) ?? 0}% Completion
               </span>
             </div>
 
@@ -509,13 +479,13 @@ export const DashboardPage: React.FC = () => {
               <div className="flex justify-between text-xs text-text-muted">
                 <span>Average Cycle Time:</span>
                 <span className="font-semibold text-text-primary">
-                  {workflowData?.averageCycleDays ?? 3.2} Days
+                  {workflowData?.averageCycleDays?.toFixed(1) ?? 0} Days
                 </span>
               </div>
               <div className="flex justify-between text-xs text-text-muted">
                 <span>Stalled Transactions:</span>
                 <span className="font-semibold text-status-warning">
-                  {workflowData?.stalledTransactions ?? 2} Items
+                  {workflowData?.stalledTransactions ?? 0} Items
                 </span>
               </div>
             </div>
@@ -680,7 +650,20 @@ export const DashboardPage: React.FC = () => {
             Recent System Activity Feed
           </h3>
           <div className="bg-surface-card border border-border-default rounded-xl p-5 shadow-card min-h-[220px]">
-            <ActivityTimeline items={recentActivities} />
+            {isAuditLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-full rounded" />
+                <Skeleton className="h-10 w-full rounded" />
+                <Skeleton className="h-10 w-full rounded" />
+              </div>
+            ) : recentActivities.length > 0 ? (
+              <ActivityTimeline items={recentActivities} />
+            ) : (
+              <div className="text-center py-8 text-text-muted space-y-1">
+                <p className="text-xs font-semibold">No recent activity</p>
+                <p className="text-[11px]">System audit logs are currently empty.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -691,7 +674,13 @@ export const DashboardPage: React.FC = () => {
           Two-Loop Zero-Approval Architecture Sequence
         </h3>
         <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
-          <WorkflowTimeline items={workflowTimelineItems} />
+          {workflowTimelineItems.length > 0 ? (
+            <WorkflowTimeline items={workflowTimelineItems} />
+          ) : (
+            <div className="text-center py-4 text-text-muted text-sm">
+              No workflow data available to build sequence.
+            </div>
+          )}
         </div>
       </div>
 

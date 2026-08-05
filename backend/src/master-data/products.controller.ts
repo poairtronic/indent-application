@@ -16,9 +16,20 @@ export class ProductsController {
     const pageSize = Math.max(1, Number(limit) || 10);
     const where = { isDeleted: false };
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.product.findMany({ where, orderBy: { productName: 'asc' }, skip: (pageNumber - 1) * pageSize, take: pageSize }),
+      this.prisma.product.findMany({
+        where,
+        orderBy: { productName: 'asc' },
+        skip: (pageNumber - 1) * pageSize,
+        take: pageSize,
+      }),
       this.prisma.product.count({ where }),
     ]);
-    return { items, total, page: pageNumber, limit: pageSize, totalPages: Math.ceil(total / pageSize) };
+    return {
+      items,
+      total,
+      page: pageNumber,
+      limit: pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 }

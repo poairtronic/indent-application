@@ -194,7 +194,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
             )}
           </div>
         )}
-
       </div>
 
       {/* Footer Profile Card */}

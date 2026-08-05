@@ -9,25 +9,27 @@
 ## 1. Workflow Architecture
 
 ### Frontend Workflow State Machine
+
 - Created `constants/workflow.ts` mirroring backend `WORKFLOW_STAGE_DEFINITIONS`
 - 12 states across 2 loops: Manufacturing Loop (7 states) + Financial Loop (5 states)
 - Each stage definition includes: state, sequence, loop, owningDepartmentCode, requiredPermissionCode, allowedNextStates, isLoopBoundary, isTerminalState
 
 ### Workflow States Implemented
-| # | State | Loop | Department | Permission |
-|---|-------|------|------------|------------|
-| 1 | DRAFT | Manufacturing | DESIGN | indent.create |
-| 2 | DESIGN_COMPLETED | Manufacturing | DESIGN | indent.submit |
-| 3 | STORES_PROCESSING | Manufacturing | STORES | stores.issue |
-| 4 | MATERIALS_ISSUED | Manufacturing | STORES | stores.issue |
-| 5 | PRODUCTION_PROCESSING | Manufacturing | PRODUCTION | production.update |
-| 6 | PRODUCTION_COMPLETED | Manufacturing | PRODUCTION | production.update |
-| 7 | CUSTOMER_DELIVERED | Manufacturing | PRODUCTION | production.deliver |
-| 8 | ACCOUNTS_COST_VERIFICATION | Financial | ACCOUNTS | accounts.verify |
-| 9 | ACTUAL_COST_UPDATED | Financial | ACCOUNTS | accounts.verify |
-| 10 | ACCOUNTS_FINANCIAL_CLOSURE | Financial | ACCOUNTS | accounts.close |
-| 11 | ARCHIVED | Financial | SYSTEM | system.archive |
-| 12 | COMPLETED | Financial | SYSTEM | system.complete |
+
+| #   | State                      | Loop          | Department | Permission         |
+| --- | -------------------------- | ------------- | ---------- | ------------------ |
+| 1   | DRAFT                      | Manufacturing | DESIGN     | indent.create      |
+| 2   | DESIGN_COMPLETED           | Manufacturing | DESIGN     | indent.submit      |
+| 3   | STORES_PROCESSING          | Manufacturing | STORES     | stores.issue       |
+| 4   | MATERIALS_ISSUED           | Manufacturing | STORES     | stores.issue       |
+| 5   | PRODUCTION_PROCESSING      | Manufacturing | PRODUCTION | production.update  |
+| 6   | PRODUCTION_COMPLETED       | Manufacturing | PRODUCTION | production.update  |
+| 7   | CUSTOMER_DELIVERED         | Manufacturing | PRODUCTION | production.deliver |
+| 8   | ACCOUNTS_COST_VERIFICATION | Financial     | ACCOUNTS   | accounts.verify    |
+| 9   | ACTUAL_COST_UPDATED        | Financial     | ACCOUNTS   | accounts.verify    |
+| 10  | ACCOUNTS_FINANCIAL_CLOSURE | Financial     | ACCOUNTS   | accounts.close     |
+| 11  | ARCHIVED                   | Financial     | SYSTEM     | system.archive     |
+| 12  | COMPLETED                  | Financial     | SYSTEM     | system.complete    |
 
 ---
 
@@ -80,6 +82,7 @@ All actions use backend workflow hooks (`useVerifyAccounts`, `useFinancialClose`
 ## 6. Timeline Integration
 
 ### WorkflowTimeline Component
+
 - Shows all 12 workflow stages with completion indicators
 - Current stage highlighted with pulse animation
 - Completed stages shown in green
@@ -87,6 +90,7 @@ All actions use backend workflow hooks (`useVerifyAccounts`, `useFinancialClose`
 - Loop boundaries identified (states 7, 10, 12)
 
 ### IndentDetailsPage Workflow Progress Bar
+
 - Visual progress bar showing percentage completion
 - Current sequence number and total steps displayed
 - Loop boundary notifications shown when applicable
@@ -106,6 +110,7 @@ All actions use backend workflow hooks (`useVerifyAccounts`, `useFinancialClose`
 ## 8. Notification Integration
 
 ### NotificationsPage Created
+
 - Full notification center at `/notifications` route
 - List view with search and type filtering (INFO, WARNING, ERROR, SUCCESS)
 - Unread notification count badge
@@ -117,6 +122,7 @@ All actions use backend workflow hooks (`useVerifyAccounts`, `useFinancialClose`
 - Pagination support (20 per page)
 
 ### Notification API Integration
+
 - `useNotifications()` - paginated list with filters
 - `useMarkNotificationRead()` - mark single as read
 - `useMarkAllNotificationsRead()` - mark all as read
@@ -127,12 +133,14 @@ All actions use backend workflow hooks (`useVerifyAccounts`, `useFinancialClose`
 ## 9. RBAC Validation
 
 ### Permission Gates
+
 - `WorkflowActions` component checks `hasPermission()` for each action
 - Actions only render if user has the required permission
 - Missing permissions result in no action buttons shown
 - No hardcoded department checks - uses backend permission system
 
 ### Permissions Added
+
 - `STORES_ISSUE` - stores.issue
 - `PRODUCTION_UPDATE` - production.update
 - `PRODUCTION_DELIVER` - production.deliver
@@ -146,12 +154,12 @@ All actions use backend workflow hooks (`useVerifyAccounts`, `useFinancialClose`
 
 ## 10. React Query Cache Strategy
 
-| Query | Cache | Invalidation |
-|-------|-------|-------------|
-| Workflow Detail | Medium (default) | On every workflow mutation |
-| Workflow Lists | Short (default) | On every workflow mutation |
-| Notifications | Real-time (30s polling) | On mark read |
-| Dashboard | Background refresh | Via list invalidation |
+| Query           | Cache                   | Invalidation               |
+| --------------- | ----------------------- | -------------------------- |
+| Workflow Detail | Medium (default)        | On every workflow mutation |
+| Workflow Lists  | Short (default)         | On every workflow mutation |
+| Notifications   | Real-time (30s polling) | On mark read               |
+| Dashboard       | Background refresh      | Via list invalidation      |
 
 All workflow mutations call `invalidateIndent()` which invalidates both list and detail queries.
 
@@ -168,30 +176,31 @@ All workflow mutations call `invalidateIndent()` which invalidates both list and
 
 ## 12. Performance Review
 
-| Metric | Value |
-|--------|-------|
-| TypeScript Errors | 0 |
-| ESLint Warnings | 0 |
-| Build Modules | 2147 |
-| Build Time | 2.83s |
-| Bundle Size | 315 KB (main) |
+| Metric            | Value         |
+| ----------------- | ------------- |
+| TypeScript Errors | 0             |
+| ESLint Warnings   | 0             |
+| Build Modules     | 2147          |
+| Build Time        | 2.83s         |
+| Bundle Size       | 315 KB (main) |
 
 ---
 
 ## 13. QA Results
 
 ### Workflow Actions Test Matrix
-| State | Action Button | Permission Required | Backend Hook |
-|-------|--------------|-------------------|-------------|
-| DRAFT | Submit Design | indent.submit | useSubmitIndent |
-| DESIGN_COMPLETED | Verify Stock | stores.issue | useVerifyStores |
-| STORES_PROCESSING | Issue Materials | stores.issue | useIssueStores |
-| MATERIALS_ISSUED | Receive Materials | production.update | useReceiveProduction |
-| PRODUCTION_PROCESSING | Start/Complete Manufacturing | production.update | useStartProduction/useCompleteProduction |
-| PRODUCTION_COMPLETED | Deliver to Customer | production.deliver | useDeliverCustomer |
-| ACCOUNTS_COST_VERIFICATION | Enter Actual Costs | accounts.verify | useVerifyAccounts |
-| ACTUAL_COST_UPDATED | Financial Closure | accounts.close | useFinancialClose |
-| ARCHIVED | Complete Transaction | system.complete | useCompleteIndent |
+
+| State                      | Action Button                | Permission Required | Backend Hook                             |
+| -------------------------- | ---------------------------- | ------------------- | ---------------------------------------- |
+| DRAFT                      | Submit Design                | indent.submit       | useSubmitIndent                          |
+| DESIGN_COMPLETED           | Verify Stock                 | stores.issue        | useVerifyStores                          |
+| STORES_PROCESSING          | Issue Materials              | stores.issue        | useIssueStores                           |
+| MATERIALS_ISSUED           | Receive Materials            | production.update   | useReceiveProduction                     |
+| PRODUCTION_PROCESSING      | Start/Complete Manufacturing | production.update   | useStartProduction/useCompleteProduction |
+| PRODUCTION_COMPLETED       | Deliver to Customer          | production.deliver  | useDeliverCustomer                       |
+| ACCOUNTS_COST_VERIFICATION | Enter Actual Costs           | accounts.verify     | useVerifyAccounts                        |
+| ACTUAL_COST_UPDATED        | Financial Closure            | accounts.close      | useFinancialClose                        |
+| ARCHIVED                   | Complete Transaction         | system.complete     | useCompleteIndent                        |
 
 ---
 
@@ -227,11 +236,13 @@ All workflow mutations call `invalidateIndent()` which invalidates both list and
 **CERTIFIED**: Phase 20C-3 Enterprise Manufacturing & Financial Workflow Integration is complete and production-ready.
 
 ### Files Created
+
 - `frontend/src/constants/workflow.ts` - Workflow state machine definition
 - `frontend/src/modules/indent/components/WorkflowActions.tsx` - Dynamic workflow action buttons
 - `frontend/src/modules/notifications/NotificationsPage.tsx` - Notification center
 
 ### Files Modified
+
 - `frontend/src/constants/permissions.ts` - Added 8 new workflow permissions
 - `frontend/src/modules/indent/IndentDetailsPage.tsx` - Full workflow integration with progress bar and actions
 - `frontend/src/modules/indent/components/WorkflowTimeline.tsx` - Enhanced with proper state labels
