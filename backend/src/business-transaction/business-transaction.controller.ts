@@ -8,7 +8,6 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   Request,
   UseInterceptors,
   UploadedFile,
@@ -16,9 +15,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { BusinessTransactionService } from './services/business-transaction.service';
 import {
@@ -30,7 +26,6 @@ import { ProductionUpdateDto, CustomerDeliveryDto } from './dto/production-updat
 import { ActualCostEntryDto, FinancialClosureDto } from './dto/actual-cost-entry.dto';
 
 @Controller('business-transactions')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class BusinessTransactionController {
   constructor(private readonly businessTransactionService: BusinessTransactionService) {}
 

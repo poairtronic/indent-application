@@ -7,7 +7,6 @@ import {
   Param,
   Query,
   Delete,
-  UseGuards,
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
@@ -18,14 +17,11 @@ import { CreateProcessDto } from './dto/create-process.dto';
 import { UpdateProcessDto } from './dto/update-process.dto';
 import { ProcessQueryDto } from './dto/process-query.dto';
 import { ProcessResponseDto } from './dto/process-response.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Manufacturing Processes')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('manufacturing-processes')
 export class ProcessesController {
   constructor(private readonly processesService: ProcessesService) {}

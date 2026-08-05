@@ -8,7 +8,6 @@ import {
   Param,
   Query,
   ParseUUIDPipe,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,20 +21,15 @@ import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { PermissionResponseDto } from './dto/permission-response.dto';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
 
 @ApiTags('Permissions')
 @ApiBearerAuth()
 @Controller('permissions')
-@UseGuards(RolesGuard, PermissionsGuard)
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
   @Post()
-  @Roles('ADMIN')
   @Permissions('permissions.create')
   @ApiOperation({ summary: 'Create a new permission' })
   @ApiResponse({ status: 201, description: 'Permission created', type: PermissionResponseDto })
@@ -72,7 +66,6 @@ export class PermissionsController {
   }
 
   @Put(':id')
-  @Roles('ADMIN')
   @Permissions('permissions.update')
   @ApiOperation({ summary: 'Update permission' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
@@ -83,7 +76,6 @@ export class PermissionsController {
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
   @Permissions('permissions.delete')
   @ApiOperation({ summary: 'Soft delete a permission' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })

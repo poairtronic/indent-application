@@ -7,27 +7,21 @@ import {
   Body,
   Param,
   ParseUUIDPipe,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { RoleResponseDto } from './dto/role-response.dto';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
 
 @ApiTags('Roles')
 @ApiBearerAuth()
 @Controller('roles')
-@UseGuards(RolesGuard, PermissionsGuard)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
-  @Roles('ADMIN')
   @Permissions('roles.create')
   @ApiOperation({ summary: 'Create a new role' })
   @ApiResponse({ status: 201, description: 'Role created', type: RoleResponseDto })
@@ -55,7 +49,6 @@ export class RolesController {
   }
 
   @Put(':id')
-  @Roles('ADMIN')
   @Permissions('roles.update')
   @ApiOperation({ summary: 'Update role' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
@@ -66,7 +59,6 @@ export class RolesController {
   }
 
   @Delete(':id')
-  @Roles('ADMIN')
   @Permissions('roles.delete')
   @ApiOperation({ summary: 'Soft delete a role' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
@@ -87,7 +79,6 @@ export class RolesController {
   }
 
   @Put(':id/permissions')
-  @Roles('ADMIN')
   @Permissions('roles.update')
   @ApiOperation({ summary: 'Assign permissions to a role' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })

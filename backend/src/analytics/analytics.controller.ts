@@ -3,13 +3,9 @@
  *
  * Thin controller. All business logic lives in AnalyticsService.
  * RBAC: analytics.view permission required on every endpoint.
- * Guards: JwtAuthGuard, RolesGuard, PermissionsGuard applied at class level.
  */
 
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Controller, Get, Query } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { AnalyticsService } from './analytics.service';
 import {
@@ -19,7 +15,6 @@ import {
 } from './dto/analytics-query.dto';
 
 @Controller('analytics')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 

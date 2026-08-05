@@ -1,7 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationService } from './communication.service';
@@ -19,7 +16,6 @@ class TestEmailDto {
 }
 
 @Controller('communication')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class CommunicationController {
   constructor(
     private readonly prisma: PrismaService,
