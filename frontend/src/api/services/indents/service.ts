@@ -224,6 +224,10 @@ class IndentService extends BaseService {
     return this.post<IndentData>(`${this.basePath}/${id}/stores/issue`, data);
   }
 
+  async issueItem(id: string, itemId: string): Promise<IndentData> {
+    return this.post<IndentData>(`${this.basePath}/${id}/items/${itemId}/issue`);
+  }
+
   // Production workflow
   async receiveProduction(id: string, remarks?: string): Promise<IndentData> {
     return this.post<IndentData>(`${this.basePath}/${id}/production/receive`, { remarks });

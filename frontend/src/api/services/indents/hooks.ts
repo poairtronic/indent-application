@@ -83,6 +83,17 @@ export function useIssueStores() {
   });
 }
 
+export function useIssueMaterialItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, itemId }: { id: string; itemId: string }) =>
+      indentService.issueItem(id, itemId),
+    onSuccess: (_data, variables) => {
+      invalidateIndent(queryClient, variables.id);
+    },
+  });
+}
+
 export function useReceiveProduction() {
   const queryClient = useQueryClient();
   return useMutation({

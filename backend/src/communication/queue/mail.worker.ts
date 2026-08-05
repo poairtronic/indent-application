@@ -46,6 +46,12 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         password,
         db,
         maxRetriesPerRequest: null, // Critical requirement for BullMQ
+        lazyConnect: true,
+        enableOfflineQueue: false,
+      });
+
+      this.redisConnection.on('error', (err) => {
+        this.logger.warn(`Redis connection unavailable: ${err.message}. Queue processing running in offline mode.`);
       });
 
       this.worker = new Worker<IJobPayload>(

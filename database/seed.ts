@@ -315,6 +315,38 @@ async function main() {
       },
     });
   }
+  // ==========================================
+  // DEFAULT PRODUCTS & PROCESSES
+  // ==========================================
+  const adminUser = await prisma.user.findFirst({ where: { email: 'admin@indent.com' } });
+  const adminId = adminUser ? adminUser.id : undefined;
+
+  const defaultProduct = await prisma.product.upsert({
+    where: { productCode: 'PRD-SHAFT' },
+    update: {},
+    create: {
+      productName: 'Shaft',
+      productCode: 'PRD-SHAFT',
+      createdBy: adminId,
+    },
+  });
+
+  const defaultProcesses = [
+    { processCode: 'TURN', processName: 'Turning', sequence: 1, estimatedHours: 2.5, productId: defaultProduct.id, createdBy: adminId },
+    { processCode: 'MILL', processName: 'Milling', sequence: 2, estimatedHours: 4.0, productId: defaultProduct.id, createdBy: adminId },
+    { processCode: 'GRND', processName: 'Grinding', sequence: 3, estimatedHours: 1.5, productId: defaultProduct.id, createdBy: adminId },
+    { processCode: 'HEAT', processName: 'Heat Treatment', sequence: 4, estimatedHours: 3.0, productId: defaultProduct.id, createdBy: adminId },
+    { processCode: 'ASSY', processName: 'Assembly', sequence: 5, estimatedHours: 2.0, productId: defaultProduct.id, createdBy: adminId },
+  ];
+
+  for (const p of defaultProcesses) {
+    await prisma.manufacturingProcess.upsert({
+      where: { productId_processCode: { productId: p.productId, processCode: p.processCode } },
+      update: {},
+      create: p,
+    });
+  }
+
   console.log(`Created ${users.length} users`);
   console.log('Default password for all users: Password123!');
 

@@ -40,13 +40,15 @@ const indentSchema = z.object({
         predictedAmount: z.number(),
       }),
     ),
-    processCosts: z.array(
-      z.object({
-        processId: z.string().min(1, 'Process is required'),
-        predictedCost: z.number().min(0, 'Cost must be >= 0'),
-        estimatedHours: z.number().min(0, 'Hours must be >= 0'),
-      }),
-    ),
+    processCosts: z
+      .array(
+        z.object({
+          processId: z.string().min(1, 'Process is required'),
+          predictedCost: z.number().min(0, 'Cost must be >= 0'),
+          estimatedHours: z.number().min(0, 'Hours must be >= 0'),
+        }),
+      )
+      .min(1, 'At least one process is required'),
   }),
 });
 
@@ -98,7 +100,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                 processId: pc.processId,
                 predictedCost: pc.predictedCost,
                 estimatedHours: pc.estimatedHours,
-              })) || [],
+              })) || [{ processId: '', predictedCost: 0, estimatedHours: 0 }],
           },
         }
       : {
@@ -111,7 +113,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             costItems: [
               { materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
             ],
-            processCosts: [],
+            processCosts: [{ processId: '', predictedCost: 0, estimatedHours: 0 }],
           },
         },
   });
@@ -345,6 +347,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             Add Process
           </Button>
         </div>
+        {errors.costSheet?.processCosts && (
+          <p className="text-xs text-status-error mb-4">
+            {(errors.costSheet.processCosts as any).message || (errors.costSheet.processCosts as any).root?.message}
+          </p>
+        )}
 
         <div className="space-y-4">
           {processFields.map((field, index) => (
@@ -356,17 +363,33 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                 <Controller
                   control={control}
                   name={`costSheet.processCosts.${index}.processId`}
-                  render={({ field }) => (
-                    <Select
-                      label="Process"
-                      options={processes.map((p) => ({
-                        label: p.processName,
-                        value: p.id,
-                      }))}
-                      error={errors.costSheet?.processCosts?.[index]?.processId?.message}
-                      {...field}
-                    />
-                  )}
+                  render={({ field }) => {
+                    const selectedProcess = processes.find((p) => p.id === field.value);
+                    const inputValue = selectedProcess ? selectedProcess.processName : field.value || '';
+                    return (
+                      <div className="w-full font-sans">
+                        <Input
+                          label="Process"
+                          placeholder="Type or select a process"
+                          value={inputValue}
+                          list={`processes-datalist-${index}`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const matched = processes.find(
+                              (p) => p.processName.toLowerCase() === val.toLowerCase(),
+                            );
+                            field.onChange(matched ? matched.id : val);
+                          }}
+                          error={errors.costSheet?.processCosts?.[index]?.processId?.message ? 'Please select an existing process from the list' : undefined}
+                        />
+                        <datalist id={`processes-datalist-${index}`}>
+                          {processes.map((p) => (
+                            <option key={p.id} value={p.processName} />
+                          ))}
+                        </datalist>
+                      </div>
+                    );
+                  }}
                 />
               </div>
               <div className="md:col-span-3">

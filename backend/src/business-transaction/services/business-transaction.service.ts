@@ -669,6 +669,64 @@ export class BusinessTransactionService {
   }
 
   /**
+   * ITEM-LEVEL STORES MATERIAL ISSUE: Issues a single raw material component item.
+   * If all items in the indent are marked ISSUED, automatically triggers full stage completion & notifications.
+   */
+  public async issueSingleMaterialItem(id: string, itemId: string, userId: string): Promise<any> {
+    const txData = await this.findTransactionById(id);
+
+    const item = txData.items.find((i: any) => i.id === itemId);
+    if (!item) {
+      throw new NotFoundException(`Material item with ID '${itemId}' not found in indent '${id}'.`);
+    }
+
+    // 1. Update item status to ISSUED
+    await this.prisma.indentItem.update({
+      where: { id: itemId },
+      data: { status: 'ISSUED' },
+    });
+
+    // 2. Decrement material stock if material exists
+    await this.prisma.material
+      .update({
+        where: { id: item.materialId },
+        data: {
+          currentStock: {
+            decrement: item.quantity,
+          },
+        },
+      })
+      .catch(() => {});
+
+    // Fetch updated items
+    const allItems = await this.prisma.indentItem.findMany({
+      where: { indentId: id },
+    });
+
+    const allIssued = allItems.length > 0 && allItems.every((i) => i.status === 'ISSUED');
+
+    if (allIssued) {
+      // If all items are issued, transition state to MATERIALS_ISSUED and trigger full notification flow
+      if (txData.currentState === WorkflowState.DESIGN_COMPLETED || txData.currentState === WorkflowState.STORES_PROCESSING) {
+        return this.storesIssueMaterials(id, userId, {
+          remarks: 'All material items have been issued individual component-by-component.',
+        });
+      }
+    } else {
+      // Move to STORES_PROCESSING if currently in DESIGN_COMPLETED
+      if (txData.currentState === WorkflowState.DESIGN_COMPLETED) {
+        const prismaStatus = WorkflowStateMapper.toPrisma(WorkflowState.STORES_PROCESSING);
+        await this.prisma.indent.update({
+          where: { id },
+          data: { status: prismaStatus, updatedBy: userId },
+        });
+      }
+    }
+
+    return this.findTransactionById(id);
+  }
+
+  /**
    * PRODUCTION RECEIVE MATERIALS: Production confirms raw material receipt (MATERIALS_ISSUED -> PRODUCTION_PROCESSING)
    */
   public async productionReceiveMaterials(

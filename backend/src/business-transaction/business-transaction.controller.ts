@@ -123,6 +123,16 @@ export class BusinessTransactionController {
     return this.businessTransactionService.storesIssueMaterials(id, req.user.id, dto);
   }
 
+  @Post(':id/items/:itemId/issue')
+  @Permissions('stores.issue')
+  async issueItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Request() req: any,
+  ) {
+    return this.businessTransactionService.issueSingleMaterialItem(id, itemId, req.user.id);
+  }
+
   @Post(':id/production/receive')
   @Permissions('production.update')
   async productionReceiveNew(

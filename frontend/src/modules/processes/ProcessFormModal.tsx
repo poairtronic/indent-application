@@ -12,6 +12,7 @@ import type {
   ProcessStatus,
   UpdateProcessPayload,
 } from '../../types/process';
+import { useProducts } from '../../api/services/products';
 
 const requiredString = (label: string, max: number) =>
   z
@@ -94,6 +95,9 @@ export const ProcessFormModal: React.FC<ProcessFormModalProps> = ({
 }) => {
   const isCreate = mode === 'create';
   const schema = isCreate ? createSchema : editSchema;
+
+  const { data: productsData } = useProducts({ page: 1, limit: 1000 });
+  const products = productsData?.items ?? [];
 
   const defaultValues: ProcessFormValues = process
     ? {
@@ -178,19 +182,23 @@ export const ProcessFormModal: React.FC<ProcessFormModalProps> = ({
         className="grid grid-cols-1 sm:grid-cols-2 gap-4"
       >
         <FormField
-          label="Product ID"
+          label="Product"
           htmlFor="productId"
           required
           error={errors.productId?.message}
-          hint="UUID of the product this process belongs to"
         >
-          <input
+          <select
             id="productId"
-            type="text"
             className={inputClasses}
-            placeholder="a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
             {...register('productId')}
-          />
+          >
+            <option value="">Select a Product</option>
+            {products.map((prod) => (
+              <option key={prod.id} value={prod.id}>
+                {prod.productName} ({prod.productCode})
+              </option>
+            ))}
+          </select>
         </FormField>
 
         <FormField

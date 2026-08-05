@@ -1,6 +1,10 @@
 import React from 'react';
 import type { IndentData } from '../../../api/services/indents/service';
 import { Badge } from '../../../components/ui/Badge';
+import { Button } from '../../../components/ui/Button';
+import { useAuthStore } from '../../../store/authStore';
+import { AppPermission } from '../../../constants/permissions';
+import { useIssueMaterialItem } from '../../../api/services/indents/hooks';
 import { IndentWorkflowTimeline } from './WorkflowTimeline';
 import { IndentActivityFeed } from './ActivityFeed';
 
@@ -32,6 +36,11 @@ const priorityTone: Record<string, 'green' | 'yellow' | 'red' | 'blue'> = {
 
 export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const { mutateAsync: issueItem, isPending: isIssuingItem } = useIssueMaterialItem();
+
+  const isStoresStage = indent.currentState === 'DESIGN_COMPLETED' || indent.currentState === 'STORES_PROCESSING';
+  const canIssueStores = isStoresStage && hasPermission(AppPermission.STORES_ISSUE);
 
   return (
     <div className="space-y-6">
@@ -138,6 +147,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                       <th className="py-3 px-4">Unit</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4">Remarks</th>
+                      {canIssueStores && <th className="py-3 px-4 text-right">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-default/50">
@@ -152,12 +162,27 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                         </td>
                         <td className="py-3 px-4">
                           {item.status && (
-                            <Badge tone={item.status === 'AVAILABLE' ? 'green' : 'yellow'}>
+                            <Badge tone={item.status === 'ISSUED' ? 'green' : item.status === 'VERIFIED' ? 'blue' : 'yellow'}>
                               {item.status}
                             </Badge>
                           )}
                         </td>
                         <td className="py-3 px-4 text-text-secondary">{item.remarks || '—'}</td>
+                        {canIssueStores && (
+                          <td className="py-3 px-4 text-right">
+                            <Button
+                              size="sm"
+                              variant={item.status === 'ISSUED' ? 'outline' : 'primary'}
+                              disabled={item.status === 'ISSUED' || isIssuingItem}
+                              onClick={async () => {
+                                await issueItem({ id: indent.id, itemId: item.id });
+                              }}
+                              className="text-xs py-1 px-3"
+                            >
+                              {item.status === 'ISSUED' ? 'Issued ✓' : 'Issue Component'}
+                            </Button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

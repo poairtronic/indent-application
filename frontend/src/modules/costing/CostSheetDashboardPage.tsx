@@ -57,9 +57,9 @@ export const CostSheetDashboardPage: React.FC = () => {
     [setFilters],
   );
 
-  const items = data?.items ?? [];
-  const total = data?.total ?? 0;
-  const totalPages = data?.totalPages ?? 1;
+  const items = data?.items ?? (data as any)?.data ?? [];
+  const total = data?.total ?? (data as any)?.meta?.total ?? 0;
+  const totalPages = data?.totalPages ?? (data as any)?.meta?.totalPages ?? 1;
 
   if (!canView) {
     return (

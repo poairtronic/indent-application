@@ -43,12 +43,14 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         password,
         db,
         maxRetriesPerRequest: null, // Critical requirement for BullMQ
+        lazyConnect: true,
+        enableOfflineQueue: false,
       };
 
       this.redisConnection = new Redis(connectionOptions);
 
       this.redisConnection.on('error', (err) => {
-        this.logger.error(`Redis connection failure error: ${err.message}`, err.stack);
+        this.logger.warn(`Redis connection unavailable: ${err.message}. Queue processing running in offline fallback mode.`);
       });
 
       this.redisConnection.on('connect', () => {
@@ -64,8 +66,16 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         },
       });
 
+      this.mailQueue.on('error', (err) => {
+        this.logger.warn(`MailQueue offline: ${err.message}`);
+      });
+
       this.deadQueue = new Queue<IJobPayload>(MAIL_DEAD_QUEUE_NAME, {
         connection: this.redisConnection,
+      });
+
+      this.deadQueue.on('error', (err) => {
+        this.logger.warn(`DeadQueue offline: ${err.message}`);
       });
 
       this.logger.log('Queues initialized successfully.');
