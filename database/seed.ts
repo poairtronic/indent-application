@@ -133,6 +133,15 @@ async function main() {
     { module: 'audit', action: PermissionAction.READ, code: 'audit.view', description: 'View audit logs' },
 
     { module: 'settings', action: PermissionAction.ALL, code: 'settings.manage', description: 'Manage settings' },
+
+    // Core business workflow permissions required by backend controllers
+    { module: 'stores', action: PermissionAction.UPDATE, code: 'stores.issue', description: 'Issue raw materials' },
+    { module: 'production', action: PermissionAction.UPDATE, code: 'production.update', description: 'Update production status' },
+    { module: 'production', action: PermissionAction.UPDATE, code: 'production.deliver', description: 'Deliver to customer' },
+    { module: 'accounts', action: PermissionAction.UPDATE, code: 'accounts.verify', description: 'Verify costsheet costs' },
+    { module: 'accounts', action: PermissionAction.UPDATE, code: 'accounts.close', description: 'Close financials' },
+    { module: 'system', action: PermissionAction.UPDATE, code: 'system.archive', description: 'Archive transactions' },
+    { module: 'system', action: PermissionAction.UPDATE, code: 'system.complete', description: 'Complete transactions' },
   ];
 
   const createdPermissions = await Promise.all(
@@ -223,6 +232,8 @@ async function main() {
       permMap['materials.update'],
       permMap['production.receive'],
       permMap['notifications.view'],
+      permMap['stores.issue'],
+      permMap['units.view'],
     ],
 
     'Accounts Executive': [
@@ -234,6 +245,11 @@ async function main() {
       permMap['reports.view'],
       permMap['reports.export'],
       permMap['notifications.view'],
+      permMap['accounts.verify'],
+      permMap['accounts.close'],
+      permMap['units.view'],
+      permMap['system.archive'],
+      permMap['system.complete'],
     ],
 
     'Production Executive': [
@@ -243,6 +259,9 @@ async function main() {
       permMap['inventory.view'],
       permMap['materials.view'],
       permMap['notifications.view'],
+      permMap['production.update'],
+      permMap['production.deliver'],
+      permMap['units.view'],
     ],
 
     'Senior Manager': [

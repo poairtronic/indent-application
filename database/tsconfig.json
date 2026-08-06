@@ -7,7 +7,7 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "types": ["node"],
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "typeRoots": [
       "../backend/node_modules/@types"
     ],

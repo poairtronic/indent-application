@@ -1,9 +1,10 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   useIndent,
   useEnterActualCosts,
   useFinancialClose,
+  useUploadAttachment,
 } from '../../api/services/indents/hooks';
 import { useAuthStore } from '../../store/authStore';
 import {
@@ -89,9 +90,26 @@ export const CostSheetDetailsPage: React.FC = () => {
   const { data: indent, isLoading } = useIndent(id || '');
   const { mutateAsync: saveActualCosts, isPending: isSaving } = useEnterActualCosts();
   const { mutateAsync: financialClose, isPending: isClosing } = useFinancialClose();
+  const { mutateAsync: uploadAttachment, isPending: isUploading } = useUploadAttachment();
 
   const canEdit = hasPermission(AppPermission.COSTSHEET_UPDATE);
   const canViewWorkflow = hasPermission(AppPermission.WORKFLOW_VIEW);
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    try {
+      await uploadAttachment({
+        id,
+        file,
+        remarks: 'Vendor bill uploaded by Accounts',
+      });
+      show('success', `File "${file.name}" uploaded successfully!`);
+    } catch {
+      show('error', 'Failed to upload vendor bill. Please try again.');
+    }
+  };
 
   const [actuals, setActuals] = useState<{
     materials: Record<string, { actualRate: number; actualQuantity: number }>;
@@ -529,33 +547,63 @@ export const CostSheetDetailsPage: React.FC = () => {
         </div>
       )}
 
-      {indent.attachments && indent.attachments.length > 0 && (
-        <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
-          <div className="flex items-center gap-2 mb-4">
-            <FileText size={18} className="text-accent-primary" />
-            <h3 className="text-lg font-bold text-text-primary">
-              Attachments ({indent.attachments.length})
-            </h3>
+      {((indent.attachments && indent.attachments.length > 0) || (isAccountsStage && canEdit)) && (
+        <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card space-y-4">
+          <div className="flex items-center justify-between border-b border-border-default pb-3">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-accent-primary" />
+              <h3 className="text-lg font-bold text-text-primary">
+                Attachments ({indent.attachments?.length ?? 0})
+              </h3>
+            </div>
           </div>
-          <div className="space-y-2">
-            {indent.attachments.map((att) => (
-              <div
-                key={att.id}
-                className="flex items-center justify-between p-3 bg-background-primary rounded-lg border border-border-default/50"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText size={16} className="text-text-muted" />
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">{att.fileName}</p>
-                    <p className="text-xs text-text-muted">
-                      {att.fileType} &middot; {formatTimestamp(att.createdAt)}
-                      {att.remarks && ` -- ${att.remarks}`}
-                    </p>
+
+          {/* Upload Widget for Accounts Stage */}
+          {isAccountsStage && canEdit && (
+            <div className="p-4 border border-dashed border-border-default rounded-xl bg-background-primary/30 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-center md:text-left">
+                <p className="text-sm font-semibold text-text-primary">Upload Vendor Bill / Invoice</p>
+                <p className="text-xs text-text-muted">Select a PDF or image file detailing the process cost invoices.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  id="vendor-bill-upload"
+                  className="hidden"
+                  onChange={handleUploadFile}
+                  disabled={isUploading}
+                />
+                <label
+                  htmlFor="vendor-bill-upload"
+                  className="inline-flex items-center justify-center rounded-lg text-xs font-semibold h-9 px-4 border border-border-default bg-surface-card hover:bg-background-secondary text-text-primary cursor-pointer transition-colors"
+                >
+                  {isUploading ? 'Uploading...' : 'Choose File'}
+                </label>
+              </div>
+            </div>
+          )}
+
+          {indent.attachments && indent.attachments.length > 0 && (
+            <div className="space-y-2">
+              {indent.attachments.map((att) => (
+                <div
+                  key={att.id}
+                  className="flex items-center justify-between p-3 bg-background-primary rounded-lg border border-border-default/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText size={16} className="text-text-muted" />
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">{att.fileName}</p>
+                      <p className="text-xs text-text-muted">
+                        {att.fileType} &middot; {formatTimestamp(att.createdAt)}
+                        {att.remarks && ` -- ${att.remarks}`}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

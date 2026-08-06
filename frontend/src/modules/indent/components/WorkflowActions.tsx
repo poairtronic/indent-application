@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Send,
   CheckCircle,
@@ -214,6 +214,25 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
               onSuccess?.();
             },
             isPending: isDelivering,
+          });
+        }
+        break;
+
+      case 'CUSTOMER_DELIVERED':
+        if (hasPermission(AppPermission.ACCOUNTS_VERIFY)) {
+          actions.push({
+            label: 'Start Cost Verification',
+            icon: <Calculator size={16} />,
+            variant: 'primary',
+            permission: AppPermission.ACCOUNTS_VERIFY,
+            confirmTitle: `Start Cost Verification: ${indentNumber}`,
+            confirmMessage:
+              'Begin financial cost verification for this indent. This will transition the state to Accounts Cost Verification.',
+            action: async (r) => {
+              await verifyAccounts({ id: indentId, remarks: r || 'Costs verification started' });
+              onSuccess?.();
+            },
+            isPending: isVerifyingAccounts,
           });
         }
         break;

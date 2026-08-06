@@ -3,9 +3,10 @@ import { queryKeys } from '../../hooks/query-keys';
 import { auditService } from './service';
 import type { AuditLogQueryParams } from '../../types/audit';
 
-export function useAuditLogs(params?: AuditLogQueryParams) {
+export function useAuditLogs(params?: AuditLogQueryParams, enabled?: boolean) {
   return useQuery({
-    queryKey: [...queryKeys.audit.list('audit'), params],
-    queryFn: () => auditService.list(params),
+     queryKey: [...queryKeys.audit.list('audit'), params],
+     queryFn: () => auditService.list(params),
+     enabled,
   });
 }

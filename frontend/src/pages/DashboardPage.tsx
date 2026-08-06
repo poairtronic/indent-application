@@ -92,6 +92,11 @@ export const DashboardPage: React.FC = () => {
 
   // Fetch summary and analytics metrics via React Query
   const hasAnalyticsAccess = useAuthStore((s) => s.hasAnyPermission(['analytics.view']));
+  const hasAuditAccess = useAuthStore((s) => s.hasAnyPermission(['audit.view']));
+  const hasIndentCreate = useAuthStore((s) => s.hasAnyPermission(['indent.create']));
+  const hasIndentView = useAuthStore((s) => s.hasAnyPermission(['indent.view']));
+  const hasUsersView = useAuthStore((s) => s.hasAnyPermission(['users.view']));
+  const hasSettingsManage = useAuthStore((s) => s.hasAnyPermission(['settings.manage']));
 
   const {
     data: summary,
@@ -124,12 +129,15 @@ export const DashboardPage: React.FC = () => {
   const { data: productsData } = useProductAnalytics(undefined, hasAnalyticsAccess);
   const { data: vendorsData } = useVendorAnalytics(undefined, hasAnalyticsAccess);
 
-  const { data: auditData, isLoading: isAuditLoading } = useAuditLogs({
-    page: 1,
-    limit: 5,
-    sortOrder: 'desc',
-    sortBy: 'createdAt',
-  });
+  const { data: auditData, isLoading: isAuditLoading } = useAuditLogs(
+    {
+      page: 1,
+      limit: 5,
+      sortOrder: 'desc',
+      sortBy: 'createdAt',
+    },
+    hasAuditAccess
+  );
   const auditLogs = auditData?.items ?? [];
 
   const isLoading =
@@ -395,171 +403,191 @@ export const DashboardPage: React.FC = () => {
           Executive Quick Actions
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <QuickActionCard
-            title="Create Indent"
-            description="Initiate new manufacturing indent request"
-            icon={<PlusCircle size={18} />}
-            onClick={() => navigate('/indents')}
-          />
-          <QuickActionCard
-            title="View Indents"
-            description="Inspect all active indent records"
-            icon={<FileText size={18} />}
-            onClick={() => navigate('/indents')}
-          />
-          <QuickActionCard
-            title="Products Intelligence"
-            description="Manage product estimation & throughput"
-            icon={<Package size={18} />}
-            onClick={() => navigate('/analytics/products')}
-          />
-          <QuickActionCard
-            title="Vendors Network"
-            description="Inspect vendor supply & performance"
-            icon={<Truck size={18} />}
-            onClick={() => navigate('/analytics/vendors')}
-          />
-          <QuickActionCard
-            title="User Directory"
-            description="Manage system users & role assignments"
-            icon={<Users size={18} />}
-            onClick={() => navigate('/users')}
-          />
-          <QuickActionCard
-            title="Business Reports"
-            description="View executive summary analytics"
-            icon={<BarChart3 size={18} />}
-            onClick={() => navigate('/analytics/summary')}
-          />
-          <QuickActionCard
-            title="System Analytics"
-            description="Deep dive into department costs"
-            icon={<TrendingUp size={18} />}
-            onClick={() => navigate('/analytics')}
-          />
-          <QuickActionCard
-            title="System Settings"
-            description="Configure enterprise environment parameters"
-            icon={<Settings size={18} />}
-            onClick={() => navigate('/settings')}
-          />
+          {hasIndentCreate && (
+            <QuickActionCard
+              title="Create Indent"
+              description="Initiate new manufacturing indent request"
+              icon={<PlusCircle size={18} />}
+              onClick={() => navigate('/indents')}
+            />
+          )}
+          {hasIndentView && (
+            <QuickActionCard
+              title="View Indents"
+              description="Inspect all active indent records"
+              icon={<FileText size={18} />}
+              onClick={() => navigate('/indents')}
+            />
+          )}
+          {hasAnalyticsAccess && (
+            <>
+              <QuickActionCard
+                title="Products Intelligence"
+                description="Manage product estimation & throughput"
+                icon={<Package size={18} />}
+                onClick={() => navigate('/analytics/products')}
+              />
+              <QuickActionCard
+                title="Vendors Network"
+                description="Inspect vendor supply & performance"
+                icon={<Truck size={18} />}
+                onClick={() => navigate('/analytics/vendors')}
+              />
+            </>
+          )}
+          {hasUsersView && (
+            <QuickActionCard
+              title="User Directory"
+              description="Manage system users & role assignments"
+              icon={<Users size={18} />}
+              onClick={() => navigate('/users')}
+            />
+          )}
+          {hasAnalyticsAccess && (
+            <>
+              <QuickActionCard
+                title="Business Reports"
+                description="View executive summary analytics"
+                icon={<BarChart3 size={18} />}
+                onClick={() => navigate('/analytics')}
+              />
+              <QuickActionCard
+                title="System Analytics"
+                description="Deep dive into department costs"
+                icon={<TrendingUp size={18} />}
+                onClick={() => navigate('/analytics/costs')}
+              />
+            </>
+          )}
+          {hasSettingsManage && (
+            <QuickActionCard
+              title="System Settings"
+              description="Configure enterprise environment parameters"
+              icon={<Settings size={18} />}
+              onClick={() => navigate('/settings')}
+            />
+          )}
         </div>
       </div>
 
       {/* Section: Executive Intelligence & Analytics Visualizations */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Cost & Expenditure Trend Chart */}
-        <div className="lg:col-span-2 space-y-3">
-          <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
-            Planned vs Actual Costs
-          </h3>
-          {costTrendChartData.length > 0 ? (
-            <ChartWrapper title="Cost Comparison (INR)" data={costTrendChartData} type="bar" />
-          ) : (
-            <div className="bg-surface-card border border-border-default rounded-xl p-5 shadow-card flex items-center justify-center min-h-[200px]">
-              <span className="text-text-muted text-sm">No cost data available</span>
+      {hasAnalyticsAccess && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Cost & Expenditure Trend Chart */}
+            <div className="lg:col-span-2 space-y-3">
+              <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                Planned vs Actual Costs
+              </h3>
+              {costTrendChartData.length > 0 ? (
+                <ChartWrapper title="Cost Comparison (INR)" data={costTrendChartData} type="bar" />
+              ) : (
+                <div className="bg-surface-card border border-border-default rounded-xl p-5 shadow-card flex items-center justify-center min-h-[200px]">
+                  <span className="text-text-muted text-sm">No cost data available</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Workflow Progress Snapshot */}
-        <div className="space-y-3">
-          <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
-            Workflow Health Snapshot
-          </h3>
-          <div className="bg-surface-card border border-border-default rounded-xl p-5 space-y-4 shadow-card">
-            <div className="flex justify-between items-center border-b border-border-default/50 pb-2">
-              <span className="text-xs font-bold text-text-primary">Manufacturing Throughput</span>
-              <span className="text-xs font-bold text-status-success">
-                {workflowData?.completionRate?.toFixed(1) ?? 0}% Completion
+            {/* Workflow Progress Snapshot */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                Workflow Health Snapshot
+              </h3>
+              <div className="bg-surface-card border border-border-default rounded-xl p-5 space-y-4 shadow-card">
+                <div className="flex justify-between items-center border-b border-border-default/50 pb-2">
+                  <span className="text-xs font-bold text-text-primary">Manufacturing Throughput</span>
+                  <span className="text-xs font-bold text-status-success">
+                    {workflowData?.completionRate?.toFixed(1) ?? 0}% Completion
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-text-muted">
+                    <span>Average Cycle Time:</span>
+                    <span className="font-semibold text-text-primary">
+                      {workflowData?.averageCycleDays?.toFixed(1) ?? 0} Days
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-text-muted">
+                    <span>Stalled Transactions:</span>
+                    <span className="font-semibold text-status-warning">
+                      {workflowData?.stalledTransactions ?? 0} Items
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottleneck Alert */}
+                {workflowData?.bottleneckStage && (
+                  <div className="p-3 bg-status-warning/10 border border-status-warning/20 rounded-lg flex items-center gap-2 text-xs text-status-warning">
+                    <AlertTriangle size={16} className="shrink-0" />
+                    <span>
+                      Bottleneck Detected: <strong>{workflowData.bottleneckStage}</strong> stage.
+                    </span>
+                  </div>
+                )}
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  fullWidth
+                  icon={<ExternalLink size={14} />}
+                  onClick={() => navigate('/analytics/workflow')}
+                >
+                  Inspect Workflow Analytics
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Department Workload Distribution */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                Department Workload Breakdown
+              </h3>
+              <span
+                className="text-xs text-accent-primary hover:underline cursor-pointer font-semibold"
+                onClick={() => navigate('/analytics/departments')}
+              >
+                View All Departments →
               </span>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-text-muted">
-                <span>Average Cycle Time:</span>
-                <span className="font-semibold text-text-primary">
-                  {workflowData?.averageCycleDays?.toFixed(1) ?? 0} Days
-                </span>
+            {departmentData?.departments && departmentData.departments.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {departmentData.departments.slice(0, 4).map((dept) => (
+                  <div
+                    key={dept.departmentId}
+                    className="bg-surface-card border border-border-default rounded-xl p-4 space-y-2 shadow-card"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-xs text-text-primary truncate">
+                        {dept.departmentName}
+                      </span>
+                      <span className="text-[10px] font-mono text-text-muted bg-background-secondary px-1.5 py-0.5 rounded border border-border-default">
+                        {dept.departmentCode}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-baseline text-xs pt-1">
+                      <span className="text-text-muted">Pending Queue:</span>
+                      <span className="font-bold text-accent-primary">{dept.pendingQueue} Items</span>
+                    </div>
+                    <div className="flex justify-between items-baseline text-xs">
+                      <span className="text-text-muted">Completed:</span>
+                      <span className="font-bold text-status-success">{dept.completedCount}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between text-xs text-text-muted">
-                <span>Stalled Transactions:</span>
-                <span className="font-semibold text-status-warning">
-                  {workflowData?.stalledTransactions ?? 0} Items
-                </span>
-              </div>
-            </div>
-
-            {/* Bottleneck Alert */}
-            {workflowData?.bottleneckStage && (
-              <div className="p-3 bg-status-warning/10 border border-status-warning/20 rounded-lg flex items-center gap-2 text-xs text-status-warning">
-                <AlertTriangle size={16} className="shrink-0" />
-                <span>
-                  Bottleneck Detected: <strong>{workflowData.bottleneckStage}</strong> stage.
-                </span>
+            ) : (
+              <div className="bg-surface-card border border-border-default rounded-xl p-4 text-center text-xs text-text-muted">
+                <Layers size={18} className="mx-auto mb-1 text-text-muted" />
+                <span>Operating departments metrics loaded</span>
               </div>
             )}
-
-            <Button
-              variant="secondary"
-              size="sm"
-              fullWidth
-              icon={<ExternalLink size={14} />}
-              onClick={() => navigate('/analytics/workflow')}
-            >
-              Inspect Workflow Analytics
-            </Button>
           </div>
-        </div>
-      </div>
-
-      {/* Section: Department Workload Distribution */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
-            Department Workload Breakdown
-          </h3>
-          <span
-            className="text-xs text-accent-primary hover:underline cursor-pointer font-semibold"
-            onClick={() => navigate('/analytics/departments')}
-          >
-            View All Departments →
-          </span>
-        </div>
-
-        {departmentData?.departments && departmentData.departments.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {departmentData.departments.slice(0, 4).map((dept) => (
-              <div
-                key={dept.departmentId}
-                className="bg-surface-card border border-border-default rounded-xl p-4 space-y-2 shadow-card"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-xs text-text-primary truncate">
-                    {dept.departmentName}
-                  </span>
-                  <span className="text-[10px] font-mono text-text-muted bg-background-secondary px-1.5 py-0.5 rounded border border-border-default">
-                    {dept.departmentCode}
-                  </span>
-                </div>
-                <div className="flex justify-between items-baseline text-xs pt-1">
-                  <span className="text-text-muted">Pending Queue:</span>
-                  <span className="font-bold text-accent-primary">{dept.pendingQueue} Items</span>
-                </div>
-                <div className="flex justify-between items-baseline text-xs">
-                  <span className="text-text-muted">Completed:</span>
-                  <span className="font-bold text-status-success">{dept.completedCount}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-surface-card border border-border-default rounded-xl p-4 text-center text-xs text-text-muted">
-            <Layers size={18} className="mx-auto mb-1 text-text-muted" />
-            <span>Operating departments metrics loaded</span>
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Section: Notifications & Recent Activities Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -650,7 +678,12 @@ export const DashboardPage: React.FC = () => {
             Recent System Activity Feed
           </h3>
           <div className="bg-surface-card border border-border-default rounded-xl p-5 shadow-card min-h-[220px]">
-            {isAuditLoading ? (
+            {!hasAuditAccess ? (
+              <div className="text-center py-8 text-text-muted space-y-1">
+                <p className="text-xs font-semibold">Access Restricted</p>
+                <p className="text-[11px]">You do not have permission to view the audit feed.</p>
+              </div>
+            ) : isAuditLoading ? (
               <div className="space-y-4">
                 <Skeleton className="h-10 w-full rounded" />
                 <Skeleton className="h-10 w-full rounded" />
