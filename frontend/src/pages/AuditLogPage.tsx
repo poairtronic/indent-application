@@ -10,6 +10,7 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { Shield, Search, Filter, Download, Clock, User } from 'lucide-react';
 import type { AuditLogEntry } from '../api/types/audit';
+import { useAuthStore } from '../store/authStore';
 
 const ACTION_BADGE: Record<string, 'green' | 'yellow' | 'red' | 'blue' | 'gray'> = {
   CREATE: 'green',
@@ -42,6 +43,8 @@ const formatTimestamp = (dateStr: string) => {
 };
 
 export const AuditLogPage: React.FC = () => {
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canExport = hasPermission('reports.export');
   const [searchInput, setSearchInput] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -161,7 +164,7 @@ export const AuditLogPage: React.FC = () => {
           {isFetching && (
             <span className="text-[10px] text-accent-primary animate-pulse">Refreshing...</span>
           )}
-          <Button variant="outline" icon={<Download size={16} />} disabled>
+          <Button variant="outline" icon={<Download size={16} />} disabled={!canExport}>
             Export CSV
           </Button>
         </div>

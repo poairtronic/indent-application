@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useNotifications,
@@ -6,6 +6,8 @@ import {
   useMarkAllNotificationsRead,
   useUnreadNotificationCount,
 } from '../../api/services/notifications/hooks';
+import { useAuthStore } from '../../store/authStore';
+import { filterNotificationsForUser } from '../../utils/notificationFilter';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
@@ -92,7 +94,13 @@ export const NotificationsPage: React.FC = () => {
     }
   }, [markAllAsRead, refetch, show]);
 
-  const notifications = data?.items ?? [];
+  const user = useAuthStore((s) => s.user);
+
+  const notifications = React.useMemo(() => {
+    const raw = data?.items ?? [];
+    return filterNotificationsForUser(raw, user);
+  }, [data, user]);
+
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
 

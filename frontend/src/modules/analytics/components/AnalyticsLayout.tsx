@@ -1,5 +1,7 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation, Navigate } from 'react-router-dom';
+import { useAuthStore } from '../../../store/authStore';
+import { logSecurityDenial } from '../../../utils/securityLogger';
 
 interface AnalyticsLayoutProps {
   children: React.ReactNode;
@@ -8,14 +10,61 @@ interface AnalyticsLayoutProps {
 }
 
 export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({ children, title, subtitle }) => {
-  const tabs = [
-    { name: 'Summary', path: '/analytics' },
-    { name: 'Workflow', path: '/analytics/workflow' },
-    { name: 'Departments', path: '/analytics/departments' },
-    { name: 'Costs', path: '/analytics/costs' },
-    { name: 'Products', path: '/analytics/products' },
-    { name: 'Vendors', path: '/analytics/vendors' },
-  ];
+  const user = useAuthStore((s) => s.user);
+  const userDept = user?.department?.departmentCode;
+  const isAdmin = user?.permissions.includes('settings.manage');
+  const isManager = userDept === 'SMGR' || userDept === 'GMGR';
+
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  const isPathAllowed = React.useMemo(() => {
+    if (currentPath === '/analytics' || currentPath === '/analytics/workflow' || currentPath === '/analytics/departments') {
+      return true;
+    }
+    if (currentPath === '/analytics/costs') {
+      return Boolean(isAdmin || isManager || userDept === 'ACCT');
+    }
+    if (currentPath === '/analytics/products') {
+      return Boolean(isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR');
+    }
+    if (currentPath === '/analytics/vendors') {
+      return Boolean(isAdmin || isManager || userDept === 'STOR' || userDept === 'ACCT');
+    }
+    return true;
+  }, [currentPath, isAdmin, isManager, userDept]);
+
+  React.useEffect(() => {
+    if (!isPathAllowed) {
+      logSecurityDenial('analytics.view', currentPath, 'ANALYTICS_TAB_ACCESS');
+    }
+  }, [isPathAllowed, currentPath]);
+
+  if (!isPathAllowed) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  const tabs = React.useMemo(() => {
+    const list = [
+      { name: 'Summary', path: '/analytics' },
+      { name: 'Workflow', path: '/analytics/workflow' },
+      { name: 'Departments', path: '/analytics/departments' },
+    ];
+
+    if (isAdmin || isManager || userDept === 'ACCT') {
+      list.push({ name: 'Costs', path: '/analytics/costs' });
+    }
+
+    if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR') {
+      list.push({ name: 'Products', path: '/analytics/products' });
+    }
+
+    if (isAdmin || isManager || userDept === 'STOR' || userDept === 'ACCT') {
+      list.push({ name: 'Vendors', path: '/analytics/vendors' });
+    }
+
+    return list;
+  }, [isAdmin, isManager, userDept]);
 
   return (
     <div className="space-y-6 p-6">

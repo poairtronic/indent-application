@@ -1,8 +1,14 @@
 import React from 'react';
 import { Download, Printer, FileText } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { useAuthStore } from '../../store/authStore';
 
 export const ReportsDashboardPage: React.FC = () => {
+  const user = useAuthStore((s) => s.user);
+  const userDept = user?.department?.departmentCode;
+  const isAdmin = user?.permissions.includes('settings.manage');
+  const isManager = userDept === 'SMGR' || userDept === 'GMGR';
+
   const handleExport = (reportName: string) => {
     // In a real application, this would trigger an API call to download a CSV/PDF
     alert(`Exporting ${reportName} report to CSV...`);
@@ -12,59 +18,87 @@ export const ReportsDashboardPage: React.FC = () => {
     window.print();
   };
 
-  const reportCategories = [
-    {
-      title: 'Manufacturing Operations',
-      reports: [
-        {
-          name: 'Daily Production Summary',
-          description: 'Overview of all completed and ongoing manufacturing indents.',
-        },
-        {
-          name: 'Process Yield Report',
-          description: 'Detailed breakdown of manufacturing processes and output.',
-        },
-        {
-          name: 'Machine Utilization',
-          description: 'Time and efficiency tracking for manufacturing equipment.',
-        },
-      ],
-    },
-    {
-      title: 'Cost & Financial Analytics',
-      reports: [
-        {
-          name: 'Actual vs. Predicted Costs',
-          description: 'Financial variance report across all completed cost sheets.',
-        },
-        {
-          name: 'Material Cost Breakdown',
-          description: 'Total expenditure separated by material categories.',
-        },
-        {
-          name: 'Department Budget Utilization',
-          description: 'Financial tracking grouped by originating department.',
-        },
-      ],
-    },
-    {
-      title: 'Master Data & Workflow',
-      reports: [
-        {
-          name: 'Vendor Performance Matrix',
-          description: 'Evaluation of vendor delivery times and material quality.',
-        },
-        {
-          name: 'Product Catalog Export',
-          description: 'Complete export of all configured master products.',
-        },
-        {
-          name: 'Workflow Bottleneck Analysis',
-          description: 'Average time spent in each stage of the ERP workflow.',
-        },
-      ],
-    },
-  ];
+  const reportCategories = React.useMemo(() => {
+    const categories = [];
+
+    // Manufacturing Operations Category (Production only)
+    if (isAdmin || isManager || userDept === 'PROD') {
+      categories.push({
+        title: 'Manufacturing Operations',
+        reports: [
+          {
+            name: 'Daily Production Summary',
+            description: 'Overview of all completed and ongoing manufacturing indents.',
+          },
+          {
+            name: 'Process Yield Report',
+            description: 'Detailed breakdown of manufacturing processes and output.',
+          },
+          {
+            name: 'Machine Utilization',
+            description: 'Time and efficiency tracking for manufacturing equipment.',
+          },
+        ],
+      });
+    }
+
+    // Cost & Financial Analytics Category (Accounts only)
+    if (isAdmin || isManager || userDept === 'ACCT') {
+      categories.push({
+        title: 'Cost & Financial Analytics',
+        reports: [
+          {
+            name: 'Actual vs. Predicted Costs',
+            description: 'Financial variance report across all completed cost sheets.',
+          },
+          {
+            name: 'Material Cost Breakdown',
+            description: 'Total expenditure separated by material categories.',
+          },
+          {
+            name: 'Department Budget Utilization',
+            description: 'Financial tracking grouped by originating department.',
+          },
+        ],
+      });
+    }
+
+    // Master Data & Workflow (Design / Stores / Accounts / Admin / Manager)
+    const masterReports = [];
+
+    // Vendor Performance is visible to Stores, Accounts, Admin, Manager
+    if (isAdmin || isManager || userDept === 'STOR' || userDept === 'ACCT') {
+      masterReports.push({
+        name: 'Vendor Performance Matrix',
+        description: 'Evaluation of vendor delivery times and material quality.',
+      });
+    }
+
+    // Product Catalog Export is visible to Design, Stores, Admin, Manager
+    if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR') {
+      masterReports.push({
+        name: 'Product Catalog Export',
+        description: 'Complete export of all configured master products.',
+      });
+    }
+
+    // Workflow Bottleneck Analysis is visible to Design, Admin, Manager, Stores
+    if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR') {
+      masterReports.push({
+        name: 'Workflow Bottleneck Analysis',
+        description: 'Average time spent in each stage of the ERP workflow.',
+      });
+    }
+
+    if (masterReports.length > 0) {
+      categories.push({
+        title: 'Master Data & Workflow',
+        reports: masterReports,
+      });
+    }
+
+    return categories;
+  }, [isAdmin, isManager, userDept]);
 
   return (
     <div className="flex flex-col h-full animate-fade-in">

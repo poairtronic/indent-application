@@ -61,6 +61,7 @@ export const MaterialsPage: React.FC = () => {
   const canCreate = hasPermission(AppPermission.MATERIALS_CREATE);
   const canUpdate = hasPermission(AppPermission.MATERIALS_UPDATE);
   const canDelete = hasPermission(AppPermission.MATERIALS_DELETE);
+  const canExport = hasPermission(AppPermission.REPORTS_EXPORT);
 
   const query = useMemo(
     () => ({
@@ -231,14 +232,16 @@ export const MaterialsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<Download size={16} />}
-            onClick={handleExportCSV}
-          >
-            Export CSV
-          </Button>
+          {canExport && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Download size={16} />}
+              onClick={handleExportCSV}
+            >
+              Export CSV
+            </Button>
+          )}
           {canCreate && (
             <Button
               variant="primary"

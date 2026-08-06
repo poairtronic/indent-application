@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { filterNotificationsForUser } from '../utils/notificationFilter';
 import {
   useNotifications,
   useMarkAllNotificationsRead,
@@ -61,7 +62,10 @@ export const DashboardPage: React.FC = () => {
   });
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
   const { data: unreadNotificationCount = 0 } = useUnreadNotificationCount();
-  const notifications = notificationsData?.items ?? [];
+  const notifications = useMemo(() => {
+    const items = notificationsData?.items ?? [];
+    return filterNotificationsForUser(items, user);
+  }, [notificationsData, user]);
 
   // Live Date & Time ticker
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -175,6 +179,132 @@ export const DashboardPage: React.FC = () => {
       navigate(`/indents?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
+
+  const userDept = user?.department?.departmentCode;
+  const isAdmin = user?.permissions.includes('settings.manage');
+  const isManager = userDept === 'SMGR' || userDept === 'GMGR';
+
+  const visibleKPIs = useMemo(() => {
+    const kpis: React.ReactNode[] = [];
+
+    // Total Indents Card
+    if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'ACCT') {
+      kpis.push(
+        <KPICard
+          key="total-indents"
+          title="Total Indents"
+          value={summary?.totalTransactions ?? 0}
+          trend="Lifetime Indents"
+          icon={<FileText size={18} />}
+          accent="primary"
+        />
+      );
+    }
+
+    // Pending Indents Card
+    if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR') {
+      kpis.push(
+        <KPICard
+          key="pending-indents"
+          title="Pending Indents"
+          value={summary?.pendingTransactions ?? 0}
+          trend="Awaiting Action"
+          icon={<Clock size={18} />}
+          accent="warning"
+        />
+      );
+    }
+
+    // Active Production Card
+    if (isAdmin || isManager || userDept === 'PROD') {
+      kpis.push(
+        <KPICard
+          key="active-production"
+          title="Active Production"
+          value={summary?.activeTransactions ?? 0}
+          trend="In Processing"
+          icon={<Activity size={18} />}
+          accent="info"
+        />
+      );
+    }
+
+    // Completed Orders Card
+    if (isAdmin || isManager || userDept === 'PROD' || userDept === 'ACCT') {
+      kpis.push(
+        <KPICard
+          key="completed-orders"
+          title="Completed Orders"
+          value={summary?.completedTransactions ?? 0}
+          trend="Delivered & Closed"
+          icon={<CheckCircle2 size={18} />}
+          accent="success"
+        />
+      );
+    }
+
+    // Products Catalog Card
+    if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR') {
+      kpis.push(
+        <KPICard
+          key="products-catalog"
+          title="Products Catalog"
+          value={productsData?.products?.length ?? 0}
+          trend="Active SKUs"
+          icon={<Package size={18} />}
+          accent="primary"
+        />
+      );
+    }
+
+    // Approved Vendors Card
+    if (isAdmin || isManager || userDept === 'STOR') {
+      kpis.push(
+        <KPICard
+          key="approved-vendors"
+          title="Approved Vendors"
+          value={vendorsData?.vendors?.length ?? 0}
+          trend="Suppliers Network"
+          icon={<Truck size={18} />}
+          accent="primary"
+        />
+      );
+    }
+
+    // Operating Departments Card
+    if (isAdmin || isManager || userDept === 'STOR') {
+      kpis.push(
+        <KPICard
+          key="operating-departments"
+          title="Operating Departments"
+          value={departmentData?.departments?.length ?? 0}
+          trend="Business Units"
+          icon={<Building2 size={18} />}
+          accent="primary"
+        />
+      );
+    }
+
+    // Monthly Planned Cost Card
+    if (isAdmin || isManager || userDept === 'ACCT') {
+      kpis.push(
+        <KPICard
+          key="monthly-planned-cost"
+          title="Monthly Planned Cost"
+          value={formatCurrency(costsData?.totalPlannedCost ?? 0)}
+          trend="Expenditure Limit"
+          icon={<Coins size={18} />}
+          accent="success"
+        />
+      );
+    }
+
+    return kpis;
+  }, [isAdmin, isManager, userDept, summary, productsData, vendorsData, departmentData, costsData]);
+
+  const showCostsChart = isAdmin || isManager || userDept === 'ACCT';
+  const showWorkflowHealth = isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR' || userDept === 'PROD';
+  const showDeptWorkload = isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR' || userDept === 'PROD';
 
   // Workflow Timeline Items
   const workflowTimelineItems = useMemo(() => {
@@ -334,62 +464,7 @@ export const DashboardPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <KPICard
-                    title="Total Indents"
-                    value={summary?.totalTransactions ?? 0}
-                    trend="Lifetime Indents"
-                    icon={<FileText size={18} />}
-                    accent="primary"
-                  />
-                  <KPICard
-                    title="Pending Indents"
-                    value={summary?.pendingTransactions ?? 0}
-                    trend="Awaiting Action"
-                    icon={<Clock size={18} />}
-                    accent="warning"
-                  />
-                  <KPICard
-                    title="Active Production"
-                    value={summary?.activeTransactions ?? 0}
-                    trend="In Processing"
-                    icon={<Activity size={18} />}
-                    accent="info"
-                  />
-                  <KPICard
-                    title="Completed Orders"
-                    value={summary?.completedTransactions ?? 0}
-                    trend="Delivered & Closed"
-                    icon={<CheckCircle2 size={18} />}
-                    accent="success"
-                  />
-                  <KPICard
-                    title="Products Catalog"
-                    value={productsData?.products?.length ?? 0}
-                    trend="Active SKUs"
-                    icon={<Package size={18} />}
-                    accent="primary"
-                  />
-                  <KPICard
-                    title="Approved Vendors"
-                    value={vendorsData?.vendors?.length ?? 0}
-                    trend="Suppliers Network"
-                    icon={<Truck size={18} />}
-                    accent="primary"
-                  />
-                  <KPICard
-                    title="Operating Departments"
-                    value={departmentData?.departments?.length ?? 0}
-                    trend="Business Units"
-                    icon={<Building2 size={18} />}
-                    accent="primary"
-                  />
-                  <KPICard
-                    title="Monthly Planned Cost"
-                    value={formatCurrency(costsData?.totalPlannedCost ?? 0)}
-                    trend="Expenditure Limit"
-                    icon={<Coins size={18} />}
-                    accent="success"
-                  />
+                  {visibleKPIs}
                 </div>
               )}
             </div>
@@ -469,13 +544,11 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
       </div>
-
       {/* Section: Executive Intelligence & Analytics Visualizations */}
-      {hasAnalyticsAccess && (
-        <>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Cost & Expenditure Trend Chart */}
-            <div className="lg:col-span-2 space-y-3">
+      {hasAnalyticsAccess && (showCostsChart || showWorkflowHealth) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {showCostsChart && (
+            <div className={showWorkflowHealth ? "lg:col-span-2 space-y-3" : "lg:col-span-3 space-y-3"}>
               <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
                 Planned vs Actual Costs
               </h3>
@@ -487,9 +560,10 @@ export const DashboardPage: React.FC = () => {
                 </div>
               )}
             </div>
+          )}
 
-            {/* Workflow Progress Snapshot */}
-            <div className="space-y-3">
+          {showWorkflowHealth && (
+            <div className={showCostsChart ? "space-y-3" : "lg:col-span-3 space-y-3"}>
               <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
                 Workflow Health Snapshot
               </h3>
@@ -537,56 +611,58 @@ export const DashboardPage: React.FC = () => {
                 </Button>
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Section: Department Workload Distribution */}
+      {hasAnalyticsAccess && showDeptWorkload && (
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
+              Department Workload Breakdown
+            </h3>
+            <span
+              className="text-xs text-accent-primary hover:underline cursor-pointer font-semibold"
+              onClick={() => navigate('/analytics/departments')}
+            >
+              View All Departments →
+            </span>
           </div>
 
-          {/* Section: Department Workload Distribution */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
-                Department Workload Breakdown
-              </h3>
-              <span
-                className="text-xs text-accent-primary hover:underline cursor-pointer font-semibold"
-                onClick={() => navigate('/analytics/departments')}
-              >
-                View All Departments →
-              </span>
-            </div>
-
-            {departmentData?.departments && departmentData.departments.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {departmentData.departments.slice(0, 4).map((dept) => (
-                  <div
-                    key={dept.departmentId}
-                    className="bg-surface-card border border-border-default rounded-xl p-4 space-y-2 shadow-card"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-xs text-text-primary truncate">
-                        {dept.departmentName}
-                      </span>
-                      <span className="text-[10px] font-mono text-text-muted bg-background-secondary px-1.5 py-0.5 rounded border border-border-default">
-                        {dept.departmentCode}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-baseline text-xs pt-1">
-                      <span className="text-text-muted">Pending Queue:</span>
-                      <span className="font-bold text-accent-primary">{dept.pendingQueue} Items</span>
-                    </div>
-                    <div className="flex justify-between items-baseline text-xs">
-                      <span className="text-text-muted">Completed:</span>
-                      <span className="font-bold text-status-success">{dept.completedCount}</span>
-                    </div>
+          {departmentData?.departments && departmentData.departments.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {departmentData.departments.slice(0, 4).map((dept) => (
+                <div
+                  key={dept.departmentId}
+                  className="bg-surface-card border border-border-default rounded-xl p-4 space-y-2 shadow-card"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-xs text-text-primary truncate">
+                      {dept.departmentName}
+                    </span>
+                    <span className="text-[10px] font-mono text-text-muted bg-background-secondary px-1.5 py-0.5 rounded border border-border-default">
+                      {dept.departmentCode}
+                    </span>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-surface-card border border-border-default rounded-xl p-4 text-center text-xs text-text-muted">
-                <Layers size={18} className="mx-auto mb-1 text-text-muted" />
-                <span>Operating departments metrics loaded</span>
-              </div>
-            )}
-          </div>
-        </>
+                  <div className="flex justify-between items-baseline text-xs pt-1">
+                    <span className="text-text-muted">Pending Queue:</span>
+                    <span className="font-bold text-accent-primary">{dept.pendingQueue} Items</span>
+                  </div>
+                  <div className="flex justify-between items-baseline text-xs">
+                    <span className="text-text-muted">Completed:</span>
+                    <span className="font-bold text-status-success">{dept.completedCount}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-surface-card border border-border-default rounded-xl p-4 text-center text-xs text-text-muted">
+              <Layers size={18} className="mx-auto mb-1 text-text-muted" />
+              <span>Operating departments metrics loaded</span>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Section: Notifications & Recent Activities Grid */}
