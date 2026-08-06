@@ -124,6 +124,9 @@ const ProductsMasterPage = lazy(() =>
 const MaterialsPage = lazy(() =>
   import('../modules/materials/MaterialsPage').then((m) => ({ default: m.MaterialsPage })),
 );
+const WorkflowPage = lazy(() =>
+  import('../modules/workflow/WorkflowPage').then((m) => ({ default: m.WorkflowPage })),
+);
 const MasterDataDashboardPage = lazy(() =>
   import('../modules/dashboard/MasterDataDashboardPage').then((m) => ({
     default: m.MasterDataDashboardPage,
@@ -314,7 +317,7 @@ export const AppRouter: React.FC = () => {
           path="/workflow"
           element={
             <ProtectedRoute permissions={['workflow.view']}>
-              <ComingSoon title="Business Workflows" />
+              {suspended(WorkflowPage)}
             </ProtectedRoute>
           }
         />
