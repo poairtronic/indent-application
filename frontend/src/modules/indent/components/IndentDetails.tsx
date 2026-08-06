@@ -3,7 +3,7 @@ import type { IndentData } from '../../../api/services/indents/service';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { useAuthStore } from '../../../store/authStore';
-import { AppPermission } from '../../../constants/permissions';
+import { getWorkflowAccess } from '../../../constants/workflow';
 import { useIssueMaterialItem } from '../../../api/services/indents/hooks';
 import { IndentWorkflowTimeline } from './WorkflowTimeline';
 import { IndentActivityFeed } from './ActivityFeed';
@@ -36,11 +36,19 @@ const priorityTone: Record<string, 'green' | 'yellow' | 'red' | 'blue'> = {
 
 export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
-  const hasPermission = useAuthStore((s) => s.hasPermission);
   const { mutateAsync: issueItem, isPending: isIssuingItem } = useIssueMaterialItem();
 
-  const isStoresStage = indent.currentState === 'DESIGN_COMPLETED' || indent.currentState === 'STORES_PROCESSING';
-  const canIssueStores = isStoresStage && hasPermission(AppPermission.STORES_ISSUE);
+  const user = useAuthStore((s) => s.user);
+
+  const canIssueStores = React.useMemo(() => {
+    const isValidState =
+      indent.currentState === 'DESIGN_COMPLETED' ||
+      indent.currentState === 'STORES_PROCESSING';
+    if (!isValidState) return false;
+
+    const access = getWorkflowAccess(indent.currentState as any, user);
+    return access.canEdit;
+  }, [indent, user]);
 
   return (
     <div className="space-y-6">

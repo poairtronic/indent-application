@@ -10,6 +10,8 @@ import { Priority } from '../../../types/indent';
 import { useUnits } from '../../../api/services/units/hooks';
 import { useProcesses } from '../../../api/services/processes/hooks';
 import type { IndentData } from '../../../api/services/indents/service';
+import { useAuthStore } from '../../../store/authStore';
+import { getWorkflowAccess } from '../../../constants/workflow';
 
 const indentSchema = z.object({
   indent: z.object({
@@ -61,6 +63,17 @@ interface IndentFormProps {
 }
 
 export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, isLoading }) => {
+  const user = useAuthStore((s) => s.user);
+
+  const isReadOnly = React.useMemo(() => {
+    if (!initialData) {
+      const access = getWorkflowAccess('DRAFT', user);
+      return !access.canEdit;
+    }
+    const access = getWorkflowAccess(initialData.currentState as any, user);
+    return !access.canEdit;
+  }, [initialData, user]);
+
   const {
     register,
     control,
@@ -198,12 +211,14 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
           <Input
             label="Product"
             placeholder="Type a product name"
+            disabled={isReadOnly}
             {...register('indent.productName')}
             error={errors.indent?.productName?.message}
           />
           <Input
             label="Department"
             placeholder="Type a department name"
+            disabled={isReadOnly}
             {...register('indent.departmentName')}
             error={errors.indent?.departmentName?.message}
           />
@@ -215,6 +230,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                 label="Priority"
                 options={Object.values(Priority).map((p) => ({ label: p, value: p }))}
                 error={errors.indent?.priority?.message}
+                disabled={isReadOnly}
                 {...field}
               />
             )}
@@ -222,6 +238,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
           <Input
             label="Required Date"
             type="date"
+            disabled={isReadOnly}
             {...register('indent.requiredDate')}
             error={errors.indent?.requiredDate?.message}
           />
@@ -229,11 +246,13 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
         <div className="mt-4 grid grid-cols-1 gap-4">
           <TextArea
             label="Purpose"
+            disabled={isReadOnly}
             {...register('indent.purpose')}
             error={errors.indent?.purpose?.message}
           />
           <TextArea
             label="Remarks"
+            disabled={isReadOnly}
             {...register('indent.remarks')}
             error={errors.indent?.remarks?.message}
           />
@@ -250,6 +269,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             variant="outline"
             size="sm"
             onClick={() => appendItem({ materialName: '', quantity: 1, unitId: '', remarks: '' })}
+            disabled={isReadOnly}
           >
             Add Material
           </Button>
@@ -269,6 +289,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                 <Input
                   label="Material"
                   placeholder="Type a material name"
+                  disabled={isReadOnly}
                   {...register(`indent.items.${index}.materialName`)}
                   error={errors.indent?.items?.[index]?.materialName?.message}
                 />
@@ -278,6 +299,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   label="Quantity"
                   type="number"
                   step="0.01"
+                  disabled={isReadOnly}
                   {...register(`indent.items.${index}.quantity`, { valueAsNumber: true })}
                   error={errors.indent?.items?.[index]?.quantity?.message}
                 />
@@ -289,6 +311,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   render={({ field }) => (
                     <Select
                       label="Unit"
+                      disabled={isReadOnly}
                       options={units.map((u) => ({
                         label: `${u.symbol || u.unitName}`,
                         value: u.id,
@@ -304,6 +327,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   label="Est. Rate (₹)"
                   type="number"
                   step="0.01"
+                  disabled={isReadOnly}
                   {...register(`costSheet.costItems.${index}.predictedRate`, {
                     valueAsNumber: true,
                     onChange: (e) => {
@@ -324,7 +348,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                 />
               </div>
               <div className="md:col-span-1 flex justify-end mt-6">
-                <Button type="button" variant="danger" size="sm" onClick={() => removeItem(index)}>
+                <Button type="button" variant="danger" size="sm" onClick={() => removeItem(index)} disabled={isReadOnly}>
                   Rem
                 </Button>
               </div>
@@ -343,6 +367,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             variant="outline"
             size="sm"
             onClick={() => appendProcess({ processId: '', predictedCost: 0, estimatedHours: 0 })}
+            disabled={isReadOnly}
           >
             Add Process
           </Button>
@@ -373,6 +398,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                           placeholder="Type or select a process"
                           value={inputValue}
                           list={`processes-datalist-${index}`}
+                          disabled={isReadOnly}
                           onChange={(e) => {
                             const val = e.target.value;
                             const matched = processes.find(
@@ -397,6 +423,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   label="Est. Hours"
                   type="number"
                   step="0.5"
+                  disabled={isReadOnly}
                   {...register(`costSheet.processCosts.${index}.estimatedHours`, {
                     valueAsNumber: true,
                   })}
@@ -408,6 +435,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   label="Predicted Cost (₹)"
                   type="number"
                   step="0.01"
+                  disabled={isReadOnly}
                   {...register(`costSheet.processCosts.${index}.predictedCost`, {
                     valueAsNumber: true,
                   })}
@@ -420,6 +448,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   variant="danger"
                   size="sm"
                   onClick={() => removeProcess(index)}
+                  disabled={isReadOnly}
                 >
                   Rem
                 </Button>
@@ -443,7 +472,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
       </div>
 
       <div className="flex justify-end gap-3">
-        <Button type="submit" loading={isLoading} disabled={isLoading}>
+        <Button type="submit" loading={isLoading} disabled={isLoading || isReadOnly}>
           {initialData ? 'Update Transaction' : 'Create Transaction'}
         </Button>
       </div>

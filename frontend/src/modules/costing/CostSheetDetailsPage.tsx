@@ -25,6 +25,7 @@ import { CostBreakdownChart } from './components/CostBreakdownChart';
 import { Input } from '../../components/ui/Input';
 import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { AppPermission } from '../../constants/permissions';
+import { getWorkflowAccess } from '../../constants/workflow';
 
 const WORKFLOW_STATE_LABELS: Record<string, string> = {
   DRAFT: 'Draft Created',
@@ -92,7 +93,17 @@ export const CostSheetDetailsPage: React.FC = () => {
   const { mutateAsync: financialClose, isPending: isClosing } = useFinancialClose();
   const { mutateAsync: uploadAttachment, isPending: isUploading } = useUploadAttachment();
 
-  const canEdit = hasPermission(AppPermission.COSTSHEET_UPDATE);
+  const user = useAuthStore((s) => s.user);
+  const isEditable = React.useMemo(() => {
+    if (!indent) return false;
+    const isCostVerificationState =
+      indent.currentState === 'ACCOUNTS_COST_VERIFICATION' ||
+      indent.currentState === 'ACTUAL_COST_UPDATED';
+    if (!isCostVerificationState) return false;
+    const access = getWorkflowAccess(indent.currentState as any, user);
+    return access.canEdit;
+  }, [indent, user]);
+
   const canViewWorkflow = hasPermission(AppPermission.WORKFLOW_VIEW);
 
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,7 +236,7 @@ export const CostSheetDetailsPage: React.FC = () => {
             </p>
           </div>
         </div>
-        {isAccountsStage && canEdit && (
+        {isEditable && (
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -330,7 +341,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                     <td className="py-3 px-4">Rs.{item.predictedRate}</td>
                     <td className="py-3 px-4">Rs.{item.predictedAmount.toLocaleString()}</td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
-                      {isAccountsStage && canEdit ? (
+                      {isEditable ? (
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
@@ -353,7 +364,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
-                      {isAccountsStage && canEdit ? (
+                      {isEditable ? (
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
@@ -376,7 +387,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3 px-4 font-medium bg-surface-elevated/20 text-accent-primary">
-                      {isAccountsStage && canEdit
+                      {isEditable
                         ? `Rs.${((actuals.materials[item.id]?.actualRate || 0) * (actuals.materials[item.id]?.actualQuantity || 0)).toFixed(2)}`
                         : item.actualAmount
                           ? `Rs.${item.actualAmount.toLocaleString()}`
@@ -435,7 +446,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                     <td className="py-3 px-4">{item.estimatedHours}</td>
                     <td className="py-3 px-4">Rs.{item.predictedCost.toLocaleString()}</td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
-                      {isAccountsStage && canEdit ? (
+                      {isEditable ? (
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
@@ -454,11 +465,11 @@ export const CostSheetDetailsPage: React.FC = () => {
                           }
                         />
                       ) : (
-                        <span>{item.actualHours || '--'}</span>
+                        <span>{item.actualHours !== null ? `${item.actualHours} hrs` : '--'}</span>
                       )}
                     </td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
-                      {isAccountsStage && canEdit ? (
+                      {isEditable ? (
                         <Input
                           type="number"
                           className="w-32 text-sm h-8"
@@ -547,7 +558,7 @@ export const CostSheetDetailsPage: React.FC = () => {
         </div>
       )}
 
-      {((indent.attachments && indent.attachments.length > 0) || (isAccountsStage && canEdit)) && (
+      {((indent.attachments && indent.attachments.length > 0) || isEditable) && (
         <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card space-y-4">
           <div className="flex items-center justify-between border-b border-border-default pb-3">
             <div className="flex items-center gap-2">
@@ -559,7 +570,7 @@ export const CostSheetDetailsPage: React.FC = () => {
           </div>
 
           {/* Upload Widget for Accounts Stage */}
-          {isAccountsStage && canEdit && (
+          {isEditable && (
             <div className="p-4 border border-dashed border-border-default rounded-xl bg-background-primary/30 flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="space-y-1 text-center md:text-left">
                 <p className="text-sm font-semibold text-text-primary">Upload Vendor Bill / Invoice</p>

@@ -252,3 +252,55 @@ export function getWorkflowStateTone(
   };
   return toneMap[state] ?? 'gray';
 }
+
+export interface WorkflowAccessResult {
+  owningDepartment: string;
+  canEdit: boolean;
+  isReadOnly: boolean;
+}
+
+export function getWorkflowAccess(
+  currentState: WorkflowState,
+  user: { department?: { departmentCode: string }; permissions: string[] } | null
+): WorkflowAccessResult {
+  const stage = WORKFLOW_STAGES[currentState];
+  const owningDepartment = stage?.owningDepartmentCode ?? 'SYSTEM';
+  
+  if (!user) {
+    return {
+      owningDepartment,
+      canEdit: false,
+      isReadOnly: true,
+    };
+  }
+
+  // Admin Override check (permission-based, has settings.manage or settings.manage equivalent)
+  const isAdmin = user.permissions.some(p => p.toLowerCase() === 'settings.manage');
+  if (isAdmin) {
+    return {
+      owningDepartment,
+      canEdit: true,
+      isReadOnly: false,
+    };
+  }
+
+  // If the user's role is a passive monitor (Senior Manager / General Manager) they should not be allowed to edit anything.
+  // Both Senior Manager and General Manager do NOT have stage-specific write/issue/update/verify permissions,
+  // but let's be double-safe by checking their department and permissions:
+  const userDeptCode = user.department?.departmentCode?.toUpperCase() ?? '';
+  const isMatchingDepartment = userDeptCode === owningDepartment.toUpperCase();
+
+  // Validate permission code for the active stage
+  const stagePermission = stage?.requiredPermissionCode;
+  const hasStagePermission = stagePermission 
+    ? user.permissions.some(p => p.toLowerCase() === stagePermission.toLowerCase())
+    : false;
+
+  const canEdit = isMatchingDepartment && hasStagePermission;
+
+  return {
+    owningDepartment,
+    canEdit,
+    isReadOnly: !canEdit,
+  };
+}

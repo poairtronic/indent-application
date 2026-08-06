@@ -7,12 +7,12 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { useAuthStore } from '../../store/authStore';
-import { AppPermission } from '../../constants/permissions';
 import {
   getWorkflowStage,
   formatWorkflowState,
   getWorkflowStateTone,
   getWorkflowProgress,
+  getWorkflowAccess,
 } from '../../constants/workflow';
 import { ArrowLeft, Edit, Printer, Copy, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import type { WorkflowState } from '../../constants/workflow';
@@ -21,10 +21,14 @@ export const IndentDetailsPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toasts, show, dismiss } = useToasts();
-  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const user = useAuthStore((s) => s.user);
   const { data: indent, isLoading, refetch } = useIndent(id || '');
 
-  const canEdit = hasPermission(AppPermission.INDENT_EDIT);
+  const isEditable = React.useMemo(() => {
+    if (!indent) return false;
+    const access = getWorkflowAccess(indent.currentState as any, user);
+    return access.canEdit;
+  }, [indent, user]);
 
   if (isLoading) {
     return (
@@ -44,7 +48,6 @@ export const IndentDetailsPage: React.FC = () => {
   const currentState = indent.currentState as WorkflowState;
   const stage = getWorkflowStage(currentState);
   const progress = getWorkflowProgress(currentState);
-  const isDraft = currentState === 'DRAFT';
   const isCompleted = currentState === 'COMPLETED';
 
   const handleWorkflowSuccess = () => {
@@ -95,7 +98,7 @@ export const IndentDetailsPage: React.FC = () => {
             <Copy size={16} />
             Duplicate
           </Button>
-          {isDraft && canEdit && (
+          {isEditable && (
             <Button
               variant="primary"
               size="sm"
