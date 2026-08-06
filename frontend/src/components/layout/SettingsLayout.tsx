@@ -1,16 +1,19 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
 
 interface SidebarItem {
   label: string;
   path: string;
   icon: React.ReactNode;
+  permission?: string;
 }
 
 const settingsNavItems: SidebarItem[] = [
   {
     label: 'System Configuration',
     path: '/settings',
+    permission: 'settings.manage',
     icon: (
       <svg
         className="w-4 h-4"
@@ -107,6 +110,7 @@ const settingsNavItems: SidebarItem[] = [
   {
     label: 'Audit Logs',
     path: '/audit-logs',
+    permission: 'audit.view',
     icon: (
       <svg
         className="w-4 h-4"
@@ -126,6 +130,7 @@ const settingsNavItems: SidebarItem[] = [
   {
     label: 'Email & Communication',
     path: '/communication',
+    permission: 'audit.view',
     icon: (
       <svg
         className="w-4 h-4"
@@ -143,6 +148,11 @@ const settingsNavItems: SidebarItem[] = [
 
 export const SettingsLayout: React.FC = () => {
   const location = useLocation();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+
+  const visibleItems = settingsNavItems.filter(
+    (item) => !item.permission || hasPermission(item.permission),
+  );
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 font-sans">
@@ -152,7 +162,7 @@ export const SettingsLayout: React.FC = () => {
           System Settings
         </h3>
         <nav className="space-y-0.5">
-          {settingsNavItems.map((item) => {
+          {visibleItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link

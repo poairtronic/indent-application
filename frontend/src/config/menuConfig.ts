@@ -38,8 +38,5 @@ export const menuItems: MenuItem[] = [
   },
   { label: 'Users', path: '/users', iconName: 'Users', permission: 'users.view' },
   { label: 'Roles', path: '/roles', iconName: 'Shield', permission: 'roles.view' },
-  { label: 'Security', path: '/security', iconName: 'Lock' },
-  { label: 'Sessions', path: '/sessions', iconName: 'Monitor' },
-  { label: 'Login History', path: '/login-history', iconName: 'History' },
   { label: 'Settings', path: '/settings', iconName: 'Settings', permission: 'settings.manage' },
 ];
