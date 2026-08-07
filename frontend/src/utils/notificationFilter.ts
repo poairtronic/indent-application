@@ -3,69 +3,55 @@ import type { AuthUser } from '../api/services/auth/types';
 export function filterNotificationsForUser(items: any[], user: AuthUser | null): any[] {
   if (!user) return [];
 
-  const isAdmin = user.permissions.includes('settings.manage');
+  const roleName = user.role?.roleName;
+  const isAdmin = roleName === 'ADMIN' || roleName === 'System Administrator';
   if (isAdmin) return items;
 
   const userDept = user.department?.departmentCode?.toUpperCase() ?? '';
 
   return items.filter((item) => {
     const title = (item.title || '').toLowerCase();
-    const msg = (item.message || '').toLowerCase();
-    const text = `${title} ${msg}`;
 
-    if (userDept === 'DSGN') {
-      // Design: Own transactions (Draft, Design Created, Submitted)
+    if (userDept === 'DSGN' || userDept === 'DESIGN') {
+      // Design: Draft Returned, Cost Sheet Updated (represented as actual cost updated)
       return (
-        text.includes('draft') ||
-        text.includes('design') ||
-        text.includes('created') ||
-        text.includes('submitted')
+        (title.includes('draft') && title.includes('returned')) ||
+        title.includes('cost sheet updated') ||
+        title.includes('actual cost')
       );
     }
 
-    if (userDept === 'STOR') {
-      // Stores: Indent Submitted, Stock verification, Material issue/dispatch
+    if (userDept === 'STOR' || userDept === 'STORES') {
+      // Stores: New Indent Submitted
+      return title.includes('new manufacturing indent') || title.includes('indent submitted');
+    }
+
+    if (userDept === 'PROD' || userDept === 'PRODUCTION') {
+      // Production: Materials Issued
+      return title.includes('material issued') || title.includes('materials issued');
+    }
+
+    if (userDept === 'ACCT' || userDept === 'ACCOUNTS') {
+      // Accounts: Production Completed
       return (
-        text.includes('submitted') ||
-        text.includes('stores') ||
-        text.includes('stock') ||
-        text.includes('issue') ||
-        text.includes('dispatch')
+        title.includes('production completed') ||
+        title.includes('production manufacturing completed') ||
+        title.includes('manufacturing completed')
       );
     }
 
-    if (userDept === 'PROD') {
-      // Production: Material Issued, Start/Complete Manufacturing, Deliver
+    if (
+      userDept === 'SMGR' ||
+      userDept === 'GMGR' ||
+      roleName === 'Senior Manager' ||
+      roleName === 'General Manager'
+    ) {
+      // Senior/General Manager: Actual Cost Updated, Financial Closure, Archive Completed
       return (
-        text.includes('issued') ||
-        text.includes('production') ||
-        text.includes('manufacturing') ||
-        text.includes('completed') ||
-        text.includes('delivered')
-      );
-    }
-
-    if (userDept === 'ACCT') {
-      // Accounts: Completed, Delivered, Cost Verification, Actual Costs, Financial Closure
-      return (
-        text.includes('completed') ||
-        text.includes('delivered') ||
-        text.includes('cost') ||
-        text.includes('finance') ||
-        text.includes('closure') ||
-        text.includes('accounts')
-      );
-    }
-
-    if (userDept === 'SMGR' || userDept === 'GMGR') {
-      // Management: Actual Costs, Financial Closure, Archived, Completed
-      return (
-        text.includes('actual cost') ||
-        text.includes('updated') ||
-        text.includes('closure') ||
-        text.includes('closed') ||
-        text.includes('archived') ||
-        text.includes('completed')
+        title.includes('actual cost') ||
+        title.includes('financial closure') ||
+        title.includes('archived') ||
+        title.includes('completed')
       );
     }
 

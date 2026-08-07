@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useNotifications,
@@ -6,6 +6,8 @@ import {
   useMarkAllNotificationsRead,
 } from '../../api/services/notifications/hooks';
 import * as Lucide from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+import { filterNotificationsForUser } from '../../utils/notificationFilter';
 
 interface NotificationDrawerProps {
   isOpen: boolean;
@@ -44,7 +46,11 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
   const { mutateAsync: markAsRead } = useMarkNotificationRead();
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
 
-  const notifications = data?.items ?? [];
+  const user = useAuthStore((s) => s.user);
+  const rawNotifications = data?.items ?? [];
+  const notifications = useMemo(() => {
+    return filterNotificationsForUser(rawNotifications, user);
+  }, [rawNotifications, user]);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const handleMarkRead = useCallback(

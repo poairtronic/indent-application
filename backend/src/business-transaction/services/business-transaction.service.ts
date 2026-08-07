@@ -1599,7 +1599,7 @@ export class BusinessTransactionService {
           status: 'ACTIVE',
           role: {
             roleName: {
-              in: ['Senior Manager', 'General Manager'],
+              in: ['Senior Manager', 'General Manager', 'ADMIN', 'System Administrator'],
             },
           },
         },
@@ -1612,7 +1612,7 @@ export class BusinessTransactionService {
           departmentCode === 'DESIGN' ? 'Design Drawing Uploaded' : 'Vendor Bill/Invoice Uploaded';
         const msg = `User has uploaded attachment '${file.originalname}' for Indent #${txData.indentNumber}.`;
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
           data: {
             title,
             message: msg,
@@ -1630,6 +1630,30 @@ export class BusinessTransactionService {
             },
           },
         });
+
+        // Log: Notification created
+        await this.prisma.auditLog.create({
+          data: {
+            module: 'NOTIFICATIONS',
+            recordId: notification.id,
+            action: 'CREATE',
+            newValue: { title: notification.title },
+            performedBy: userId || 'SYSTEM',
+          },
+        });
+
+        // Log: Notification delivered
+        for (const recId of uniqueUserIds) {
+          await this.prisma.auditLog.create({
+            data: {
+              module: 'NOTIFICATIONS',
+              recordId: notification.id,
+              action: 'DELIVER',
+              newValue: { recipientUserId: recId },
+              performedBy: userId || 'SYSTEM',
+            },
+          });
+        }
       }
     } catch (notifErr) {
       this.logger.error(`Failed to send attachment upload notification: ${notifErr.message}`);
@@ -1728,7 +1752,7 @@ export class BusinessTransactionService {
           status: 'ACTIVE',
           role: {
             roleName: {
-              in: ['Senior Manager', 'General Manager'],
+              in: ['Senior Manager', 'General Manager', 'ADMIN', 'System Administrator'],
             },
           },
         },
@@ -1745,7 +1769,7 @@ export class BusinessTransactionService {
           void 0;
         }
 
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
           data: {
             title: 'Document Deleted',
             message: `Document '${metaName}' has been deleted from Indent #${txData.indentNumber}.`,
@@ -1763,6 +1787,30 @@ export class BusinessTransactionService {
             },
           },
         });
+
+        // Log: Notification created
+        await this.prisma.auditLog.create({
+          data: {
+            module: 'NOTIFICATIONS',
+            recordId: notification.id,
+            action: 'CREATE',
+            newValue: { title: notification.title },
+            performedBy: userId || 'SYSTEM',
+          },
+        });
+
+        // Log: Notification delivered
+        for (const recId of uniqueUserIds) {
+          await this.prisma.auditLog.create({
+            data: {
+              module: 'NOTIFICATIONS',
+              recordId: notification.id,
+              action: 'DELIVER',
+              newValue: { recipientUserId: recId },
+              performedBy: userId || 'SYSTEM',
+            },
+          });
+        }
       }
     } catch (notifErr) {
       this.logger.error(`Failed to send document delete notification: ${notifErr.message}`);
@@ -2187,7 +2235,7 @@ export class BusinessTransactionService {
           status: 'ACTIVE',
           role: {
             roleName: {
-              in: ['Senior Manager', 'General Manager'],
+              in: ['Senior Manager', 'General Manager', 'ADMIN', 'System Administrator'],
             },
           },
         },
@@ -2196,7 +2244,7 @@ export class BusinessTransactionService {
 
       const uniqueUserIds = Array.from(new Set(recipientUsers.map((u) => u.id)));
       if (uniqueUserIds.length > 0) {
-        await this.prisma.notification.create({
+        const notification = await this.prisma.notification.create({
           data: {
             title: 'Document Replaced',
             message: `Document '${oldMeta.originalName || attachment.fileName}' has been replaced with '${file.originalname}' on Indent #${txData.indentNumber}.`,
@@ -2214,6 +2262,30 @@ export class BusinessTransactionService {
             },
           },
         });
+
+        // Log: Notification created
+        await this.prisma.auditLog.create({
+          data: {
+            module: 'NOTIFICATIONS',
+            recordId: notification.id,
+            action: 'CREATE',
+            newValue: { title: notification.title },
+            performedBy: userId || 'SYSTEM',
+          },
+        });
+
+        // Log: Notification delivered
+        for (const recId of uniqueUserIds) {
+          await this.prisma.auditLog.create({
+            data: {
+              module: 'NOTIFICATIONS',
+              recordId: notification.id,
+              action: 'DELIVER',
+              newValue: { recipientUserId: recId },
+              performedBy: userId || 'SYSTEM',
+            },
+          });
+        }
       }
     } catch (notifErr) {
       this.logger.error(`Failed to send document replace notification: ${notifErr.message}`);

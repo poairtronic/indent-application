@@ -38,5 +38,31 @@ export const menuItems: MenuItem[] = [
   },
   { label: 'Users', path: '/users', iconName: 'Users', permission: 'users.view' },
   { label: 'Roles', path: '/roles', iconName: 'Shield', permission: 'roles.view' },
-  { label: 'Settings', path: '/settings', iconName: 'Settings', permission: 'settings.manage' },
+  { label: 'Settings', path: '/profile', iconName: 'Settings' },
+];
+
+export const settingsMenuItems: MenuItem[] = [
+  {
+    label: 'System Configuration',
+    path: '/settings',
+    iconName: 'Settings',
+    permission: 'settings.manage',
+  },
+  { label: 'Edit Profile', path: '/profile', iconName: 'User' },
+  { label: 'Change Password', path: '/change-password', iconName: 'Lock' },
+  { label: 'Security Dashboard', path: '/security', iconName: 'Shield' },
+  { label: 'Active Sessions', path: '/sessions', iconName: 'Monitor' },
+  { label: 'Login History', path: '/login-history', iconName: 'History' },
+  {
+    label: 'Audit Logs',
+    path: '/audit-logs',
+    iconName: 'FileText',
+    permission: 'audit.view',
+  },
+  {
+    label: 'Email & Communication',
+    path: '/communication',
+    iconName: 'Mail',
+    permission: 'audit.view',
+  },
 ];

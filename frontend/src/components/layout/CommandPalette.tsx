@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Lucide from 'lucide-react';
-import { menuItems } from '../../config/menuConfig';
+import { menuItems, settingsMenuItems } from '../../config/menuConfig';
 import { useAuthStore } from '../../store/authStore';
 
 interface CommandPaletteProps {
@@ -17,7 +17,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = menuItems
+  const allItems = [...menuItems, ...settingsMenuItems];
+
+  const filtered = allItems
     .filter((item) => !item.permission || hasPermission(item.permission))
     .filter(
       (item) =>

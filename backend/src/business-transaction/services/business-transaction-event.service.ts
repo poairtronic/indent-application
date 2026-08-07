@@ -32,31 +32,70 @@ export class BusinessTransactionEventService {
     }
 
     try {
-      // Find executive roles (Senior Manager, General Manager) and target department users
+      // Determine allowed departments and whether to broadcast to managers for this state
+      const targetDepts: string[] = [];
+      let isManagerEvent = false;
+
+      switch (toState) {
+        case WorkflowState.DESIGN_COMPLETED:
+        case WorkflowState.STORES_PROCESSING:
+          targetDepts.push('STORES', 'STOR');
+          break;
+        case WorkflowState.MATERIALS_ISSUED:
+        case WorkflowState.PRODUCTION_PROCESSING:
+          targetDepts.push('PRODUCTION', 'PROD');
+          break;
+        case WorkflowState.PRODUCTION_COMPLETED:
+        case WorkflowState.CUSTOMER_DELIVERED:
+        case WorkflowState.ACCOUNTS_COST_VERIFICATION:
+          targetDepts.push('ACCOUNTS', 'ACCT');
+          break;
+        case WorkflowState.ACTUAL_COST_UPDATED:
+          targetDepts.push('DESIGN', 'DSGN', 'ACCOUNTS', 'ACCT');
+          isManagerEvent = true;
+          break;
+        case WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE:
+        case WorkflowState.ARCHIVED:
+        case WorkflowState.COMPLETED:
+          isManagerEvent = true;
+          break;
+        default:
+          break;
+      }
+
+      // Find recipient users
       const recipientUsers = await this.prisma.user.findMany({
         where: {
           isDeleted: false,
           status: 'ACTIVE',
           OR: [
+            // Admin always receives everything
             {
               role: {
                 roleName: {
-                  in: ['Senior Manager', 'General Manager', 'ADMIN', 'System Administrator'],
+                  in: ['ADMIN', 'System Administrator'],
                 },
               },
             },
-            ...(rule.targetDepartmentCode
+            // Managers receive monitoring events
+            ...(isManagerEvent
+              ? [
+                  {
+                    role: {
+                      roleName: {
+                        in: ['Senior Manager', 'General Manager'],
+                      },
+                    },
+                  },
+                ]
+              : []),
+            // Departments receive operational events
+            ...(targetDepts.length > 0
               ? [
                   {
                     department: {
                       departmentCode: {
-                        in: [
-                          rule.targetDepartmentCode,
-                          rule.targetDepartmentCode === 'DESIGN' ? 'DSGN' : '',
-                          rule.targetDepartmentCode === 'STORES' ? 'STOR' : '',
-                          rule.targetDepartmentCode === 'PRODUCTION' ? 'PROD' : '',
-                          rule.targetDepartmentCode === 'ACCOUNTS' ? 'ACCT' : '',
-                        ].filter(Boolean),
+                        in: targetDepts,
                       },
                     },
                   },
@@ -95,6 +134,30 @@ export class BusinessTransactionEventService {
           },
         },
       });
+
+      // Log: Notification created
+      await this.prisma.auditLog.create({
+        data: {
+          module: 'NOTIFICATIONS',
+          recordId: notification.id,
+          action: 'CREATE',
+          newValue: { title: notification.title },
+          performedBy: triggeredByUserId || 'SYSTEM',
+        },
+      });
+
+      // Log: Notification delivered for each recipient
+      for (const recId of uniqueUserIds) {
+        await this.prisma.auditLog.create({
+          data: {
+            module: 'NOTIFICATIONS',
+            recordId: notification.id,
+            action: 'DELIVER',
+            newValue: { recipientUserId: recId },
+            performedBy: triggeredByUserId || 'SYSTEM',
+          },
+        });
+      }
 
       this.logger.log(
         `Dispatched Notification '${notification.title}' (ID: ${notification.id}) to ${uniqueUserIds.length} recipients for Indent #${indentNumber}.`,
