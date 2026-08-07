@@ -140,7 +140,7 @@ export const DashboardPage: React.FC = () => {
       sortOrder: 'desc',
       sortBy: 'createdAt',
     },
-    hasAuditAccess
+    hasAuditAccess,
   );
   const auditLogs = auditData?.items ?? [];
 
@@ -197,7 +197,7 @@ export const DashboardPage: React.FC = () => {
           trend="Lifetime Indents"
           icon={<FileText size={18} />}
           accent="primary"
-        />
+        />,
       );
     }
 
@@ -211,7 +211,7 @@ export const DashboardPage: React.FC = () => {
           trend="Awaiting Action"
           icon={<Clock size={18} />}
           accent="warning"
-        />
+        />,
       );
     }
 
@@ -225,7 +225,7 @@ export const DashboardPage: React.FC = () => {
           trend="In Processing"
           icon={<Activity size={18} />}
           accent="info"
-        />
+        />,
       );
     }
 
@@ -239,7 +239,7 @@ export const DashboardPage: React.FC = () => {
           trend="Delivered & Closed"
           icon={<CheckCircle2 size={18} />}
           accent="success"
-        />
+        />,
       );
     }
 
@@ -253,7 +253,7 @@ export const DashboardPage: React.FC = () => {
           trend="Active SKUs"
           icon={<Package size={18} />}
           accent="primary"
-        />
+        />,
       );
     }
 
@@ -267,7 +267,7 @@ export const DashboardPage: React.FC = () => {
           trend="Suppliers Network"
           icon={<Truck size={18} />}
           accent="primary"
-        />
+        />,
       );
     }
 
@@ -281,7 +281,7 @@ export const DashboardPage: React.FC = () => {
           trend="Business Units"
           icon={<Building2 size={18} />}
           accent="primary"
-        />
+        />,
       );
     }
 
@@ -295,7 +295,7 @@ export const DashboardPage: React.FC = () => {
           trend="Expenditure Limit"
           icon={<Coins size={18} />}
           accent="success"
-        />
+        />,
       );
     }
 
@@ -303,8 +303,10 @@ export const DashboardPage: React.FC = () => {
   }, [isAdmin, isManager, userDept, summary, productsData, vendorsData, departmentData, costsData]);
 
   const showCostsChart = isAdmin || isManager || userDept === 'ACCT';
-  const showWorkflowHealth = isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR' || userDept === 'PROD';
-  const showDeptWorkload = isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR' || userDept === 'PROD';
+  const showWorkflowHealth =
+    isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR' || userDept === 'PROD';
+  const showDeptWorkload =
+    isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR' || userDept === 'PROD';
 
   // Workflow Timeline Items
   const workflowTimelineItems = useMemo(() => {
@@ -548,7 +550,9 @@ export const DashboardPage: React.FC = () => {
       {hasAnalyticsAccess && (showCostsChart || showWorkflowHealth) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {showCostsChart && (
-            <div className={showWorkflowHealth ? "lg:col-span-2 space-y-3" : "lg:col-span-3 space-y-3"}>
+            <div
+              className={showWorkflowHealth ? 'lg:col-span-2 space-y-3' : 'lg:col-span-3 space-y-3'}
+            >
               <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
                 Planned vs Actual Costs
               </h3>
@@ -563,13 +567,15 @@ export const DashboardPage: React.FC = () => {
           )}
 
           {showWorkflowHealth && (
-            <div className={showCostsChart ? "space-y-3" : "lg:col-span-3 space-y-3"}>
+            <div className={showCostsChart ? 'space-y-3' : 'lg:col-span-3 space-y-3'}>
               <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">
                 Workflow Health Snapshot
               </h3>
               <div className="bg-surface-card border border-border-default rounded-xl p-5 space-y-4 shadow-card">
                 <div className="flex justify-between items-center border-b border-border-default/50 pb-2">
-                  <span className="text-xs font-bold text-text-primary">Manufacturing Throughput</span>
+                  <span className="text-xs font-bold text-text-primary">
+                    Manufacturing Throughput
+                  </span>
                   <span className="text-xs font-bold text-status-success">
                     {workflowData?.completionRate?.toFixed(1) ?? 0}% Completion
                   </span>

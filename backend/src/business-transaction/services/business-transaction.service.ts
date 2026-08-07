@@ -457,7 +457,7 @@ export class BusinessTransactionService {
 
     // Get Stores Department ID for workflow history
     const storesDept = await this.prisma.department.findFirst({
-      where: { departmentCode: 'STORES', isDeleted: false },
+      where: { departmentCode: { in: ['STORES', 'STOR'] }, isDeleted: false },
     });
 
     await this.prisma.$transaction([
@@ -511,7 +511,7 @@ export class BusinessTransactionService {
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
     const storesDept = await this.prisma.department.findFirst({
-      where: { departmentCode: 'STORES', isDeleted: false },
+      where: { departmentCode: { in: ['STORES', 'STOR'] }, isDeleted: false },
     });
 
     const verificationResults = await Promise.all(
@@ -607,7 +607,7 @@ export class BusinessTransactionService {
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
     const productionDept = await this.prisma.department.findFirst({
-      where: { departmentCode: 'PRODUCTION', isDeleted: false },
+      where: { departmentCode: { in: ['PRODUCTION', 'PROD'] }, isDeleted: false },
     });
 
     await this.prisma.$transaction(async (prisma) => {
@@ -707,7 +707,10 @@ export class BusinessTransactionService {
 
     if (allIssued) {
       // If all items are issued, transition state to MATERIALS_ISSUED and trigger full notification flow
-      if (txData.currentState === WorkflowState.DESIGN_COMPLETED || txData.currentState === WorkflowState.STORES_PROCESSING) {
+      if (
+        txData.currentState === WorkflowState.DESIGN_COMPLETED ||
+        txData.currentState === WorkflowState.STORES_PROCESSING
+      ) {
         return this.storesIssueMaterials(id, userId, {
           remarks: 'All material items have been issued individual component-by-component.',
         });
@@ -938,7 +941,7 @@ export class BusinessTransactionService {
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
     const accountsDept = await this.prisma.department.findFirst({
-      where: { departmentCode: 'ACCOUNTS', isDeleted: false },
+      where: { departmentCode: { in: ['ACCOUNTS', 'ACCT'] }, isDeleted: false },
     });
 
     await this.prisma.$transaction([
@@ -1524,7 +1527,10 @@ export class BusinessTransactionService {
     const ext = path.extname(file.originalname).toLowerCase();
     let fileType: FileType = FileType.OTHER;
 
-    if (departmentCode === 'DESIGN') {
+    const isDesignDept = departmentCode === 'DESIGN' || departmentCode === 'DSGN';
+    const isAccountsDept = departmentCode === 'ACCOUNTS' || departmentCode === 'ACCT';
+
+    if (isDesignDept) {
       if (txData.currentState !== WorkflowState.DRAFT) {
         throw new BadRequestException('Design uploads allowed only in DRAFT state.');
       }
@@ -1537,7 +1543,7 @@ export class BusinessTransactionService {
       else if (ext === '.xlsx' || ext === '.xls') fileType = FileType.EXCEL;
       else if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') fileType = FileType.IMAGE;
       else if (ext === '.dwg' || ext === '.dxf') fileType = FileType.CAD;
-    } else if (departmentCode === 'ACCOUNTS') {
+    } else if (isAccountsDept) {
       if (
         txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
         txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
@@ -1661,16 +1667,21 @@ export class BusinessTransactionService {
       const meta = JSON.parse(attachment.fileName);
       storageFileName = meta.storageFileName;
 
-      if (meta.department === 'DESIGN') {
-        if (departmentCode !== 'DESIGN') {
+      const isMetaDesign = meta.department === 'DESIGN' || meta.department === 'DSGN';
+      const isMetaAccounts = meta.department === 'ACCOUNTS' || meta.department === 'ACCT';
+      const isUserDesign = departmentCode === 'DESIGN' || departmentCode === 'DSGN';
+      const isUserAccounts = departmentCode === 'ACCOUNTS' || departmentCode === 'ACCT';
+
+      if (isMetaDesign) {
+        if (!isUserDesign) {
           throw new ForbiddenException('Only Design department can delete design files.');
         }
         if (txData.currentState !== WorkflowState.DRAFT) {
           throw new BadRequestException('Cannot delete Design files after submission.');
         }
       }
-      if (meta.department === 'ACCOUNTS') {
-        if (departmentCode !== 'ACCOUNTS') {
+      if (isMetaAccounts) {
+        if (!isUserAccounts) {
           throw new ForbiddenException('Only Accounts department can delete financial files.');
         }
         if (
@@ -1764,6 +1775,72 @@ export class BusinessTransactionService {
    * Get physical file path for download
    */
   public async getAttachmentFilePath(fileName: string): Promise<string> {
+    return this.attachmentStorage.getFilePath(fileName);
+  }
+
+  /**
+   * Securely retrieve physical file path for download after validating RBAC and department ownership
+   */
+  public async verifyDownloadAccess(fileName: string, userId: string): Promise<string> {
+    const atts = await this.prisma.indentAttachment.findMany({
+      where: {
+        fileName: {
+          contains: fileName,
+        },
+        isDeleted: false,
+      },
+    });
+
+    if (atts.length === 0) {
+      throw new NotFoundException(`Attachment with filename '${fileName}' not found.`);
+    }
+
+    const att = atts[0];
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        department: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new ForbiddenException('User not found.');
+    }
+
+    // Admin has full unrestricted access
+    if (user.role?.roleName === 'Admin') {
+      return this.attachmentStorage.getFilePath(fileName);
+    }
+
+    // Extract meta information
+    let attachmentDept = 'DESIGN';
+    try {
+      const meta = JSON.parse(att.fileName);
+      attachmentDept = meta.department || 'DESIGN';
+    } catch {
+      // Fallback
+    }
+
+    const userDeptCode = user.department?.departmentCode;
+    const userRoleName = user.role?.roleName;
+
+    // Managers have read-only access to everything
+    const isManager = userRoleName === 'Senior Manager' || userRoleName === 'General Manager';
+
+    const isAttAccounts = attachmentDept === 'ACCOUNTS' || attachmentDept === 'ACCT';
+    const isUserAccounts = userDeptCode === 'ACCOUNTS' || userDeptCode === 'ACCT';
+
+    // Accounts files (e.g. bills/invoices) are restricted to Accounts and Managers
+    if (isAttAccounts) {
+      if (!isUserAccounts && !isManager) {
+        throw new ForbiddenException(
+          'Access denied. Financial files are restricted to Accounts department.',
+        );
+      }
+    }
+
     return this.attachmentStorage.getFilePath(fileName);
   }
 
@@ -1912,9 +1989,12 @@ export class BusinessTransactionService {
     tx.attachments.forEach((att: any) => {
       totalDocs++;
 
-      if (att.department === 'DESIGN') {
+      const isAttDesign = att.department === 'DESIGN' || att.department === 'DSGN';
+      const isAttAccounts = att.department === 'ACCOUNTS' || att.department === 'ACCT';
+
+      if (isAttDesign) {
         designDocs++;
-      } else if (att.department === 'ACCOUNTS') {
+      } else if (isAttAccounts) {
         accountsDocs++;
       }
 
@@ -2025,15 +2105,20 @@ export class BusinessTransactionService {
       oldMeta = { department: 'DESIGN', storageFileName: attachment.fileName };
     }
 
-    if (oldMeta.department === 'DESIGN') {
-      if (departmentCode !== 'DESIGN') {
+    const isOldDesign = oldMeta.department === 'DESIGN' || oldMeta.department === 'DSGN';
+    const isOldAccounts = oldMeta.department === 'ACCOUNTS' || oldMeta.department === 'ACCT';
+    const isUserDesign = departmentCode === 'DESIGN' || departmentCode === 'DSGN';
+    const isUserAccounts = departmentCode === 'ACCOUNTS' || departmentCode === 'ACCT';
+
+    if (isOldDesign) {
+      if (!isUserDesign) {
         throw new ForbiddenException('Only Design department can replace design files.');
       }
       if (txData.currentState !== WorkflowState.DRAFT) {
         throw new BadRequestException('Cannot replace Design files after submission.');
       }
-    } else if (oldMeta.department === 'ACCOUNTS') {
-      if (departmentCode !== 'ACCOUNTS') {
+    } else if (isOldAccounts) {
+      if (!isUserAccounts) {
         throw new ForbiddenException('Only Accounts department can replace financial files.');
       }
       if (
@@ -2053,10 +2138,10 @@ export class BusinessTransactionService {
     const designExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png', '.dwg', '.dxf'];
     const accountsExtensions = ['.pdf', '.xlsx', '.xls'];
 
-    if (oldMeta.department === 'DESIGN' && !designExtensions.includes(ext)) {
+    if (isOldDesign && !designExtensions.includes(ext)) {
       throw new BadRequestException(`Extension '${ext}' not supported for Design replace.`);
     }
-    if (oldMeta.department === 'ACCOUNTS' && !accountsExtensions.includes(ext)) {
+    if (isOldAccounts && !accountsExtensions.includes(ext)) {
       throw new BadRequestException(`Extension '${ext}' not supported for Accounts replace.`);
     }
 

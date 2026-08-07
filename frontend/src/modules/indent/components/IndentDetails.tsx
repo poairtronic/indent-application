@@ -42,8 +42,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
 
   const canIssueStores = React.useMemo(() => {
     const isValidState =
-      indent.currentState === 'DESIGN_COMPLETED' ||
-      indent.currentState === 'STORES_PROCESSING';
+      indent.currentState === 'DESIGN_COMPLETED' || indent.currentState === 'STORES_PROCESSING';
     if (!isValidState) return false;
 
     const access = getWorkflowAccess(indent.currentState as any, user);
@@ -170,7 +169,15 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                         </td>
                         <td className="py-3 px-4">
                           {item.status && (
-                            <Badge tone={item.status === 'ISSUED' ? 'green' : item.status === 'VERIFIED' ? 'blue' : 'yellow'}>
+                            <Badge
+                              tone={
+                                item.status === 'ISSUED'
+                                  ? 'green'
+                                  : item.status === 'VERIFIED'
+                                    ? 'blue'
+                                    : 'yellow'
+                              }
+                            >
                               {item.status}
                             </Badge>
                           )}

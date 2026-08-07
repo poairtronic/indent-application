@@ -49,7 +49,11 @@ export function createErrorInterceptor(
 
     if (error.response?.status === 403) {
       onForbidden?.();
-      logSecurityDenial('API_ACCESS_DENIED', originalRequest.url || 'N/A', 'API_FORBIDDEN_RESPONSE');
+      logSecurityDenial(
+        'API_ACCESS_DENIED',
+        originalRequest.url || 'N/A',
+        'API_FORBIDDEN_RESPONSE',
+      );
       throw new ForbiddenError();
     }
 

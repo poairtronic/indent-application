@@ -181,17 +181,8 @@ export const ProcessFormModal: React.FC<ProcessFormModalProps> = ({
         onSubmit={handleSubmit(handleFormSubmit)}
         className="grid grid-cols-1 sm:grid-cols-2 gap-4"
       >
-        <FormField
-          label="Product"
-          htmlFor="productId"
-          required
-          error={errors.productId?.message}
-        >
-          <select
-            id="productId"
-            className={inputClasses}
-            {...register('productId')}
-          >
+        <FormField label="Product" htmlFor="productId" required error={errors.productId?.message}>
+          <select id="productId" className={inputClasses} {...register('productId')}>
             <option value="">Select a Product</option>
             {products.map((prod) => (
               <option key={prod.id} value={prod.id}>

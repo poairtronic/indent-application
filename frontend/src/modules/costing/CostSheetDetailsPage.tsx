@@ -573,8 +573,12 @@ export const CostSheetDetailsPage: React.FC = () => {
           {isEditable && (
             <div className="p-4 border border-dashed border-border-default rounded-xl bg-background-primary/30 flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="space-y-1 text-center md:text-left">
-                <p className="text-sm font-semibold text-text-primary">Upload Vendor Bill / Invoice</p>
-                <p className="text-xs text-text-muted">Select a PDF or image file detailing the process cost invoices.</p>
+                <p className="text-sm font-semibold text-text-primary">
+                  Upload Vendor Bill / Invoice
+                </p>
+                <p className="text-xs text-text-muted">
+                  Select a PDF or image file detailing the process cost invoices.
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <input

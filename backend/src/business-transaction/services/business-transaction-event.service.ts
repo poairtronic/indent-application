@@ -49,7 +49,15 @@ export class BusinessTransactionEventService {
               ? [
                   {
                     department: {
-                      departmentCode: rule.targetDepartmentCode,
+                      departmentCode: {
+                        in: [
+                          rule.targetDepartmentCode,
+                          rule.targetDepartmentCode === 'DESIGN' ? 'DSGN' : '',
+                          rule.targetDepartmentCode === 'STORES' ? 'STOR' : '',
+                          rule.targetDepartmentCode === 'PRODUCTION' ? 'PROD' : '',
+                          rule.targetDepartmentCode === 'ACCOUNTS' ? 'ACCT' : '',
+                        ].filter(Boolean),
+                      },
                     },
                   },
                 ]

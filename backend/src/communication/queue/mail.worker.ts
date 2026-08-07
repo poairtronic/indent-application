@@ -51,7 +51,9 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
       });
 
       this.redisConnection.on('error', (err) => {
-        this.logger.warn(`Redis connection unavailable: ${err.message}. Queue processing running in offline mode.`);
+        this.logger.warn(
+          `Redis connection unavailable: ${err.message}. Queue processing running in offline mode.`,
+        );
       });
 
       this.worker = new Worker<IJobPayload>(

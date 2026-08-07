@@ -50,7 +50,9 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
       this.redisConnection = new Redis(connectionOptions);
 
       this.redisConnection.on('error', (err) => {
-        this.logger.warn(`Redis connection unavailable: ${err.message}. Queue processing running in offline fallback mode.`);
+        this.logger.warn(
+          `Redis connection unavailable: ${err.message}. Queue processing running in offline fallback mode.`,
+        );
       });
 
       this.redisConnection.on('connect', () => {

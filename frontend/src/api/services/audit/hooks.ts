@@ -5,8 +5,8 @@ import type { AuditLogQueryParams } from '../../types/audit';
 
 export function useAuditLogs(params?: AuditLogQueryParams, enabled?: boolean) {
   return useQuery({
-     queryKey: [...queryKeys.audit.list('audit'), params],
-     queryFn: () => auditService.list(params),
-     enabled,
+    queryKey: [...queryKeys.audit.list('audit'), params],
+    queryFn: () => auditService.list(params),
+    enabled,
   });
 }

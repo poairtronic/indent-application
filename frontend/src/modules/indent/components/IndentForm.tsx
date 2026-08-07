@@ -108,12 +108,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
             })) || [
               { materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
             ],
-            processCosts:
-              initialData.costSheet?.processCosts?.map((pc) => ({
-                processId: pc.processId,
-                predictedCost: pc.predictedCost,
-                estimatedHours: pc.estimatedHours,
-              })) || [{ processId: '', predictedCost: 0, estimatedHours: 0 }],
+            processCosts: initialData.costSheet?.processCosts?.map((pc) => ({
+              processId: pc.processId,
+              predictedCost: pc.predictedCost,
+              estimatedHours: pc.estimatedHours,
+            })) || [{ processId: '', predictedCost: 0, estimatedHours: 0 }],
           },
         }
       : {
@@ -348,7 +347,13 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                 />
               </div>
               <div className="md:col-span-1 flex justify-end mt-6">
-                <Button type="button" variant="danger" size="sm" onClick={() => removeItem(index)} disabled={isReadOnly}>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => removeItem(index)}
+                  disabled={isReadOnly}
+                >
                   Rem
                 </Button>
               </div>
@@ -374,7 +379,8 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
         </div>
         {errors.costSheet?.processCosts && (
           <p className="text-xs text-status-error mb-4">
-            {(errors.costSheet.processCosts as any).message || (errors.costSheet.processCosts as any).root?.message}
+            {(errors.costSheet.processCosts as any).message ||
+              (errors.costSheet.processCosts as any).root?.message}
           </p>
         )}
 
@@ -390,7 +396,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                   name={`costSheet.processCosts.${index}.processId`}
                   render={({ field }) => {
                     const selectedProcess = processes.find((p) => p.id === field.value);
-                    const inputValue = selectedProcess ? selectedProcess.processName : field.value || '';
+                    const inputValue = selectedProcess
+                      ? selectedProcess.processName
+                      : field.value || '';
                     return (
                       <div className="w-full font-sans">
                         <Input
@@ -406,7 +414,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                             );
                             field.onChange(matched ? matched.id : val);
                           }}
-                          error={errors.costSheet?.processCosts?.[index]?.processId?.message ? 'Please select an existing process from the list' : undefined}
+                          error={
+                            errors.costSheet?.processCosts?.[index]?.processId?.message
+                              ? 'Please select an existing process from the list'
+                              : undefined
+                          }
                         />
                         <datalist id={`processes-datalist-${index}`}>
                           {processes.map((p) => (

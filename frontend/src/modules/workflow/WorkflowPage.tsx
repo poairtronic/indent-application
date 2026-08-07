@@ -46,7 +46,7 @@ export const WorkflowPage: React.FC = () => {
       state: selectedStage || undefined,
       search: searchTerm.trim() || undefined,
     }),
-    [selectedStage, searchTerm]
+    [selectedStage, searchTerm],
   );
 
   const {
@@ -63,7 +63,7 @@ export const WorkflowPage: React.FC = () => {
     analytics?.stageDistribution.forEach((dist) => {
       // Find matching workflow state key by checking label
       const stateKey = Object.keys(WORKFLOW_STAGES).find(
-        (key) => WORKFLOW_STAGES[key as WorkflowState].label === dist.stageName
+        (key) => WORKFLOW_STAGES[key as WorkflowState].label === dist.stageName,
       );
       if (stateKey) {
         counts[stateKey] = dist.count;
@@ -118,12 +118,18 @@ export const WorkflowPage: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold text-text-primary">Business Workflows</h1>
               <p className="text-sm text-text-secondary mt-1">
-                Monitor stages, identify active bottlenecks, and track cycle throughput in the Zero-Approval workflow.
+                Monitor stages, identify active bottlenecks, and track cycle throughput in the
+                Zero-Approval workflow.
               </p>
             </div>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          className="flex items-center gap-2"
+        >
           <RefreshCw size={16} /> Refresh Metrics
         </Button>
       </div>
@@ -133,7 +139,9 @@ export const WorkflowPage: React.FC = () => {
         <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs text-text-muted uppercase tracking-wider">Completion Rate</p>
-            <p className="text-2xl font-bold text-text-primary">{analytics?.completionRate ?? 0}%</p>
+            <p className="text-2xl font-bold text-text-primary">
+              {analytics?.completionRate ?? 0}%
+            </p>
           </div>
           <div className="p-3 bg-status-success/10 text-status-success rounded-lg">
             <TrendingUp size={20} />
@@ -144,7 +152,9 @@ export const WorkflowPage: React.FC = () => {
           <div className="space-y-1">
             <p className="text-xs text-text-muted uppercase tracking-wider">Avg. Cycle Time</p>
             <p className="text-2xl font-bold text-text-primary">
-              {analytics?.averageCycleDays != null ? `${analytics.averageCycleDays} days` : 'N/A'}
+              {analytics?.averageCycleDays !== undefined && analytics?.averageCycleDays !== null
+                ? `${analytics.averageCycleDays} days`
+                : 'N/A'}
             </p>
           </div>
           <div className="p-3 bg-accent-primary/10 text-accent-primary rounded-lg">
@@ -167,7 +177,9 @@ export const WorkflowPage: React.FC = () => {
         <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs text-text-muted uppercase tracking-wider">Stalled (&gt;7 Days)</p>
-            <p className="text-2xl font-bold text-text-primary">{analytics?.stalledTransactions ?? 0}</p>
+            <p className="text-2xl font-bold text-text-primary">
+              {analytics?.stalledTransactions ?? 0}
+            </p>
           </div>
           <div className="p-3 bg-status-warning/10 text-status-warning rounded-lg">
             <Activity size={20} />
@@ -226,7 +238,9 @@ export const WorkflowPage: React.FC = () => {
                     <span className="text-[10px] text-text-muted">Active Indents</span>
                     <span
                       className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                        count > 0 ? 'bg-accent-primary/10 text-accent-primary' : 'bg-background-primary text-text-muted'
+                        count > 0
+                          ? 'bg-accent-primary/10 text-accent-primary'
+                          : 'bg-background-primary text-text-muted'
                       }`}
                     >
                       {count}
@@ -294,7 +308,9 @@ export const WorkflowPage: React.FC = () => {
                     <span className="text-[10px] text-text-muted">Active Indents</span>
                     <span
                       className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                        count > 0 ? 'bg-status-success/10 text-status-success' : 'bg-background-primary text-text-muted'
+                        count > 0
+                          ? 'bg-status-success/10 text-status-success'
+                          : 'bg-background-primary text-text-muted'
                       }`}
                     >
                       {count}
@@ -319,10 +335,12 @@ export const WorkflowPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h3 className="text-lg font-bold text-text-primary">
-              Active Workflow Indents {selectedStage ? `(${formatWorkflowState(selectedStage)})` : ''}
+              Active Workflow Indents{' '}
+              {selectedStage ? `(${formatWorkflowState(selectedStage)})` : ''}
             </h3>
             <p className="text-xs text-text-secondary mt-1">
-              Showing active transactions progressing through the workflow. Click any stage above to filter the list.
+              Showing active transactions progressing through the workflow. Click any stage above to
+              filter the list.
             </p>
           </div>
 
@@ -337,7 +355,12 @@ export const WorkflowPage: React.FC = () => {
               />
             </div>
             {selectedStage && (
-              <Button variant="outline" size="sm" onClick={() => setSelectedStage(null)} className="h-9 whitespace-nowrap text-xs">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedStage(null)}
+                className="h-9 whitespace-nowrap text-xs"
+              >
                 Clear Stage Filter
               </Button>
             )}
@@ -380,8 +403,12 @@ export const WorkflowPage: React.FC = () => {
                       key={indent.id}
                       className="border-b border-border-default/50 hover:bg-background-primary/50 text-sm transition-colors"
                     >
-                      <td className="py-3.5 px-4 font-bold text-text-primary">{indent.indentNumber}</td>
-                      <td className="py-3.5 px-4 text-text-secondary">{indent.productName || 'N/A'}</td>
+                      <td className="py-3.5 px-4 font-bold text-text-primary">
+                        {indent.indentNumber}
+                      </td>
+                      <td className="py-3.5 px-4 text-text-secondary">
+                        {indent.productName || 'N/A'}
+                      </td>
                       <td className="py-3.5 px-4">
                         <Badge tone="gray" className="text-[10px]">
                           {indent.departmentName || 'N/A'}

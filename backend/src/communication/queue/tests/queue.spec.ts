@@ -15,6 +15,7 @@ jest.mock('bullmq', () => {
     Queue: jest.fn().mockImplementation(() => ({
       add: jest.fn().mockResolvedValue({ id: 'job-id-123' }),
       close: jest.fn(),
+      on: jest.fn(),
       getActiveCount: jest.fn().mockResolvedValue(1),
       getCompletedCount: jest.fn().mockResolvedValue(5),
       getFailedCount: jest.fn().mockResolvedValue(2),

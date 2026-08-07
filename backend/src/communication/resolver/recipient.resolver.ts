@@ -36,9 +36,21 @@ export class RecipientResolver {
 
     // 2. Department Code (e.g. "DESIGN", "STORES", "ACCOUNTS")
     if (query.departmentCode) {
+      const codes = [
+        query.departmentCode,
+        query.departmentCode === 'DESIGN' ? 'DSGN' : '',
+        query.departmentCode === 'STORES' ? 'STOR' : '',
+        query.departmentCode === 'PRODUCTION' ? 'PROD' : '',
+        query.departmentCode === 'ACCOUNTS' ? 'ACCT' : '',
+        query.departmentCode === 'DSGN' ? 'DESIGN' : '',
+        query.departmentCode === 'STOR' ? 'STORES' : '',
+        query.departmentCode === 'PROD' ? 'PRODUCTION' : '',
+        query.departmentCode === 'ACCT' ? 'ACCOUNTS' : '',
+      ].filter(Boolean);
+
       const users = await this.prisma.user.findMany({
         where: {
-          department: { departmentCode: query.departmentCode, isDeleted: false },
+          department: { departmentCode: { in: codes }, isDeleted: false },
           isDeleted: false,
           status: 'ACTIVE',
         },

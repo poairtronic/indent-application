@@ -125,11 +125,7 @@ export class BusinessTransactionController {
 
   @Post(':id/items/:itemId/issue')
   @Permissions('stores.issue')
-  async issueItem(
-    @Param('id') id: string,
-    @Param('itemId') itemId: string,
-    @Request() req: any,
-  ) {
+  async issueItem(@Param('id') id: string, @Param('itemId') itemId: string, @Request() req: any) {
     return this.businessTransactionService.issueSingleMaterialItem(id, itemId, req.user.id);
   }
 
@@ -325,12 +321,16 @@ export class BusinessTransactionController {
   }
 
   @Get('attachments/download/:fileName')
+  @Permissions('indent.view', 'accounts.verify')
   async downloadAttachment(
     @Param('fileName') fileName: string,
     @Request() req: any,
     @Res() res: Response,
   ) {
-    const filePath = await this.businessTransactionService.getAttachmentFilePath(fileName);
+    const filePath = await this.businessTransactionService.verifyDownloadAccess(
+      fileName,
+      req.user.id,
+    );
     await this.businessTransactionService.logDocumentDownload(fileName, req.user.id);
     return res.sendFile(filePath);
   }

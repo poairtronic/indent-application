@@ -60,4 +60,3 @@ export function useVendorAnalytics(params?: VendorAnalyticsQuery, enabled?: bool
     enabled,
   });
 }
-

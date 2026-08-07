@@ -19,7 +19,11 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({ children, titl
   const currentPath = location.pathname;
 
   const isPathAllowed = React.useMemo(() => {
-    if (currentPath === '/analytics' || currentPath === '/analytics/workflow' || currentPath === '/analytics/departments') {
+    if (
+      currentPath === '/analytics' ||
+      currentPath === '/analytics/workflow' ||
+      currentPath === '/analytics/departments'
+    ) {
       return true;
     }
     if (currentPath === '/analytics/costs') {

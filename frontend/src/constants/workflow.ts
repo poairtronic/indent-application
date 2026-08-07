@@ -261,11 +261,11 @@ export interface WorkflowAccessResult {
 
 export function getWorkflowAccess(
   currentState: WorkflowState,
-  user: { department?: { departmentCode: string }; permissions: string[] } | null
+  user: { department?: { departmentCode: string }; permissions: string[] } | null,
 ): WorkflowAccessResult {
   const stage = WORKFLOW_STAGES[currentState];
   const owningDepartment = stage?.owningDepartmentCode ?? 'SYSTEM';
-  
+
   if (!user) {
     return {
       owningDepartment,
@@ -275,7 +275,7 @@ export function getWorkflowAccess(
   }
 
   // Admin Override check (permission-based, has settings.manage or settings.manage equivalent)
-  const isAdmin = user.permissions.some(p => p.toLowerCase() === 'settings.manage');
+  const isAdmin = user.permissions.some((p) => p.toLowerCase() === 'settings.manage');
   if (isAdmin) {
     return {
       owningDepartment,
@@ -292,8 +292,8 @@ export function getWorkflowAccess(
 
   // Validate permission code for the active stage
   const stagePermission = stage?.requiredPermissionCode;
-  const hasStagePermission = stagePermission 
-    ? user.permissions.some(p => p.toLowerCase() === stagePermission.toLowerCase())
+  const hasStagePermission = stagePermission
+    ? user.permissions.some((p) => p.toLowerCase() === stagePermission.toLowerCase())
     : false;
 
   const canEdit = isMatchingDepartment && hasStagePermission;
