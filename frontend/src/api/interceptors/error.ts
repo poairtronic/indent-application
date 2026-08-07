@@ -2,6 +2,7 @@ import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { createApiError, UnauthorizedError, ForbiddenError } from '../errors';
 import type { ApiErrorResponse } from '../types/api-response';
 import { apiLogger } from '../utils/logger';
+import { logSecurityDenial } from '../../utils/securityLogger';
 import {
   shouldRetry,
   calculateRetryDelay,
@@ -48,6 +49,7 @@ export function createErrorInterceptor(
 
     if (error.response?.status === 403) {
       onForbidden?.();
+      logSecurityDenial('API_ACCESS_DENIED', originalRequest.url || 'N/A', 'API_FORBIDDEN_RESPONSE');
       throw new ForbiddenError();
     }
 

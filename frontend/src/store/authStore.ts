@@ -14,7 +14,6 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
-  hasRole: (role: string) => boolean;
 }
 
 const STORAGE_KEYS = {
@@ -126,11 +125,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hasAnyPermission: (perms) => {
     const { permissions } = get();
     return perms.some((p) => permissions.some((up) => up.toLowerCase() === p.toLowerCase()));
-  },
-
-  hasRole: (role) => {
-    const { user } = get();
-    if (!user) return false;
-    return user.role.roleName.toUpperCase() === role.toUpperCase();
   },
 }));
