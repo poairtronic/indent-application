@@ -64,9 +64,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
 
   const isProductionMode = React.useMemo(() => {
     return (
-      (indent.currentState === 'PRODUCTION_PROCESSING' ||
-        indent.currentState === 'STORES_PROCESSING' ||
-        indent.currentState === 'MATERIALS_ISSUED') &&
+      indent.currentState === 'PRODUCTION_PROCESSING' &&
       getWorkflowAccess(indent.currentState as any, user).canEdit
     );
   }, [indent.currentState, user]);
@@ -88,6 +86,9 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
               source: item.source,
               productionSource: item.productionSource || '',
               userRemarks: item.remarks || '',
+              processSources: item.processes?.map((p: any) => p.vendorType || '') || [],
+              processProductionSources:
+                item.processes?.map((p: any) => p.productionSource || '') || [],
             }),
           })),
         },
@@ -119,15 +120,9 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
             actualHours: matched?.actualHours ?? 0,
           };
         }),
-        actualDesignCost: data.indent.remarks
-          ? JSON.parse(data.indent.remarks).actualDesignCost
-          : 0,
-        actualOverheadCost: data.indent.remarks
-          ? JSON.parse(data.indent.remarks).actualOverheadCost
-          : 0,
-        actualContingencyCost: data.indent.remarks
-          ? JSON.parse(data.indent.remarks).actualContingencyCost
-          : 0,
+        actualDesignCost: data.costSheet.actualDesignCost || 0,
+        actualOverheadCost: data.costSheet.actualOverheadCost || 0,
+        actualContingencyCost: data.costSheet.actualContingencyCost || 0,
       };
 
       await enterActualCosts({ id: indent.id, data: payload });

@@ -21,6 +21,7 @@ export interface ParsedRemarks {
   productionSource?: string;
   userRemarks?: string;
   processSources?: string[];
+  processProductionSources?: string[];
 }
 
 export function parseItemRemarks(remarks: string | null | undefined): ParsedRemarks {
@@ -45,6 +46,7 @@ export function parseItemRemarks(remarks: string | null | undefined): ParsedRema
         productionSource: parsed.productionSource || '',
         userRemarks: parsed.userRemarks || '',
         processSources: parsed.processSources || [],
+        processProductionSources: parsed.processProductionSources || [],
       };
     }
   } catch {
@@ -79,9 +81,14 @@ export function parseIndentRemarks(remarks: string | null | undefined): ParsedIn
 
   let jsonPart = remarks;
 
-  const verificationIndex = remarks.indexOf('Stock Verification Results:');
+  const firstNewline = remarks.indexOf('\n');
+  if (firstNewline !== -1) {
+    jsonPart = remarks.substring(0, firstNewline).trim();
+  }
+
+  const verificationIndex = jsonPart.indexOf('Stock Verification Results:');
   if (verificationIndex !== -1) {
-    jsonPart = remarks.substring(0, verificationIndex).trim();
+    jsonPart = jsonPart.substring(0, verificationIndex).trim();
   }
 
   try {
@@ -138,6 +145,7 @@ const indentSchema = z
                   actualCost: z.number().min(0).optional(),
                   actualHours: z.number().min(0).optional(),
                   vendorType: z.string().optional(),
+                  productionSource: z.string().optional(),
                 }),
               )
               .optional(),
@@ -198,6 +206,7 @@ const NestedProcessArray: React.FC<{
   errors: any;
   isReadOnly: boolean;
   isAccountsMode?: boolean;
+  isProductionMode?: boolean;
   processesList: any[];
   itemTotal: { predicted: number; actual: number };
 }> = ({
@@ -207,6 +216,7 @@ const NestedProcessArray: React.FC<{
   errors,
   isReadOnly,
   isAccountsMode,
+  isProductionMode,
   processesList,
   itemTotal,
 }) => {
@@ -219,12 +229,20 @@ const NestedProcessArray: React.FC<{
     <div className="mt-4 p-4 bg-surface-base rounded border border-border-default">
       <div className="flex justify-between items-center mb-3">
         <h4 className="text-xs font-bold text-text-secondary uppercase">Manufacturing Processes</h4>
-        {!isReadOnly && (
+        {!isReadOnly && !isProductionMode && (
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => append({ processId: '', predictedCost: 0, estimatedHours: 0 })}
+            onClick={() =>
+              append({
+                processId: '',
+                predictedCost: 0,
+                estimatedHours: 0,
+                vendorType: '',
+                productionSource: '',
+              })
+            }
           >
             Add Process
           </Button>
@@ -242,16 +260,25 @@ const NestedProcessArray: React.FC<{
         {fields.map((field, pIndex) => {
           const showActual = isAccountsMode || field.actualCost !== undefined;
           let processCol = 'md:col-span-3';
-          const sourceCol = 'md:col-span-3';
+          let sourceCol = 'md:col-span-2';
+          let prodSourceCol = 'md:col-span-2';
           let hoursCol = 'md:col-span-2';
-          let plannedCol = 'md:col-span-3';
-          const actualCol = 'md:col-span-3';
+          let plannedCol = 'md:col-span-2';
+          let actualCol = 'md:col-span-1';
 
           if (showActual) {
             processCol = 'md:col-span-2';
+            sourceCol = 'md:col-span-2';
+            prodSourceCol = 'md:col-span-2';
+            hoursCol = 'md:col-span-2';
             plannedCol = 'md:col-span-2';
+            actualCol = 'md:col-span-2';
           } else if (isReadOnly) {
-            hoursCol = 'md:col-span-3';
+            processCol = 'md:col-span-3';
+            sourceCol = 'md:col-span-2';
+            prodSourceCol = 'md:col-span-3';
+            hoursCol = 'md:col-span-2';
+            plannedCol = 'md:col-span-2';
           }
 
           return (
@@ -274,7 +301,7 @@ const NestedProcessArray: React.FC<{
                           placeholder="Type or select process"
                           value={inputValue}
                           list={`processes-datalist-${itemIndex}-${pIndex}`}
-                          disabled={isReadOnly}
+                          disabled={isReadOnly || isProductionMode}
                           onChange={(e) => {
                             const val = e.target.value;
                             const matched = processesList.find(
@@ -303,11 +330,19 @@ const NestedProcessArray: React.FC<{
                 <Input
                   label="Source"
                   placeholder="e.g. In-house"
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || isProductionMode}
                   {...register(`indent.items.${itemIndex}.processes.${pIndex}.vendorType`)}
                   error={
                     errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.vendorType?.message
                   }
+                />
+              </div>
+              <div className={prodSourceCol}>
+                <Input
+                  label="Prod. Source"
+                  placeholder="e.g. Supplier XYZ"
+                  disabled={!isProductionMode}
+                  {...register(`indent.items.${itemIndex}.processes.${pIndex}.productionSource`)}
                 />
               </div>
               <div className={hoursCol}>
@@ -315,7 +350,7 @@ const NestedProcessArray: React.FC<{
                   label="Est. Hours"
                   type="number"
                   step="0.5"
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || isProductionMode}
                   {...register(`indent.items.${itemIndex}.processes.${pIndex}.estimatedHours`, {
                     valueAsNumber: true,
                   })}
@@ -329,7 +364,7 @@ const NestedProcessArray: React.FC<{
                   label="Planned Cost (₹)"
                   type="number"
                   step="0.01"
-                  disabled={isReadOnly}
+                  disabled={isReadOnly || isProductionMode}
                   {...register(`indent.items.${itemIndex}.processes.${pIndex}.predictedCost`, {
                     valueAsNumber: true,
                   })}
@@ -351,7 +386,7 @@ const NestedProcessArray: React.FC<{
                   />
                 </div>
               )}
-              {!isReadOnly && !isAccountsMode && (
+              {!isReadOnly && !isAccountsMode && !isProductionMode && (
                 <div className="md:col-span-1 flex justify-end">
                   <Button type="button" variant="danger" size="sm" onClick={() => remove(pIndex)}>
                     Rem
@@ -460,6 +495,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         actualCost: ip.actualCost ? Number(ip.actualCost) : undefined,
                         actualHours: ip.actualHours ? Number(ip.actualHours) : undefined,
                         vendorType: parsed.processSources?.[pIdx] || '',
+                        productionSource: parsed.processProductionSources?.[pIdx] || '',
                       };
                     }) || [],
                 };
@@ -654,6 +690,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
           productionSource: item.productionSource,
           userRemarks: item.remarks || '',
           processSources: item.processes?.map((p) => p.vendorType || '') || [],
+          processProductionSources: item.processes?.map((p) => p.productionSource || '') || [],
         }),
         processes: backendProcesses?.length ? backendProcesses : undefined,
       };
@@ -979,6 +1016,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 errors={errors}
                 isReadOnly={isReadOnly}
                 isAccountsMode={isAccountsMode}
+                isProductionMode={isProductionMode}
                 processesList={processes}
                 itemTotal={itemTotals[index]}
               />

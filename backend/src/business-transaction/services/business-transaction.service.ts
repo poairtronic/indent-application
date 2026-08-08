@@ -406,23 +406,43 @@ export class BusinessTransactionService {
     userId: string,
   ): Promise<any> {
     const existing = await this.findTransactionById(id);
-    if (existing.currentState !== WorkflowState.DRAFT) {
+    const allowedStates = [
+      WorkflowState.DRAFT,
+      WorkflowState.PRODUCTION_PROCESSING,
+      WorkflowState.ACCOUNTS_COST_VERIFICATION,
+    ];
+    if (!allowedStates.includes(existing.currentState as WorkflowState)) {
       throw new BadRequestException(
-        `Cannot edit Business Transaction in state '${existing.currentState}'. Only DRAFT transactions can be modified.`,
+        `Cannot edit Business Transaction in state '${existing.currentState}'.`,
       );
     }
 
-    await this.prisma.indent.update({
-      where: { id },
-      data: {
-        priority: dto.indent?.priority || existing.priority,
-        requiredDate: dto.indent?.requiredDate
-          ? new Date(dto.indent.requiredDate)
-          : existing.requiredDate,
-        purpose: dto.indent?.purpose || existing.purpose,
-        remarks: dto.indent?.remarks || existing.remarks,
-        updatedBy: userId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.indent.update({
+        where: { id },
+        data: {
+          priority: dto.indent?.priority || existing.priority,
+          requiredDate: dto.indent?.requiredDate
+            ? new Date(dto.indent.requiredDate)
+            : existing.requiredDate,
+          purpose: dto.indent?.purpose || existing.purpose,
+          remarks: dto.indent?.remarks || existing.remarks,
+          updatedBy: userId,
+        },
+      });
+
+      if (dto.indent?.items && dto.indent.items.length > 0) {
+        for (let i = 0; i < dto.indent.items.length; i++) {
+          const itemDto = dto.indent.items[i];
+          const existingItem = existing.items[i];
+          if (existingItem && itemDto.remarks !== undefined) {
+            await tx.indentItem.update({
+              where: { id: existingItem.id },
+              data: { remarks: itemDto.remarks },
+            });
+          }
+        }
+      }
     });
 
     await this.eventService.logAudit(
