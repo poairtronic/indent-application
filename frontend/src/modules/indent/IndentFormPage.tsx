@@ -24,6 +24,11 @@ export const IndentFormPage: React.FC = () => {
     } else {
       createIndent(data, {
         onSuccess: (newIndent) => navigate(`/indents/${newIndent.id}`),
+        onError: (err: any) => {
+          const errMsg = err.errors ? err.errors.join('\n') : err.message;
+          alert(`Validation Error: ${errMsg}`);
+          console.error('Backend validation failed:', err);
+        },
       });
     }
   };
