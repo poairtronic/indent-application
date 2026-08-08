@@ -26,18 +26,19 @@ import { Input } from '../../components/ui/Input';
 import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { AppPermission } from '../../constants/permissions';
 import { getWorkflowAccess } from '../../constants/workflow';
+import { parseItemRemarks } from '../indent/components/IndentForm';
 
 const WORKFLOW_STATE_LABELS: Record<string, string> = {
-  DRAFT: 'Draft Created',
+  DRAFT: 'Draft',
   DESIGN_COMPLETED: 'Design Completed',
   STORES_PROCESSING: 'Stores Processing',
   MATERIALS_ISSUED: 'Materials Issued',
-  PRODUCTION_PROCESSING: 'Production In Progress',
+  PRODUCTION_PROCESSING: 'Production Processing',
   PRODUCTION_COMPLETED: 'Production Completed',
   CUSTOMER_DELIVERED: 'Customer Delivered',
-  ACCOUNTS_COST_VERIFICATION: 'Cost Verification Pending',
-  ACTUAL_COST_UPDATED: 'Actual Costs Updated',
-  ACCOUNTS_FINANCIAL_CLOSURE: 'Financial Closure Pending',
+  ACCOUNTS_COST_VERIFICATION: 'Accounts Cost Verification',
+  ACTUAL_COST_UPDATED: 'Actual Cost Updated',
+  ACCOUNTS_FINANCIAL_CLOSURE: 'Accounts Financial Closure',
   ARCHIVED: 'Archived',
   COMPLETED: 'Completed',
 };
@@ -94,16 +95,6 @@ export const CostSheetDetailsPage: React.FC = () => {
   const { mutateAsync: uploadAttachment, isPending: isUploading } = useUploadAttachment();
 
   const user = useAuthStore((s) => s.user);
-  const isEditable = React.useMemo(() => {
-    if (!indent) return false;
-    const isCostVerificationState =
-      indent.currentState === 'ACCOUNTS_COST_VERIFICATION' ||
-      indent.currentState === 'ACTUAL_COST_UPDATED';
-    if (!isCostVerificationState) return false;
-    const access = getWorkflowAccess(indent.currentState as any, user);
-    return access.canEdit;
-  }, [indent, user]);
-
   const canViewWorkflow = hasPermission(AppPermission.WORKFLOW_VIEW);
 
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,6 +112,16 @@ export const CostSheetDetailsPage: React.FC = () => {
       show('error', 'Failed to upload vendor bill. Please try again.');
     }
   };
+
+  const isEditable = React.useMemo(() => {
+    if (!indent) return false;
+    const isCostVerificationState =
+      indent.currentState === 'ACCOUNTS_COST_VERIFICATION' ||
+      indent.currentState === 'ACTUAL_COST_UPDATED';
+    if (!isCostVerificationState) return false;
+    const access = getWorkflowAccess(indent.currentState as any, user);
+    return access.canEdit;
+  }, [indent, user]);
 
   const [actuals, setActuals] = useState<{
     materials: Record<string, { actualRate: number; actualQuantity: number }>;
@@ -316,7 +317,9 @@ export const CostSheetDetailsPage: React.FC = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
+                <th className="py-3 px-4">Part Name / Product</th>
                 <th className="py-3 px-4">Material</th>
+                <th className="py-3 px-4">Size</th>
                 <th className="py-3 px-4">Planned Qty</th>
                 <th className="py-3 px-4">Planned Rate</th>
                 <th className="py-3 px-4">Planned Amt</th>
@@ -327,16 +330,22 @@ export const CostSheetDetailsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {cs.costItems?.map((item) => {
+              {cs.costItems?.map((item, index) => {
                 const itemVariance = (item.actualAmount || 0) - item.predictedAmount;
+                const indentItem = indent?.items?.[index];
+                const parsed = indentItem ? parseItemRemarks(indentItem.remarks) : {};
                 return (
                   <tr
                     key={item.id}
                     className="border-b border-border-default/50 hover:bg-background-primary/50 text-sm"
                   >
                     <td className="py-3 px-4 font-medium text-text-primary">
+                      {parsed.product || '—'}
+                    </td>
+                    <td className="py-3 px-4">
                       {item.material?.materialName || `Material #${item.materialId}`}
                     </td>
+                    <td className="py-3 px-4 text-text-secondary">{parsed.size || '—'}</td>
                     <td className="py-3 px-4">{item.predictedQuantity}</td>
                     <td className="py-3 px-4">Rs.{item.predictedRate}</td>
                     <td className="py-3 px-4">Rs.{item.predictedAmount.toLocaleString()}</td>

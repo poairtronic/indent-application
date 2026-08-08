@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Pagination } from '../../../components/ui/Pagination';
 import { Badge } from '../../../components/ui/Badge';
 import type { IndentData } from '../../../api/services/indents/service';
+import { parseIndentRemarks } from './IndentForm';
 
 interface IndentListProps {
   indents: IndentData[];
@@ -57,15 +58,31 @@ export const IndentList: React.FC<IndentListProps> = ({
       onClick={() => navigate(`/indents/${item.id}`)}
     >
       <div className="flex justify-between items-start">
-        <span className="font-bold text-text-primary text-sm">{item.indentNumber}</span>
+        <div>
+          <span className="font-bold text-text-primary text-sm block">{item.indentNumber}</span>
+          {item.purpose && (
+            <span className="text-text-muted text-[10px] uppercase font-semibold">
+              PO: {item.purpose}
+            </span>
+          )}
+        </div>
         <Badge tone={statusTone[item.currentState] ?? 'gray'}>
           {formatStatus(item.currentState)}
         </Badge>
       </div>
       <div className="text-xs text-text-secondary mt-2 space-y-1">
-        <p>
-          <span className="text-text-muted">Product:</span> {item.productName || 'N/A'}
-        </p>
+        {parseIndentRemarks(item.remarks).customerName && (
+          <p>
+            <span className="text-text-muted">Customer:</span>{' '}
+            {parseIndentRemarks(item.remarks).customerName}
+          </p>
+        )}
+        {parseIndentRemarks(item.remarks).layoutNumber && (
+          <p>
+            <span className="text-text-muted">Layout:</span>{' '}
+            {parseIndentRemarks(item.remarks).layoutNumber}
+          </p>
+        )}
         <p>
           <span className="text-text-muted">Dept:</span> {item.departmentName || 'N/A'}
         </p>
@@ -129,7 +146,8 @@ export const IndentList: React.FC<IndentListProps> = ({
                 <thead>
                   <tr className="bg-background-secondary/60 border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
                     <th className="py-3 px-4">Indent #</th>
-                    <th className="py-3 px-4">Product</th>
+                    <th className="py-3 px-4">Customer</th>
+                    <th className="py-3 px-4">Layout</th>
                     <th className="py-3 px-4">Department</th>
                     <th className="py-3 px-4">Priority</th>
                     <th className="py-3 px-4">Status</th>
@@ -145,10 +163,22 @@ export const IndentList: React.FC<IndentListProps> = ({
                       className="hover:bg-background-primary/40 transition-colors cursor-pointer"
                       onClick={() => navigate(`/indents/${item.id}`)}
                     >
-                      <td className="py-3.5 px-4 font-mono font-bold text-accent-primary">
-                        {item.indentNumber}
+                      <td className="py-3.5 px-4">
+                        <span className="font-mono font-bold text-accent-primary block">
+                          {item.indentNumber}
+                        </span>
+                        {item.purpose && (
+                          <span className="text-text-muted text-[10px] uppercase font-semibold">
+                            PO: {item.purpose}
+                          </span>
+                        )}
                       </td>
-                      <td className="py-3.5 px-4 font-medium">{item.productName || 'N/A'}</td>
+                      <td className="py-3.5 px-4 font-medium">
+                        {parseIndentRemarks(item.remarks).customerName || 'N/A'}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-text-secondary">
+                        {parseIndentRemarks(item.remarks).layoutNumber || 'N/A'}
+                      </td>
                       <td className="py-3.5 px-4 text-text-secondary">
                         {item.departmentName || 'N/A'}
                       </td>

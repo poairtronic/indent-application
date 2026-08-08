@@ -288,7 +288,15 @@ export function getWorkflowAccess(
   // Both Senior Manager and General Manager do NOT have stage-specific write/issue/update/verify permissions,
   // but let's be double-safe by checking their department and permissions:
   const userDeptCode = user.department?.departmentCode?.toUpperCase() ?? '';
-  const isMatchingDepartment = userDeptCode === owningDepartment.toUpperCase();
+  const normalize = (code: string) => {
+    const upper = code.toUpperCase();
+    if (upper === 'DESIGN' || upper === 'DSGN') return 'DSGN';
+    if (upper === 'STORES' || upper === 'STOR') return 'STOR';
+    if (upper === 'PRODUCTION' || upper === 'PROD') return 'PROD';
+    if (upper === 'ACCOUNTS' || upper === 'ACCT') return 'ACCT';
+    return upper;
+  };
+  const isMatchingDepartment = normalize(userDeptCode) === normalize(owningDepartment);
 
   // Validate permission code for the active stage
   const stagePermission = stage?.requiredPermissionCode;

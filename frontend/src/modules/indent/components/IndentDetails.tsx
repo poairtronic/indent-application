@@ -8,6 +8,8 @@ import { useIssueMaterialItem } from '../../../api/services/indents/hooks';
 import { IndentWorkflowTimeline } from './WorkflowTimeline';
 import { IndentActivityFeed } from './ActivityFeed';
 
+import { parseItemRemarks, parseIndentRemarks } from './IndentForm';
+
 interface IndentDetailsProps {
   indent: IndentData;
 }
@@ -49,13 +51,19 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
     return access.canEdit;
   }, [indent, user]);
 
+  const parsedRemarks = parseIndentRemarks(indent.remarks);
+
   return (
     <div className="space-y-6">
       {/* Header Info */}
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-text-primary mb-1">{indent.indentNumber}</h2>
-          <p className="text-sm text-text-secondary">{indent.purpose || 'No purpose specified'}</p>
+          <h2 className="text-xl font-bold text-text-primary mb-1">
+            {indent.indentNumber} {indent.purpose ? `(PO: ${indent.purpose})` : ''}
+          </h2>
+          <p className="text-sm text-text-secondary">
+            Material request for PO {indent.purpose || 'N/A'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
@@ -84,9 +92,19 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
             <h3 className="text-sm font-bold text-text-primary mb-4">Indent Information</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               <div>
-                <p className="text-xs text-text-muted mb-1">Product</p>
+                <p className="text-xs text-text-muted mb-1">PO Number</p>
+                <p className="text-sm font-medium text-text-primary">{indent.purpose || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-muted mb-1">Layout Number</p>
                 <p className="text-sm font-medium text-text-primary">
-                  {indent.productName || 'N/A'}
+                  {parsedRemarks.layoutNumber || 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-text-muted mb-1">Customer Name</p>
+                <p className="text-sm font-medium text-text-primary">
+                  {parsedRemarks.customerName || 'N/A'}
                 </p>
               </div>
               <div>
@@ -133,10 +151,10 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
               </div>
             </div>
 
-            {indent.remarks && (
+            {parsedRemarks.userRemarks && (
               <div className="mt-6 pt-6 border-t border-border-default">
                 <p className="text-xs text-text-muted mb-1">Remarks</p>
-                <p className="text-sm text-text-secondary">{indent.remarks}</p>
+                <p className="text-sm text-text-secondary">{parsedRemarks.userRemarks}</p>
               </div>
             )}
           </div>
@@ -149,57 +167,68 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-4">S.No</th>
+                      <th className="py-3 px-4">Part Name / Product</th>
                       <th className="py-3 px-4">Material</th>
+                      <th className="py-3 px-4">Size</th>
                       <th className="py-3 px-4">Quantity</th>
                       <th className="py-3 px-4">Unit</th>
+                      <th className="py-3 px-4">Source</th>
                       <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Remarks</th>
                       {canIssueStores && <th className="py-3 px-4 text-right">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-default/50">
-                    {indent.items.map((item) => (
-                      <tr key={item.id} className="hover:bg-background-primary/40">
-                        <td className="py-3 px-4 font-medium text-text-primary">
-                          {item.material?.materialName || item.materialId}
-                        </td>
-                        <td className="py-3 px-4">{item.quantity}</td>
-                        <td className="py-3 px-4">
-                          {item.unit?.symbol || item.unit?.unitName || item.unitId}
-                        </td>
-                        <td className="py-3 px-4">
-                          {item.status && (
-                            <Badge
-                              tone={
-                                item.status === 'ISSUED'
-                                  ? 'green'
-                                  : item.status === 'VERIFIED'
-                                    ? 'blue'
-                                    : 'yellow'
-                              }
-                            >
-                              {item.status}
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary">{item.remarks || '—'}</td>
-                        {canIssueStores && (
-                          <td className="py-3 px-4 text-right">
-                            <Button
-                              size="sm"
-                              variant={item.status === 'ISSUED' ? 'outline' : 'primary'}
-                              disabled={item.status === 'ISSUED' || isIssuingItem}
-                              onClick={async () => {
-                                await issueItem({ id: indent.id, itemId: item.id });
-                              }}
-                              className="text-xs py-1 px-3"
-                            >
-                              {item.status === 'ISSUED' ? 'Issued ✓' : 'Issue Component'}
-                            </Button>
+                    {indent.items.map((item, index) => {
+                      const parsed = parseItemRemarks(item.remarks);
+                      return (
+                        <tr key={item.id} className="hover:bg-background-primary/40 text-sm">
+                          <td className="py-3 px-4 text-text-muted font-mono">{index + 1}</td>
+                          <td className="py-3 px-4 font-medium text-text-primary">
+                            {parsed.product || '—'}
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td className="py-3 px-4">
+                            {item.material?.materialName || item.materialId}
+                          </td>
+                          <td className="py-3 px-4">{parsed.size || '—'}</td>
+                          <td className="py-3 px-4 font-medium">{item.quantity}</td>
+                          <td className="py-3 px-4 text-text-secondary">
+                            {item.unit?.symbol || item.unit?.unitName || item.unitId}
+                          </td>
+                          <td className="py-3 px-4 text-text-secondary">{parsed.source || '—'}</td>
+                          <td className="py-3 px-4">
+                            {item.status && (
+                              <Badge
+                                tone={
+                                  item.status === 'ISSUED'
+                                    ? 'green'
+                                    : item.status === 'VERIFIED'
+                                      ? 'blue'
+                                      : 'yellow'
+                                }
+                              >
+                                {item.status}
+                              </Badge>
+                            )}
+                          </td>
+                          {canIssueStores && (
+                            <td className="py-3 px-4 text-right">
+                              <Button
+                                size="sm"
+                                variant={item.status === 'ISSUED' ? 'outline' : 'primary'}
+                                disabled={item.status === 'ISSUED' || isIssuingItem}
+                                onClick={async () => {
+                                  await issueItem({ id: indent.id, itemId: item.id });
+                                }}
+                                className="text-xs py-1 px-3"
+                              >
+                                {item.status === 'ISSUED' ? 'Issued ✓' : 'Issue Component'}
+                              </Button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
