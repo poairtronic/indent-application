@@ -330,14 +330,6 @@ export const AppRouter: React.FC = () => {
           }
         />
         <Route
-          path="/inventory"
-          element={
-            <ProtectedRoute permissions={['inventory.view']}>
-              <ComingSoon title="Inventory & Stock" />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/materials"
           element={
             <ProtectedRoute permissions={['materials.view']}>

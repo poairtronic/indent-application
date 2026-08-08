@@ -516,36 +516,15 @@ export class BusinessTransactionService {
 
     const verificationResults = await Promise.all(
       txData.items.map(async (item: any) => {
-        const material = await this.prisma.material.findUnique({
-          where: { id: item.materialId },
-        });
-
-        if (!material) {
-          throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
-        }
-
-        const isAvailable = material.currentStock.greaterThanOrEqualTo(item.quantity);
-        const status = isAvailable ? 'AVAILABLE' : 'TO_BE_PURCHASED';
-
         return {
           id: item.id,
-          status,
-          materialName: material.materialName,
-          requested: item.quantity,
-          availableStock: material.currentStock,
+          status: 'AVAILABLE',
         };
       }),
     );
 
-    const hasInsufficientStock = verificationResults.some((r) => r.status === 'TO_BE_PURCHASED');
-    const verificationRemarks =
-      `Stock Verification Results:\n` +
-      verificationResults
-        .map(
-          (r) =>
-            `- ${r.materialName}: Requested ${r.requested}, Stock ${r.availableStock} [${r.status}]`,
-        )
-        .join('\n');
+    const hasInsufficientStock = false;
+    const verificationRemarks = `Stores verification completed.`;
 
     await this.prisma.$transaction(async (prisma) => {
       for (const res of verificationResults) {
@@ -611,30 +590,11 @@ export class BusinessTransactionService {
     });
 
     await this.prisma.$transaction(async (prisma) => {
-      for (const item of txData.items) {
-        const material = await prisma.material.findUnique({
-          where: { id: item.materialId },
-        });
-
-        if (!material) {
-          throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
-        }
-
-        if (material.currentStock.lessThan(item.quantity)) {
-          throw new BadRequestException(
-            `Inventory is insufficient for material '${material.materialName}'. Verification/Purchasing is required. Required: ${item.quantity}, Available: ${material.currentStock}`,
-          );
-        }
-
-        await prisma.material.update({
-          where: { id: item.materialId },
-          data: {
-            currentStock: {
-              decrement: item.quantity,
-            },
-          },
-        });
-      }
+      // Mark all items as ISSUED since we don't track physical inventory
+      await prisma.indentItem.updateMany({
+        where: { indentId: id },
+        data: { status: 'ISSUED' },
+      });
 
       const updatedRemarks = `${txData.remarks || ''}\n[MATERIALS_ISSUED] Materials issued from Stores. ${dto.remarks ? `Remarks: ${dto.remarks}` : ''}`;
       await prisma.indent.update({
@@ -685,18 +645,6 @@ export class BusinessTransactionService {
       where: { id: itemId },
       data: { status: 'ISSUED' },
     });
-
-    // 2. Decrement material stock if material exists
-    await this.prisma.material
-      .update({
-        where: { id: item.materialId },
-        data: {
-          currentStock: {
-            decrement: item.quantity,
-          },
-        },
-      })
-      .catch(() => {});
 
     // Fetch updated items
     const allItems = await this.prisma.indentItem.findMany({

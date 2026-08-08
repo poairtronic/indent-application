@@ -16,6 +16,7 @@ import {
 } from '../../constants/workflow';
 import { ArrowLeft, Edit, Printer, Copy, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import type { WorkflowState } from '../../constants/workflow';
+import { AppPermission } from '../../constants/permissions';
 
 export const IndentDetailsPage: React.FC = () => {
   const { id } = useParams();
@@ -24,11 +25,13 @@ export const IndentDetailsPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const { data: indent, isLoading, refetch } = useIndent(id || '');
 
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+
   const isEditable = React.useMemo(() => {
     if (!indent) return false;
     const access = getWorkflowAccess(indent.currentState as any, user);
-    return access.canEdit;
-  }, [indent, user]);
+    return access.canEdit && hasPermission(AppPermission.INDENT_EDIT);
+  }, [indent, user, hasPermission]);
 
   if (isLoading) {
     return (

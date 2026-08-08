@@ -17,7 +17,6 @@ export const menuItems: MenuItem[] = [
   { label: 'Cost Sheets', path: '/cost-sheets', iconName: 'Coins', permission: 'costsheet.view' },
   { label: 'Workflow', path: '/workflow', iconName: 'GitFork', permission: 'workflow.view' },
   { label: 'Production', path: '/production', iconName: 'Factory', permission: 'production.view' },
-  { label: 'Inventory', path: '/inventory', iconName: 'Boxes', permission: 'inventory.view' },
   { label: 'Materials', path: '/materials', iconName: 'PackageOpen', permission: 'materials.view' },
   { label: 'Products', path: '/products', iconName: 'Layers', permission: 'products.view' },
   {
