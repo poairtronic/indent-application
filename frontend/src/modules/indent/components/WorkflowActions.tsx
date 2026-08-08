@@ -30,7 +30,6 @@ import {
 } from '../../../api/services/indents/hooks';
 import { useAuthStore } from '../../../store/authStore';
 import { AppPermission } from '../../../constants/permissions';
-import { getWorkflowAccess } from '../../../constants/workflow';
 import type { WorkflowState } from '../../../constants/workflow';
 
 interface WorkflowActionsProps {
@@ -60,7 +59,6 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   indentNumber,
   onSuccess,
 }) => {
-  const user = useAuthStore((s) => s.user);
   const hasPermission = useAuthStore((s) => s.hasPermission);
 
   const [confirmAction, setConfirmAction] = useState<{
@@ -83,11 +81,6 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
 
   const buildActions = (): ActionConfig[] => {
     const actions: ActionConfig[] = [];
-    const access = getWorkflowAccess(currentState, user);
-    if (!access.canEdit) {
-      return actions;
-    }
-
     switch (currentState) {
       case 'DRAFT':
         if (hasPermission(AppPermission.INDENT_SUBMIT)) {

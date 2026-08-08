@@ -50,8 +50,16 @@ export interface ParsedIndentRemarks {
 
 export function parseIndentRemarks(remarks: string | null | undefined): ParsedIndentRemarks {
   if (!remarks) return { layoutNumber: '', customerName: '', userRemarks: '' };
+
+  let jsonPart = remarks;
+
+  const verificationIndex = remarks.indexOf('Stock Verification Results:');
+  if (verificationIndex !== -1) {
+    jsonPart = remarks.substring(0, verificationIndex).trim();
+  }
+
   try {
-    const parsed = JSON.parse(remarks);
+    const parsed = JSON.parse(jsonPart);
     if (parsed && typeof parsed === 'object') {
       return {
         layoutNumber: parsed.layoutNumber || '',
@@ -138,6 +146,7 @@ interface IndentFormProps {
   initialData?: IndentData;
   onSubmit: (data: any) => void;
   isLoading?: boolean;
+  forceReadOnly?: boolean;
 }
 
 const NestedProcessArray: React.FC<{
@@ -158,15 +167,16 @@ const NestedProcessArray: React.FC<{
     <div className="mt-4 p-4 bg-surface-base rounded border border-border-default">
       <div className="flex justify-between items-center mb-3">
         <h4 className="text-xs font-bold text-text-secondary uppercase">Manufacturing Processes</h4>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => append({ processId: '', predictedCost: 0, estimatedHours: 0 })}
-          disabled={isReadOnly}
-        >
-          Add Process
-        </Button>
+        {!isReadOnly && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => append({ processId: '', predictedCost: 0, estimatedHours: 0 })}
+          >
+            Add Process
+          </Button>
+        )}
       </div>
       {errors?.indent?.items?.[itemIndex]?.processes?.message && (
         <p className="text-xs text-status-error mb-2">
@@ -179,15 +189,17 @@ const NestedProcessArray: React.FC<{
       <div className="space-y-3">
         {fields.map((field, pIndex) => (
           <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            <div className="md:col-span-5">
+            <div className={isReadOnly ? 'md:col-span-6' : 'md:col-span-5'}>
               <Controller
                 control={control}
                 name={`indent.items.${itemIndex}.processes.${pIndex}.processId`}
                 render={({ field }) => {
                   const selectedProcess = processesList.find((p) => p.id === field.value);
+                  const fallbackName =
+                    (field as any).processName || (fields[pIndex] as any).processName;
                   const inputValue = selectedProcess
                     ? selectedProcess.processName
-                    : field.value || '';
+                    : fallbackName || field.value || '';
                   return (
                     <div className="w-full font-sans">
                       <Input
@@ -247,17 +259,13 @@ const NestedProcessArray: React.FC<{
                 }
               />
             </div>
-            <div className="md:col-span-1 flex justify-end">
-              <Button
-                type="button"
-                variant="danger"
-                size="sm"
-                onClick={() => remove(pIndex)}
-                disabled={isReadOnly}
-              >
-                Rem
-              </Button>
-            </div>
+            {!isReadOnly && (
+              <div className="md:col-span-1 flex justify-end">
+                <Button type="button" variant="danger" size="sm" onClick={() => remove(pIndex)}>
+                  Rem
+                </Button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -280,17 +288,23 @@ const NestedProcessArray: React.FC<{
   );
 };
 
-export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, isLoading }) => {
+export const IndentForm: React.FC<IndentFormProps> = ({
+  initialData,
+  onSubmit,
+  isLoading,
+  forceReadOnly,
+}) => {
   const user = useAuthStore((s) => s.user);
 
   const isReadOnly = React.useMemo(() => {
+    if (forceReadOnly) return true;
     if (!initialData) {
       const access = getWorkflowAccess('DRAFT', user);
       return !access.canEdit;
     }
     const access = getWorkflowAccess(initialData.currentState as any, user);
     return !access.canEdit;
-  }, [initialData, user]);
+  }, [initialData, user, forceReadOnly]);
 
   const parsedIndentRemarks = parseIndentRemarks(initialData?.remarks);
 
@@ -333,6 +347,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                         itemProcessCosts.find((ipc) => ipc.processId === pId)?.predictedCost || 0;
                       return {
                         processId: pId,
+                        processName: ip.process?.processName || '',
                         estimatedHours: Number(ip.estimatedHours || 0),
                         predictedCost: savedCost,
                       };
@@ -606,26 +621,27 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
           <h3 className="text-sm font-bold text-text-primary">
             Material & Manufacturing Process Requirements
           </h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              appendItem({
-                product: '',
-                materialName: '',
-                size: '',
-                quantity: 1,
-                unitId: '',
-                source: '',
-                remarks: '',
-                processes: [],
-              })
-            }
-            disabled={isReadOnly}
-          >
-            Add Material
-          </Button>
+          {!isReadOnly && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                appendItem({
+                  product: '',
+                  materialName: '',
+                  size: '',
+                  quantity: 1,
+                  unitId: '',
+                  source: '',
+                  remarks: '',
+                  processes: [],
+                })
+              }
+            >
+              Add Material
+            </Button>
+          )}
         </div>
 
         {errors.indent?.items?.root && (
@@ -646,7 +662,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                 <div className="md:col-span-1 text-xs font-bold text-text-muted pb-2">
                   #{index + 1}
                 </div>
-                <div className="md:col-span-3">
+                <div className={isReadOnly ? 'md:col-span-4' : 'md:col-span-3'}>
                   <Input
                     label="Part Name / Product"
                     placeholder="e.g. Base plate"
@@ -682,17 +698,18 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
                     error={errors.indent?.items?.[index]?.source?.message}
                   />
                 </div>
-                <div className="md:col-span-1 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    onClick={() => removeItem(index)}
-                    disabled={isReadOnly}
-                  >
-                    Rem
-                  </Button>
-                </div>
+                {!isReadOnly && (
+                  <div className="md:col-span-1 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      onClick={() => removeItem(index)}
+                    >
+                      Rem
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Row 2: Qty, Unit, Est. Rate, Amount */}
@@ -856,11 +873,13 @@ export const IndentForm: React.FC<IndentFormProps> = ({ initialData, onSubmit, i
         </div>
       </div>
 
-      <div className="flex justify-end gap-3">
-        <Button type="submit" loading={isLoading} disabled={isLoading || isReadOnly}>
-          {initialData ? 'Update Transaction' : 'Create Transaction'}
-        </Button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex justify-end gap-3">
+          <Button type="submit" loading={isLoading} disabled={isLoading}>
+            {initialData ? 'Update Transaction' : 'Create Transaction'}
+          </Button>
+        </div>
+      )}
     </form>
   );
 };

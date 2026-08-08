@@ -7,8 +7,7 @@ import { getWorkflowAccess } from '../../../constants/workflow';
 import { useIssueMaterialItem } from '../../../api/services/indents/hooks';
 import { IndentWorkflowTimeline } from './WorkflowTimeline';
 import { IndentActivityFeed } from './ActivityFeed';
-
-import { parseItemRemarks, parseIndentRemarks } from './IndentForm';
+import { parseItemRemarks, parseIndentRemarks, IndentForm } from './IndentForm';
 
 interface IndentDetailsProps {
   indent: IndentData;
@@ -159,9 +158,14 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
             )}
           </div>
 
-          {/* Material Requirements */}
+          {/* Detailed Indent & Costing View */}
+          <div className="bg-surface-card rounded-xl border border-border-default shadow-card overflow-hidden">
+            <IndentForm initialData={indent} onSubmit={() => {}} forceReadOnly={true} />
+          </div>
+
+          {/* Component Issue Status (For Stores) */}
           <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
-            <h3 className="text-sm font-bold text-text-primary mb-4">Material Requirements</h3>
+            <h3 className="text-sm font-bold text-text-primary mb-4">Component Issue Status</h3>
             {indent.items && indent.items.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
@@ -170,10 +174,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                       <th className="py-3 px-4">S.No</th>
                       <th className="py-3 px-4">Part Name / Product</th>
                       <th className="py-3 px-4">Material</th>
-                      <th className="py-3 px-4">Size</th>
                       <th className="py-3 px-4">Quantity</th>
-                      <th className="py-3 px-4">Unit</th>
-                      <th className="py-3 px-4">Source</th>
                       <th className="py-3 px-4">Status</th>
                       {canIssueStores && <th className="py-3 px-4 text-right">Action</th>}
                     </tr>
@@ -190,12 +191,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                           <td className="py-3 px-4">
                             {item.material?.materialName || item.materialId}
                           </td>
-                          <td className="py-3 px-4">{parsed.size || '—'}</td>
                           <td className="py-3 px-4 font-medium">{item.quantity}</td>
-                          <td className="py-3 px-4 text-text-secondary">
-                            {item.unit?.symbol || item.unit?.unitName || item.unitId}
-                          </td>
-                          <td className="py-3 px-4 text-text-secondary">{parsed.source || '—'}</td>
                           <td className="py-3 px-4">
                             {item.status && (
                               <Badge
@@ -218,7 +214,12 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                                 variant={item.status === 'ISSUED' ? 'outline' : 'primary'}
                                 disabled={item.status === 'ISSUED' || isIssuingItem}
                                 onClick={async () => {
-                                  await issueItem({ id: indent.id, itemId: item.id });
+                                  try {
+                                    await issueItem({ id: indent.id, itemId: item.id });
+                                    window.alert('Component issued successfully');
+                                  } catch (error: any) {
+                                    window.alert(error.message || 'Failed to issue component');
+                                  }
                                 }}
                                 className="text-xs py-1 px-3"
                               >
@@ -238,50 +239,6 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
               </p>
             )}
           </div>
-
-          {/* Cost Sheet Summary */}
-          {indent.costSheet && (
-            <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
-              <h3 className="text-sm font-bold text-text-primary mb-4">Cost Sheet Summary</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-text-muted mb-1">Cost Number</p>
-                  <p className="text-sm font-bold text-accent-primary">
-                    {indent.costSheet.costNumber}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-muted mb-1">Predicted Total</p>
-                  <p className="text-sm font-bold text-text-primary">
-                    ₹{indent.costSheet.predictedTotal.toLocaleString()}
-                  </p>
-                </div>
-                {indent.costSheet.actualTotal !== null &&
-                  indent.costSheet.actualTotal !== undefined && (
-                    <div>
-                      <p className="text-xs text-text-muted mb-1">Actual Total</p>
-                      <p className="text-sm font-bold text-text-primary">
-                        ₹{indent.costSheet.actualTotal.toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                {indent.costSheet.varianceAmount !== null &&
-                  indent.costSheet.varianceAmount !== undefined && (
-                    <div>
-                      <p className="text-xs text-text-muted mb-1">Variance</p>
-                      <p
-                        className={`text-sm font-bold ${indent.costSheet.varianceAmount > 0 ? 'text-status-error' : 'text-status-success'}`}
-                      >
-                        ₹{indent.costSheet.varianceAmount.toLocaleString()}{' '}
-                        {indent.costSheet.variancePercentage !== null &&
-                          indent.costSheet.variancePercentage !== undefined &&
-                          `(${indent.costSheet.variancePercentage.toFixed(1)}%)`}
-                      </p>
-                    </div>
-                  )}
-              </div>
-            </div>
-          )}
 
           {/* Attachments */}
           {indent.attachments && indent.attachments.length > 0 && (
