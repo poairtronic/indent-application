@@ -331,9 +331,13 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
 
   const handleConfirm = async () => {
     if (!confirmAction) return;
-    await confirmAction.config.action(remarks || undefined);
-    setConfirmAction(null);
-    setRemarks('');
+    try {
+      await confirmAction.config.action(remarks || undefined);
+      setConfirmAction(null);
+      setRemarks('');
+    } catch (error: any) {
+      window.alert(error.message || 'An error occurred while performing this action.');
+    }
   };
 
   return (
