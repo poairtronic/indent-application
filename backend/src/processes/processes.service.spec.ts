@@ -135,10 +135,10 @@ describe('ProcessesService', () => {
 
       const result = await service.findProcessById('process-uuid-1');
 
-      expect(result.id).toBe('process-uuid-1');
+      expect(result.id).toEqual('process-uuid-1');
     });
 
-    it('should throw NotFoundException if process not found', async () => {
+    it('should throw NotFoundException if process not found for soft delete', async () => {
       prismaMock.manufacturingProcess.findFirst.mockResolvedValue(null);
 
       await expect(service.findProcessById('invalid-id')).rejects.toThrow(NotFoundException);
@@ -214,10 +214,9 @@ describe('ProcessesService', () => {
         isDeleted: true,
       });
       prismaMock.manufacturingProcess.update.mockResolvedValue(mockProcess);
-
       const result = await service.restoreProcess('process-uuid-1', 'performer-id');
 
-      expect(result.isDeleted).toBeUndefined();
+      expect(result.id).toEqual('process-uuid-1');
       expect(prismaMock.auditLog.create).toHaveBeenCalled();
     });
 

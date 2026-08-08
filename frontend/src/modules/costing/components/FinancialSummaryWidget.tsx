@@ -9,10 +9,10 @@ interface FinancialSummaryWidgetProps {
 export const FinancialSummaryWidget: React.FC<FinancialSummaryWidgetProps> = ({ costSheet }) => {
   if (!costSheet) return null;
 
-  const planned = costSheet.predictedTotal || 0;
-  const actual = costSheet.actualTotal || 0;
-  const variance = costSheet.varianceAmount || 0;
-  const variancePct = costSheet.variancePercentage || 0;
+  const planned = Number(costSheet.predictedTotal) || 0;
+  const actual = Number(costSheet.actualTotal) || 0;
+  const variance = Number(costSheet.varianceAmount) || 0;
+  const variancePct = Number(costSheet.variancePercentage) || 0;
 
   const isOverBudget = variance > 0;
   const isUnderBudget = variance < 0;
@@ -43,7 +43,7 @@ export const FinancialSummaryWidget: React.FC<FinancialSummaryWidgetProps> = ({ 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div>
           <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Planned Cost</p>
-          <p className="text-2xl font-bold text-text-primary">
+          <p className="text-2xl font-bold text-text-primary break-all">
             ₹
             {planned.toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -53,7 +53,7 @@ export const FinancialSummaryWidget: React.FC<FinancialSummaryWidgetProps> = ({ 
         </div>
         <div>
           <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Actual Cost</p>
-          <p className="text-2xl font-bold text-accent-primary">
+          <p className="text-2xl font-bold text-accent-primary break-all">
             ₹
             {actual.toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -63,8 +63,8 @@ export const FinancialSummaryWidget: React.FC<FinancialSummaryWidgetProps> = ({ 
         </div>
         <div>
           <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Cost Variance</p>
-          <div className="flex items-center gap-2">
-            <p className={`text-2xl font-bold ${varianceColor}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className={`text-2xl font-bold ${varianceColor} break-all`}>
               {isOverBudget ? '+' : ''}₹
               {variance.toLocaleString(undefined, {
                 minimumFractionDigits: 2,

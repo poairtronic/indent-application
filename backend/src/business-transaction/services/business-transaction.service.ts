@@ -1078,8 +1078,40 @@ export class BusinessTransactionService {
         );
       }
 
-      // 3. Compute overall CostSheet actual total and variance
-      const actualTotal = totalMaterialActual + totalProcessActual;
+      // 3. Extract and update global actual costs in Remarks JSON
+      let parsedRemarks: any = {};
+      const originalTextRemarks = txData.remarks || '';
+      const verificationIndex = originalTextRemarks.indexOf('Stock Verification Results:');
+      const costUpdatedIndex = originalTextRemarks.indexOf('[ACTUAL_COST_UPDATED]');
+      let jsonPart = originalTextRemarks;
+
+      // Extract the JSON part if there are appended text blocks
+      if (verificationIndex !== -1) {
+        jsonPart = originalTextRemarks.substring(0, verificationIndex).trim();
+      } else if (costUpdatedIndex !== -1) {
+        jsonPart = originalTextRemarks.substring(0, costUpdatedIndex).trim();
+      }
+
+      try {
+        parsedRemarks = JSON.parse(jsonPart);
+      } catch {
+        // Fallback if parsing fails
+      }
+
+      parsedRemarks.actualDesignCost = dto.actualDesignCost ?? parsedRemarks.actualDesignCost ?? 0;
+      parsedRemarks.actualOverheadCost =
+        dto.actualOverheadCost ?? parsedRemarks.actualOverheadCost ?? 0;
+      parsedRemarks.actualContingencyCost =
+        dto.actualContingencyCost ?? parsedRemarks.actualContingencyCost ?? 0;
+
+      // 4. Compute overall CostSheet actual total and variance
+      const actualTotal =
+        totalMaterialActual +
+        totalProcessActual +
+        Number(parsedRemarks.actualDesignCost) +
+        Number(parsedRemarks.actualOverheadCost) +
+        Number(parsedRemarks.actualContingencyCost);
+
       const predictedTotal = Number(txData.costSheet.predictedTotal || 0);
       const varianceAmount = actualTotal - predictedTotal;
       const variancePercentage = predictedTotal > 0 ? (varianceAmount / predictedTotal) * 100 : 0;
@@ -1094,8 +1126,19 @@ export class BusinessTransactionService {
         },
       });
 
-      // 4. Update Indent state and append tag [ACTUAL_COST_UPDATED]
-      const updatedRemarks = `${txData.remarks || ''}\n[ACTUAL_COST_UPDATED] Actual costs and variance calculations updated.`;
+      // 5. Update Indent state and append tag [ACTUAL_COST_UPDATED]
+      // We must reconstruct the remarks with the new JSON + any original appended text + the new tag.
+      // To prevent duplicate tags, we strip the old [ACTUAL_COST_UPDATED] if it exists.
+      let remainingText = '';
+      if (verificationIndex !== -1) {
+        remainingText = '\n\n' + originalTextRemarks.substring(verificationIndex);
+      }
+      if (costUpdatedIndex !== -1) {
+        remainingText = remainingText.split('[ACTUAL_COST_UPDATED]')[0].trim();
+      }
+
+      const updatedRemarks = `${JSON.stringify(parsedRemarks)}${remainingText}\n\n[ACTUAL_COST_UPDATED] Actual costs and variance calculations updated.`;
+
       await tx.indent.update({
         where: { id },
         data: {

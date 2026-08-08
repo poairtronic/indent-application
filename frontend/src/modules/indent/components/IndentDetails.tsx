@@ -4,7 +4,11 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { useAuthStore } from '../../../store/authStore';
 import { getWorkflowAccess } from '../../../constants/workflow';
-import { useIssueMaterialItem } from '../../../api/services/indents/hooks';
+import {
+  useIssueMaterialItem,
+  useEnterActualCosts,
+  useUpdateIndent,
+} from '../../../api/services/indents/hooks';
 import { IndentWorkflowTimeline } from './WorkflowTimeline';
 import { IndentActivityFeed } from './ActivityFeed';
 import { parseItemRemarks, parseIndentRemarks, IndentForm } from './IndentForm';
@@ -38,6 +42,7 @@ const priorityTone: Record<string, 'green' | 'yellow' | 'red' | 'blue'> = {
 export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
   const { mutateAsync: issueItem, isPending: isIssuingItem } = useIssueMaterialItem();
+  const { mutateAsync: enterActualCosts, isPending: isEnteringCosts } = useEnterActualCosts();
 
   const user = useAuthStore((s) => s.user);
 
@@ -50,7 +55,87 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
     return access.canEdit;
   }, [indent, user]);
 
+  const isAccountsMode = React.useMemo(() => {
+    return (
+      indent.currentState === 'ACCOUNTS_COST_VERIFICATION' &&
+      getWorkflowAccess(indent.currentState as any, user).canEdit
+    );
+  }, [indent.currentState, user]);
+
+  const isProductionMode = React.useMemo(() => {
+    return (
+      (indent.currentState === 'PRODUCTION_PROCESSING' ||
+        indent.currentState === 'STORES_PROCESSING' ||
+        indent.currentState === 'MATERIALS_ISSUED') &&
+      getWorkflowAccess(indent.currentState as any, user).canEdit
+    );
+  }, [indent.currentState, user]);
+
+  const { mutateAsync: updateIndent, isPending: isUpdatingProduction } = useUpdateIndent();
+
+  const handleProductionSubmit = async (data: any) => {
+    try {
+      const payload = {
+        indent: {
+          items: data.indent.items.map((item: any, index: number) => ({
+            materialId: indent.items![index].materialId,
+            quantity: item.quantity,
+            unitId: item.unitId,
+            remarks: JSON.stringify({
+              product: item.product,
+              size: item.size,
+              weight: item.weight || '',
+              source: item.source,
+              productionSource: item.productionSource || '',
+              userRemarks: item.remarks || '',
+            }),
+          })),
+        },
+      };
+      await updateIndent({ id: indent.id, payload: payload as any });
+      window.alert('Production details updated successfully');
+    } catch (e: any) {
+      window.alert(e.message || 'Failed to update production details');
+    }
+  };
+
   const parsedRemarks = parseIndentRemarks(indent.remarks);
+
+  const handleAccountsSubmit = async (data: any) => {
+    try {
+      const payload = {
+        costItems: data.costSheet.costItems.map((ci: any, index: number) => ({
+          costItemId: indent.costSheet?.costItems[index]?.id,
+          actualRate: ci.actualRate ?? 0,
+          actualQuantity: ci.predictedQuantity ?? 0,
+        })),
+        processCosts: (indent.costSheet?.processCosts || []).map((pc: any) => {
+          const matched = data.costSheet.processCosts?.find(
+            (dpc: any) => dpc.processId === pc.processId,
+          );
+          return {
+            processCostId: pc.id,
+            actualCost: matched?.actualCost ?? 0,
+            actualHours: matched?.actualHours ?? 0,
+          };
+        }),
+        actualDesignCost: data.indent.remarks
+          ? JSON.parse(data.indent.remarks).actualDesignCost
+          : 0,
+        actualOverheadCost: data.indent.remarks
+          ? JSON.parse(data.indent.remarks).actualOverheadCost
+          : 0,
+        actualContingencyCost: data.indent.remarks
+          ? JSON.parse(data.indent.remarks).actualContingencyCost
+          : 0,
+      };
+
+      await enterActualCosts({ id: indent.id, data: payload });
+      window.alert('Actual costs verified successfully');
+    } catch (e: any) {
+      window.alert(e.message || 'Failed to verify actual costs');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -159,8 +244,21 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
           </div>
 
           {/* Detailed Indent & Costing View */}
-          <div className="bg-surface-card rounded-xl border border-border-default shadow-card overflow-hidden">
-            <IndentForm initialData={indent} onSubmit={() => {}} forceReadOnly={true} />
+          <div className="mt-8">
+            <IndentForm
+              initialData={indent}
+              onSubmit={
+                isAccountsMode
+                  ? handleAccountsSubmit
+                  : isProductionMode
+                    ? handleProductionSubmit
+                    : () => {}
+              }
+              forceReadOnly={!isAccountsMode && !isProductionMode}
+              isAccountsMode={isAccountsMode}
+              isProductionMode={isProductionMode}
+              isLoading={isEnteringCosts || isUpdatingProduction}
+            />
           </div>
 
           {/* Component Issue Status (For Stores) */}

@@ -10,16 +10,16 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costShee
 
   // Planned totals
   const plannedMaterialCost =
-    costSheet.costItems?.reduce((acc, curr) => acc + (curr.predictedAmount || 0), 0) || 0;
+    costSheet.costItems?.reduce((acc, curr) => acc + (Number(curr.predictedAmount) || 0), 0) || 0;
   const plannedProcessCost =
-    costSheet.processCosts?.reduce((acc, curr) => acc + (curr.predictedCost || 0), 0) || 0;
+    costSheet.processCosts?.reduce((acc, curr) => acc + (Number(curr.predictedCost) || 0), 0) || 0;
   const plannedTotal = plannedMaterialCost + plannedProcessCost;
 
   // Actual totals
   const actualMaterialCost =
-    costSheet.costItems?.reduce((acc, curr) => acc + (curr.actualAmount || 0), 0) || 0;
+    costSheet.costItems?.reduce((acc, curr) => acc + (Number(curr.actualAmount) || 0), 0) || 0;
   const actualProcessCost =
-    costSheet.processCosts?.reduce((acc, curr) => acc + (curr.actualCost || 0), 0) || 0;
+    costSheet.processCosts?.reduce((acc, curr) => acc + (Number(curr.actualCost) || 0), 0) || 0;
   const actualTotal = actualMaterialCost + actualProcessCost;
 
   // Max value for scaling bars

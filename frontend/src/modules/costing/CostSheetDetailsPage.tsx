@@ -168,11 +168,15 @@ export const CostSheetDetailsPage: React.FC = () => {
   }
 
   const cs = indent.costSheet;
-  const plannedMaterialCost = cs.costItems?.reduce((a, c) => a + (c.predictedAmount || 0), 0) || 0;
-  const actualMaterialCost = cs.costItems?.reduce((a, c) => a + (c.actualAmount || 0), 0) || 0;
+  const plannedMaterialCost =
+    cs.costItems?.reduce((a, c) => a + (Number(c.predictedAmount) || 0), 0) || 0;
+  const actualMaterialCost =
+    cs.costItems?.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) || 0;
   const materialVariance = actualMaterialCost - plannedMaterialCost;
-  const plannedProcessCost = cs.processCosts?.reduce((a, c) => a + (c.predictedCost || 0), 0) || 0;
-  const actualProcessCost = cs.processCosts?.reduce((a, c) => a + (c.actualCost || 0), 0) || 0;
+  const plannedProcessCost =
+    cs.processCosts?.reduce((a, c) => a + (Number(c.predictedCost) || 0), 0) || 0;
+  const actualProcessCost =
+    cs.processCosts?.reduce((a, c) => a + (Number(c.actualCost) || 0), 0) || 0;
   const processVariance = actualProcessCost - plannedProcessCost;
 
   const handleSaveActuals = async () => {
@@ -271,8 +275,10 @@ export const CostSheetDetailsPage: React.FC = () => {
           <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">
             Material Variance
           </p>
-          <div className="flex items-center justify-between">
-            <VarianceIndicator value={materialVariance} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="break-all">
+              <VarianceIndicator value={materialVariance} />
+            </div>
             <span className="text-xs text-text-muted">
               {plannedMaterialCost > 0
                 ? `${((materialVariance / plannedMaterialCost) * 100).toFixed(1)}%`
@@ -284,8 +290,10 @@ export const CostSheetDetailsPage: React.FC = () => {
           <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">
             Process Variance
           </p>
-          <div className="flex items-center justify-between">
-            <VarianceIndicator value={processVariance} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="break-all">
+              <VarianceIndicator value={processVariance} />
+            </div>
             <span className="text-xs text-text-muted">
               {plannedProcessCost > 0
                 ? `${((processVariance / plannedProcessCost) * 100).toFixed(1)}%`
@@ -297,11 +305,13 @@ export const CostSheetDetailsPage: React.FC = () => {
           <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">
             Total Variance
           </p>
-          <div className="flex items-center justify-between">
-            <VarianceIndicator value={materialVariance + processVariance} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="break-all">
+              <VarianceIndicator value={materialVariance + processVariance} />
+            </div>
             <span className="text-xs text-text-muted">
-              {cs.predictedTotal > 0
-                ? `${((((cs.actualTotal || 0) - cs.predictedTotal) / cs.predictedTotal) * 100).toFixed(1)}%`
+              {Number(cs.predictedTotal) > 0
+                ? `${((((Number(cs.actualTotal) || 0) - Number(cs.predictedTotal)) / Number(cs.predictedTotal)) * 100).toFixed(1)}%`
                 : '--'}
             </span>
           </div>
@@ -331,7 +341,8 @@ export const CostSheetDetailsPage: React.FC = () => {
             </thead>
             <tbody>
               {cs.costItems?.map((item, index) => {
-                const itemVariance = (item.actualAmount || 0) - item.predictedAmount;
+                const itemVariance =
+                  (Number(item.actualAmount) || 0) - Number(item.predictedAmount);
                 const indentItem = indent?.items?.[index];
                 const parsed = indentItem ? parseItemRemarks(indentItem.remarks) : {};
                 return (

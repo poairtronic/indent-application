@@ -55,6 +55,21 @@ export class ActualCostEntryDto {
   @Type(() => ActualProcessCostDto)
   processCosts: ActualProcessCostDto[];
 
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  actualDesignCost?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  actualOverheadCost?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  actualContingencyCost?: number;
+
   @IsString()
   @IsOptional()
   remarks?: string;
