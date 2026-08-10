@@ -6,7 +6,12 @@ export interface FrontendErrorReport {
   timestamp?: string;
 }
 
-export function reportFrontendError(type: string, message: string, stack?: string, url?: string): void {
+export function reportFrontendError(
+  type: string,
+  message: string,
+  stack?: string,
+  url?: string,
+): void {
   // Avoid recursion loops if error reporting endpoint fails
   const currentUrl = window.location.href;
   if (currentUrl.includes('/api/observability/frontend-errors')) {
