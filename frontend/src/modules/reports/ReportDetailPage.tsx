@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Printer, Download, Search, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Download, Search, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -10,6 +10,8 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { useAuthStore } from '../../store/authStore';
 import { REPORTS_REGISTRY } from './registry';
+import { ToastViewport, useToasts } from '../../components/ui/toast';
+import { reportsService } from '../../api/services/reports/service';
 import {
   useDailyProductionReport,
   useProcessYieldReport,
@@ -78,6 +80,9 @@ export const ReportDetailPage: React.FC = () => {
 
   // Parameters State (Derived from URL parameters for bookmarkable URL state synchronization)
   const [searchParams, setSearchParams] = useSearchParams();
+  const { toasts, show, dismiss } = useToasts();
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   // Local search text input state to ensure immediate UI responsiveness
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
@@ -320,10 +325,27 @@ export const ReportDetailPage: React.FC = () => {
     };
   });
 
-  const handleExportClick = (type: string) => {
-    alert(
-      `${type} export is under development. Export engines will be implemented in later stages of Phase 23.`,
-    );
+  const handleExportClick = async (format: 'excel' | 'pdf') => {
+    if (isExportingExcel || isExportingPdf) return;
+
+    if (query.data?.isDatabaseGap) {
+      show('error', query.data.gapMessage || 'Report database gap - cannot export.');
+      return;
+    }
+
+    const filename = `IMCMS_${config.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+    const triggerState = format === 'excel' ? setIsExportingExcel : setIsExportingPdf;
+
+    triggerState(true);
+    try {
+      await reportsService.exportReport(config.endpoint, { ...params, format }, filename);
+      show('success', `${format === 'excel' ? 'Excel' : 'PDF'} export downloaded successfully.`);
+    } catch (err: any) {
+      console.error(err);
+      show('error', err.message || `Failed to export report in ${format.toUpperCase()} format.`);
+    } finally {
+      triggerState(false);
+    }
   };
 
   const handleResetFilters = () => {
@@ -356,18 +378,22 @@ export const ReportDetailPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            icon={<Printer size={14} />}
-            onClick={() => handleExportClick('Print')}
+            icon={<Download size={14} />}
+            onClick={() => handleExportClick('pdf')}
+            disabled={isExportingPdf || isExportingExcel || query.isLoading}
+            loading={isExportingPdf}
           >
-            Print
+            Export PDF
           </Button>
           <Button
             variant="primary"
             size="sm"
             icon={<Download size={14} />}
-            onClick={() => handleExportClick('CSV')}
+            onClick={() => handleExportClick('excel')}
+            disabled={isExportingExcel || isExportingPdf || query.isLoading}
+            loading={isExportingExcel}
           >
-            Export CSV
+            Export Excel
           </Button>
         </div>
       </div>
@@ -543,6 +569,7 @@ export const ReportDetailPage: React.FC = () => {
           />
         </div>
       )}
+      <ToastViewport toasts={toasts} onDismiss={dismiss} />
     </div>
   );
 };

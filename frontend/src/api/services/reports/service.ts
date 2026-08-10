@@ -111,6 +111,16 @@ class ReportsService extends BaseService {
       params as ListQueryParams,
     );
   }
+
+  async exportReport(
+    endpoint: string,
+    params: ReportQueryParams & { format: 'excel' | 'pdf' },
+    filename: string,
+  ): Promise<void> {
+    return this.download(`${endpoint}/export`, filename, {
+      params,
+    });
+  }
 }
 
 export const reportsService = new ReportsService();

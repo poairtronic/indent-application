@@ -1,5 +1,7 @@
 import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReportQueryDto } from '../dto/report-query.dto';
 import {
@@ -20,6 +22,241 @@ export class ReportsService {
   private readonly logger = new Logger(ReportsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  async generateExcel(
+    res: any,
+    title: string,
+    data: any[],
+    columns: {
+      header: string;
+      key: string;
+      width?: number;
+      type?: 'string' | 'number' | 'date' | 'currency' | 'percentage';
+    }[],
+    queryParams: any,
+  ) {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Report');
+
+    // Title Block
+    worksheet.mergeCells('A1:I1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = `IMCMS - ${title}`;
+    titleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1E293B' },
+    };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getRow(1).height = 40;
+
+    // Generated metadata
+    worksheet.getCell('A3').value = 'Generated At:';
+    worksheet.getCell('A3').font = { bold: true };
+    worksheet.getCell('B3').value = new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+    // Write query filters
+    worksheet.getCell('A4').value = 'Filters:';
+    worksheet.getCell('A4').font = { bold: true };
+    const filterText =
+      Object.entries(queryParams)
+        .filter(([k, v]) => v && !['page', 'limit', 'sortBy', 'sortOrder', 'format'].includes(k))
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ') || 'None';
+    worksheet.getCell('B4').value = filterText;
+
+    // Add empty row
+    worksheet.addRow([]);
+    worksheet.addRow([]);
+
+    // Headers
+    const headers = columns.map((c) => c.header);
+    const headerRow = worksheet.addRow(headers);
+    headerRow.height = 24;
+    headerRow.eachCell((cell) => {
+      cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF334155' },
+      };
+      cell.alignment = { vertical: 'middle' };
+      cell.border = {
+        bottom: { style: 'medium', color: { argb: 'FF000000' } },
+      };
+    });
+
+    // Data Rows
+    data.forEach((item) => {
+      const rowValues = columns.map((col) => {
+        const val = item[col.key];
+        if (col.type === 'date') {
+          return val ? new Date(val).toLocaleDateString() : '-';
+        }
+        return val !== null && val !== undefined ? val : '-';
+      });
+      const row = worksheet.addRow(rowValues);
+      row.height = 20;
+      row.eachCell((cell, colIdx) => {
+        const colDef = columns[colIdx - 1];
+        cell.font = { name: 'Arial', size: 10 };
+        cell.border = {
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        if (typeof cell.value === 'number') {
+          if (colDef.type === 'currency') {
+            cell.numFmt = '$#,##0.00';
+            cell.alignment = { horizontal: 'right' };
+          } else if (colDef.type === 'percentage') {
+            cell.numFmt = '0.00"%"';
+            cell.alignment = { horizontal: 'right' };
+          } else {
+            cell.numFmt = '#,##0';
+            cell.alignment = { horizontal: 'right' };
+          }
+        }
+      });
+    });
+
+    // Column widths
+    columns.forEach((col, idx) => {
+      const worksheetColumn = worksheet.getColumn(idx + 1);
+      worksheetColumn.width = col.width || 15;
+    });
+
+    worksheet.views = [{ state: 'frozen', ySplit: 6 }];
+
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+
+  async generatePdf(
+    res: any,
+    title: string,
+    data: any[],
+    columns: {
+      header: string;
+      key: string;
+      align?: 'left' | 'center' | 'right';
+      type?: 'string' | 'number' | 'date' | 'currency' | 'percentage';
+    }[],
+    queryParams: any,
+  ) {
+    const isLandscape = columns.length > 6;
+    const doc = new PDFDocument({
+      size: 'A4',
+      layout: isLandscape ? 'landscape' : 'portrait',
+      margin: 30,
+      bufferPages: true,
+    });
+
+    doc.pipe(res);
+
+    // Header Title
+    doc
+      .fillColor('#1E293B')
+      .rect(30, 30, doc.page.width - 60, 40)
+      .fill();
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(14).text(`IMCMS - ${title}`, 40, 44);
+
+    // Meta Info
+    doc.fillColor('#334155').font('Helvetica-Bold').fontSize(9).text('Generated At:', 30, 85);
+    doc.font('Helvetica').text(new Date().toISOString().replace('T', ' ').slice(0, 19), 110, 85);
+
+    doc.font('Helvetica-Bold').text('Filters Applied:', 30, 100);
+    const filterText =
+      Object.entries(queryParams)
+        .filter(([k, v]) => v && !['page', 'limit', 'sortBy', 'sortOrder', 'format'].includes(k))
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ') || 'None';
+    doc.font('Helvetica').text(filterText, 110, 100, { width: doc.page.width - 150 });
+
+    doc.moveDown(2);
+
+    let startY = 130;
+    const colWidth = (doc.page.width - 60) / columns.length;
+
+    const drawHeader = (y: number) => {
+      doc
+        .fillColor('#334155')
+        .rect(30, y, doc.page.width - 60, 20)
+        .fill();
+      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8);
+      columns.forEach((col, idx) => {
+        doc.text(col.header, 35 + idx * colWidth, y + 6, {
+          width: colWidth - 10,
+          align: col.align || 'left',
+        });
+      });
+    };
+
+    drawHeader(startY);
+    startY += 20;
+
+    doc.fillColor('#000000').font('Helvetica').fontSize(8);
+    let currentY = startY;
+
+    data.forEach((row, rowIdx) => {
+      if (currentY > doc.page.height - 50) {
+        doc.addPage({
+          size: 'A4',
+          layout: isLandscape ? 'landscape' : 'portrait',
+          margin: 30,
+        });
+        currentY = 40;
+        drawHeader(currentY);
+        currentY += 20;
+        doc.fillColor('#000000').font('Helvetica').fontSize(8);
+      }
+
+      if (rowIdx % 2 === 1) {
+        doc
+          .fillColor('#F8FAFC')
+          .rect(30, currentY, doc.page.width - 60, 18)
+          .fill();
+        doc.fillColor('#000000');
+      }
+
+      columns.forEach((col, colIdx) => {
+        let val = row[col.key];
+        if (col.type === 'date' && val) {
+          val = new Date(val).toLocaleDateString();
+        } else if (col.type === 'currency' && typeof val === 'number') {
+          val = `$${val.toFixed(2)}`;
+        } else if (col.type === 'percentage' && typeof val === 'number') {
+          val = `${val.toFixed(2)}%`;
+        } else if (val === null || val === undefined) {
+          val = '-';
+        }
+
+        doc.text(String(val), 35 + colIdx * colWidth, currentY + 5, {
+          width: colWidth - 10,
+          align: col.align || 'left',
+        });
+      });
+
+      doc
+        .strokeColor('#E2E8F0')
+        .lineWidth(0.5)
+        .moveTo(30, currentY + 18)
+        .lineTo(doc.page.width - 30, currentY + 18)
+        .stroke();
+
+      currentY += 18;
+    });
+
+    const pages = doc.bufferedPageRange();
+    for (let i = 0; i < pages.count; i++) {
+      doc.switchToPage(i);
+      doc.fillColor('#94A3B8').font('Helvetica').fontSize(7);
+      doc.text(`Page ${i + 1} of ${pages.count}`, doc.page.width - 80, doc.page.height - 20, {
+        align: 'right',
+      });
+    }
+
+    doc.end();
+  }
 
   /**
    * Helper to check department-level boundaries for reports (Phase 22 RBAC Alignment)
