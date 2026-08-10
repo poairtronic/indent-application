@@ -626,70 +626,62 @@ export class ReportsService {
       where.costSheet.createdAt = dateFilter;
     }
 
-    const costItems = await this.prisma.costItem.findMany({
+    // Database aggregation: Group and sum directly in PostgreSQL
+    const grouped = await this.prisma.costItem.groupBy({
+      by: ['materialId'],
       where,
-      include: {
-        material: true,
+      _sum: {
+        predictedQuantity: true,
+        predictedAmount: true,
+        actualQuantity: true,
+        actualAmount: true,
+      },
+      _count: {
+        actualAmount: true,
       },
     });
 
-    // Group in memory to compute aggregates per material
-    const materialMap = new Map<
-      string,
-      {
-        materialCode: string;
-        materialName: string;
-        category: string;
-        predQty: Prisma.Decimal;
-        actQty: Prisma.Decimal;
-        predAmt: Prisma.Decimal;
-        actAmt: Prisma.Decimal;
-        hasActuals: boolean;
-      }
-    >();
+    if (grouped.length === 0) {
+      return {
+        data: [],
+        meta: { total: 0, page, limit, totalPages: 0 },
+      };
+    }
 
-    costItems.forEach((ci: any) => {
-      const mId = ci.materialId;
-      if (!materialMap.has(mId)) {
-        materialMap.set(mId, {
-          materialCode: ci.material.materialCode,
-          materialName: ci.material.materialName,
-          category: ci.material.category,
-          predQty: new Prisma.Decimal(0),
-          actQty: new Prisma.Decimal(0),
-          predAmt: new Prisma.Decimal(0),
-          actAmt: new Prisma.Decimal(0),
-          hasActuals: false,
-        });
-      }
-
-      const entry = materialMap.get(mId)!;
-      entry.predQty = entry.predQty.add(ci.predictedQuantity);
-      entry.predAmt = entry.predAmt.add(ci.predictedAmount);
-
-      if (ci.actualQuantity !== null && ci.actualAmount !== null) {
-        entry.actQty = entry.actQty.add(ci.actualQuantity);
-        entry.actAmt = entry.actAmt.add(ci.actualAmount);
-        entry.hasActuals = true;
-      }
+    // Fetch material master data for the grouped results
+    const materials = await this.prisma.material.findMany({
+      where: {
+        id: { in: grouped.map((g) => g.materialId) },
+      },
     });
 
-    const allGroupedItems = Array.from(materialMap.entries()).map(
-      ([materialId, data]: [string, any]) => {
-        const variance = data.hasActuals ? data.actAmt.sub(data.predAmt) : null;
+    const materialMap = new Map(materials.map((m) => [m.id, m]));
+
+    const allGroupedItems = grouped
+      .map((g) => {
+        const material = materialMap.get(g.materialId);
+        if (!material) return null;
+
+        const predAmt = g._sum.predictedAmount ? Number(g._sum.predictedAmount) : 0;
+        const actAmt = g._sum.actualAmount ? Number(g._sum.actualAmount) : null;
+        const hasActuals = (g._count.actualAmount ?? 0) > 0;
+
+        const variance = hasActuals && actAmt !== null ? actAmt - predAmt : null;
+
         return {
-          materialId,
-          materialCode: data.materialCode,
-          materialName: data.materialName,
-          category: data.category,
-          totalPredictedQty: Number(data.predQty),
-          totalActualQty: data.hasActuals ? Number(data.actQty) : null,
-          totalPredictedAmount: Number(data.predAmt),
-          totalActualAmount: data.hasActuals ? Number(data.actAmt) : null,
-          varianceAmount: variance !== null ? Number(variance) : null,
+          materialId: g.materialId,
+          materialCode: material.materialCode,
+          materialName: material.materialName,
+          category: material.category,
+          totalPredictedQty: g._sum.predictedQuantity ? Number(g._sum.predictedQuantity) : 0,
+          totalActualQty:
+            hasActuals && g._sum.actualQuantity ? Number(g._sum.actualQuantity) : null,
+          totalPredictedAmount: predAmt,
+          totalActualAmount: hasActuals ? actAmt : null,
+          varianceAmount: variance,
         };
-      },
-    );
+      })
+      .filter((item) => item !== null) as MaterialCostBreakdownReportItem[];
 
     const allowedSortFields = [
       'materialCode',
@@ -784,57 +776,81 @@ export class ReportsService {
       ];
     }
 
+    // 1. Get total count of matching vendors for pagination metadata
+    const total = await this.prisma.vendor.count({ where: vendorWhere });
+
+    // 2. Fetch only the paginated vendors
     const vendors = await this.prisma.vendor.findMany({
       where: vendorWhere,
       orderBy: { vendorCode: 'asc' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    const vendorIds = vendors.map((v: any) => v.id);
+    if (vendors.length === 0) {
+      return {
+        data: [],
+        meta: { total, page, limit, totalPages: 0 },
+      };
+    }
 
-    const costItems = await this.prisma.costItem.findMany({
-      where: {
-        vendorId: { in: vendorIds },
+    const vendorIds = vendors.map((v) => v.id);
+
+    // 3. Fetch aggregates grouped by vendorId, only for the paginated vendors
+    const costSheetDateFilter: any = {};
+    if (dateFrom) costSheetDateFilter.gte = new Date(dateFrom);
+    if (dateTo) costSheetDateFilter.lte = new Date(dateTo);
+
+    const costItemWhere: Prisma.CostItemWhereInput = {
+      vendorId: { in: vendorIds },
+      isDeleted: false,
+      costSheet: {
         isDeleted: false,
-        costSheet: {
-          isDeleted: false,
-          ...(dateFrom || dateTo
-            ? {
-                createdAt: {
-                  ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-                  ...(dateTo ? { lte: new Date(dateTo) } : {}),
-                },
-              }
-            : {}),
-        },
+        ...(dateFrom || dateTo ? { createdAt: costSheetDateFilter } : {}),
+      },
+    };
+
+    const grouped = await this.prisma.costItem.groupBy({
+      by: ['vendorId'],
+      where: costItemWhere,
+      _sum: {
+        predictedAmount: true,
+        actualAmount: true,
+      },
+      _count: {
+        actualAmount: true,
+        id: true,
       },
     });
 
+    const groupedMap = new Map(grouped.map((g) => [g.vendorId, g]));
+
     const allReportItems: VendorPerformanceReportItem[] = vendors.map((v: any) => {
-      const related = costItems.filter((ci: any) => ci.vendorId === v.id);
-      let predicted = new Prisma.Decimal(0);
-      let actual = new Prisma.Decimal(0);
-      let hasActuals = false;
+      const g = groupedMap.get(v.id);
 
-      related.forEach((ci: any) => {
-        predicted = predicted.add(ci.predictedAmount);
-        if (ci.actualAmount !== null) {
-          actual = actual.add(ci.actualAmount);
-          hasActuals = true;
-        }
-      });
+      const totalCostItems = g ? g._count.id : 0;
+      const predictedAmt = g && g._sum.predictedAmount ? Number(g._sum.predictedAmount) : 0;
+      const actualAmt =
+        g && (g._count.actualAmount ?? 0) > 0 && g._sum.actualAmount
+          ? Number(g._sum.actualAmount)
+          : null;
+      const hasActuals = actualAmt !== null;
 
-      const variance = hasActuals ? actual.sub(predicted) : null;
-      const variancePct = hasActuals && predicted.gt(0) ? variance!.div(predicted).mul(100) : null;
+      const variance = hasActuals && actualAmt !== null ? actualAmt - predictedAmt : null;
+      const variancePct =
+        hasActuals && predictedAmt > 0 && variance !== null
+          ? (variance / predictedAmt) * 100
+          : null;
 
       return {
         vendorId: v.id,
         vendorCode: v.vendorCode,
         vendorName: v.vendorName,
-        totalCostItems: related.length,
-        totalPredictedAmount: Number(predicted),
-        totalActualAmount: hasActuals ? Number(actual) : null,
-        totalVariance: variance !== null ? Number(variance) : null,
-        variancePercentage: variancePct !== null ? Number(variancePct) : null,
+        totalCostItems,
+        totalPredictedAmount: predictedAmt,
+        totalActualAmount: actualAmt,
+        totalVariance: variance,
+        variancePercentage: variancePct,
       };
     });
 
@@ -861,11 +877,8 @@ export class ReportsService {
       return isAsc ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
     });
 
-    const total = allReportItems.length;
-    const paginatedItems = allReportItems.slice((page - 1) * limit, page * limit);
-
     return {
-      data: paginatedItems,
+      data: allReportItems,
       meta: {
         total,
         page,
@@ -1044,10 +1057,16 @@ export class ReportsService {
               }
             : {}),
         },
-        include: {
+        select: {
+          id: true,
+          currentStageId: true,
           workflowHistory: {
             where: { isDeleted: false },
             orderBy: { movedAt: 'asc' },
+            select: {
+              stageId: true,
+              movedAt: true,
+            },
           },
         },
       }),

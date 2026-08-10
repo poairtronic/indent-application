@@ -570,6 +570,7 @@ model IndentItem {
 
   @@index([indentId])
   @@index([materialId])
+  @@index([unitId])
   @@index([isDeleted])
   @@index([createdAt])
   @@map("indent_items")
@@ -597,6 +598,7 @@ model IndentAttachment {
   uploader    User     @relation(fields: [uploadedBy], references: [id])
 
   @@index([indentId])
+  @@index([uploadedBy])
   @@index([isDeleted])
   @@index([createdAt])
   @@map("indent_attachments")
@@ -785,6 +787,7 @@ model AdditionalMaterialItem {
 
   @@index([requestId])
   @@index([materialId])
+  @@index([unitId])
   @@index([isDeleted])
   @@index([createdAt])
   @@map("additional_material_items")
@@ -872,6 +875,9 @@ model WorkflowHistory {
 
   @@index([indentId])
   @@index([stageId])
+  @@index([fromDepartmentId])
+  @@index([toDepartmentId])
+  @@index([movedBy])
   @@index([movedAt])
   @@index([isDeleted])
   @@index([createdAt])

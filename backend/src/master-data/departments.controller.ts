@@ -11,19 +11,33 @@ export class DepartmentsController {
   @Permissions('departments.view')
   @Cache('master:departments', 86400)
   async list(@Query('page') page?: string, @Query('limit') limit?: string) {
-    const items = await this.prisma.department.findMany({
-      where: { isDeleted: false },
-      orderBy: { departmentName: 'asc' },
-    });
-    if (!page && !limit) return items;
+    if (!page && !limit) {
+      return this.prisma.department.findMany({
+        where: { isDeleted: false },
+        orderBy: { departmentName: 'asc' },
+      });
+    }
+
     const pageNumber = Math.max(1, Number(page) || 1);
     const pageSize = Math.max(1, Number(limit) || 10);
+    const where = { isDeleted: false };
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.department.findMany({
+        where,
+        orderBy: { departmentName: 'asc' },
+        skip: (pageNumber - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.department.count({ where }),
+    ]);
+
     return {
-      items: items.slice((pageNumber - 1) * pageSize, pageNumber * pageSize),
-      total: items.length,
+      items,
+      total,
       page: pageNumber,
       limit: pageSize,
-      totalPages: Math.ceil(items.length / pageSize),
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 }
