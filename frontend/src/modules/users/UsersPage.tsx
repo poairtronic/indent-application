@@ -76,8 +76,8 @@ export const UsersPage: React.FC = () => {
   const usersQuery = useUsers(query);
   const rolesQuery = useUserRoles();
   const departmentQuery = useDepartmentOptions();
-  const departments = departmentQuery.data ?? [];
-  const roles = rolesQuery.data ?? [];
+  const departments = useMemo(() => departmentQuery.data ?? [], [departmentQuery.data]);
+  const roles = useMemo(() => rolesQuery.data ?? [], [rolesQuery.data]);
 
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
@@ -188,7 +188,7 @@ export const UsersPage: React.FC = () => {
   };
 
   const { data, isLoading, isError, error, refetch, isFetching } = usersQuery;
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
 
   return (
     <div className="space-y-6">

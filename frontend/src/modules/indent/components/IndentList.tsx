@@ -52,61 +52,62 @@ export const IndentList: React.FC<IndentListProps> = ({
 
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
 
-  const gridRender = (item: IndentData) => (
-    <div
-      className="flex flex-col gap-2 p-4 border border-border-default rounded-xl bg-surface-card shadow-sm hover:shadow-card transition-shadow cursor-pointer"
-      onClick={() => navigate(`/indents/${item.id}`)}
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <span className="font-bold text-text-primary text-sm block">{item.indentNumber}</span>
-          {item.purpose && (
-            <span className="text-text-muted text-[10px] uppercase font-semibold">
-              PO: {item.purpose}
-            </span>
-          )}
-        </div>
-        <Badge tone={statusTone[item.currentState] ?? 'gray'}>
-          {formatStatus(item.currentState)}
-        </Badge>
-      </div>
-      <div className="text-xs text-text-secondary mt-2 space-y-1">
-        {parseIndentRemarks(item.remarks).customerName && (
-          <p>
-            <span className="text-text-muted">Customer:</span>{' '}
-            {parseIndentRemarks(item.remarks).customerName}
-          </p>
-        )}
-        {parseIndentRemarks(item.remarks).layoutNumber && (
-          <p>
-            <span className="text-text-muted">Layout:</span>{' '}
-            {parseIndentRemarks(item.remarks).layoutNumber}
-          </p>
-        )}
-        <p>
-          <span className="text-text-muted">Dept:</span> {item.departmentName || 'N/A'}
-        </p>
-        <p>
-          <span className="text-text-muted">Priority:</span>{' '}
-          <Badge tone={priorityTone[item.priority] ?? 'gray'}>{item.priority}</Badge>
-        </p>
-        <p>
-          <span className="text-text-muted">Required:</span>{' '}
-          {new Date(item.requiredDate).toLocaleDateString()}
-        </p>
-        {item.predictedTotal !== null &&
-          item.predictedTotal !== undefined &&
-          item.predictedTotal > 0 && (
-            <p>
-              <span className="text-text-muted">Cost:</span>{' '}
-              <span className="font-medium text-accent-primary">
-                ₹{item.predictedTotal.toLocaleString()}
+  const gridRender = (item: IndentData) => {
+    const parsedRemarks = parseIndentRemarks(item.remarks);
+    return (
+      <div
+        className="flex flex-col gap-2 p-4 border border-border-default rounded-xl bg-surface-card shadow-sm hover:shadow-card transition-shadow cursor-pointer"
+        onClick={() => navigate(`/indents/${item.id}`)}
+      >
+        <div className="flex justify-between items-start">
+          <div>
+            <span className="font-bold text-text-primary text-sm block">{item.indentNumber}</span>
+            {item.purpose && (
+              <span className="text-text-muted text-[10px] uppercase font-semibold">
+                PO: {item.purpose}
               </span>
+            )}
+          </div>
+          <Badge tone={statusTone[item.currentState] ?? 'gray'}>
+            {formatStatus(item.currentState)}
+          </Badge>
+        </div>
+        <div className="text-xs text-text-secondary mt-2 space-y-1">
+          {parsedRemarks.customerName && (
+            <p>
+              <span className="text-text-muted">Customer:</span> {parsedRemarks.customerName}
             </p>
           )}
+          {parsedRemarks.layoutNumber && (
+            <p>
+              <span className="text-text-muted">Layout:</span> {parsedRemarks.layoutNumber}
+            </p>
+          )}
+          <p>
+            <span className="text-text-muted">Dept:</span> {item.departmentName || 'N/A'}
+          </p>
+          <p>
+            <span className="text-text-muted">Priority:</span>{' '}
+            <Badge tone={priorityTone[item.priority] ?? 'gray'}>{item.priority}</Badge>
+          </p>
+          <p>
+            <span className="text-text-muted">Required:</span>{' '}
+            {new Date(item.requiredDate).toLocaleDateString()}
+          </p>
+          {item.predictedTotal !== null &&
+            item.predictedTotal !== undefined &&
+            item.predictedTotal > 0 && (
+              <p>
+                <span className="text-text-muted">Cost:</span>{' '}
+                <span className="font-medium text-accent-primary">
+                  ₹{item.predictedTotal.toLocaleString()}
+                </span>
+              </p>
+            )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (isLoading) {
     return (
@@ -157,54 +158,59 @@ export const IndentList: React.FC<IndentListProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-default/50 text-text-primary">
-                  {indents.map((item) => (
-                    <tr
-                      key={item.id}
-                      className="hover:bg-background-primary/40 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/indents/${item.id}`)}
-                    >
-                      <td className="py-3.5 px-4">
-                        <span className="font-mono font-bold text-accent-primary block">
-                          {item.indentNumber}
-                        </span>
-                        {item.purpose && (
-                          <span className="text-text-muted text-[10px] uppercase font-semibold">
-                            PO: {item.purpose}
+                  {indents.map((item) => {
+                    const parsedRemarks = parseIndentRemarks(item.remarks);
+                    return (
+                      <tr
+                        key={item.id}
+                        className="hover:bg-background-primary/40 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/indents/${item.id}`)}
+                      >
+                        <td className="py-3.5 px-4">
+                          <span className="font-mono font-bold text-accent-primary block">
+                            {item.indentNumber}
                           </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 font-medium">
-                        {parseIndentRemarks(item.remarks).customerName || 'N/A'}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-text-secondary">
-                        {parseIndentRemarks(item.remarks).layoutNumber || 'N/A'}
-                      </td>
-                      <td className="py-3.5 px-4 text-text-secondary">
-                        {item.departmentName || 'N/A'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <Badge tone={priorityTone[item.priority] ?? 'gray'}>{item.priority}</Badge>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <Badge tone={statusTone[item.currentState] ?? 'gray'}>
-                          {formatStatus(item.currentState)}
-                        </Badge>
-                      </td>
-                      <td className="py-3.5 px-4 text-text-secondary">
-                        {new Date(item.requiredDate).toLocaleDateString()}
-                      </td>
-                      <td className="py-3.5 px-4 text-text-muted">
-                        {new Date(item.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-medium text-accent-primary">
-                        {item.predictedTotal !== null &&
-                        item.predictedTotal !== undefined &&
-                        item.predictedTotal > 0
-                          ? `₹${item.predictedTotal.toLocaleString()}`
-                          : '—'}
-                      </td>
-                    </tr>
-                  ))}
+                          {item.purpose && (
+                            <span className="text-text-muted text-[10px] uppercase font-semibold">
+                              PO: {item.purpose}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 font-medium">
+                          {parsedRemarks.customerName || 'N/A'}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono text-text-secondary">
+                          {parsedRemarks.layoutNumber || 'N/A'}
+                        </td>
+                        <td className="py-3.5 px-4 text-text-secondary">
+                          {item.departmentName || 'N/A'}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <Badge tone={priorityTone[item.priority] ?? 'gray'}>
+                            {item.priority}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <Badge tone={statusTone[item.currentState] ?? 'gray'}>
+                            {formatStatus(item.currentState)}
+                          </Badge>
+                        </td>
+                        <td className="py-3.5 px-4 text-text-secondary">
+                          {new Date(item.requiredDate).toLocaleDateString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-text-muted">
+                          {new Date(item.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-medium text-accent-primary">
+                          {item.predictedTotal !== null &&
+                          item.predictedTotal !== undefined &&
+                          item.predictedTotal > 0
+                            ? `₹${item.predictedTotal.toLocaleString()}`
+                            : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

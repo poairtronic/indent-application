@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { FilterPanel } from '../components/AnalyticsFilters';
@@ -30,11 +30,14 @@ export const ProductsPage: React.FC = () => {
     );
   }
 
-  const productChartData =
-    data?.products?.map((item) => ({
-      label: item.productName,
-      value: item.indentCount,
-    })) ?? [];
+  const productChartData = useMemo(
+    () =>
+      data?.products?.map((item) => ({
+        label: item.productName,
+        value: item.indentCount,
+      })) ?? [],
+    [data?.products],
+  );
 
   return (
     <AnalyticsLayout

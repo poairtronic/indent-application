@@ -3,9 +3,33 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import compression from 'compression';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(
+    compression({
+      threshold: 1024,
+      filter: (req: any, res: any) => {
+        if (req.headers['x-no-compression']) {
+          return false;
+        }
+        return compression.filter(req, res);
+      },
+    }),
+  );
+
+  app.use((req: any, res: any, next: () => void) => {
+    if (req.path.startsWith('/api') && !req.path.includes('/attachments/download/')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else if (req.path.includes('/attachments/download/')) {
+      res.setHeader('Cache-Control', 'private, max-age=3600, must-revalidate');
+    }
+    next();
+  });
 
   app.enableCors({
     origin: (

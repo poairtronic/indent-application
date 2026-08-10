@@ -315,15 +315,17 @@ export const ReportDetailPage: React.FC = () => {
   };
 
   // Convert registry columns to Table.tsx Column interface
-  const tableColumns = config.columns.map((col: any, idx: number) => {
-    const key = col.sortKey || (typeof col.accessor === 'string' ? col.accessor : `col-${idx}`);
-    return {
-      key,
-      header: col.header,
-      sortable: !!(col.sortKey || typeof col.accessor === 'string'),
-      render: typeof col.accessor === 'function' ? col.accessor : undefined,
-    };
-  });
+  const tableColumns = useMemo(() => {
+    return config.columns.map((col: any, idx: number) => {
+      const key = col.sortKey || (typeof col.accessor === 'string' ? col.accessor : `col-${idx}`);
+      return {
+        key,
+        header: col.header,
+        sortable: !!(col.sortKey || typeof col.accessor === 'string'),
+        render: typeof col.accessor === 'function' ? col.accessor : undefined,
+      };
+    });
+  }, [config.columns]);
 
   const handleExportClick = async (format: 'excel' | 'pdf') => {
     if (isExportingExcel || isExportingPdf) return;

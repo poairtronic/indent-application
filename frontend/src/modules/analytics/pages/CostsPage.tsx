@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { FilterPanel } from '../components/AnalyticsFilters';
@@ -30,12 +30,16 @@ export const CostsPage: React.FC = () => {
   }
 
   const isOverPlanned = (data?.totalVarianceAmount ?? 0) > 0;
-  const costChartData = data
-    ? [
-        { label: 'Planned Cost', value: data.totalPlannedCost },
-        { label: 'Actual Cost', value: data.totalActualCost },
-      ]
-    : [];
+  const costChartData = useMemo(
+    () =>
+      data
+        ? [
+            { label: 'Planned Cost', value: data.totalPlannedCost },
+            { label: 'Actual Cost', value: data.totalActualCost },
+          ]
+        : [],
+    [data],
+  );
 
   return (
     <AnalyticsLayout

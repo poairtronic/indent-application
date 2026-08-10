@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { DonutChart, BarChart, HorizontalBarChart } from '../components/AnalyticsCharts';
@@ -259,42 +259,61 @@ export const SummaryPage: React.FC = () => {
     );
   }
 
-  const chartData =
-    summaryData?.statusBreakdown?.map((item) => ({
-      label: item.status,
-      value: item.count,
-    })) ?? [];
+  const chartData = useMemo(
+    () =>
+      summaryData?.statusBreakdown?.map((item) => ({
+        label: item.status,
+        value: item.count,
+      })) ?? [],
+    [summaryData],
+  );
 
-  const workflowChartData =
-    workflowData?.stageDistribution?.map((item) => ({
-      label: formatWorkflowState(item.stageName as any),
-      value: item.count,
-    })) ?? [];
+  const workflowChartData = useMemo(
+    () =>
+      workflowData?.stageDistribution?.map((item) => ({
+        label: formatWorkflowState(item.stageName as any),
+        value: item.count,
+      })) ?? [],
+    [workflowData],
+  );
 
-  const costChartData = costData
-    ? [
-        { label: 'Planned Cost', value: costData.totalPlannedCost },
-        { label: 'Actual Cost', value: costData.totalActualCost },
-      ]
-    : [];
+  const costChartData = useMemo(
+    () =>
+      costData
+        ? [
+            { label: 'Planned Cost', value: costData.totalPlannedCost },
+            { label: 'Actual Cost', value: costData.totalActualCost },
+          ]
+        : [],
+    [costData],
+  );
 
-  const deptChartData =
-    deptData?.departments?.map((item) => ({
-      label: item.departmentCode,
-      value: item.pendingQueue,
-    })) ?? [];
+  const deptChartData = useMemo(
+    () =>
+      deptData?.departments?.map((item) => ({
+        label: item.departmentCode,
+        value: item.pendingQueue,
+      })) ?? [],
+    [deptData],
+  );
 
-  const productChartData =
-    productData?.products?.map((item) => ({
-      label: item.productCode,
-      value: item.indentCount,
-    })) ?? [];
+  const productChartData = useMemo(
+    () =>
+      productData?.products?.map((item) => ({
+        label: item.productCode,
+        value: item.indentCount,
+      })) ?? [],
+    [productData],
+  );
 
-  const vendorChartData =
-    vendorData?.vendors?.map((item) => ({
-      label: item.vendorCode,
-      value: item.totalPredictedAmount,
-    })) ?? [];
+  const vendorChartData = useMemo(
+    () =>
+      vendorData?.vendors?.map((item) => ({
+        label: item.vendorCode,
+        value: item.totalPredictedAmount,
+      })) ?? [],
+    [vendorData],
+  );
 
   const kpis: IKpiData[] = kpiData ?? [];
   const grouped = groupKpis(kpis);

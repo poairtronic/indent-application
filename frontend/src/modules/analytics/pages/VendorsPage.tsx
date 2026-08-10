@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { FilterPanel } from '../components/AnalyticsFilters';
@@ -31,11 +31,14 @@ export const VendorsPage: React.FC = () => {
   }
 
   // Map values for the Horizontal Bar Chart representation
-  const chartData =
-    data?.vendors?.map((item) => ({
-      label: item.vendorName,
-      value: item.totalPredictedAmount,
-    })) || [];
+  const chartData = useMemo(
+    () =>
+      data?.vendors?.map((item) => ({
+        label: item.vendorName,
+        value: item.totalPredictedAmount,
+      })) || [],
+    [data?.vendors],
+  );
 
   return (
     <AnalyticsLayout

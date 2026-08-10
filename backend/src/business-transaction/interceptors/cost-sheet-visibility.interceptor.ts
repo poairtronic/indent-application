@@ -61,6 +61,7 @@ export class CostSheetVisibilityInterceptor implements NestInterceptor {
             return {
               ...item,
               indentProcesses: item.indentProcesses.map((ip: any) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { predictedCost, actualCost, ...rest } = ip;
                 return rest;
               }),

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { BarChart } from '../components/AnalyticsCharts';
@@ -19,11 +19,19 @@ export const DepartmentsPage: React.FC = () => {
     );
   }
 
-  const deptChartData =
-    data?.departments?.map((dept) => ({
-      label: dept.departmentCode,
-      value: dept.pendingQueue,
-    })) ?? [];
+  const deptChartData = useMemo(
+    () =>
+      data?.departments?.map((dept) => ({
+        label: dept.departmentCode,
+        value: dept.pendingQueue,
+      })) ?? [],
+    [data?.departments],
+  );
+
+  const liveQueueVolume = useMemo(
+    () => data?.departments?.reduce((sum, d) => sum + d.pendingQueue, 0) ?? 0,
+    [data?.departments],
+  );
 
   return (
     <AnalyticsLayout
@@ -46,7 +54,7 @@ export const DepartmentsPage: React.FC = () => {
         />
         <KpiCard
           title="Live Queue Volume"
-          value={data?.departments?.reduce((sum, d) => sum + d.pendingQueue, 0) ?? 0}
+          value={liveQueueVolume}
           loading={isLoading}
           icon={<span>⏳</span>}
         />
