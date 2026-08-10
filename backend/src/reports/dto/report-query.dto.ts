@@ -58,4 +58,8 @@ export class ReportQueryDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @IsIn(['excel', 'pdf'])
+  format?: 'excel' | 'pdf';
 }
