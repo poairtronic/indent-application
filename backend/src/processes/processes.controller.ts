@@ -19,6 +19,7 @@ import { ProcessQueryDto } from './dto/process-query.dto';
 import { ProcessResponseDto } from './dto/process-response.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Cache } from '../redis-cache/decorators/cache.decorator';
 
 @ApiTags('Manufacturing Processes')
 @ApiBearerAuth()
@@ -46,6 +47,7 @@ export class ProcessesController {
 
   @Get()
   @Permissions('manufacturing-processes.view')
+  @Cache('master:processes', 3600)
   @ApiOperation({ summary: 'Retrieve paginated manufacturing processes with filters and search' })
   @ApiResponse({ status: 200, description: 'Paginated manufacturing processes list.' })
   async findAllProcesses(@Query() query: ProcessQueryDto) {

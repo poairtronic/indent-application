@@ -5,7 +5,7 @@ import {
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
 } from '../../api/services/notifications/hooks';
-import * as Lucide from 'lucide-react';
+import { Info, AlertTriangle, AlertCircle, CheckCircle2, Bell, BellOff, X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { filterNotificationsForUser } from '../../utils/notificationFilter';
@@ -16,10 +16,10 @@ interface NotificationDrawerProps {
 }
 
 const NOTIFICATION_ICON: Record<string, React.ReactNode> = {
-  INFO: <Lucide.Info size={14} className="text-blue-500" />,
-  WARNING: <Lucide.AlertTriangle size={14} className="text-yellow-500" />,
-  ERROR: <Lucide.AlertCircle size={14} className="text-red-500" />,
-  SUCCESS: <Lucide.CheckCircle2 size={14} className="text-green-500" />,
+  INFO: <Info size={14} className="text-blue-500" />,
+  WARNING: <AlertTriangle size={14} className="text-yellow-500" />,
+  ERROR: <AlertCircle size={14} className="text-red-500" />,
+  SUCCESS: <CheckCircle2 size={14} className="text-green-500" />,
 };
 
 const formatRelativeTime = (dateStr: string) => {
@@ -60,7 +60,14 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
       // Suppress workflow state-change notifications
       items = items.filter((n) => {
         const t = (n.title || '').toLowerCase();
-        return !(t.includes('submitted') || t.includes('issued') || t.includes('completed') || t.includes('delivered') || t.includes('closure') || t.includes('archived'));
+        return !(
+          t.includes('submitted') ||
+          t.includes('issued') ||
+          t.includes('completed') ||
+          t.includes('delivered') ||
+          t.includes('closure') ||
+          t.includes('archived')
+        );
       });
     }
 
@@ -76,7 +83,6 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
   }, [rawNotifications, user, workflowAlerts, costDeviationWarnings]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const mutedCount = (data?.items?.length ?? 0) - rawNotifications.length;
   const suppressedBySettings = !workflowAlerts || !costDeviationWarnings || !emailNotifications;
 
   const handleMarkRead = useCallback(
@@ -115,7 +121,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
       <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-surface-card border-l border-border-default shadow-modal z-50 flex flex-col font-sans transition-all duration-300">
         <div className="p-4 border-b border-border-default flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Lucide.Bell className="w-5 h-5 text-accent-primary" />
+            <Bell className="w-5 h-5 text-accent-primary" />
             <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
             {unreadCount > 0 && (
               <span className="bg-accent-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
@@ -129,7 +135,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
                 title="Some notifications are muted via Settings"
                 className="flex items-center gap-1 text-[10px] text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-full font-semibold"
               >
-                <Lucide.BellOff size={10} />
+                <BellOff size={10} />
                 Muted
               </span>
             )}
@@ -137,7 +143,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
               onClick={onClose}
               className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-background-secondary transition-colors"
             >
-              <Lucide.X className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -176,7 +182,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center h-64">
-              <Lucide.BellOff className="w-8 h-8 text-text-muted mb-3" />
+              <BellOff className="w-8 h-8 text-text-muted mb-3" />
               <p className="text-xs font-semibold text-text-primary mb-1">All caught up!</p>
               <p className="text-[10px] text-text-muted">
                 You have no unread notifications on this terminal.
@@ -196,9 +202,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
                 )}
 
                 <div className="w-8 h-8 rounded-full bg-surface-elevated border border-border-default flex items-center justify-center shrink-0">
-                  {NOTIFICATION_ICON[n.type] || (
-                    <Lucide.Bell size={14} className="text-text-muted" />
-                  )}
+                  {NOTIFICATION_ICON[n.type] || <Bell size={14} className="text-text-muted" />}
                 </div>
 
                 <div className="flex-1 min-w-0 pr-4">

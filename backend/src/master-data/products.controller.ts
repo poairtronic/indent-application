@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Cache } from '../redis-cache/decorators/cache.decorator';
 
 @Controller('products')
 export class ProductsController {
@@ -8,6 +9,7 @@ export class ProductsController {
 
   @Get()
   @Permissions('products.view')
+  @Cache('master:products', 3600)
   async list(@Query('page') page = '1', @Query('limit') limit = '10') {
     const pageNumber = Math.max(1, Number(page) || 1);
     const pageSize = Math.max(1, Number(limit) || 10);

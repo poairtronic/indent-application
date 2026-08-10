@@ -1,36 +1,62 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import * as Lucide from 'lucide-react';
+import {
+  LayoutDashboard,
+  FileSpreadsheet,
+  Coins,
+  GitFork,
+  Factory,
+  Boxes,
+  PackageOpen,
+  Layers,
+  Wrench,
+  Scale,
+  Briefcase,
+  FileText,
+  BarChart3,
+  Users,
+  Shield,
+  Lock,
+  Monitor,
+  History,
+  Settings,
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  ChevronDown,
+  LogOut,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSidebar } from '../../store/sidebar.store';
 import { useNavigationStore } from '../../store/navigation.store';
 import { menuItems } from '../../config/menuConfig';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
-  LayoutDashboard: Lucide.LayoutDashboard,
-  FileSpreadsheet: Lucide.FileSpreadsheet,
-  Coins: Lucide.Coins,
-  GitFork: Lucide.GitFork,
-  Factory: Lucide.Factory,
-  Boxes: Lucide.Boxes,
-  PackageOpen: Lucide.PackageOpen,
-  Layers: Lucide.Layers,
-  Wrench: Lucide.Wrench,
-  Scale: Lucide.Scale,
-  Briefcase: Lucide.Briefcase,
-  FileText: Lucide.FileText,
-  BarChart3: Lucide.BarChart3,
-  Users: Lucide.Users,
-  Shield: Lucide.Shield,
-  Lock: Lucide.Lock,
-  Monitor: Lucide.Monitor,
-  History: Lucide.History,
-  Settings: Lucide.Settings,
+  LayoutDashboard,
+  FileSpreadsheet,
+  Coins,
+  GitFork,
+  Factory,
+  Boxes,
+  PackageOpen,
+  Layers,
+  Wrench,
+  Scale,
+  Briefcase,
+  FileText,
+  BarChart3,
+  Users,
+  Shield,
+  Lock,
+  Monitor,
+  History,
+  Settings,
 };
 
 const renderIcon = (name: string, className: string) => {
   const IconComponent = iconMap[name];
-  if (!IconComponent) return <Lucide.HelpCircle className={className} />;
+  if (!IconComponent) return <HelpCircle className={className} />;
   return <IconComponent className={className} />;
 };
 
@@ -87,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
             className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-elevated transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
             title="Collapse Sidebar"
           >
-            <Lucide.ChevronLeft className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-3.5 h-3.5" />
           </button>
         )}
         {!isOpen && (
@@ -96,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
             className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-elevated transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40 absolute right-2 top-4"
             title="Expand Sidebar"
           >
-            <Lucide.ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
@@ -145,7 +171,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                     }`}
                     title={isFav ? 'Remove from Favorites' : 'Add to Favorites'}
                   >
-                    <Lucide.Star
+                    <Star
                       className={`w-3 h-3 ${isFav ? 'fill-accent-primary text-accent-primary' : ''}`}
                     />
                   </button>
@@ -163,14 +189,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
               className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-text-primary rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
             >
               <span className="flex items-center gap-1.5">
-                <Lucide.Star className="w-3 h-3 text-accent-primary fill-accent-primary" />
+                <Star className="w-3 h-3 text-accent-primary fill-accent-primary" />
                 <span>Favorites</span>
               </span>
               <span>
                 {isFavoritesOpen ? (
-                  <Lucide.ChevronDown className="w-3 h-3" />
+                  <ChevronDown className="w-3 h-3" />
                 ) : (
-                  <Lucide.ChevronRight className="w-3 h-3" />
+                  <ChevronRight className="w-3 h-3" />
                 )}
               </span>
             </button>
@@ -219,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
             </div>
           )}
           {isOpen && (
-            <Lucide.LogOut className="w-3.5 h-3.5 text-text-muted hover:text-status-error shrink-0 transition-colors" />
+            <LogOut className="w-3.5 h-3.5 text-text-muted hover:text-status-error shrink-0 transition-colors" />
           )}
         </button>
       </div>

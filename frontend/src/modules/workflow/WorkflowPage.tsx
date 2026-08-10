@@ -158,7 +158,9 @@ export const WorkflowPage: React.FC = () => {
           <div className="space-y-1">
             <p className="text-xs text-text-muted uppercase tracking-wider">Active Bottleneck</p>
             <p className="text-lg font-bold text-text-primary truncate max-w-[180px]">
-              {analytics?.bottleneckStage ? formatWorkflowState(analytics.bottleneckStage as any) : 'None'}
+              {analytics?.bottleneckStage
+                ? formatWorkflowState(analytics.bottleneckStage as any)
+                : 'None'}
             </p>
           </div>
           <div className="p-3 bg-status-error/10 text-status-error rounded-lg">

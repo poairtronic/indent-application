@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnitsService } from './units.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 describe('UnitsService', () => {
   let service: UnitsService;
@@ -41,7 +42,16 @@ describe('UnitsService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UnitsService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        UnitsService,
+        { provide: PrismaService, useValue: prismaMock },
+        {
+          provide: RedisCacheService,
+          useValue: {
+            invalidateByPattern: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<UnitsService>(UnitsService);

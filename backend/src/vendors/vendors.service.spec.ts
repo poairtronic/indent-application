@@ -3,6 +3,7 @@ import { VendorsService } from './vendors.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { VendorStatus } from '@prisma/client';
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 describe('VendorsService', () => {
   let service: VendorsService;
@@ -48,7 +49,16 @@ describe('VendorsService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [VendorsService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        VendorsService,
+        { provide: PrismaService, useValue: prismaMock },
+        {
+          provide: RedisCacheService,
+          useValue: {
+            invalidateByPattern: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<VendorsService>(VendorsService);

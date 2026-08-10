@@ -242,10 +242,7 @@ export class NotificationsController {
 
       if (titleConditions.length > 0) {
         // Combine with existing notification.isDeleted filter using AND
-        where.notification.AND = [
-          { isDeleted: false },
-          { OR: titleConditions },
-        ];
+        where.notification.AND = [{ isDeleted: false }, { OR: titleConditions }];
         delete where.notification.isDeleted;
       } else {
         // No matching department — return zero results

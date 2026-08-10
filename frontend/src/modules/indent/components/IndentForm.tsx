@@ -222,8 +222,7 @@ const NestedProcessArray: React.FC<{
 }) => {
   const user = useAuthStore((s) => s.user);
   const canViewCostSheet = !!(
-    user?.permissions?.includes('costsheet.view') ||
-    user?.permissions?.includes('settings.manage')
+    user?.permissions?.includes('costsheet.view') || user?.permissions?.includes('settings.manage')
   );
 
   const { fields, append, remove } = useFieldArray({
@@ -449,8 +448,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
 }) => {
   const user = useAuthStore((s) => s.user);
   const canViewCostSheet = !!(
-    user?.permissions?.includes('costsheet.view') ||
-    user?.permissions?.includes('settings.manage')
+    user?.permissions?.includes('costsheet.view') || user?.permissions?.includes('settings.manage')
   );
 
   const isReadOnly = React.useMemo(() => {
@@ -1131,7 +1129,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({
               )}
             </div>
             <div className="text-right">
-              <p className="text-sm text-text-secondary">Grand Total (Material + Process + Global)</p>
+              <p className="text-sm text-text-secondary">
+                Grand Total (Material + Process + Global)
+              </p>
               <p className="text-2xl font-bold text-accent-primary">
                 ₹
                 {grandTotal.toLocaleString(undefined, {

@@ -15,6 +15,7 @@ import {
   ProductAnalyticsQueryDto,
   VendorAnalyticsQueryDto,
 } from './dto/analytics-query.dto';
+import { Cache } from '../redis-cache/decorators/cache.decorator';
 
 @Controller('analytics')
 export class AnalyticsController {
@@ -29,6 +30,7 @@ export class AnalyticsController {
    */
   @Get('kpis')
   @Permissions('analytics.view')
+  @Cache('analytics:kpis', 60)
   async getKpis(@Request() req: any, @Query() query: KpiQueryDto) {
     return this.kpiService.getKpis(req.user, query);
   }
@@ -39,6 +41,7 @@ export class AnalyticsController {
    */
   @Get('insights')
   @Permissions('analytics.view')
+  @Cache('analytics:insights', 60)
   async getInsights(@Request() req: any, @Query() query: KpiQueryDto) {
     return this.analyticsService.getInsights(req.user, query);
   }
@@ -50,6 +53,7 @@ export class AnalyticsController {
    */
   @Get('summary')
   @Permissions('analytics.view')
+  @Cache('analytics:summary', 60)
   async getExecutiveSummary() {
     return this.analyticsService.getExecutiveSummary();
   }
@@ -61,6 +65,7 @@ export class AnalyticsController {
    */
   @Get('workflow')
   @Permissions('analytics.view')
+  @Cache('analytics:workflow', 60)
   async getWorkflowAnalytics() {
     return this.analyticsService.getWorkflowAnalytics();
   }
@@ -72,6 +77,7 @@ export class AnalyticsController {
    */
   @Get('departments')
   @Permissions('analytics.view')
+  @Cache('analytics:departments', 60)
   async getDepartmentAnalytics() {
     return this.analyticsService.getDepartmentAnalytics();
   }
@@ -84,6 +90,7 @@ export class AnalyticsController {
    */
   @Get('costs')
   @Permissions('analytics.view')
+  @Cache('analytics:costs', 60)
   async getCostAnalytics(@Query() query: CostAnalyticsQueryDto) {
     const from = query.from ? new Date(query.from) : undefined;
     const to = query.to ? new Date(query.to) : undefined;
@@ -98,6 +105,7 @@ export class AnalyticsController {
    */
   @Get('products')
   @Permissions('analytics.view')
+  @Cache('analytics:products', 60)
   async getProductAnalytics(@Query() query: ProductAnalyticsQueryDto) {
     return this.analyticsService.getProductAnalytics(query.limit ?? 50);
   }
@@ -110,6 +118,7 @@ export class AnalyticsController {
    */
   @Get('vendors')
   @Permissions('analytics.view')
+  @Cache('analytics:vendors', 60)
   async getVendorAnalytics(@Query() query: VendorAnalyticsQueryDto) {
     return this.analyticsService.getVendorAnalytics(query.limit ?? 50);
   }

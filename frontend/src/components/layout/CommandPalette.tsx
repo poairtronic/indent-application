@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as Lucide from 'lucide-react';
+import { Search, ChevronRight } from 'lucide-react';
 import { menuItems, settingsMenuItems } from '../../config/menuConfig';
 import { useAuthStore } from '../../store/authStore';
 
@@ -77,7 +77,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       <div className="relative w-full max-w-lg bg-surface-card border border-border-default rounded-xl shadow-modal overflow-hidden flex flex-col max-h-[400px]">
         {/* Search Input */}
         <div className="flex items-center px-4 py-3 border-b border-border-default gap-3 bg-surface-elevated">
-          <Lucide.Search className="w-5 h-5 text-text-muted shrink-0" />
+          <Search className="w-5 h-5 text-text-muted shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -124,7 +124,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                       </p>
                     </div>
                   </div>
-                  <Lucide.ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
                 </button>
               );
             })

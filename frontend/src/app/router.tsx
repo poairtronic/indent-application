@@ -1,9 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
-import { AuthLayout } from '../components/layout/AuthLayout';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
-import { SettingsLayout } from '../components/layout/SettingsLayout';
 
 // Loading Fallback Spinner
 const LoadingFallback = () => (
@@ -36,6 +33,17 @@ const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
       Future Phase Execution
     </div>
   </div>
+);
+
+// Lazy Loaded Layout Components
+const AuthLayout = lazy(() =>
+  import('../components/layout/AuthLayout').then((m) => ({ default: m.AuthLayout })),
+);
+const DashboardLayout = lazy(() =>
+  import('../components/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout })),
+);
+const SettingsLayout = lazy(() =>
+  import('../components/layout/SettingsLayout').then((m) => ({ default: m.SettingsLayout })),
 );
 
 // Lazy Loaded Page Components
@@ -202,7 +210,13 @@ export const AppRouter: React.FC = () => {
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       {/* Public Auth Routes */}
-      <Route element={<AuthLayout />}>
+      <Route
+        element={
+          <Suspense fallback={<LoadingFallback />}>
+            <AuthLayout />
+          </Suspense>
+        }
+      >
         <Route path="/login" element={suspended(LoginPage)} />
         <Route path="/forgot-password" element={suspended(ForgotPasswordPage)} />
         <Route path="/reset-password" element={suspended(ResetPasswordPage)} />
@@ -218,14 +232,22 @@ export const AppRouter: React.FC = () => {
       <Route
         element={
           <ProtectedRoute>
-            <DashboardLayout />
+            <Suspense fallback={<LoadingFallback />}>
+              <DashboardLayout />
+            </Suspense>
           </ProtectedRoute>
         }
       >
         <Route path="/dashboard" element={suspended(DashboardPage)} />
 
         {/* Nested Settings Route Group */}
-        <Route element={<SettingsLayout />}>
+        <Route
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <SettingsLayout />
+            </Suspense>
+          }
+        >
           <Route path="/profile" element={suspended(ProfilePage)} />
           <Route path="/change-password" element={suspended(ChangePasswordPage)} />
           <Route path="/security" element={suspended(SecurityDashboardPage)} />

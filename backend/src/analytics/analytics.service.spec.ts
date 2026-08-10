@@ -158,10 +158,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should return null averageCycleDays when no completed indents exist', async () => {
-      mockPrisma.indent.findMany
-        .mockReset()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([]);
+      mockPrisma.indent.findMany.mockReset().mockResolvedValueOnce([]).mockResolvedValueOnce([]);
       const result = await service.getWorkflowAnalytics();
       expect(result.averageCycleDays).toBeNull();
     });

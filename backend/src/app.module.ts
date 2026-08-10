@@ -21,6 +21,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AuditModule } from './audit/audit.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { ReportsModule } from './reports/reports.module';
+import { RedisCacheModule } from './redis-cache/redis-cache.module';
+import { HttpCacheInterceptor } from './redis-cache/interceptors/http-cache.interceptor';
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { ReportsModule } from './reports/reports.module';
     AuditModule,
     MasterDataModule,
     ReportsModule,
+    RedisCacheModule,
   ],
   controllers: [],
   providers: [
@@ -57,6 +60,10 @@ import { ReportsModule } from './reports/reports.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpCacheInterceptor,
     },
     {
       provide: APP_FILTER,

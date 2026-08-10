@@ -42,11 +42,27 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             <div className="w-16 h-16 bg-status-error/10 border border-status-error/25 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertTriangle size={28} className="text-status-error" />
             </div>
-            <h1 className="text-xl font-bold text-text-primary mb-3">Application Render Crash</h1>
-            <p className="text-sm text-text-secondary mb-6">
-              A critical rendering error occurred in the user interface. Our engineering telemetry
-              has logged this event.
-            </p>
+            {this.state.error &&
+            (this.state.error.toString().includes('Failed to fetch dynamically') ||
+              this.state.error.name === 'ChunkLoadError') ? (
+              <>
+                <h1 className="text-xl font-bold text-text-primary mb-3">Application Update</h1>
+                <p className="text-sm text-text-secondary mb-6">
+                  A new version of the application has been deployed on the server. Please reload
+                  your terminal tab to sync latest system assets.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-xl font-bold text-text-primary mb-3">
+                  Application Render Crash
+                </h1>
+                <p className="text-sm text-text-secondary mb-6">
+                  A critical rendering error occurred in the user interface. Our engineering
+                  telemetry has logged this event.
+                </p>
+              </>
+            )}
             {this.state.error && (
               <div className="bg-background-secondary border border-border-default rounded-lg p-3 text-left mb-6 overflow-auto max-h-32">
                 <code className="text-xs text-status-error block break-all whitespace-pre-wrap font-mono">

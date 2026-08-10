@@ -12,9 +12,14 @@ import { ProcessResponseDto } from './dto/process-response.dto';
 import { PROCESS_MESSAGES } from './constants/process-messages.constants';
 import { Prisma, ProductStatus } from '@prisma/client';
 
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
+
 @Injectable()
 export class ProcessesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: RedisCacheService,
+  ) {}
 
   private mapToProcessResponse(process: any): ProcessResponseDto {
     return {
@@ -122,6 +127,8 @@ export class ProcessesService {
 
     const response = this.mapToProcessResponse(newProcess);
     await this.createAuditLog('CREATE', newProcess.id, null, response, performingUserId);
+    await this.cacheService.invalidateByPattern('master:processes:*');
+    await this.cacheService.invalidateByPattern('reports:master-data:products:*');
 
     return response;
   }
@@ -246,6 +253,8 @@ export class ProcessesService {
     const oldResponse = this.mapToProcessResponse(currentProcess);
     const newResponse = this.mapToProcessResponse(updatedProcess);
     await this.createAuditLog('UPDATE', id, oldResponse, newResponse, performingUserId);
+    await this.cacheService.invalidateByPattern('master:processes:*');
+    await this.cacheService.invalidateByPattern('reports:master-data:products:*');
 
     return newResponse;
   }
@@ -284,6 +293,8 @@ export class ProcessesService {
       null,
       performingUserId,
     );
+    await this.cacheService.invalidateByPattern('master:processes:*');
+    await this.cacheService.invalidateByPattern('reports:master-data:products:*');
 
     return { message: PROCESS_MESSAGES.DELETED_SUCCESS };
   }
@@ -310,6 +321,8 @@ export class ProcessesService {
 
     const response = this.mapToProcessResponse(restoredProcess);
     await this.createAuditLog('RESTORE', id, null, response, performingUserId);
+    await this.cacheService.invalidateByPattern('master:processes:*');
+    await this.cacheService.invalidateByPattern('reports:master-data:products:*');
 
     return response;
   }

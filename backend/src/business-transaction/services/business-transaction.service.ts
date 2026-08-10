@@ -20,6 +20,7 @@ import {
 } from '../dto/create-business-transaction.dto';
 import { StoresIssueDto } from '../dto/stores-issue.dto';
 import { ProductionUpdateDto, CustomerDeliveryDto } from '../dto/production-update.dto';
+import { RedisCacheService } from '../../redis-cache/redis-cache.service';
 
 @Injectable()
 export class BusinessTransactionService {
@@ -31,7 +32,66 @@ export class BusinessTransactionService {
     private readonly workflowStateMachine: WorkflowStateMachineService,
     private readonly eventService: BusinessTransactionEventService,
     private readonly attachmentStorage: AttachmentStorageService,
+    private readonly cacheService: RedisCacheService,
   ) {}
+
+  private async invalidateMetadataCache(): Promise<void> {
+    try {
+      await Promise.all([
+        this.cacheService.invalidateByPattern('master:products:*'),
+        this.cacheService.invalidateByPattern('master:departments:*'),
+        this.cacheService.invalidateByPattern('master:materials:*'),
+        this.cacheService.invalidateByPattern('reports:master-data:products:*'),
+        this.cacheService.invalidateByPattern('analytics:summary'),
+        this.cacheService.invalidateByPattern('analytics:kpis:*'),
+        this.cacheService.invalidateByPattern('analytics:insights:*'),
+      ]);
+    } catch (err) {
+      this.logger.warn(`Failed to invalidate metadata cache: ${err.message}`);
+    }
+  }
+
+  private async invalidateWorkflowCache(): Promise<void> {
+    try {
+      await Promise.all([
+        this.cacheService.invalidateByPattern('analytics:summary'),
+        this.cacheService.invalidateByPattern('analytics:workflow'),
+        this.cacheService.invalidateByPattern('analytics:departments'),
+        this.cacheService.invalidateByPattern('analytics:kpis:*'),
+        this.cacheService.invalidateByPattern('analytics:insights:*'),
+        this.cacheService.invalidateByPattern('reports:production:*'),
+        this.cacheService.invalidateByPattern('reports:workflow:*'),
+      ]);
+    } catch (err) {
+      this.logger.warn(`Failed to invalidate workflow cache: ${err.message}`);
+    }
+  }
+
+  private async invalidateCostCache(): Promise<void> {
+    try {
+      await Promise.all([
+        this.cacheService.invalidateByPattern('analytics:costs:*'),
+        this.cacheService.invalidateByPattern('analytics:summary'),
+        this.cacheService.invalidateByPattern('analytics:kpis:*'),
+        this.cacheService.invalidateByPattern('analytics:insights:*'),
+        this.cacheService.invalidateByPattern('reports:cost:*'),
+        this.cacheService.invalidateByPattern('reports:production:*'),
+      ]);
+    } catch (err) {
+      this.logger.warn(`Failed to invalidate cost cache: ${err.message}`);
+    }
+  }
+
+  private async invalidateAllCache(): Promise<void> {
+    try {
+      await Promise.all([
+        this.cacheService.invalidateByPattern('reports:*'),
+        this.cacheService.invalidateByPattern('analytics:*'),
+      ]);
+    } catch (err) {
+      this.logger.warn(`Failed to invalidate all cache: ${err.message}`);
+    }
+  }
 
   /**
    * Helper to generate unique Indent and Cost Sheet numbers
@@ -217,6 +277,7 @@ export class BusinessTransactionService {
       status: WorkflowState.DRAFT,
     });
 
+    await this.invalidateMetadataCache();
     return this.findTransactionById(result.indent.id);
   }
 
@@ -458,6 +519,7 @@ export class BusinessTransactionService {
       { priority: dto.indent?.priority || existing.priority },
     );
 
+    await this.invalidateMetadataCache();
     return this.findTransactionById(id);
   }
 
@@ -515,6 +577,7 @@ export class BusinessTransactionService {
       { state: targetState },
     );
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -591,6 +654,7 @@ export class BusinessTransactionService {
       { state: targetState, verificationResults },
     );
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -653,6 +717,7 @@ export class BusinessTransactionService {
       { state: targetState, issueRemarks: dto.remarks },
     );
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -697,11 +762,16 @@ export class BusinessTransactionService {
         const prismaStatus = WorkflowStateMapper.toPrisma(WorkflowState.STORES_PROCESSING);
         await this.prisma.indent.update({
           where: { id },
-          data: { status: prismaStatus, currentState: WorkflowState.STORES_PROCESSING, updatedBy: userId },
+          data: {
+            status: prismaStatus,
+            currentState: WorkflowState.STORES_PROCESSING,
+            updatedBy: userId,
+          },
         });
       }
     }
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -767,6 +837,7 @@ export class BusinessTransactionService {
       { state: targetState, action: 'RECEIVE_MATERIALS' },
     );
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -809,6 +880,7 @@ export class BusinessTransactionService {
       { action: 'START_PRODUCTION', remarks },
     );
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -842,6 +914,7 @@ export class BusinessTransactionService {
       remarks: dto.remarks,
     });
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -892,6 +965,7 @@ export class BusinessTransactionService {
       { state: targetState, remarks },
     );
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -956,6 +1030,7 @@ export class BusinessTransactionService {
       },
     );
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -1016,6 +1091,7 @@ export class BusinessTransactionService {
       { state: targetState },
     );
 
+    await this.invalidateWorkflowCache();
     return this.findTransactionById(id);
   }
 
@@ -1201,6 +1277,7 @@ export class BusinessTransactionService {
       { actualCostEntered: true, costSheetId, state: targetState },
     );
 
+    await this.invalidateCostCache();
     return this.findTransactionById(id);
   }
 
@@ -1289,6 +1366,7 @@ export class BusinessTransactionService {
       { actualRate: dto.actualRate, actualQuantity: dto.actualQuantity },
     );
 
+    await this.invalidateCostCache();
     return this.findTransactionById(id);
   }
 
@@ -1349,6 +1427,7 @@ export class BusinessTransactionService {
       { state: targetState, costSheetStatus: 'FINALIZED' },
     );
 
+    await this.invalidateAllCache();
     return this.findTransactionById(id);
   }
 
@@ -1399,6 +1478,7 @@ export class BusinessTransactionService {
       { state: targetState, isLocked: true },
     );
 
+    await this.invalidateAllCache();
     return this.findTransactionById(id);
   }
 
@@ -1449,6 +1529,7 @@ export class BusinessTransactionService {
       { state: targetState, businessTransactionCompleted: true },
     );
 
+    await this.invalidateAllCache();
     return this.findTransactionById(id);
   }
 

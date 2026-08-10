@@ -19,6 +19,7 @@ import { VendorQueryDto } from './dto/vendor-query.dto';
 import { VendorResponseDto } from './dto/vendor-response.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Cache } from '../redis-cache/decorators/cache.decorator';
 
 @ApiTags('Vendors')
 @ApiBearerAuth()
@@ -42,6 +43,7 @@ export class VendorsController {
 
   @Get()
   @Permissions('vendors.view')
+  @Cache('master:vendors', 3600)
   @ApiOperation({ summary: 'Retrieve paginated vendors with filters and search' })
   @ApiResponse({ status: 200, description: 'Paginated vendors list.' })
   async findAllVendors(@Query() query: VendorQueryDto) {

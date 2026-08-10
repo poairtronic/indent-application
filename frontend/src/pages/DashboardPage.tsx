@@ -595,7 +595,9 @@ export const DashboardPage: React.FC = () => {
                   <div className="p-3 bg-status-warning/10 border border-status-warning/20 rounded-lg flex items-center gap-2 text-xs text-status-warning">
                     <AlertTriangle size={16} className="shrink-0" />
                     <span>
-                      Bottleneck Detected: <strong>{formatWorkflowState(workflowData.bottleneckStage as any)}</strong> stage.
+                      Bottleneck Detected:{' '}
+                      <strong>{formatWorkflowState(workflowData.bottleneckStage as any)}</strong>{' '}
+                      stage.
                     </span>
                   </div>
                 )}

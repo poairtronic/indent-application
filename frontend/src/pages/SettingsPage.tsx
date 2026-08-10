@@ -12,17 +12,21 @@ import {
   AlertTriangle,
   Globe,
   Monitor,
-  Layers,
 } from 'lucide-react';
 import { useThemeStore } from '../store/theme.store';
 import { useSettingsStore, DEFAULT_SETTINGS } from '../store/settingsStore';
-import type { DataDensity, CurrencyFormat, TimezoneKey } from '../store/settingsStore';
+import type {
+  DataDensity,
+  CurrencyFormat,
+  TimezoneKey,
+  SettingsState,
+} from '../store/settingsStore';
 import { useToasts, ToastViewport } from '../components/ui/toast';
 import { getTimezoneLabel } from '../utils/currencyFormatter';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-function useUnsavedChanges(store: ReturnType<typeof useSettingsStore>) {
+function useUnsavedChanges(store: SettingsState) {
   const [dirty, setDirty] = useState(false);
   const [snapshot, setSnapshot] = useState(() => ({
     dataDensity: store.dataDensity,
@@ -72,10 +76,7 @@ export const SettingsPage: React.FC = () => {
   );
 
   const handleToggle = useCallback(
-    (
-      key: 'emailNotifications' | 'workflowAlerts' | 'costDeviationWarnings',
-      value: boolean,
-    ) => {
+    (key: 'emailNotifications' | 'workflowAlerts' | 'costDeviationWarnings', value: boolean) => {
       settings.updateSettings({ [key]: value });
       markDirty();
 
@@ -122,9 +123,7 @@ export const SettingsPage: React.FC = () => {
   // ── ui ───────────────────────────────────────────────────────────────────
 
   const allNotificationsOff =
-    !settings.emailNotifications &&
-    !settings.workflowAlerts &&
-    !settings.costDeviationWarnings;
+    !settings.emailNotifications && !settings.workflowAlerts && !settings.costDeviationWarnings;
 
   return (
     <div className="max-w-4xl animate-fade-in">
@@ -150,8 +149,8 @@ export const SettingsPage: React.FC = () => {
       {allNotificationsOff && (
         <div className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl border border-yellow-500/30 bg-yellow-500/5 text-yellow-400 text-xs font-medium">
           <BellOff size={14} className="shrink-0" />
-          All notification channels are currently disabled. You will not receive any system
-          alerts or workflow updates.
+          All notification channels are currently disabled. You will not receive any system alerts
+          or workflow updates.
         </div>
       )}
 
@@ -290,10 +289,7 @@ export const SettingsPage: React.FC = () => {
             <h3 className="text-md font-semibold text-text-primary">Regional Settings</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              label="Timezone"
-              hint={getTimezoneLabel(settings.timezone)}
-            >
+            <FormField label="Timezone" hint={getTimezoneLabel(settings.timezone)}>
               <Select
                 options={[
                   { label: 'Asia/Kolkata (IST)', value: 'ist' },
@@ -338,8 +334,11 @@ export const SettingsPage: React.FC = () => {
             <span>
               <span className="font-semibold text-text-primary">Date format:</span>{' '}
               {new Date().toLocaleDateString(
-                settings.timezone === 'ist' ? 'en-IN' :
-                settings.timezone === 'usd' ? 'en-US' : 'en-GB',
+                settings.timezone === 'ist'
+                  ? 'en-IN'
+                  : settings.timezone === 'est'
+                    ? 'en-US'
+                    : 'en-GB',
                 { day: '2-digit', month: 'short', year: 'numeric' },
               )}
             </span>
@@ -364,11 +363,7 @@ export const SettingsPage: React.FC = () => {
             )}
           </div>
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              icon={<RotateCcw size={14} />}
-              onClick={handleReset}
-            >
+            <Button variant="outline" icon={<RotateCcw size={14} />} onClick={handleReset}>
               Reset Defaults
             </Button>
             <Button

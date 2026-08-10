@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { ReportsService } from '../services/reports.service';
 import { ReportQueryDto } from '../dto/report-query.dto';
+import { Cache } from '../../redis-cache/decorators/cache.decorator';
 
 @Controller('reports')
 export class ReportsController {
@@ -10,6 +11,7 @@ export class ReportsController {
 
   @Get('production/daily')
   @Permissions('reports.view')
+  @Cache('reports:production:daily', 300)
   async getDailyProductionSummary(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getDailyProductionSummary(req.user, query);
   }
@@ -76,6 +78,7 @@ export class ReportsController {
 
   @Get('production/process-yield')
   @Permissions('reports.view')
+  @Cache('reports:production:process-yield', 300)
   async getProcessYield(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getProcessYield(req.user, query);
   }
@@ -91,6 +94,7 @@ export class ReportsController {
 
   @Get('production/machine-utilization')
   @Permissions('reports.view')
+  @Cache('reports:production:machine-utilization', 300)
   async getMachineUtilization(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getMachineUtilization(req.user, query);
   }
@@ -106,6 +110,7 @@ export class ReportsController {
 
   @Get('cost/actual-vs-predicted')
   @Permissions('reports.view')
+  @Cache('reports:cost:actual-vs-predicted', 300)
   async getActualVsPredictedCosts(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getActualVsPredictedCosts(req.user, query);
   }
@@ -173,6 +178,7 @@ export class ReportsController {
 
   @Get('cost/material-breakdown')
   @Permissions('reports.view')
+  @Cache('reports:cost:material-breakdown', 300)
   async getMaterialCostBreakdown(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getMaterialCostBreakdown(req.user, query);
   }
@@ -240,6 +246,7 @@ export class ReportsController {
 
   @Get('cost/department-budget')
   @Permissions('reports.view')
+  @Cache('reports:cost:department-budget', 300)
   async getDepartmentBudgetUtilization(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getDepartmentBudgetUtilization(req.user, query);
   }
@@ -255,6 +262,7 @@ export class ReportsController {
 
   @Get('master-data/vendor-performance')
   @Permissions('reports.view')
+  @Cache('reports:master-data:vendor-performance', 300)
   async getVendorPerformance(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getVendorPerformance(req.user, query);
   }
@@ -325,6 +333,7 @@ export class ReportsController {
 
   @Get('master-data/products')
   @Permissions('reports.view')
+  @Cache('reports:master-data:products', 300)
   async getProductCatalog(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getProductCatalog(req.user, query);
   }
@@ -393,6 +402,7 @@ export class ReportsController {
 
   @Get('workflow/bottleneck')
   @Permissions('reports.view')
+  @Cache('reports:workflow:bottleneck', 300)
   async getWorkflowBottleneck(@Request() req: any, @Query() query: ReportQueryDto) {
     return this.reportsService.getWorkflowBottleneck(req.user, query);
   }

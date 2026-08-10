@@ -3,9 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
+
 @Injectable()
 export class PermissionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: RedisCacheService,
+  ) {}
 
   async create(dto: CreatePermissionDto) {
     const existing = await this.prisma.permission.findUnique({
@@ -15,7 +20,7 @@ export class PermissionsService {
       throw new ConflictException(`Permission '${dto.code}' already exists`);
     }
 
-    return this.prisma.permission.create({
+    const result = await this.prisma.permission.create({
       data: {
         module: dto.module,
         action: dto.action,
@@ -23,6 +28,8 @@ export class PermissionsService {
         description: dto.description,
       },
     });
+    await this.cacheService.invalidateByPattern('master:permissions:*');
+    return result;
   }
 
   async findAll(module?: string) {
@@ -64,7 +71,7 @@ export class PermissionsService {
       }
     }
 
-    return this.prisma.permission.update({
+    const result = await this.prisma.permission.update({
       where: { id },
       data: {
         module: dto.module,
@@ -73,6 +80,8 @@ export class PermissionsService {
         description: dto.description,
       },
     });
+    await this.cacheService.invalidateByPattern('master:permissions:*');
+    return result;
   }
 
   async remove(id: string) {
@@ -90,6 +99,7 @@ export class PermissionsService {
         deletedAt: new Date(),
       },
     });
+    await this.cacheService.invalidateByPattern('master:permissions:*');
   }
 
   async getModules() {

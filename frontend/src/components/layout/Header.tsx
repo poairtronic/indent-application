@@ -1,11 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import * as Lucide from 'lucide-react';
+import {
+  Search,
+  PlusCircle,
+  ShieldCheck,
+  Sun,
+  Moon,
+  Bell,
+  User,
+  Shield,
+  LogOut,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/theme.store';
 import { useUnreadNotificationCount } from '../../api/services/notifications/hooks';
-import { NotificationDrawer } from './NotificationDrawer';
-import { CommandPalette } from './CommandPalette';
+const NotificationDrawer = lazy(() =>
+  import('./NotificationDrawer').then((m) => ({ default: m.NotificationDrawer })),
+);
+const CommandPalette = lazy(() =>
+  import('./CommandPalette').then((m) => ({ default: m.CommandPalette })),
+);
 
 export const Header: React.FC = () => {
   const location = useLocation();
@@ -89,7 +103,7 @@ export const Header: React.FC = () => {
             className="w-full bg-background-primary/60 hover:bg-background-secondary/80 border border-border-default hover:border-border-strong rounded-lg px-3 py-1.5 text-xs text-text-muted outline-none flex items-center justify-between transition-all duration-200 ease-enter shadow-card hover:shadow-dropdown focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:border-accent-primary"
           >
             <span className="flex items-center gap-2">
-              <Lucide.Search className="w-3.5 h-3.5 text-text-muted" />
+              <Search className="w-3.5 h-3.5 text-text-muted" />
               <span>Search console...</span>
             </span>
             <span className="text-[10px] bg-surface-elevated/80 text-text-muted px-1.5 py-0.5 rounded border border-border-default font-mono">
@@ -108,7 +122,7 @@ export const Header: React.FC = () => {
               title="New Indent Dispatch"
               aria-label="New Indent Dispatch"
             >
-              <Lucide.PlusCircle className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4" />
             </button>
             <button
               onClick={() => navigate('/security')}
@@ -116,7 +130,7 @@ export const Header: React.FC = () => {
               title="Security Shield Logs"
               aria-label="Security Shield Logs"
             >
-              <Lucide.ShieldCheck className="w-4 h-4" />
+              <ShieldCheck className="w-4 h-4" />
             </button>
           </div>
 
@@ -127,11 +141,7 @@ export const Header: React.FC = () => {
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
             aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
           >
-            {theme === 'dark' ? (
-              <Lucide.Sun className="w-4 h-4" />
-            ) : (
-              <Lucide.Moon className="w-4 h-4" />
-            )}
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
           {/* Notifications Notification Drawer Trigger */}
@@ -143,7 +153,7 @@ export const Header: React.FC = () => {
               aria-label="Toggle notifications panel"
               aria-expanded={isNotificationsOpen}
             >
-              <Lucide.Bell className="w-4 h-4" />
+              <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-status-error rounded-full animate-pulse" />
               )}
@@ -180,7 +190,7 @@ export const Header: React.FC = () => {
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 text-xs text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors"
                   >
-                    <Lucide.User className="w-3.5 h-3.5" />
+                    <User className="w-3.5 h-3.5" />
                     My Profile
                   </Link>
                   <Link
@@ -188,7 +198,7 @@ export const Header: React.FC = () => {
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 text-xs text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors"
                   >
-                    <Lucide.Shield className="w-3.5 h-3.5" />
+                    <Shield className="w-3.5 h-3.5" />
                     Security Settings
                   </Link>
                   <div className="border-t border-border-default my-1" />
@@ -196,7 +206,7 @@ export const Header: React.FC = () => {
                     onClick={handleLogout}
                     className="w-full text-left flex items-center gap-2 px-4 py-2 text-xs text-status-error hover:bg-status-error/10 transition-colors focus:outline-none"
                   >
-                    <Lucide.LogOut className="w-3.5 h-3.5" />
+                    <LogOut className="w-3.5 h-3.5" />
                     Logout Session
                   </button>
                 </div>
@@ -207,13 +217,17 @@ export const Header: React.FC = () => {
       </header>
 
       {/* Notification Drawer Overlay */}
-      <NotificationDrawer
-        isOpen={isNotificationsOpen}
-        onClose={() => setIsNotificationsOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <NotificationDrawer
+          isOpen={isNotificationsOpen}
+          onClose={() => setIsNotificationsOpen(false)}
+        />
+      </Suspense>
 
       {/* Command Palette search console */}
-      <CommandPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <Suspense fallback={null}>
+        <CommandPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      </Suspense>
     </>
   );
 };

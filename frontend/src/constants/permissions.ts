@@ -95,9 +95,7 @@ export const MODULE_PERMISSIONS: Record<string, AppPermission[]> = {
     AppPermission.COSTSHEET_CREATE,
     AppPermission.COSTSHEET_UPDATE,
   ],
-  workflow: [
-    AppPermission.WORKFLOW_VIEW,
-  ],
+  workflow: [AppPermission.WORKFLOW_VIEW],
   production: [
     AppPermission.PRODUCTION_VIEW,
     AppPermission.PRODUCTION_RECEIVE,

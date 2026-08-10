@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Cache } from '../redis-cache/decorators/cache.decorator';
 
 @Controller('departments')
 export class DepartmentsController {
@@ -8,6 +9,7 @@ export class DepartmentsController {
 
   @Get()
   @Permissions('departments.view')
+  @Cache('master:departments', 86400)
   async list(@Query('page') page?: string, @Query('limit') limit?: string) {
     const items = await this.prisma.department.findMany({
       where: { isDeleted: false },
