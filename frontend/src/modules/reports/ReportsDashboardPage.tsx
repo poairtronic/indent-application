@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, Printer, FileText } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
@@ -8,14 +9,20 @@ export const ReportsDashboardPage: React.FC = () => {
   const userDept = user?.department?.departmentCode;
   const isAdmin = user?.permissions.includes('settings.manage');
   const isManager = userDept === 'SMGR' || userDept === 'GMGR';
+  const navigate = useNavigate();
 
-  const handleExport = (reportName: string) => {
-    // In a real application, this would trigger an API call to download a CSV/PDF
+  const handleExport = (reportName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     alert(`Exporting ${reportName} report to CSV...`);
   };
 
-  const handlePrint = (_reportName: string) => {
+  const handlePrint = (_reportName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     window.print();
+  };
+
+  const handleCardClick = (category: string, id: string) => {
+    navigate(`/reports/${category}/${id}`);
   };
 
   const reportCategories = React.useMemo(() => {
@@ -27,14 +34,20 @@ export const ReportsDashboardPage: React.FC = () => {
         title: 'Manufacturing Operations',
         reports: [
           {
+            id: 'daily-production',
+            category: 'production',
             name: 'Daily Production Summary',
             description: 'Overview of all completed and ongoing manufacturing indents.',
           },
           {
+            id: 'process-yield',
+            category: 'production',
             name: 'Process Yield Report',
             description: 'Detailed breakdown of manufacturing processes and output.',
           },
           {
+            id: 'machine-utilization',
+            category: 'production',
             name: 'Machine Utilization',
             description: 'Time and efficiency tracking for manufacturing equipment.',
           },
@@ -48,14 +61,20 @@ export const ReportsDashboardPage: React.FC = () => {
         title: 'Cost & Financial Analytics',
         reports: [
           {
+            id: 'actual-vs-predicted',
+            category: 'cost',
             name: 'Actual vs. Predicted Costs',
             description: 'Financial variance report across all completed cost sheets.',
           },
           {
+            id: 'material-breakdown',
+            category: 'cost',
             name: 'Material Cost Breakdown',
             description: 'Total expenditure separated by material categories.',
           },
           {
+            id: 'department-budget',
+            category: 'cost',
             name: 'Department Budget Utilization',
             description: 'Financial tracking grouped by originating department.',
           },
@@ -69,6 +88,8 @@ export const ReportsDashboardPage: React.FC = () => {
     // Vendor Performance is visible to Stores, Accounts, Admin, Manager
     if (isAdmin || isManager || userDept === 'STOR' || userDept === 'ACCT') {
       masterReports.push({
+        id: 'vendor-performance',
+        category: 'master-data',
         name: 'Vendor Performance Matrix',
         description: 'Evaluation of vendor delivery times and material quality.',
       });
@@ -77,6 +98,8 @@ export const ReportsDashboardPage: React.FC = () => {
     // Product Catalog Export is visible to Design, Stores, Admin, Manager
     if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR') {
       masterReports.push({
+        id: 'products',
+        category: 'master-data',
         name: 'Product Catalog Export',
         description: 'Complete export of all configured master products.',
       });
@@ -85,6 +108,8 @@ export const ReportsDashboardPage: React.FC = () => {
     // Workflow Bottleneck Analysis is visible to Design, Admin, Manager, Stores
     if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR') {
       masterReports.push({
+        id: 'workflow-bottleneck',
+        category: 'workflow',
         name: 'Workflow Bottleneck Analysis',
         description: 'Average time spent in each stage of the ERP workflow.',
       });
@@ -123,7 +148,8 @@ export const ReportsDashboardPage: React.FC = () => {
               {category.reports.map((report) => (
                 <div
                   key={report.name}
-                  className="p-3 bg-background-secondary rounded-lg border border-border-default group hover:border-accent-primary transition-colors"
+                  onClick={() => handleCardClick(report.category, report.id)}
+                  className="p-3 bg-background-secondary rounded-lg border border-border-default group hover:border-accent-primary transition-colors cursor-pointer"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
@@ -140,7 +166,7 @@ export const ReportsDashboardPage: React.FC = () => {
                       variant="outline"
                       size="sm"
                       icon={<Printer size={14} />}
-                      onClick={() => handlePrint(report.name)}
+                      onClick={(e) => handlePrint(report.name, e)}
                       className="px-2 py-1"
                     >
                       Print
@@ -149,7 +175,7 @@ export const ReportsDashboardPage: React.FC = () => {
                       variant="primary"
                       size="sm"
                       icon={<Download size={14} />}
-                      onClick={() => handleExport(report.name)}
+                      onClick={(e) => handleExport(report.name, e)}
                       className="px-2 py-1"
                     >
                       CSV

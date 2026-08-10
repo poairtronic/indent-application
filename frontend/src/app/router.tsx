@@ -169,6 +169,11 @@ const ReportsDashboardPage = lazy(() =>
     default: m.ReportsDashboardPage,
   })),
 );
+const ReportDetailPage = lazy(() =>
+  import('../modules/reports/ReportDetailPage').then((m) => ({
+    default: m.ReportDetailPage,
+  })),
+);
 
 // Analytics Pages
 const AnalyticsSummaryPage = lazy(() =>
@@ -350,6 +355,14 @@ export const AppRouter: React.FC = () => {
           element={
             <ProtectedRoute permissions={['reports.view']}>
               {suspended(ReportsDashboardPage)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports/:category/:reportId"
+          element={
+            <ProtectedRoute permissions={['reports.view']}>
+              {suspended(ReportDetailPage)}
             </ProtectedRoute>
           }
         />

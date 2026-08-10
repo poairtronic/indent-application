@@ -106,7 +106,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
     try {
       const payload = {
         costItems: data.costSheet.costItems.map((ci: any, index: number) => ({
-          costItemId: indent.costSheet?.costItems[index]?.id,
+          costItemId: indent.costSheet?.costItems?.[index]?.id,
           actualRate: ci.actualRate ?? 0,
           actualQuantity: ci.predictedQuantity ?? 0,
         })),

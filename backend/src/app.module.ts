@@ -20,6 +20,7 @@ import { CommunicationModule } from './communication/communication.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AuditModule } from './audit/audit.module';
 import { MasterDataModule } from './master-data/master-data.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { MasterDataModule } from './master-data/master-data.module';
     NotificationsModule,
     AuditModule,
     MasterDataModule,
+    ReportsModule,
   ],
   controllers: [],
   providers: [

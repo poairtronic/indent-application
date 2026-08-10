@@ -45,6 +45,7 @@ export const queryKeys = {
   audit: createKeyFactory('audit'),
   communication: createKeyFactory('communication'),
   analytics: createKeyFactory('analytics'),
+  reports: createKeyFactory('reports'),
   uploads: createKeyFactory('uploads'),
 } as const;
 
