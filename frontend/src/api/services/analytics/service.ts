@@ -9,6 +9,7 @@ import type {
   CostAnalyticsQuery,
   ProductAnalyticsQuery,
   VendorAnalyticsQuery,
+  KpiData,
 } from '../../types/analytics';
 import type { ListQueryParams } from '../../types/query-params';
 
@@ -39,6 +40,10 @@ class AnalyticsService extends BaseService {
 
   async getVendors(params?: VendorAnalyticsQuery): Promise<VendorAnalytics> {
     return this.get<VendorAnalytics>('/analytics/vendors', params as ListQueryParams | undefined);
+  }
+
+  async getKpis(params?: any): Promise<KpiData[]> {
+    return this.get<KpiData[]>('/analytics/kpis', params as ListQueryParams | undefined);
   }
 }
 

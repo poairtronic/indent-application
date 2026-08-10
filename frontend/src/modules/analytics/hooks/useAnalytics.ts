@@ -66,3 +66,13 @@ export const useVendorAnalytics = (filters?: IAnalyticsFilters, enabled: boolean
     enabled,
   });
 };
+
+export const useKpis = (params?: Record<string, any>, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['analytics', 'kpis', params],
+    queryFn: () => analyticsService.getKpis(params),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled,
+  });
+};

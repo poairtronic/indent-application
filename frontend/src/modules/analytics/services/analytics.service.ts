@@ -58,4 +58,9 @@ export const analyticsService = {
     const response = await apiClient.get<IVendorAnalytics>('/analytics/vendors', { params });
     return unwrap(response);
   },
+
+  getKpis: async (params?: Record<string, any>): Promise<any[]> => {
+    const response = await apiClient.get<any[]>('/analytics/kpis', { params });
+    return unwrap(response);
+  },
 };

@@ -89,3 +89,14 @@ export interface VendorAnalytics {
   bestPerformingVendor: string | null;
   generatedAt: string;
 }
+
+export interface KpiData {
+  id: string;
+  label: string;
+  value: number;
+  unit: 'count' | 'currency' | 'percentage' | 'hours';
+  trend: 'up' | 'down' | 'stable';
+  trendPercentage: number;
+  comparisonPeriod: string;
+  status: 'normal' | 'warning' | 'critical';
+}

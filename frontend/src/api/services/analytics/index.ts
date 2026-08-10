@@ -6,4 +6,5 @@ export {
   useCostAnalytics,
   useProductAnalytics,
   useVendorAnalytics,
+  useKpis,
 } from './hooks';

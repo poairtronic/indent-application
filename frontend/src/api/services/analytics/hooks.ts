@@ -60,3 +60,12 @@ export function useVendorAnalytics(params?: VendorAnalyticsQuery, enabled?: bool
     enabled,
   });
 }
+
+export function useKpis(params?: any, enabled?: boolean) {
+  return useQuery({
+    queryKey: ['analytics', 'kpis', params],
+    queryFn: () => analyticsService.getKpis(params),
+    staleTime: 60 * 1000,
+    enabled,
+  });
+}

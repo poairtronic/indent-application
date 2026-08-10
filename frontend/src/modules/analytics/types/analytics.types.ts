@@ -100,5 +100,20 @@ export interface IVendorAnalytics {
 export interface IAnalyticsFilters {
   dateFrom?: string;
   dateTo?: string;
+  departmentId?: string;
+  productId?: string;
+  vendorId?: string;
+  status?: string;
   limit?: number;
+}
+
+export interface IKpiData {
+  id: string;
+  label: string;
+  value: number;
+  unit: 'count' | 'currency' | 'percentage' | 'hours';
+  trend: 'up' | 'down' | 'stable';
+  trendPercentage: number;
+  comparisonPeriod: string;
+  status: 'normal' | 'warning' | 'critical';
 }

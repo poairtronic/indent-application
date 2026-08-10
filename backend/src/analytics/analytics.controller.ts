@@ -5,9 +5,11 @@
  * RBAC: analytics.view permission required on every endpoint.
  */
 
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Request } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { AnalyticsService } from './analytics.service';
+import { KpiService } from './kpi.service';
+import { KpiQueryDto } from './dto/kpi-query.dto';
 import {
   CostAnalyticsQueryDto,
   ProductAnalyticsQueryDto,
@@ -16,7 +18,20 @@ import {
 
 @Controller('analytics')
 export class AnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(
+    private readonly analyticsService: AnalyticsService,
+    private readonly kpiService: KpiService,
+  ) {}
+
+  /**
+   * GET /analytics/kpis
+   * Returns list of aggregated KPIs matching the global query filters and user RBAC.
+   */
+  @Get('kpis')
+  @Permissions('analytics.view')
+  async getKpis(@Request() req: any, @Query() query: KpiQueryDto) {
+    return this.kpiService.getKpis(req.user, query);
+  }
 
   /**
    * GET /analytics/summary
