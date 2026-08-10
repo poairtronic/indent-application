@@ -8,6 +8,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { AnalyticsService } from './analytics.service';
+import { KpiService } from './kpi.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 // ─────────────────────────────────────────────
@@ -36,7 +37,7 @@ describe('AnalyticsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AnalyticsService, { provide: PrismaService, useValue: mockPrisma }],
+      providers: [AnalyticsService, KpiService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<AnalyticsService>(AnalyticsService);

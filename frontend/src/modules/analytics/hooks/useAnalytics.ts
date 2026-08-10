@@ -76,3 +76,13 @@ export const useKpis = (params?: Record<string, any>, enabled: boolean = true) =
     enabled,
   });
 };
+
+export const useInsights = (filters?: IAnalyticsFilters, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['analytics', 'insights', filters],
+    queryFn: () => analyticsService.getInsights(filters),
+    staleTime: 2 * 60 * 1000, // cache for 2 minutes
+    refetchOnWindowFocus: false,
+    enabled,
+  });
+};

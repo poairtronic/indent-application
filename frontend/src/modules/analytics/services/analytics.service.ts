@@ -12,6 +12,7 @@ import type {
   IProductAnalytics,
   IVendorAnalytics,
   IAnalyticsFilters,
+  IInsightsSummary,
 } from '../types/analytics.types';
 
 const unwrap = <T>(response: { data: T | { data?: T } }): T => {
@@ -61,6 +62,18 @@ export const analyticsService = {
 
   getKpis: async (params?: Record<string, any>): Promise<any[]> => {
     const response = await apiClient.get<any[]>('/analytics/kpis', { params });
+    return unwrap(response);
+  },
+
+  getInsights: async (filters?: IAnalyticsFilters): Promise<IInsightsSummary> => {
+    const params: Record<string, any> = {};
+    if (filters?.dateFrom) params.dateFrom = filters.dateFrom;
+    if (filters?.dateTo) params.dateTo = filters.dateTo;
+    if (filters?.departmentId) params.departmentId = filters.departmentId;
+    if (filters?.productId) params.productId = filters.productId;
+    if (filters?.vendorId) params.vendorId = filters.vendorId;
+    if (filters?.status) params.status = filters.status;
+    const response = await apiClient.get<IInsightsSummary>('/analytics/insights', { params });
     return unwrap(response);
   },
 };

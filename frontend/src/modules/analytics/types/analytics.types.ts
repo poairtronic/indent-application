@@ -117,3 +117,23 @@ export interface IKpiData {
   comparisonPeriod: string;
   status: 'normal' | 'warning' | 'critical';
 }
+
+export interface IInsight {
+  type: string;
+  title: string;
+  message: string;
+  severity: 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
+  metric: string;
+  value: number | string;
+  comparisonValue?: number | string | null;
+  change?: number | null;
+  changePercentage?: number | null;
+  direction?: 'up' | 'down' | 'stable' | null;
+  period?: string | null;
+}
+
+export interface IInsightsSummary {
+  insights: IInsight[];
+  summaryText: string;
+  generatedAt: string;
+}

@@ -9,6 +9,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IndentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { KpiService } from './kpi.service';
+import { KpiQueryDto } from './dto/kpi-query.dto';
 import {
   IExecutiveSummary,
   ITransactionStatusBreakdown,
@@ -21,6 +23,8 @@ import {
   IProductStat,
   IVendorAnalytics,
   IVendorStat,
+  IInsight,
+  IInsightsSummary,
 } from './interfaces/analytics.interfaces';
 
 /**
@@ -70,7 +74,10 @@ const PENDING_STATUSES: IndentStatus[] = [
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly kpiService: KpiService,
+  ) {}
 
   // ──────────────────────────────────────────────────────────────
   // 1. EXECUTIVE SUMMARY
@@ -586,5 +593,195 @@ export class AnalyticsService {
     if (from) createdAt.gte = from;
     if (to) createdAt.lte = to;
     return { createdAt };
+  }
+
+  /**
+   * Generates deterministic Business Insights & Trend Analysis.
+   * Scoped by User and global query parameters.
+   */
+  public async getInsights(user: any, query: KpiQueryDto): Promise<IInsightsSummary> {
+    this.logger.log(`Generating business insights for user: ${user.email}`);
+
+    // Re-use the existing RBAC-guarded KPI logic
+    const kpis = await this.kpiService.getKpis(user, query);
+    const insights: IInsight[] = [];
+
+    // Helper to format currency
+    const formatCurrency = (val: number) => {
+      return '₹' + Math.round(val).toLocaleString('en-IN');
+    };
+
+    // 1. Transaction Volume trend
+    const indentsKpi = kpis.find((k) => k.id === 'total-indents');
+    if (indentsKpi) {
+      const current = indentsKpi.value;
+      const pct = indentsKpi.trendPercentage;
+      const isUp = indentsKpi.trend === 'up';
+      const isDown = indentsKpi.trend === 'down';
+
+      let prevVal = current;
+      if (pct !== 0) {
+        prevVal = isUp ? current / (1 + pct / 100) : current / (1 - Math.abs(pct) / 100);
+      }
+      prevVal = Math.round(prevVal);
+
+      const directionText = isUp ? 'increased' : isDown ? 'decreased' : 'remained stable';
+      insights.push({
+        type: 'volume-growth',
+        title: 'Indent Volume Trend',
+        message: `Total indents ${directionText} by ${Math.abs(pct).toFixed(1)}% compared with the prior period (${current} vs ${prevVal} indents).`,
+        severity: isUp ? 'SUCCESS' : isDown ? 'WARNING' : 'INFO',
+        metric: 'total-indents',
+        value: current,
+        comparisonValue: prevVal,
+        change: current - prevVal,
+        changePercentage: pct,
+        direction: indentsKpi.trend,
+        period: 'vs prior period',
+      });
+    }
+
+    // 2. Cost Variance Insight (RBAC Scoped by getKpis returning planned/actual cost)
+    const plannedKpi = kpis.find((k) => k.id === 'total-planned-cost');
+    const actualKpi = kpis.find((k) => k.id === 'total-actual-cost');
+    const varianceKpi = kpis.find((k) => k.id === 'total-variance');
+
+    if (plannedKpi && actualKpi && varianceKpi) {
+      const planned = plannedKpi.value;
+      const actual = actualKpi.value;
+      const variance = varianceKpi.value;
+      const variancePct = planned > 0 ? (variance / planned) * 100 : 0;
+
+      const directionText = variance > 0 ? 'higher' : variance < 0 ? 'lower' : 'equal to';
+      const severity =
+        variancePct > 25
+          ? 'CRITICAL'
+          : variancePct > 10
+            ? 'WARNING'
+            : variance < 0
+              ? 'SUCCESS'
+              : 'INFO';
+
+      insights.push({
+        type: 'cost-variance',
+        title: 'Planned vs. Actual Variance',
+        message: `Actual cost is ${Math.abs(variancePct).toFixed(1)}% ${directionText} than planned cost (variance of ${formatCurrency(variance)}).`,
+        severity,
+        metric: 'cost-variance',
+        value: actual,
+        comparisonValue: planned,
+        change: variance,
+        changePercentage: Math.round(variancePct * 100) / 100,
+        direction: variance > 0 ? 'up' : variance < 0 ? 'down' : 'stable',
+        period: 'current filter',
+      });
+    }
+
+    // 3. Operational Queue/Bottleneck Insights
+    const storesKpi = kpis.find((k) => k.id === 'stores-pending');
+    if (storesKpi && storesKpi.value > 0) {
+      insights.push({
+        type: 'stage-pending',
+        title: 'Stores Active Load',
+        message: `${storesKpi.value} indents are currently pending in Stores Processing stage.`,
+        severity: storesKpi.value > 20 ? 'CRITICAL' : storesKpi.value > 10 ? 'WARNING' : 'INFO',
+        metric: 'stores-pending',
+        value: storesKpi.value,
+        comparisonValue: null,
+        change: null,
+        changePercentage: null,
+        direction: null,
+        period: 'live',
+      });
+    }
+
+    const designKpi = kpis.find((k) => k.id === 'design-pending');
+    if (designKpi && designKpi.value > 0) {
+      insights.push({
+        type: 'stage-pending',
+        title: 'Design Team Queue',
+        message: `${designKpi.value} indents are currently pending in Design Completed stage.`,
+        severity: designKpi.value > 15 ? 'WARNING' : 'INFO',
+        metric: 'design-pending',
+        value: designKpi.value,
+        comparisonValue: null,
+        change: null,
+        changePercentage: null,
+        direction: null,
+        period: 'live',
+      });
+    }
+
+    // 4. Stalled/Bottleneck Warning
+    // Available to Managers & Admin roles (hasWorkflowAccess)
+    const deptCode = user.department?.departmentCode;
+    const isAdmin = user.permissions?.includes('settings.manage');
+    const isManager = deptCode === 'SMGR' || deptCode === 'GMGR';
+
+    if (isAdmin || isManager) {
+      // Re-use internal methods
+      const workflowAnal = await this.getWorkflowAnalytics();
+      if (workflowAnal.stalledTransactions > 0) {
+        insights.push({
+          type: 'workflow-bottleneck',
+          title: 'Workflow Bottleneck Warning',
+          message: `${workflowAnal.stalledTransactions} transactions are stalled (>7 days). Bottleneck stage: ${workflowAnal.bottleneckStage || 'None'}.`,
+          severity: 'WARNING',
+          metric: 'stalled-transactions',
+          value: workflowAnal.stalledTransactions,
+          comparisonValue: 0,
+          change: workflowAnal.stalledTransactions,
+          changePercentage: null,
+          direction: 'up',
+          period: 'current filter',
+        });
+      }
+
+      // Department Workload Insight
+      const deptAnal = await this.getDepartmentAnalytics();
+      const highestDept = deptAnal.departments.reduce(
+        (max, dept) => (dept.pendingQueue > (max?.pendingQueue ?? -1) ? dept : max),
+        deptAnal.departments[0],
+      );
+      if (highestDept && highestDept.pendingQueue > 0) {
+        insights.push({
+          type: 'department-load',
+          title: 'High Workload Alert',
+          message: `Department ${highestDept.departmentName} (${highestDept.departmentCode}) has the highest queue load with ${highestDept.pendingQueue} active items.`,
+          severity: highestDept.pendingQueue > 15 ? 'WARNING' : 'INFO',
+          metric: 'pending-queue',
+          value: highestDept.pendingQueue,
+          comparisonValue: highestDept.totalTransactions,
+          change: null,
+          changePercentage: null,
+          direction: null,
+          period: 'live queue',
+        });
+      }
+    }
+
+    // Build the dynamic textual summary
+    const totalCount = indentsKpi ? indentsKpi.value : 0;
+    const activeKpi = kpis.find((k) => k.id === 'active-indents');
+    const activeCount = activeKpi ? activeKpi.value : 0;
+    const completedKpi = kpis.find((k) => k.id === 'completed-indents');
+    const completedCount = completedKpi ? completedKpi.value : 0;
+
+    let summaryText = `During the selected period, a total of ${totalCount} indents were created/recorded. There are currently ${activeCount} active transactions moving through the workflow, and ${completedCount} indents were successfully completed.`;
+
+    if (plannedKpi && plannedKpi.value > 0) {
+      const planned = plannedKpi.value;
+      const actual = actualKpi ? actualKpi.value : 0;
+      const variance = varianceKpi ? varianceKpi.value : 0;
+      const variancePct = (variance / planned) * 100;
+
+      summaryText += ` Total planned costing represents ${formatCurrency(planned)} with actual finalized costs at ${formatCurrency(actual)}, resulting in a variance of ${formatCurrency(variance)} (${variancePct.toFixed(1)}%).`;
+    }
+
+    return {
+      insights,
+      summaryText,
+      generatedAt: new Date(),
+    };
   }
 }

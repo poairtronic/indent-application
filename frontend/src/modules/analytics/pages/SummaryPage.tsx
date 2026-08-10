@@ -10,6 +10,7 @@ import {
   useCostAnalytics,
   useProductAnalytics,
   useVendorAnalytics,
+  useInsights,
 } from '../hooks/useAnalytics';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -197,6 +198,17 @@ export const SummaryPage: React.FC = () => {
     refetch: refetchVendors,
   } = useVendorAnalytics({ limit: 5 }, hasFinancialAccess);
 
+  const {
+    data: insightsData,
+    isLoading: insightsLoading,
+    error: insightsError,
+    refetch: refetchInsights,
+  } = useInsights(
+    Object.fromEntries(
+      Object.entries(appliedFilters).filter(([, v]) => v !== undefined && v !== ''),
+    ),
+  );
+
   const handleApply = useCallback(() => {
     setAppliedFilters({ ...filters });
   }, [filters]);
@@ -209,6 +221,7 @@ export const SummaryPage: React.FC = () => {
   const isLoading =
     summaryLoading ||
     kpiLoading ||
+    insightsLoading ||
     (hasWorkflowAccess && workflowLoading) ||
     (!!(isAdmin || isManager) && deptLoading) ||
     (hasFinancialAccess && costLoading) ||
@@ -218,6 +231,7 @@ export const SummaryPage: React.FC = () => {
   const hasError =
     !!summaryError ||
     !!kpiError ||
+    !!insightsError ||
     (hasWorkflowAccess && !!workflowError) ||
     (!!(isAdmin || isManager) && !!deptError) ||
     (hasFinancialAccess && !!costError) ||
@@ -232,6 +246,7 @@ export const SummaryPage: React.FC = () => {
           onRetry={() => {
             void refetchSummary();
             void refetchKpis();
+            void refetchInsights();
             if (hasWorkflowAccess) void refetchWorkflow();
             if (isAdmin || isManager) void refetchDept();
             if (hasFinancialAccess) void refetchCosts();
@@ -412,6 +427,103 @@ export const SummaryPage: React.FC = () => {
           </div>
         );
       })}
+
+      {/* ── Business Insights Section ────────────────────────────────── */}
+      {!isLoading && insightsData && (
+        <div className="mb-8 space-y-6">
+          <div className="bg-surface-elevated border-l-4 border-accent-primary p-6 rounded-r-xl shadow-sm">
+            <h3 className="text-text-primary font-bold text-lg mb-2 flex items-center gap-2">
+              <span>💡</span> Deterministic Executive Summary
+            </h3>
+            <p className="text-text-secondary text-sm leading-relaxed font-medium">
+              {insightsData.summaryText}
+            </p>
+          </div>
+
+          <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-text-primary font-bold text-lg">
+                  Deterministic Business Insights
+                </h3>
+                <p className="text-text-muted text-xs mt-1">
+                  Rule-based variance calculations, trend observations, and queue highlights.
+                </p>
+              </div>
+              <span className="text-xs text-text-disabled font-mono">Live Data Feed</span>
+            </div>
+
+            {insightsData.insights.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {insightsData.insights.map((insight, idx) => {
+                  const severityStyles = {
+                    CRITICAL: 'bg-red-50/20 border-red-500 text-red-700 dark:text-red-400',
+                    WARNING: 'bg-amber-50/20 border-amber-500 text-amber-700 dark:text-amber-400',
+                    SUCCESS: 'bg-green-50/20 border-green-500 text-green-700 dark:text-green-400',
+                    INFO: 'bg-slate-50/10 border-border-default text-text-primary',
+                  };
+
+                  const severityIcons = {
+                    CRITICAL: '🚨',
+                    WARNING: '⚠️',
+                    SUCCESS: '✅',
+                    INFO: 'ℹ️',
+                  };
+
+                  const isTrend =
+                    insight.changePercentage !== null && insight.changePercentage !== undefined;
+                  const isPositive = insight.direction === 'up';
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-4 rounded-xl border flex flex-col justify-between gap-3 shadow-sm ${
+                        severityStyles[insight.severity] || severityStyles.INFO
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 font-bold text-sm">
+                          <span>{severityIcons[insight.severity] || '📌'}</span>
+                          <span>{insight.title}</span>
+                        </div>
+                        <p className="text-xs leading-relaxed text-text-secondary">
+                          {insight.message}
+                        </p>
+                      </div>
+
+                      {isTrend && (
+                        <div className="flex justify-between items-center border-t border-border-default pt-2 mt-auto text-xs font-semibold text-text-muted">
+                          <span>Change %</span>
+                          <span
+                            className={`flex items-center gap-1 ${
+                              insight.severity === 'CRITICAL'
+                                ? 'text-red-600'
+                                : insight.severity === 'WARNING'
+                                  ? 'text-amber-600'
+                                  : insight.severity === 'SUCCESS'
+                                    ? 'text-green-600'
+                                    : 'text-text-secondary'
+                            }`}
+                          >
+                            {isPositive ? '▲' : '▼'} {Math.abs(Number(insight.changePercentage))}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-8">
+                <EmptyState
+                  title="No Active Alerts"
+                  description="Insufficient historical data or stable parameters across current bounds."
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Visual Analytics Row 1 ──────────────────────────────────── */}
       {!isLoading && (

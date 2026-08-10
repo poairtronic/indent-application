@@ -34,6 +34,16 @@ export class AnalyticsController {
   }
 
   /**
+   * GET /analytics/insights
+   * Returns dynamically generated deterministic insights scoped by RBAC and filters.
+   */
+  @Get('insights')
+  @Permissions('analytics.view')
+  async getInsights(@Request() req: any, @Query() query: KpiQueryDto) {
+    return this.analyticsService.getInsights(req.user, query);
+  }
+
+  /**
    * GET /analytics/summary
    * Executive Summary — total, active, completed, archived, pending counts.
    * Audience: Senior Manager, General Manager, Admin, Design Engineer.
