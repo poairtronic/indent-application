@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { observabilityEventBus } from '../../observability/observability-event-bus';
 import { NodemailerProvider } from '../providers/nodemailer.provider';
 import { TemplateEngine } from '../templates/template.engine';
 import { QueueService } from './queue.service';
@@ -46,6 +47,7 @@ export class QueueProcessor {
       // 4. Update logs as SENT/DELIVERED
       await this.finalizeLogStatus(payload.jobId, EmailState.SENT, duration, result.messageId);
       this.logger.log(`Job ${payload.jobId} processed successfully in ${duration}ms`);
+      observabilityEventBus.emit('notification.event', { action: 'delivered', success: true });
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(
@@ -88,6 +90,11 @@ export class QueueProcessor {
       await this.updateLogStatus(payload.jobId, EmailState.DEAD_LETTER, errorMessage);
       await this.queueService.addDeadJob(updatedPayload);
       this.logger.warn(`Max retries reached. Job ${payload.jobId} moved to DLQ.`);
+      observabilityEventBus.emit('notification.event', {
+        action: 'failed',
+        success: false,
+        error: `Max retries reached: ${errorMessage}`,
+      });
     } else {
       // Calculate delay based on attempts count:
       // Attempt 1 -> 0 delay (immediate retry)
@@ -108,6 +115,12 @@ export class QueueProcessor {
       this.logger.log(
         `Scheduled retry #${nextRetryAttempt} for job ${payload.jobId} in ${delayMs}ms`,
       );
+      observabilityEventBus.emit('notification.event', {
+        action: 'retried',
+        success: false,
+        attempt: nextRetryAttempt,
+        error: errorMessage,
+      });
     }
   }
 

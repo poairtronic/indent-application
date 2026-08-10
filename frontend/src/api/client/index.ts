@@ -4,7 +4,7 @@ import { apiConfig, featureFlags } from '../config';
 import { TIMEOUTS } from '../constants';
 import { createAuthInterceptor } from '../interceptors/auth';
 import { createRequestLogger, createResponseLogger } from '../interceptors/logging';
-import { createErrorInterceptor } from '../interceptors/error';
+import { createErrorInterceptor, resetRefreshState } from '../interceptors/error';
 import { createHeaderInterceptor } from '../interceptors/headers';
 import { useAuthStore } from '../../store/authStore';
 import { cancelAllRequests, cleanupStaleRequests } from '../utils/cancellation';
@@ -41,6 +41,7 @@ function createApiClient(): AxiosInstance {
         return { accessToken, refreshToken: newRefreshToken };
       },
       () => {
+        resetRefreshState();
         cancelAllRequests();
         useAuthStore.getState().logout();
         window.location.href = '/login';

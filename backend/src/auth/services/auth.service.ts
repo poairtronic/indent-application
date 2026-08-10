@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { observabilityEventBus } from '../../observability/observability-event-bus';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
 import { SessionService } from './session.service';
@@ -29,6 +30,29 @@ export class AuthService {
   ) {}
 
   async login(
+    loginDto: LoginDto,
+    deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
+  ): Promise<AuthResponse> {
+    try {
+      const result = await this.executeLogin(loginDto, deviceInfo);
+      observabilityEventBus.emit('auth.event', {
+        action: 'login',
+        employeeCode: result.user.employeeCode,
+        success: true,
+      });
+      return result;
+    } catch (err: any) {
+      observabilityEventBus.emit('auth.event', {
+        action: 'login',
+        employeeCode: loginDto.email,
+        success: false,
+        error: err.message || String(err),
+      });
+      throw err;
+    }
+  }
+
+  private async executeLogin(
     loginDto: LoginDto,
     deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
   ): Promise<AuthResponse> {
@@ -134,13 +158,36 @@ export class AuthService {
     _deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
   ): Promise<void> {
     await this.sessionService.revokeAllSessions(userId);
-
     await this.tokenService.revokeRefreshToken(refreshToken);
-
     await this.loginHistoryService.recordLogout(userId);
+    observabilityEventBus.emit('auth.event', {
+      action: 'logout',
+      employeeCode: userId,
+      success: true,
+    });
   }
 
   async refresh(userId: string, refreshToken: string): Promise<AuthResponse> {
+    try {
+      const result = await this.executeRefresh(userId, refreshToken);
+      observabilityEventBus.emit('auth.event', {
+        action: 'refresh',
+        employeeCode: userId,
+        success: true,
+      });
+      return result;
+    } catch (err: any) {
+      observabilityEventBus.emit('auth.event', {
+        action: 'refresh',
+        employeeCode: userId,
+        success: false,
+        error: err.message || String(err),
+      });
+      throw err;
+    }
+  }
+
+  private async executeRefresh(userId: string, refreshToken: string): Promise<AuthResponse> {
     const payload = await this.tokenService.verifyRefreshToken(refreshToken);
 
     const user = await this.prisma.user.findUnique({

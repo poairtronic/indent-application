@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, ArrowRight } from 'lucide-react';
+import { reportFrontendError } from '../../api/utils/errorTelemetry';
 
 interface Props {
   children: ReactNode;
@@ -23,6 +24,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error in UI rendering:', error, errorInfo);
+    reportFrontendError('RENDER_CRASH', error.message || 'UI Render Crash', error.stack);
   }
 
   private handleReset = () => {

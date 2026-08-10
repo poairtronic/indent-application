@@ -10,6 +10,7 @@ import {
   NotificationEventRule,
 } from '../definitions/notification-event.definition';
 import { IBusinessValidationResult } from '../interfaces/business-transaction.interface';
+import { observabilityEventBus } from '../../observability/observability-event-bus';
 
 /**
  * WorkflowStateMachineService Foundation (Phase 12A - Structure Only)
@@ -42,11 +43,23 @@ export class WorkflowStateMachineService {
     targetState: WorkflowState,
     userDepartmentCode: string,
   ): IBusinessValidationResult {
-    return this.transitionValidator.validateTransition(
+    const startTime = Date.now();
+    const result = this.transitionValidator.validateTransition(
       currentState,
       targetState,
       userDepartmentCode,
     );
+    const duration = Date.now() - startTime;
+
+    observabilityEventBus.emit('workflow.transition', {
+      fromState: currentState,
+      toState: targetState,
+      success: result.isValid,
+      duration,
+      error: result.isValid ? undefined : result.errors.join(', '),
+    });
+
+    return result;
   }
 
   /**

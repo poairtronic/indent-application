@@ -4,9 +4,13 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
+import { AppLogger } from './observability/app-logger.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+  app.useLogger(app.get(AppLogger));
 
   app.use(
     compression({
@@ -36,10 +40,11 @@ async function bootstrap() {
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
+      // Allow server-to-server requests (no origin) and localhost origins
       if (!origin || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(new Error('Not allowed by CORS policy'), false);
     },
     credentials: true,
   });

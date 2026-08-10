@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { observabilityEventBus } from '../observability/observability-event-bus';
 import { TemplateEngine } from './templates/template.engine';
 import { RecipientResolver, IResolverQuery } from './resolver/recipient.resolver';
 import { QueueService } from './queue/queue.service';
@@ -61,6 +62,7 @@ export class CommunicationService {
     // 2. Pre-save log records in QUEUED state
     const bodyText = `IMCMS Notification. Please view in HTML mode.`;
     await this.saveEmailLogs(jobId, recipients, options, bodyText, 'QUEUED');
+    observabilityEventBus.emit('notification.event', { action: 'created', success: true });
 
     // 3. Construct queue job payload
     const jobPayload: IJobPayload = {
@@ -87,9 +89,14 @@ export class CommunicationService {
         success: true,
         jobId,
       };
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(`Failed to queue job ${jobId}`, err);
       await this.updateLogStatus(jobId, 'FAILED', err?.message || String(err));
+      observabilityEventBus.emit('notification.event', {
+        action: 'queue_failure',
+        success: false,
+        error: err.message || String(err),
+      });
       return {
         success: false,
       };

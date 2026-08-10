@@ -64,4 +64,10 @@ export const settingsMenuItems: MenuItem[] = [
     iconName: 'Mail',
     permission: 'audit.view',
   },
+  {
+    label: 'System Monitoring',
+    path: '/monitoring',
+    iconName: 'Activity',
+    permission: 'settings.manage',
+  },
 ];

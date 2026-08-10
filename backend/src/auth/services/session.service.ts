@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { observabilityEventBus } from '../../observability/observability-event-bus';
 
 @Injectable()
 export class SessionService {
@@ -70,7 +71,7 @@ export class SessionService {
     if (session.userId !== userId) {
       throw new ForbiddenException('You can only revoke your own sessions');
     }
-    return this.prisma.userSession.update({
+    const result = await this.prisma.userSession.update({
       where: { id: sessionId },
       data: {
         status: 'REVOKED',
@@ -79,10 +80,16 @@ export class SessionService {
         deletedAt: new Date(),
       },
     });
+    observabilityEventBus.emit('auth.event', {
+      action: 'session_revocation',
+      employeeCode: userId,
+      success: true,
+    });
+    return result;
   }
 
   async revokeOtherSessions(currentSessionId: string, userId: string) {
-    return this.prisma.userSession.updateMany({
+    const result = await this.prisma.userSession.updateMany({
       where: {
         userId,
         id: { not: currentSessionId },
@@ -96,10 +103,16 @@ export class SessionService {
         deletedAt: new Date(),
       },
     });
+    observabilityEventBus.emit('auth.event', {
+      action: 'session_revocation',
+      employeeCode: userId,
+      success: true,
+    });
+    return result;
   }
 
   async revokeAllSessions(userId: string) {
-    return this.prisma.userSession.updateMany({
+    const result = await this.prisma.userSession.updateMany({
       where: { userId, isDeleted: false, status: 'ACTIVE' },
       data: {
         status: 'REVOKED',
@@ -108,6 +121,12 @@ export class SessionService {
         deletedAt: new Date(),
       },
     });
+    observabilityEventBus.emit('auth.event', {
+      action: 'session_revocation',
+      employeeCode: userId,
+      success: true,
+    });
+    return result;
   }
 
   async updateLastActivity(sessionToken: string) {

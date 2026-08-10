@@ -36,8 +36,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errors = [exception.message];
       this.logger.error(`Prisma error: ${exception.code} - ${exception.message}`);
     } else if (exception instanceof Error) {
-      message = exception.message;
-      errors = [exception.stack || exception.message];
+      message = 'Internal server error';
+      errors = [];
       this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
     } else {
       this.logger.error(`Unknown exception: ${JSON.stringify(exception)}`);

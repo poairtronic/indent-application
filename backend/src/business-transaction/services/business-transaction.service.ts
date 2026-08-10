@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
@@ -90,6 +91,27 @@ export class BusinessTransactionService {
       ]);
     } catch (err) {
       this.logger.warn(`Failed to invalidate all cache: ${err.message}`);
+    }
+  }
+
+  /**
+   * Atomically asserts the current workflow state and applies the given update data.
+   * Uses updateMany with a currentState WHERE assertion to prevent concurrent state corruption.
+   * If count === 0, the state was already changed by a concurrent request → throws ConflictException.
+   */
+  private async assertCurrentStateAndUpdate(
+    id: string,
+    expectedCurrentState: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    const result = await this.prisma.indent.updateMany({
+      where: { id, currentState: expectedCurrentState },
+      data,
+    });
+    if (result.count === 0) {
+      throw new ConflictException(
+        `Workflow state conflict: the indent has already been moved from '${expectedCurrentState}' by a concurrent request. Please refresh and try again.`,
+      );
     }
   }
 
@@ -547,25 +569,20 @@ export class BusinessTransactionService {
       where: { departmentCode: { in: ['STORES', 'STOR'] }, isDeleted: false },
     });
 
-    await this.prisma.$transaction([
-      this.prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          updatedBy: userId,
-          remarks: remarks ? `${txData.remarks || ''}\nSubmit Notes: ${remarks}` : txData.remarks,
-        },
-      }),
-      this.prisma.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: storesDept ? storesDept.id : txData.departmentId,
-          movedBy: userId,
-          remarks: remarks || 'Design completed and submitted to Stores.',
-        },
-      }),
-    ]);
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      updatedBy: userId,
+      remarks: remarks ? `${txData.remarks || ''}\nSubmit Notes: ${remarks}` : txData.remarks,
+    });
+    await this.prisma.workflowHistory.create({
+      data: {
+        indentId: id,
+        toDepartmentId: storesDept ? storesDept.id : txData.departmentId,
+        movedBy: userId,
+        remarks: remarks || 'Design completed and submitted to Stores.',
+      },
+    });
 
     // Dispatch Notifications & Audit
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
@@ -615,6 +632,12 @@ export class BusinessTransactionService {
     const hasInsufficientStock = false;
     const verificationRemarks = `Stores verification completed.`;
 
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      remarks: `${txData.remarks || ''}\n${verificationRemarks}`,
+      updatedBy: userId,
+    });
     await this.prisma.$transaction(async (prisma) => {
       for (const res of verificationResults) {
         await prisma.indentItem.update({
@@ -622,16 +645,6 @@ export class BusinessTransactionService {
           data: { status: res.status },
         });
       }
-
-      await prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          remarks: `${txData.remarks || ''}\n${verificationRemarks}`,
-          updatedBy: userId,
-        },
-      });
 
       await prisma.workflowHistory.create({
         data: {
@@ -680,22 +693,18 @@ export class BusinessTransactionService {
       where: { departmentCode: { in: ['PRODUCTION', 'PROD'] }, isDeleted: false },
     });
 
+    const updatedRemarks = `${txData.remarks || ''}\n[MATERIALS_ISSUED] Materials issued from Stores. ${dto.remarks ? `Remarks: ${dto.remarks}` : ''}`;
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      remarks: updatedRemarks,
+      updatedBy: userId,
+    });
     await this.prisma.$transaction(async (prisma) => {
       // Mark all items as ISSUED since we don't track physical inventory
       await prisma.indentItem.updateMany({
         where: { indentId: id },
         data: { status: 'ISSUED' },
-      });
-
-      const updatedRemarks = `${txData.remarks || ''}\n[MATERIALS_ISSUED] Materials issued from Stores. ${dto.remarks ? `Remarks: ${dto.remarks}` : ''}`;
-      await prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          remarks: updatedRemarks,
-          updatedBy: userId,
-        },
       });
 
       await prisma.workflowHistory.create({
@@ -797,15 +806,12 @@ export class BusinessTransactionService {
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      updatedBy: userId,
+    });
     await this.prisma.$transaction([
-      this.prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          updatedBy: userId,
-        },
-      }),
       this.prisma.productionReceipt.upsert({
         where: { indentId: id },
         create: {
@@ -936,25 +942,20 @@ export class BusinessTransactionService {
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
-    await this.prisma.$transaction([
-      this.prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          remarks: `${txData.remarks || ''}\n[PRODUCTION_COMPLETED] Manufacturing completed. ${remarks ? `Notes: ${remarks}` : ''}`,
-          updatedBy: userId,
-        },
-      }),
-      this.prisma.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: txData.departmentId,
-          movedBy: userId,
-          remarks: remarks || 'Production completed manufacturing.',
-        },
-      }),
-    ]);
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      remarks: `${txData.remarks || ''}\n[PRODUCTION_COMPLETED] Manufacturing completed. ${remarks ? `Notes: ${remarks}` : ''}`,
+      updatedBy: userId,
+    });
+    await this.prisma.workflowHistory.create({
+      data: {
+        indentId: id,
+        toDepartmentId: txData.departmentId,
+        movedBy: userId,
+        remarks: remarks || 'Production completed manufacturing.',
+      },
+    });
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
@@ -996,26 +997,21 @@ export class BusinessTransactionService {
       where: { departmentCode: { in: ['ACCOUNTS', 'ACCT'] }, isDeleted: false },
     });
 
-    await this.prisma.$transaction([
-      this.prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          requiredDeliveryDate: new Date(dto.deliveryDate),
-          updatedBy: userId,
-          remarks: `${txData.remarks || ''}\nCustomer Delivery Notes: ${dto.deliveryNotes || 'Delivered'} (Ref: ${dto.customerReceiptReference || 'N/A'})`,
-        },
-      }),
-      this.prisma.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: accountsDept ? accountsDept.id : txData.departmentId,
-          movedBy: userId,
-          remarks: `Finished goods delivered to customer on ${dto.deliveryDate}. Manufacturing Loop 1 complete.`,
-        },
-      }),
-    ]);
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      requiredDeliveryDate: new Date(dto.deliveryDate),
+      updatedBy: userId,
+      remarks: `${txData.remarks || ''}\nCustomer Delivery Notes: ${dto.deliveryNotes || 'Delivered'} (Ref: ${dto.customerReceiptReference || 'N/A'})`,
+    });
+    await this.prisma.workflowHistory.create({
+      data: {
+        indentId: id,
+        toDepartmentId: accountsDept ? accountsDept.id : txData.departmentId,
+        movedBy: userId,
+        remarks: `Finished goods delivered to customer on ${dto.deliveryDate}. Manufacturing Loop 1 complete.`,
+      },
+    });
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
@@ -1060,27 +1056,22 @@ export class BusinessTransactionService {
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
-    await this.prisma.$transaction([
-      this.prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          updatedBy: userId,
-          remarks: remarks
-            ? `${txData.remarks || ''}\nAccounts Verification Notes: ${remarks}`
-            : txData.remarks,
-        },
-      }),
-      this.prisma.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: txData.departmentId,
-          movedBy: userId,
-          remarks: remarks || 'Accounts started actual cost verification.',
-        },
-      }),
-    ]);
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      updatedBy: userId,
+      remarks: remarks
+        ? `${txData.remarks || ''}\nAccounts Verification Notes: ${remarks}`
+        : txData.remarks,
+    });
+    await this.prisma.workflowHistory.create({
+      data: {
+        indentId: id,
+        toDepartmentId: txData.departmentId,
+        movedBy: userId,
+        remarks: remarks || 'Accounts started actual cost verification.',
+      },
+    });
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
@@ -1388,18 +1379,15 @@ export class BusinessTransactionService {
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      updatedBy: userId,
+      remarks: dto.closureNotes
+        ? `${txData.remarks || ''}\nFinancial Closure Notes: ${dto.closureNotes}`
+        : txData.remarks,
+    });
     await this.prisma.$transaction([
-      this.prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          updatedBy: userId,
-          remarks: dto.closureNotes
-            ? `${txData.remarks || ''}\nFinancial Closure Notes: ${dto.closureNotes}`
-            : txData.remarks,
-        },
-      }),
       this.prisma.costSheet.update({
         where: { id: txData.costSheet.id },
         data: {
@@ -1449,25 +1437,20 @@ export class BusinessTransactionService {
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
-    await this.prisma.$transaction([
-      this.prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          isLocked: true, // Lock record against edits
-          updatedBy: userId,
-        },
-      }),
-      this.prisma.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: txData.departmentId,
-          movedBy: userId,
-          remarks: remarks || 'Automated archival completed. Record locked.',
-        },
-      }),
-    ]);
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      isLocked: true, // Lock record against edits
+      updatedBy: userId,
+    });
+    await this.prisma.workflowHistory.create({
+      data: {
+        indentId: id,
+        toDepartmentId: txData.departmentId,
+        movedBy: userId,
+        remarks: remarks || 'Automated archival completed. Record locked.',
+      },
+    });
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
@@ -1500,25 +1483,20 @@ export class BusinessTransactionService {
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
-    await this.prisma.$transaction([
-      this.prisma.indent.update({
-        where: { id },
-        data: {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          isLocked: true,
-          updatedBy: userId,
-        },
-      }),
-      this.prisma.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: txData.departmentId,
-          movedBy: userId,
-          remarks: remarks || 'Business Transaction fully completed across Loop 1 and Loop 2.',
-        },
-      }),
-    ]);
+    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+      status: prismaTargetStatus,
+      currentState: targetState,
+      isLocked: true,
+      updatedBy: userId,
+    });
+    await this.prisma.workflowHistory.create({
+      data: {
+        indentId: id,
+        toDepartmentId: txData.departmentId,
+        movedBy: userId,
+        remarks: remarks || 'Business Transaction fully completed across Loop 1 and Loop 2.',
+      },
+    });
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { UsersModule } from './users/users.module';
 import { ProcessesModule } from './processes/processes.module';
@@ -24,6 +24,10 @@ import { ReportsModule } from './reports/reports.module';
 import { RedisCacheModule } from './redis-cache/redis-cache.module';
 import { HttpCacheInterceptor } from './redis-cache/interceptors/http-cache.interceptor';
 
+import { ObservabilityModule } from './observability/observability.module';
+import { CorrelationIdMiddleware } from './observability/correlation-id.middleware';
+import { ApiMonitoringMiddleware } from './observability/api-monitoring.middleware';
+
 @Module({
   imports: [
     PrismaModule,
@@ -42,6 +46,7 @@ import { HttpCacheInterceptor } from './redis-cache/interceptors/http-cache.inte
     MasterDataModule,
     ReportsModule,
     RedisCacheModule,
+    ObservabilityModule,
   ],
   controllers: [],
   providers: [
@@ -71,4 +76,8 @@ import { HttpCacheInterceptor } from './redis-cache/interceptors/http-cache.inte
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationIdMiddleware, ApiMonitoringMiddleware).forRoutes('*');
+  }
+}

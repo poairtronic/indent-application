@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
+import { observabilityEventBus } from '../observability/observability-event-bus';
 
 @Injectable()
 export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
@@ -46,23 +47,27 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
           );
         }
         this.isRedisAvailable = false;
+        observabilityEventBus.emit('redis.connection', { connected: false, error: err.message });
       });
 
       this.redisClient.on('connect', () => {
         this.logger.log('Redis connected successfully for Caching.');
         this.isRedisAvailable = true;
+        observabilityEventBus.emit('redis.connection', { connected: true });
       });
 
       this.redisClient
         .connect()
         .then(() => {
           this.isRedisAvailable = true;
+          observabilityEventBus.emit('redis.connection', { connected: true });
         })
         .catch((err) => {
           this.logger.warn(
             `Failed to connect to Redis: ${err.message}. Running in offline database-fallback mode.`,
           );
           this.isRedisAvailable = false;
+          observabilityEventBus.emit('redis.connection', { connected: false, error: err.message });
         });
     } catch (err) {
       this.logger.error('Failed to initialize Redis Cache client', err);
@@ -75,21 +80,58 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   async get<T>(key: string): Promise<T | null> {
+    const startTime = Date.now();
     if (!this.getStatus() || !this.redisClient) {
+      observabilityEventBus.emit('redis.op', {
+        operation: 'get',
+        success: false,
+        duration: Date.now() - startTime,
+        hitOrMiss: 'miss',
+        error: 'Redis Client Offline',
+      });
       return null;
     }
     try {
       const val = await this.redisClient.get(key);
-      if (!val) return null;
+      const duration = Date.now() - startTime;
+      if (!val) {
+        observabilityEventBus.emit('redis.op', {
+          operation: 'get',
+          success: true,
+          duration,
+          hitOrMiss: 'miss',
+        });
+        return null;
+      }
+      observabilityEventBus.emit('redis.op', {
+        operation: 'get',
+        success: true,
+        duration,
+        hitOrMiss: 'hit',
+      });
       return JSON.parse(val) as T;
-    } catch (err) {
+    } catch (err: any) {
+      const duration = Date.now() - startTime;
       this.logger.warn(`Redis get failed for key "${key}": ${err.message}. Falling back to DB.`);
+      observabilityEventBus.emit('redis.op', {
+        operation: 'get',
+        success: false,
+        duration,
+        error: err.message || String(err),
+      });
       return null;
     }
   }
 
   async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
+    const startTime = Date.now();
     if (!this.getStatus() || !this.redisClient) {
+      observabilityEventBus.emit('redis.op', {
+        operation: 'set',
+        success: false,
+        duration: Date.now() - startTime,
+        error: 'Redis Client Offline',
+      });
       return;
     }
     try {
@@ -99,18 +141,47 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
       } else {
         await this.redisClient.set(key, serialized);
       }
-    } catch (err) {
+      observabilityEventBus.emit('redis.op', {
+        operation: 'set',
+        success: true,
+        duration: Date.now() - startTime,
+      });
+    } catch (err: any) {
+      observabilityEventBus.emit('redis.op', {
+        operation: 'set',
+        success: false,
+        duration: Date.now() - startTime,
+        error: err.message || String(err),
+      });
       this.logger.warn(`Redis set failed for key "${key}": ${err.message}.`);
     }
   }
 
   async del(key: string): Promise<void> {
+    const startTime = Date.now();
     if (!this.getStatus() || !this.redisClient) {
+      observabilityEventBus.emit('redis.op', {
+        operation: 'del',
+        success: false,
+        duration: Date.now() - startTime,
+        error: 'Redis Client Offline',
+      });
       return;
     }
     try {
       await this.redisClient.del(key);
-    } catch (err) {
+      observabilityEventBus.emit('redis.op', {
+        operation: 'del',
+        success: true,
+        duration: Date.now() - startTime,
+      });
+    } catch (err: any) {
+      observabilityEventBus.emit('redis.op', {
+        operation: 'del',
+        success: false,
+        duration: Date.now() - startTime,
+        error: err.message || String(err),
+      });
       this.logger.warn(`Redis del failed for key "${key}": ${err.message}.`);
     }
   }

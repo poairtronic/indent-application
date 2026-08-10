@@ -3,6 +3,7 @@ import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { MAIL_QUEUE_NAME, IJobPayload } from './queue.constants';
 import { QueueProcessor } from './queue.processor';
+import { observabilityEventBus } from '../../observability/observability-event-bus';
 
 @Injectable()
 export class MailWorker implements OnModuleInit, OnModuleDestroy {
@@ -82,10 +83,20 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
           `Job processing execution failed on worker loop: ${job?.id}. Error: ${err.message}`,
           err.stack,
         );
+        observabilityEventBus.emit('notification.event', {
+          action: 'failed',
+          success: false,
+          error: `Worker loop failure: ${err.message}`,
+        });
       });
 
       this.worker.on('error', (err) => {
         this.logger.error(`Worker encountered fatal error: ${err.message}`, err.stack);
+        observabilityEventBus.emit('notification.event', {
+          action: 'queue_failure',
+          success: false,
+          error: `Fatal worker error: ${err.message}`,
+        });
       });
     } catch (err) {
       this.logger.error('Failed to initiate Worker process loop', err?.stack || err);

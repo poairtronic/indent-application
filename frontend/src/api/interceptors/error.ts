@@ -1,5 +1,6 @@
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { createApiError, UnauthorizedError, ForbiddenError } from '../errors';
+import { reportFrontendError } from '../utils/errorTelemetry';
 import type { ApiErrorResponse } from '../types/api-response';
 import { apiLogger } from '../utils/logger';
 import { logSecurityDenial } from '../../utils/securityLogger';
@@ -46,6 +47,10 @@ export function createErrorInterceptor(
 ) {
   return async (error: AxiosError): Promise<never> => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    if (!error.response || error.code === 'ECONNABORTED' || error.message.includes('Network Error')) {
+      reportFrontendError('API_OFFLINE_TIMEOUT', error.message || 'API Connection Failure', error.stack, originalRequest?.url);
+    }
 
     if (error.response?.status === 403) {
       onForbidden?.();
