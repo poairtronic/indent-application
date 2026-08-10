@@ -8,9 +8,15 @@ interface DonutChartProps {
   data: { label: string; value: number; color?: string }[];
   size?: number;
   thickness?: number;
+  formatValue?: (val: number) => string;
 }
 
-export const DonutChart: React.FC<DonutChartProps> = ({ data, size = 200, thickness = 24 }) => {
+export const DonutChart: React.FC<DonutChartProps> = ({
+  data,
+  size = 200,
+  thickness = 24,
+  formatValue,
+}) => {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   const radius = (size - thickness) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -69,7 +75,9 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data, size = 200, thickn
             })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-2xl font-bold text-text-primary">{total}</span>
+          <span className="text-2xl font-bold text-text-primary">
+            {formatValue ? formatValue(total) : total}
+          </span>
           <span className="text-xs text-text-muted font-medium uppercase tracking-wider">
             Total
           </span>
@@ -81,12 +89,13 @@ export const DonutChart: React.FC<DonutChartProps> = ({ data, size = 200, thickn
         {data.map((item, idx) => {
           const color = item.color || defaultColors[idx % defaultColors.length];
           const percentage = total > 0 ? Math.round((item.value / total) * 100) : 0;
+          const displayVal = formatValue ? formatValue(item.value) : item.value;
           return (
             <div key={idx} className="flex items-center gap-3">
               <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: color }} />
               <span className="text-text-secondary text-sm font-medium">{item.label}</span>
               <span className="text-text-muted text-sm font-semibold">
-                {item.value} ({percentage}%)
+                {displayVal} ({percentage}%)
               </span>
             </div>
           );
@@ -104,9 +113,15 @@ interface BarChartProps {
   data: { label: string; value: number }[];
   height?: number;
   color?: string;
+  formatValue?: (val: number) => string;
 }
 
-export const BarChart: React.FC<BarChartProps> = ({ data, height = 200, color = '#6366f1' }) => {
+export const BarChart: React.FC<BarChartProps> = ({
+  data,
+  height = 200,
+  color = '#6366f1',
+  formatValue,
+}) => {
   const max = Math.max(...data.map((d) => d.value), 1);
 
   return (
@@ -124,7 +139,7 @@ export const BarChart: React.FC<BarChartProps> = ({ data, height = 200, color = 
             >
               {/* Tooltip */}
               <div className="absolute bottom-full mb-2 bg-surface-elevated border border-border-default text-text-primary text-xs px-2.5 py-1 rounded shadow-card opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
-                {item.value} units
+                {formatValue ? formatValue(item.value) : `${item.value} units`}
               </div>
               {/* Bar representation */}
               <div
@@ -150,11 +165,13 @@ export const BarChart: React.FC<BarChartProps> = ({ data, height = 200, color = 
 interface HorizontalBarChartProps {
   data: { label: string; value: number }[];
   color?: string;
+  formatValue?: (val: number) => string;
 }
 
 export const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
   data,
   color = '#0ea5e9',
+  formatValue,
 }) => {
   const max = Math.max(...data.map((d) => d.value), 1);
 
@@ -169,7 +186,9 @@ export const HorizontalBarChart: React.FC<HorizontalBarChartProps> = ({
               <span className="text-text-secondary font-medium truncate max-w-[200px]">
                 {item.label}
               </span>
-              <span className="text-text-primary font-bold">{item.value}</span>
+              <span className="text-text-primary font-bold">
+                {formatValue ? formatValue(item.value) : item.value}
+              </span>
             </div>
             <div className="w-full bg-surface-elevated rounded-full h-3.5 border border-border-default relative overflow-hidden">
               <div

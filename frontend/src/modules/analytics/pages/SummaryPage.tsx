@@ -1,12 +1,21 @@
 import React, { useState, useCallback } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
-import { DonutChart } from '../components/AnalyticsCharts';
-import { useAnalyticsSummary, useKpis } from '../hooks/useAnalytics';
+import { DonutChart, BarChart, HorizontalBarChart } from '../components/AnalyticsCharts';
+import {
+  useAnalyticsSummary,
+  useKpis,
+  useWorkflowAnalytics,
+  useDepartmentAnalytics,
+  useCostAnalytics,
+  useProductAnalytics,
+  useVendorAnalytics,
+} from '../hooks/useAnalytics';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { Button } from '../../../components/ui/Button';
 import type { IKpiData } from '../types/analytics.types';
+import { useAuthStore } from '../../../store/authStore';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -128,12 +137,20 @@ export const SummaryPage: React.FC = () => {
   const [appliedFilters, setAppliedFilters] = useState<KpiFilters>({});
   const [showFilters, setShowFilters] = useState(false);
 
+  const user = useAuthStore((s) => s.user);
+  const deptCode = user?.department?.departmentCode;
+  const isAdmin = user?.permissions?.includes('settings.manage');
+  const isManager = deptCode === 'SMGR' || deptCode === 'GMGR';
+  const hasFinancialAccess = !!(isAdmin || isManager || deptCode === 'ACCT');
+  const hasWorkflowAccess = !!(isAdmin || isManager || deptCode === 'DSGN' || deptCode === 'STOR');
+
   const {
     data: summaryData,
     isLoading: summaryLoading,
     error: summaryError,
     refetch: refetchSummary,
   } = useAnalyticsSummary();
+
   const {
     data: kpiData,
     isLoading: kpiLoading,
@@ -145,6 +162,41 @@ export const SummaryPage: React.FC = () => {
     ),
   );
 
+  const {
+    data: workflowData,
+    isLoading: workflowLoading,
+    error: workflowError,
+    refetch: refetchWorkflow,
+  } = useWorkflowAnalytics(hasWorkflowAccess);
+
+  const {
+    data: deptData,
+    isLoading: deptLoading,
+    error: deptError,
+    refetch: refetchDept,
+  } = useDepartmentAnalytics(!!(isAdmin || isManager));
+
+  const {
+    data: costData,
+    isLoading: costLoading,
+    error: costError,
+    refetch: refetchCosts,
+  } = useCostAnalytics(appliedFilters, hasFinancialAccess);
+
+  const {
+    data: productData,
+    isLoading: productLoading,
+    error: productError,
+    refetch: refetchProducts,
+  } = useProductAnalytics({ limit: 5 }, !!(isAdmin || isManager));
+
+  const {
+    data: vendorData,
+    isLoading: vendorLoading,
+    error: vendorError,
+    refetch: refetchVendors,
+  } = useVendorAnalytics({ limit: 5 }, hasFinancialAccess);
+
   const handleApply = useCallback(() => {
     setAppliedFilters({ ...filters });
   }, [filters]);
@@ -154,8 +206,23 @@ export const SummaryPage: React.FC = () => {
     setAppliedFilters({});
   }, []);
 
-  const isLoading = summaryLoading || kpiLoading;
-  const hasError = summaryError || kpiError;
+  const isLoading =
+    summaryLoading ||
+    kpiLoading ||
+    (hasWorkflowAccess && workflowLoading) ||
+    (!!(isAdmin || isManager) && deptLoading) ||
+    (hasFinancialAccess && costLoading) ||
+    (!!(isAdmin || isManager) && productLoading) ||
+    (hasFinancialAccess && vendorLoading);
+
+  const hasError =
+    !!summaryError ||
+    !!kpiError ||
+    (hasWorkflowAccess && !!workflowError) ||
+    (!!(isAdmin || isManager) && !!deptError) ||
+    (hasFinancialAccess && !!costError) ||
+    (!!(isAdmin || isManager) && !!productError) ||
+    (hasFinancialAccess && !!vendorError);
 
   if (hasError) {
     return (
@@ -165,6 +232,11 @@ export const SummaryPage: React.FC = () => {
           onRetry={() => {
             void refetchSummary();
             void refetchKpis();
+            if (hasWorkflowAccess) void refetchWorkflow();
+            if (isAdmin || isManager) void refetchDept();
+            if (hasFinancialAccess) void refetchCosts();
+            if (isAdmin || isManager) void refetchProducts();
+            if (hasFinancialAccess) void refetchVendors();
           }}
         />
       </AnalyticsLayout>
@@ -175,6 +247,37 @@ export const SummaryPage: React.FC = () => {
     summaryData?.statusBreakdown?.map((item) => ({
       label: item.status,
       value: item.count,
+    })) ?? [];
+
+  const workflowChartData =
+    workflowData?.stageDistribution?.map((item) => ({
+      label: item.stageName,
+      value: item.count,
+    })) ?? [];
+
+  const costChartData = costData
+    ? [
+        { label: 'Planned Cost', value: costData.totalPlannedCost },
+        { label: 'Actual Cost', value: costData.totalActualCost },
+      ]
+    : [];
+
+  const deptChartData =
+    deptData?.departments?.map((item) => ({
+      label: item.departmentCode,
+      value: item.pendingQueue,
+    })) ?? [];
+
+  const productChartData =
+    productData?.products?.map((item) => ({
+      label: item.productCode,
+      value: item.indentCount,
+    })) ?? [];
+
+  const vendorChartData =
+    vendorData?.vendors?.map((item) => ({
+      label: item.vendorCode,
+      value: item.totalPredictedAmount,
     })) ?? [];
 
   const kpis: IKpiData[] = kpiData ?? [];
@@ -310,54 +413,161 @@ export const SummaryPage: React.FC = () => {
         );
       })}
 
-      {/* ── Status Distribution Chart ───────────────────────────────── */}
+      {/* ── Visual Analytics Row 1 ──────────────────────────────────── */}
       {!isLoading && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
-          <div className="bg-surface-card border border-border-default p-6 rounded-xl lg:col-span-2">
-            <h3 className="text-text-primary font-bold text-lg mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
+            <h3 className="text-text-primary font-bold text-base mb-2">
               Transaction Status Distribution
             </h3>
+            <p className="text-text-muted text-xs mb-4">
+              Distribution of indents across all statuses in the system.
+            </p>
             {chartData.length > 0 ? (
               <DonutChart data={chartData} />
             ) : (
-              <EmptyState title="No data" description="No transaction records found." />
+              <EmptyState title="No Data" description="No status records found." />
             )}
           </div>
-          <div className="bg-surface-card border border-border-default p-6 rounded-xl flex flex-col justify-between">
-            <div>
-              <h3 className="text-text-primary font-bold text-lg mb-2">
-                Two-Loop Zero-Approval Architecture
+
+          {hasWorkflowAccess && (
+            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
+              <h3 className="text-text-primary font-bold text-base mb-2">
+                Workflow Stage Distribution
               </h3>
-              <p className="text-text-muted text-sm leading-relaxed mb-4">
-                Senior Managers &amp; General Managers monitor operations through this dashboard.
-                State changes trigger automated notifications — no manual approval is required.
+              <p className="text-text-muted text-xs mb-4">
+                Total active indent volume tracked across operational workflow stages.
               </p>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-accent-primary" />
-                  <span className="text-text-secondary font-medium">Loop 1 — Manufacturing</span>
-                </div>
-                <p className="text-text-muted text-xs ml-4">
-                  Draft → Design Completed → Stores Processing → Production → Customer Delivered
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="h-2 w-2 rounded-full bg-accent-info" />
-                  <span className="text-text-secondary font-medium">Loop 2 — Financial</span>
-                </div>
-                <p className="text-text-muted text-xs ml-4">
-                  Accounts Cost Verification → Financial Closure → Archived → Completed
-                </p>
+              {workflowChartData.length > 0 ? (
+                <BarChart data={workflowChartData} color="var(--primary)" />
+              ) : (
+                <EmptyState title="No Data" description="No workflow records found." />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Visual Analytics Row 2 ──────────────────────────────────── */}
+      {!isLoading && (hasFinancialAccess || isAdmin || isManager) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {hasFinancialAccess && (
+            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
+              <h3 className="text-text-primary font-bold text-base mb-2">
+                Planned vs. Actual Costs (INR)
+              </h3>
+              <p className="text-text-muted text-xs mb-4">
+                Aggregate planned values vs finalized actual costing entries.
+              </p>
+              {costData && (costData.totalPlannedCost > 0 || costData.totalActualCost > 0) ? (
+                <BarChart
+                  data={costChartData}
+                  color="var(--success)"
+                  formatValue={(val) => '₹' + val.toLocaleString('en-IN')}
+                />
+              ) : (
+                <EmptyState
+                  title="No Data"
+                  description="No costing records found for this period."
+                />
+              )}
+            </div>
+          )}
+
+          {(isAdmin || isManager) && (
+            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
+              <h3 className="text-text-primary font-bold text-base mb-2">
+                Department Pending Workload
+              </h3>
+              <p className="text-text-muted text-xs mb-4">
+                Current volume of pending indents in active queues per department.
+              </p>
+              {deptChartData.length > 0 ? (
+                <BarChart data={deptChartData} color="var(--warning)" />
+              ) : (
+                <EmptyState title="No Data" description="No pending department items." />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Visual Analytics Row 3 ──────────────────────────────────── */}
+      {!isLoading && (hasFinancialAccess || isAdmin || isManager) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {(isAdmin || isManager) && (
+            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
+              <h3 className="text-text-primary font-bold text-base mb-2">
+                Top Products by Indent Volume
+              </h3>
+              <p className="text-text-muted text-xs mb-4">
+                Configured products ranked by frequency of indent requests.
+              </p>
+              {productChartData.length > 0 ? (
+                <HorizontalBarChart data={productChartData} color="var(--primary)" />
+              ) : (
+                <EmptyState title="No Data" description="No product indents recorded." />
+              )}
+            </div>
+          )}
+
+          {hasFinancialAccess && (
+            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
+              <h3 className="text-text-primary font-bold text-base mb-2">
+                Vendor Supply Value Allocation (INR)
+              </h3>
+              <p className="text-text-muted text-xs mb-4">
+                Top-5 vendors ranked by aggregate planned supply value.
+              </p>
+              {vendorChartData.length > 0 ? (
+                <HorizontalBarChart
+                  data={vendorChartData}
+                  color="var(--info)"
+                  formatValue={(val) => '₹' + val.toLocaleString('en-IN')}
+                />
+              ) : (
+                <EmptyState title="No Data" description="No vendor transactions recorded." />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Two-Loop Architecture info & Refresh Footer ────────────────── */}
+      {!isLoading && (
+        <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mt-6">
+          <div className="space-y-2 max-w-2xl">
+            <h3 className="text-text-primary font-bold text-base">
+              Two-Loop Zero-Approval Architecture Passive Monitoring
+            </h3>
+            <p className="text-text-muted text-xs leading-relaxed">
+              Operational and financial flows run autonomously. State transitions trigger
+              email/system notifications to stakeholders. Senior & General Managers passively
+              monitor progress and analyze performance indicators without blocking active workflows.
+            </p>
+            <div className="flex flex-wrap gap-4 text-xs font-semibold pt-1">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-accent-primary" />
+                <span className="text-text-secondary">
+                  Loop 1 (Manufacturing): Design → Stores → Production → Delivery
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-accent-info" />
+                <span className="text-text-secondary">
+                  Loop 2 (Financial): Accounts → Closure → Archive → Complete
+                </span>
               </div>
             </div>
-            <div className="border-t border-border-default pt-4 mt-6 flex justify-between items-center text-xs text-text-disabled font-medium">
-              <span>Data source: Live PostgreSQL Database</span>
-              <span>
-                Refreshed:{' '}
-                {summaryData?.generatedAt
-                  ? new Date(summaryData.generatedAt).toLocaleTimeString()
-                  : 'N/A'}
-              </span>
-            </div>
+          </div>
+          <div className="flex flex-col items-end text-xs text-text-disabled font-semibold border-t md:border-t-0 border-border-default pt-3 md:pt-0 w-full md:w-auto">
+            <span>Source: PostgreSQL Live Monolithic DB</span>
+            <span>
+              Last Aggregated:{' '}
+              {summaryData?.generatedAt
+                ? new Date(summaryData.generatedAt).toLocaleString()
+                : 'N/A'}
+            </span>
           </div>
         </div>
       )}
