@@ -1,37 +1,46 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type DataDensity = 'compact' | 'comfortable';
+export type CurrencyFormat = 'inr' | 'usd' | 'eur';
+export type TimezoneKey = 'ist' | 'utc' | 'est';
+
 export interface SettingsState {
-  dataDensity: 'compact' | 'comfortable';
+  // Appearance
+  dataDensity: DataDensity;
+  // Notifications
   emailNotifications: boolean;
   workflowAlerts: boolean;
   costDeviationWarnings: boolean;
-  timezone: string;
-  currencyFormat: string;
+  // Regional
+  timezone: TimezoneKey;
+  currencyFormat: CurrencyFormat;
+  // Actions
   updateSettings: (
     partial: Partial<Omit<SettingsState, 'updateSettings' | 'resetSettings'>>,
   ) => void;
   resetSettings: () => void;
 }
 
-const defaultSettings = {
-  dataDensity: 'comfortable' as const,
+export const DEFAULT_SETTINGS = {
+  dataDensity: 'comfortable' as DataDensity,
   emailNotifications: true,
   workflowAlerts: true,
   costDeviationWarnings: true,
-  timezone: 'ist',
-  currencyFormat: 'inr',
+  timezone: 'ist' as TimezoneKey,
+  currencyFormat: 'inr' as CurrencyFormat,
 };
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      ...defaultSettings,
+      ...DEFAULT_SETTINGS,
       updateSettings: (partial) => set((state) => ({ ...state, ...partial })),
-      resetSettings: () => set(defaultSettings),
+      resetSettings: () => set(DEFAULT_SETTINGS),
     }),
     {
-      name: 'imcms_enterprise_settings',
+      // v2 key busts stale v1 localStorage that had wrong currency default
+      name: 'imcms_enterprise_settings_v2',
     },
   ),
 );

@@ -7,19 +7,12 @@ import { useProductAnalytics } from '../hooks/useAnalytics';
 import type { IAnalyticsFilters } from '../types/analytics.types';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { useCurrencyFormatter } from '../../../utils/currencyFormatter';
 
 export const ProductsPage: React.FC = () => {
   const [filters, setFilters] = useState<IAnalyticsFilters>({ limit: 50 });
   const { data, isLoading, error, refetch } = useProductAnalytics(filters);
-
-  const formatCurrency = (val?: number | null) => {
-    if (val === undefined || val === null) return '₹0.00';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
+  const formatCurrency = useCurrencyFormatter({ maximumFractionDigits: 0 });
 
   const handleApply = useCallback((newFilters: IAnalyticsFilters) => {
     setFilters(newFilters);

@@ -7,6 +7,7 @@ import {
   useUnreadNotificationCount,
 } from '../../api/services/notifications/hooks';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { filterNotificationsForUser } from '../../utils/notificationFilter';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -95,11 +96,36 @@ export const NotificationsPage: React.FC = () => {
   }, [markAllAsRead, refetch, show]);
 
   const user = useAuthStore((s) => s.user);
+  const { workflowAlerts, costDeviationWarnings, emailNotifications } = useSettingsStore();
 
   const notifications = React.useMemo(() => {
-    const raw = data?.items ?? [];
-    return filterNotificationsForUser(raw, user);
-  }, [data, user]);
+    let items = filterNotificationsForUser(data?.items ?? [], user);
+
+    if (!workflowAlerts) {
+      items = items.filter((n) => {
+        const t = (n.title || '').toLowerCase();
+        return !(
+          t.includes('submitted') ||
+          t.includes('issued') ||
+          t.includes('completed') ||
+          t.includes('delivered') ||
+          t.includes('closure') ||
+          t.includes('archived')
+        );
+      });
+    }
+
+    if (!costDeviationWarnings) {
+      items = items.filter((n) => {
+        const t = (n.title || '').toLowerCase();
+        return !t.includes('cost') && !(n.type === 'WARNING' && t.includes('deviation'));
+      });
+    }
+
+    return items;
+  }, [data, user, workflowAlerts, costDeviationWarnings]);
+
+  const suppressedBySettings = !workflowAlerts || !costDeviationWarnings || !emailNotifications;
 
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
@@ -189,6 +215,20 @@ export const NotificationsPage: React.FC = () => {
           {isFetching ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
+
+      {/* Settings suppression banner */}
+      {suppressedBySettings && (
+        <div className="bg-status-warning/10 border border-status-warning/20 rounded-xl p-3 flex items-center gap-2 text-xs text-status-warning">
+          <BellOff size={14} className="shrink-0" />
+          <span>
+            Some notification types are muted via Settings.{' '}
+            {!workflowAlerts && <span className="font-semibold">Workflow alerts off.</span>}
+            {!costDeviationWarnings && (
+              <span className="font-semibold"> Cost deviation warnings off.</span>
+            )}
+          </span>
+        </div>
+      )}
 
       {/* Notification List */}
       {isLoading ? (

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Pagination } from '../../../components/ui/Pagination';
 import { Badge } from '../../../components/ui/Badge';
+import { useCurrencyFormatter } from '../../../utils/currencyFormatter';
 import type { IndentData } from '../../../api/services/indents/service';
 
 interface CostSheetListProps {
@@ -41,11 +42,9 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
   viewMode,
 }) => {
   const navigate = useNavigate();
+  const formatCurrency = useCurrencyFormatter({ maximumFractionDigits: 0 });
 
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
-
-  const formatCurrency = (value?: number) =>
-    value !== undefined ? `Rs.${value.toLocaleString()}` : '--';
 
   const gridRender = (item: IndentData) => (
     <div
@@ -171,7 +170,7 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
                         </td>
                         <td className={`py-3.5 px-4 text-right font-medium ${varianceColor}`}>
                           {variance !== null
-                            ? `${variance > 0 ? '+' : ''}Rs.${Math.abs(variance).toLocaleString()}`
+                            ? `${variance > 0 ? '+' : ''}${formatCurrency(Math.abs(variance))}`
                             : '--'}
                         </td>
                       </tr>

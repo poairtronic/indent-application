@@ -7,6 +7,7 @@ import {
 } from '../../api/services/notifications/hooks';
 import * as Lucide from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { filterNotificationsForUser } from '../../utils/notificationFilter';
 
 interface NotificationDrawerProps {
@@ -47,11 +48,36 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
 
   const user = useAuthStore((s) => s.user);
+  const { workflowAlerts, costDeviationWarnings, emailNotifications } = useSettingsStore();
+
   const rawNotifications = data?.items ?? [];
+
+  // Apply role-based filter first, then settings-based suppression
   const notifications = useMemo(() => {
-    return filterNotificationsForUser(rawNotifications, user);
-  }, [rawNotifications, user]);
+    let items = filterNotificationsForUser(rawNotifications, user);
+
+    if (!workflowAlerts) {
+      // Suppress workflow state-change notifications
+      items = items.filter((n) => {
+        const t = (n.title || '').toLowerCase();
+        return !(t.includes('submitted') || t.includes('issued') || t.includes('completed') || t.includes('delivered') || t.includes('closure') || t.includes('archived'));
+      });
+    }
+
+    if (!costDeviationWarnings) {
+      // Suppress cost deviation warning notifications
+      items = items.filter((n) => {
+        const t = (n.title || '').toLowerCase();
+        return !t.includes('cost') && !(n.type === 'WARNING' && t.includes('deviation'));
+      });
+    }
+
+    return items;
+  }, [rawNotifications, user, workflowAlerts, costDeviationWarnings]);
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const mutedCount = (data?.items?.length ?? 0) - rawNotifications.length;
+  const suppressedBySettings = !workflowAlerts || !costDeviationWarnings || !emailNotifications;
 
   const handleMarkRead = useCallback(
     async (id: string) => {
@@ -97,12 +123,23 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
               </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-background-secondary transition-colors"
-          >
-            <Lucide.X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {suppressedBySettings && (
+              <span
+                title="Some notifications are muted via Settings"
+                className="flex items-center gap-1 text-[10px] text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-full font-semibold"
+              >
+                <Lucide.BellOff size={10} />
+                Muted
+              </span>
+            )}
+            <button
+              onClick={onClose}
+              className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-background-secondary transition-colors"
+            >
+              <Lucide.X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {notifications.length > 0 && (

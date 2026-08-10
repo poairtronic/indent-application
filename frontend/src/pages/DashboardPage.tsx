@@ -24,6 +24,7 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { Skeleton } from '../components/ui/Skeleton';
 import { Button } from '../components/ui/Button';
 import { NotificationDrawer } from '../components/layout/NotificationDrawer';
+import { useCurrencyFormatter } from '../utils/currencyFormatter';
 import {
   FileText,
   Clock,
@@ -54,6 +55,7 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
+  const formatCurrency = useCurrencyFormatter({ maximumFractionDigits: 0 });
 
   // Notifications API
   const { data: notificationsData, isLoading: isNotificationsLoading } = useNotifications({
@@ -163,15 +165,6 @@ export const DashboardPage: React.FC = () => {
       // silent
     }
   }, [markAllAsRead]);
-
-  const formatCurrency = (val?: number) => {
-    if (val === undefined || val === null) return '₹4,20,000';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

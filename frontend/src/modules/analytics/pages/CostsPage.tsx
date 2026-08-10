@@ -6,19 +6,12 @@ import { BarChart } from '../components/AnalyticsCharts';
 import { useCostAnalytics } from '../hooks/useAnalytics';
 import type { IAnalyticsFilters } from '../types/analytics.types';
 import { ErrorState } from '../../../components/ui/ErrorState';
+import { useCurrencyFormatter } from '../../../utils/currencyFormatter';
 
 export const CostsPage: React.FC = () => {
   const [filters, setFilters] = useState<IAnalyticsFilters>({});
   const { data, isLoading, error, refetch } = useCostAnalytics(filters);
-
-  const formatCurrency = (val?: number) => {
-    if (val === undefined || val === null) return '₹0.00';
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
-  };
+  const formatCurrency = useCurrencyFormatter({ maximumFractionDigits: 0 });
 
   const handleApply = useCallback((newFilters: IAnalyticsFilters) => {
     setFilters(newFilters);

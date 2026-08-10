@@ -2,6 +2,7 @@ import React, { useEffect, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { useThemeStore } from '../store/theme.store';
+import { useSettingsStore } from '../store/settingsStore';
 import { GlobalErrorBoundary } from '../components/common/GlobalErrorBoundary';
 
 import { useTabSync } from '../hooks/useTabSync';
@@ -20,10 +21,12 @@ import { OfflineBanner } from '../components/common/OfflineBanner';
 
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { resolvedTheme } = useThemeStore();
+  const { dataDensity } = useSettingsStore();
 
   useTabSync();
   useSessionTimeout();
 
+  // Apply resolved theme to <html>
   useEffect(() => {
     const root = document.documentElement;
     if (resolvedTheme === 'dark') {
@@ -34,6 +37,11 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
       root.style.colorScheme = 'light';
     }
   }, [resolvedTheme]);
+
+  // Apply data density to <html> so CSS rules can target it globally
+  useEffect(() => {
+    document.documentElement.setAttribute('data-density', dataDensity);
+  }, [dataDensity]);
 
   return (
     <GlobalErrorBoundary>

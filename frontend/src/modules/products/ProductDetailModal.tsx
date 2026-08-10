@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal } from '../../components/ui/Modal';
 import { Badge } from '../../components/ui/Badge';
+import { useCurrencyFormatter } from '../../utils/currencyFormatter';
 import { Package, Tag, Coins } from 'lucide-react';
 import type { ProductData } from './ProductFormModal';
 
@@ -15,14 +16,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onClose,
   product,
 }) => {
-  if (!product) return null;
+  const formatCurrency = useCurrencyFormatter({ maximumFractionDigits: 0 });
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(val);
+  if (!product) return null;
 
   return (
     <Modal
