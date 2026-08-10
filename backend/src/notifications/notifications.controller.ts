@@ -62,9 +62,9 @@ export class NotificationsController {
       };
 
       // Filter based on department visibility rules
-      const conditions: any[] = [];
+      const titleConditions: any[] = [];
       if (deptCode === 'DESIGN' || deptCode === 'DSGN') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'Draft Returned', mode: 'insensitive' } },
           { title: { contains: 'Cost Sheet Updated', mode: 'insensitive' } },
           { title: { contains: 'Actual Cost', mode: 'insensitive' } },
@@ -73,18 +73,18 @@ export class NotificationsController {
           { title: { contains: 'Document Replaced', mode: 'insensitive' } },
         );
       } else if (deptCode === 'STORES' || deptCode === 'STOR') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'New Manufacturing Indent', mode: 'insensitive' } },
           { title: { contains: 'Stores Stock Verification', mode: 'insensitive' } },
         );
       } else if (deptCode === 'PRODUCTION' || deptCode === 'PROD') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'Material Issued', mode: 'insensitive' } },
           { title: { contains: 'Production Manufacturing Started', mode: 'insensitive' } },
           { title: { contains: 'Production Manufacturing Completed', mode: 'insensitive' } },
         );
       } else if (deptCode === 'ACCOUNTS' || deptCode === 'ACCT') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'Production Manufacturing Completed', mode: 'insensitive' } },
           { title: { contains: 'Product Delivered', mode: 'insensitive' } },
           { title: { contains: 'Accounts Cost Verification', mode: 'insensitive' } },
@@ -93,7 +93,7 @@ export class NotificationsController {
           { title: { contains: 'Vendor Bill', mode: 'insensitive' } },
         );
       } else if (roleName === 'Senior Manager' || roleName === 'General Manager') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'Actual Cost', mode: 'insensitive' } },
           { title: { contains: 'Financial Closure', mode: 'insensitive' } },
           { title: { contains: 'Archived', mode: 'insensitive' } },
@@ -105,10 +105,11 @@ export class NotificationsController {
         );
       }
 
-      if (conditions.length > 0) {
-        where.OR = conditions;
+      if (titleConditions.length > 0) {
+        where.OR = titleConditions;
       } else {
-        where.id = 'none';
+        // No matching department — return zero results safely
+        where.id = '__no_match__';
       }
     }
 
@@ -196,9 +197,9 @@ export class NotificationsController {
     };
 
     if (!isAdmin) {
-      const conditions: any[] = [];
+      const titleConditions: any[] = [];
       if (deptCode === 'DESIGN' || deptCode === 'DSGN') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'Draft Returned', mode: 'insensitive' } },
           { title: { contains: 'Cost Sheet Updated', mode: 'insensitive' } },
           { title: { contains: 'Actual Cost', mode: 'insensitive' } },
@@ -207,18 +208,18 @@ export class NotificationsController {
           { title: { contains: 'Document Replaced', mode: 'insensitive' } },
         );
       } else if (deptCode === 'STORES' || deptCode === 'STOR') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'New Manufacturing Indent', mode: 'insensitive' } },
           { title: { contains: 'Stores Stock Verification', mode: 'insensitive' } },
         );
       } else if (deptCode === 'PRODUCTION' || deptCode === 'PROD') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'Material Issued', mode: 'insensitive' } },
           { title: { contains: 'Production Manufacturing Started', mode: 'insensitive' } },
           { title: { contains: 'Production Manufacturing Completed', mode: 'insensitive' } },
         );
       } else if (deptCode === 'ACCOUNTS' || deptCode === 'ACCT') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'Production Manufacturing Completed', mode: 'insensitive' } },
           { title: { contains: 'Product Delivered', mode: 'insensitive' } },
           { title: { contains: 'Accounts Cost Verification', mode: 'insensitive' } },
@@ -227,7 +228,7 @@ export class NotificationsController {
           { title: { contains: 'Vendor Bill', mode: 'insensitive' } },
         );
       } else if (roleName === 'Senior Manager' || roleName === 'General Manager') {
-        conditions.push(
+        titleConditions.push(
           { title: { contains: 'Actual Cost', mode: 'insensitive' } },
           { title: { contains: 'Financial Closure', mode: 'insensitive' } },
           { title: { contains: 'Archived', mode: 'insensitive' } },
@@ -239,10 +240,16 @@ export class NotificationsController {
         );
       }
 
-      if (conditions.length > 0) {
-        where.notification.OR = conditions;
+      if (titleConditions.length > 0) {
+        // Combine with existing notification.isDeleted filter using AND
+        where.notification.AND = [
+          { isDeleted: false },
+          { OR: titleConditions },
+        ];
+        delete where.notification.isDeleted;
       } else {
-        where.id = 'none';
+        // No matching department — return zero results
+        where.notification.id = '__no_match__';
       }
     }
 

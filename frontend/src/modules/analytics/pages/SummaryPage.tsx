@@ -17,6 +17,7 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import { Button } from '../../../components/ui/Button';
 import type { IKpiData } from '../types/analytics.types';
 import { useAuthStore } from '../../../store/authStore';
+import { formatWorkflowState } from '../../../constants/workflow';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -266,7 +267,7 @@ export const SummaryPage: React.FC = () => {
 
   const workflowChartData =
     workflowData?.stageDistribution?.map((item) => ({
-      label: item.stageName,
+      label: formatWorkflowState(item.stageName as any),
       value: item.count,
     })) ?? [];
 

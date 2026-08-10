@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { filterNotificationsForUser } from '../utils/notificationFilter';
+import { formatWorkflowState } from '../constants/workflow';
 import {
   useNotifications,
   useMarkAllNotificationsRead,
@@ -315,7 +316,7 @@ export const DashboardPage: React.FC = () => {
 
     return workflowData.stageDistribution.map((stage, idx) => ({
       id: `stage-${idx}`,
-      title: stage.stageName,
+      title: formatWorkflowState(stage.stageName as any),
       description: `${stage.count} Indents (${stage.percentage.toFixed(1)}%)`,
       timestamp: `Stage ${idx + 1}`,
       icon: icons[idx % icons.length],
@@ -594,7 +595,7 @@ export const DashboardPage: React.FC = () => {
                   <div className="p-3 bg-status-warning/10 border border-status-warning/20 rounded-lg flex items-center gap-2 text-xs text-status-warning">
                     <AlertTriangle size={16} className="shrink-0" />
                     <span>
-                      Bottleneck Detected: <strong>{workflowData.bottleneckStage}</strong> stage.
+                      Bottleneck Detected: <strong>{formatWorkflowState(workflowData.bottleneckStage as any)}</strong> stage.
                     </span>
                   </div>
                 )}

@@ -11,6 +11,7 @@ import { IndentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { KpiService } from './kpi.service';
 import { KpiQueryDto } from './dto/kpi-query.dto';
+import { WorkflowStateMapper } from '../business-transaction/mappers/workflow-state.mapper';
 import {
   IExecutiveSummary,
   ITransactionStatusBreakdown,
@@ -140,12 +141,14 @@ export class AnalyticsService {
   public async getWorkflowAnalytics(): Promise<IWorkflowAnalytics> {
     this.logger.log('Computing workflow analytics');
 
-    const [grouped, completedIndents, total, stalledCount] = await Promise.all([
-      // Stage distribution
-      this.prisma.indent.groupBy({
-        by: ['status'],
+    const [allIndents, completedIndents, total, stalledCount] = await Promise.all([
+      // Fetch all non-deleted indents to compute domain-state-level distribution.
+      // This is necessary because multiple domain WorkflowStates map to the same
+      // Prisma IndentStatus (e.g. STORES_PROCESSING and MATERIALS_ISSUED both map
+      // to PENDING_STORES), so groupBy('status') would merge distinct workflow stages.
+      this.prisma.indent.findMany({
         where: { isDeleted: false },
-        _count: { id: true },
+        select: { status: true, remarks: true },
       }),
       // Completed indents with timestamps for cycle time calculation
       this.prisma.indent.findMany({
@@ -166,15 +169,24 @@ export class AnalyticsService {
       }),
     ]);
 
-    // Stage distribution with percentages
-    const stageDistribution: IStageDistribution[] = grouped.map((row) => ({
-      stageName: STATUS_LABEL_MAP[row.status] ?? row.status,
-      count: row._count.id,
-      percentage: total > 0 ? Math.round((row._count.id / total) * 10000) / 100 : 0,
-    }));
+    // Group by domain WorkflowState using the mapper (remarks-based disambiguation)
+    const domainStateCounts = new Map<string, number>();
+    for (const indent of allIndents) {
+      const domainState = WorkflowStateMapper.toDomain(indent.status, indent);
+      domainStateCounts.set(domainState, (domainStateCounts.get(domainState) ?? 0) + 1);
+    }
+
+    // Stage distribution with percentages — one entry per domain WorkflowState
+    const stageDistribution: IStageDistribution[] = Array.from(domainStateCounts.entries()).map(
+      ([stateKey, count]) => ({
+        stageName: stateKey,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
+      }),
+    );
 
     // Completion rate
-    const completedCount = grouped.find((r) => r.status === IndentStatus.COMPLETED)?._count.id ?? 0;
+    const completedCount = domainStateCounts.get('COMPLETED') ?? 0;
     const completionRate = total > 0 ? Math.round((completedCount / total) * 10000) / 100 : 0;
 
     // Average cycle time (createdAt → updatedAt for COMPLETED)
@@ -187,17 +199,15 @@ export class AnalyticsService {
       averageCycleDays = Math.round((totalDays / completedIndents.length) * 100) / 100;
     }
 
-    // Bottleneck: stage with highest count (excluding COMPLETED/CANCELLED)
-    const nonTerminalStages = grouped.filter(
-      (r) => r.status !== IndentStatus.COMPLETED && r.status !== IndentStatus.CANCELLED,
-    );
-    const bottleneckRow = nonTerminalStages.reduce(
-      (max, row) => (row._count.id > (max?._count?.id ?? -1) ? row : max),
-      nonTerminalStages[0] ?? null,
-    );
-    const bottleneckStage = bottleneckRow
-      ? (STATUS_LABEL_MAP[bottleneckRow.status] ?? bottleneckRow.status)
-      : null;
+    // Bottleneck: domain state with highest count (excluding COMPLETED)
+    let bottleneckStage: string | null = null;
+    let maxCount = 0;
+    for (const [stateKey, count] of domainStateCounts) {
+      if (stateKey !== 'COMPLETED' && count > maxCount) {
+        maxCount = count;
+        bottleneckStage = stateKey;
+      }
+    }
 
     return {
       stageDistribution,

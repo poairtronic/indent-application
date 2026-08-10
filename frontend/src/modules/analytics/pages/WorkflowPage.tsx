@@ -5,6 +5,7 @@ import { BarChart } from '../components/AnalyticsCharts';
 import { useWorkflowAnalytics } from '../hooks/useAnalytics';
 import { ErrorState } from '../../../components/ui/ErrorState';
 import { EmptyState } from '../../../components/ui/EmptyState';
+import { formatWorkflowState } from '../../../constants/workflow';
 
 export const WorkflowPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useWorkflowAnalytics();
@@ -22,7 +23,7 @@ export const WorkflowPage: React.FC = () => {
 
   const chartData =
     data?.stageDistribution?.map((item) => ({
-      label: item.stageName,
+      label: formatWorkflowState(item.stageName as any),
       value: item.count,
     })) || [];
 
@@ -50,7 +51,7 @@ export const WorkflowPage: React.FC = () => {
         />
         <KpiCard
           title="Bottleneck Stage"
-          value={data?.bottleneckStage || 'None'}
+          value={data?.bottleneckStage ? formatWorkflowState(data.bottleneckStage as any) : 'None'}
           loading={isLoading}
           icon={<span>⚠️</span>}
           subtitle="Stage with highest active count"
