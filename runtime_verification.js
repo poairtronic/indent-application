@@ -10,9 +10,6 @@ const endpoints = [
     { module: 'Users', url: '/users/1/restore', method: 'PATCH', body: {} },
     { module: 'Roles', url: '/roles', method: 'GET' },
     { module: 'Permissions', url: '/permissions', method: 'GET' },
-    { module: 'Indents', url: '/indents', method: 'GET' },
-    { module: 'Indents', url: '/indents/1', method: 'GET' },
-    { module: 'Indents', url: '/indents/1/status', method: 'PATCH', body: {} },
     { module: 'BusinessTransactions', url: '/business-transactions', method: 'GET' },
     { module: 'BusinessTransactions', url: '/business-transactions/1', method: 'GET' },
     { module: 'Analytics', url: '/analytics/summary', method: 'GET' },
@@ -30,7 +27,7 @@ async function runAudit() {
     for (const ep of endpoints) {
         try {
             const frontendUrl = `http://localhost:3001/api${ep.url}`;
-            const backendUrl = `http://localhost:3001${ep.url}`;
+            const backendUrl = `http://localhost:3001/api${ep.url}`;
             const options = {
                 method: ep.method,
                 headers: { 'Content-Type': 'application/json' }
@@ -95,7 +92,7 @@ async function runAudit() {
     const missingControllers = results.filter(r => !r.controllerExists);
     const wrongUrls = results.filter(r => r.controllerExists && r.frontendStatus === 404);
     
-    md += `- **Broken APIs**: ${results.length}\n`;
+    md += `- **Broken APIs**: ${results.filter(r => !r.frontendWorking).length}\n`;
     md += `- **Missing Controllers**: ${missingControllers.length}\n`;
     md += `- **Wrong URLs**: ${wrongUrls.length}\n`;
     

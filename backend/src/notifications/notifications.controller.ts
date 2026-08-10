@@ -46,7 +46,7 @@ export class NotificationsController {
 
     const roleName = user.role?.roleName;
     const deptCode = user.department?.departmentCode;
-    const isAdmin = roleName === 'ADMIN' || roleName === 'System Administrator';
+    const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
 
     const where: any = {
       isDeleted: false,
@@ -109,7 +109,7 @@ export class NotificationsController {
         where.OR = titleConditions;
       } else {
         // No matching department — return zero results safely
-        where.id = '__no_match__';
+        where.id = '00000000-0000-0000-0000-000000000000';
       }
     }
 
@@ -185,7 +185,7 @@ export class NotificationsController {
 
     const roleName = user.role?.roleName;
     const deptCode = user.department?.departmentCode;
-    const isAdmin = roleName === 'ADMIN' || roleName === 'System Administrator';
+    const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
 
     const where: any = {
       userId,
@@ -249,7 +249,7 @@ export class NotificationsController {
         delete where.notification.isDeleted;
       } else {
         // No matching department — return zero results
-        where.notification.id = '__no_match__';
+        where.notification.id = '00000000-0000-0000-0000-000000000000';
       }
     }
 
@@ -285,7 +285,7 @@ export class NotificationsController {
 
     const roleName = user.role?.roleName;
     const deptCode = user.department?.departmentCode;
-    const isAdmin = roleName === 'ADMIN' || roleName === 'System Administrator';
+    const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
 
     let isAuthorized = isAdmin;
 
