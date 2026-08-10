@@ -111,7 +111,19 @@ export class ReportsService {
     }
 
     const orderBy: any = {};
-    if (sortBy) {
+    const allowedSortFields = [
+      'indentNumber',
+      'priority',
+      'status',
+      'requiredDate',
+      'createdAt',
+      'receivedDate',
+      'productName',
+      'productCode',
+      'departmentName',
+      'departmentCode',
+    ];
+    if (sortBy && allowedSortFields.includes(sortBy)) {
       if (sortBy === 'productName') {
         orderBy.product = { productName: sortOrder.toLowerCase() };
       } else if (sortBy === 'productCode') {
@@ -120,6 +132,8 @@ export class ReportsService {
         orderBy.department = { departmentName: sortOrder.toLowerCase() };
       } else if (sortBy === 'departmentCode') {
         orderBy.department = { departmentCode: sortOrder.toLowerCase() };
+      } else if (sortBy === 'receivedDate') {
+        orderBy.productionReceipt = { receivedDate: sortOrder.toLowerCase() };
       } else {
         orderBy[sortBy] = sortOrder.toLowerCase();
       }
@@ -269,20 +283,24 @@ export class ReportsService {
     }
 
     const orderBy: any = {};
-    if (sortBy) {
-      const whitelisted = [
-        'costNumber',
-        'predictedTotal',
-        'actualTotal',
-        'varianceAmount',
-        'variancePercentage',
-        'createdAt',
-        'status',
-      ];
-      if (whitelisted.includes(sortBy)) {
-        orderBy[sortBy] = sortOrder.toLowerCase();
+    const whitelisted = [
+      'costNumber',
+      'indentNumber',
+      'productName',
+      'predictedTotal',
+      'actualTotal',
+      'varianceAmount',
+      'variancePercentage',
+      'createdAt',
+      'status',
+    ];
+    if (sortBy && whitelisted.includes(sortBy)) {
+      if (sortBy === 'indentNumber') {
+        orderBy.indent = { indentNumber: sortOrder.toLowerCase() };
+      } else if (sortBy === 'productName') {
+        orderBy.indent = { product: { productName: sortOrder.toLowerCase() } };
       } else {
-        orderBy.createdAt = 'desc';
+        orderBy[sortBy] = sortOrder.toLowerCase();
       }
     } else {
       orderBy.createdAt = 'desc';
@@ -338,7 +356,17 @@ export class ReportsService {
     query: ReportQueryDto,
   ): Promise<ReportResponse<MaterialCostBreakdownReportItem>> {
     this.checkReportAccess(user, 'material-breakdown');
-    const { page = 1, limit = 10, search, dateFrom, dateTo, materialId, status } = query;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy,
+      sortOrder = 'asc',
+      search,
+      dateFrom,
+      dateTo,
+      materialId,
+      status,
+    } = query;
 
     const where: Prisma.CostItemWhereInput = { isDeleted: false };
     if (materialId) where.materialId = materialId;
@@ -426,6 +454,30 @@ export class ReportsService {
       },
     );
 
+    const allowedSortFields = [
+      'materialCode',
+      'materialName',
+      'category',
+      'totalPredictedQty',
+      'totalActualQty',
+      'totalPredictedAmount',
+      'totalActualAmount',
+      'varianceAmount',
+    ];
+    const cleanSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'materialCode';
+    const isAsc = sortOrder.toLowerCase() === 'asc';
+
+    allGroupedItems.sort((a: any, b: any) => {
+      const valA = a[cleanSortBy];
+      const valB = b[cleanSortBy];
+      if (valA === null || valA === undefined) return isAsc ? 1 : -1;
+      if (valB === null || valB === undefined) return isAsc ? -1 : 1;
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return isAsc ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
+    });
+
     const total = allGroupedItems.length;
     const paginatedItems = allGroupedItems.slice((page - 1) * limit, page * limit);
 
@@ -475,7 +527,16 @@ export class ReportsService {
     query: ReportQueryDto,
   ): Promise<ReportResponse<VendorPerformanceReportItem>> {
     this.checkReportAccess(user, 'vendor-performance');
-    const { page = 1, limit = 10, search, dateFrom, dateTo, vendorId } = query;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy,
+      sortOrder = 'asc',
+      search,
+      dateFrom,
+      dateTo,
+      vendorId,
+    } = query;
 
     const vendorWhere: Prisma.VendorWhereInput = { isDeleted: false };
     if (vendorId) vendorWhere.id = vendorId;
@@ -540,6 +601,29 @@ export class ReportsService {
       };
     });
 
+    const allowedSortFields = [
+      'vendorCode',
+      'vendorName',
+      'totalCostItems',
+      'totalPredictedAmount',
+      'totalActualAmount',
+      'totalVariance',
+      'variancePercentage',
+    ];
+    const cleanSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'vendorCode';
+    const isAsc = sortOrder.toLowerCase() === 'asc';
+
+    allReportItems.sort((a: any, b: any) => {
+      const valA = a[cleanSortBy];
+      const valB = b[cleanSortBy];
+      if (valA === null || valA === undefined) return isAsc ? 1 : -1;
+      if (valB === null || valB === undefined) return isAsc ? -1 : 1;
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return isAsc ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
+    });
+
     const total = allReportItems.length;
     const paginatedItems = allReportItems.slice((page - 1) * limit, page * limit);
 
@@ -562,7 +646,7 @@ export class ReportsService {
     query: ReportQueryDto,
   ): Promise<ReportResponse<ProductCatalogReportItem>> {
     this.checkReportAccess(user, 'product-catalog');
-    const { page = 1, limit = 10, search, status } = query;
+    const { page = 1, limit = 10, search, status, sortBy, sortOrder = 'asc' } = query;
 
     const where: Prisma.ProductWhereInput = { isDeleted: false };
     if (status) where.status = status as any;
@@ -573,11 +657,75 @@ export class ReportsService {
       ];
     }
 
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
+    const allowedSortFields = [
+      'productCode',
+      'productName',
+      'drawingNumber',
+      'revision',
+      'status',
+      'createdAt',
+      'materialCount',
+      'processCount',
+      'activeIndentCount',
+    ];
+    const cleanSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'productCode';
+    const isDirectDbSort = [
+      'productCode',
+      'productName',
+      'drawingNumber',
+      'revision',
+      'status',
+      'createdAt',
+    ].includes(cleanSortBy);
+
+    if (isDirectDbSort) {
+      const [products, total] = await Promise.all([
+        this.prisma.product.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          include: {
+            productMaterials: { where: { isDeleted: false } },
+            manufacturingProcesses: { where: { isDeleted: false } },
+            indents: {
+              where: {
+                isDeleted: false,
+                status: {
+                  notIn: ['COMPLETED', 'CANCELLED', 'REJECTED'] as any,
+                },
+              },
+            },
+          },
+          orderBy: { [cleanSortBy]: sortOrder.toLowerCase() as any },
+        }),
+        this.prisma.product.count({ where }),
+      ]);
+
+      const data = products.map((p: any) => ({
+        id: p.id,
+        productCode: p.productCode,
+        productName: p.productName,
+        drawingNumber: p.drawingNumber,
+        revision: p.revision,
+        status: p.status,
+        materialCount: p.productMaterials.length,
+        processCount: p.manufacturingProcesses.length,
+        activeIndentCount: p.indents.length,
+        createdAt: p.createdAt,
+      }));
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } else {
+      const products = await this.prisma.product.findMany({
         where,
-        skip: (page - 1) * limit,
-        take: limit,
         include: {
           productMaterials: { where: { isDeleted: false } },
           manufacturingProcesses: { where: { isDeleted: false } },
@@ -590,33 +738,41 @@ export class ReportsService {
             },
           },
         },
-        orderBy: { productCode: 'asc' },
-      }),
-      this.prisma.product.count({ where }),
-    ]);
+      });
 
-    const data: ProductCatalogReportItem[] = products.map((p: any) => ({
-      id: p.id,
-      productCode: p.productCode,
-      productName: p.productName,
-      drawingNumber: p.drawingNumber,
-      revision: p.revision,
-      status: p.status,
-      materialCount: p.productMaterials.length,
-      processCount: p.manufacturingProcesses.length,
-      activeIndentCount: p.indents.length,
-      createdAt: p.createdAt,
-    }));
+      const mapped = products.map((p: any) => ({
+        id: p.id,
+        productCode: p.productCode,
+        productName: p.productName,
+        drawingNumber: p.drawingNumber,
+        revision: p.revision,
+        status: p.status,
+        materialCount: p.productMaterials.length,
+        processCount: p.manufacturingProcesses.length,
+        activeIndentCount: p.indents.length,
+        createdAt: p.createdAt,
+      }));
 
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+      const isAsc = sortOrder.toLowerCase() === 'asc';
+      mapped.sort((a: any, b: any) => {
+        const valA = a[cleanSortBy];
+        const valB = b[cleanSortBy];
+        return isAsc ? valA - valB : valB - valA;
+      });
+
+      const total = mapped.length;
+      const data = mapped.slice((page - 1) * limit, page * limit);
+
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    }
   }
 
   /**
@@ -627,7 +783,7 @@ export class ReportsService {
     query: ReportQueryDto,
   ): Promise<ReportResponse<WorkflowBottleneckReportItem>> {
     this.checkReportAccess(user, 'workflow-bottleneck');
-    const { page = 1, limit = 10, search, dateFrom, dateTo } = query;
+    const { page = 1, limit = 10, sortBy, sortOrder = 'asc', search, dateFrom, dateTo } = query;
 
     const [stages, indents] = await Promise.all([
       this.prisma.workflowStage.findMany({
@@ -724,6 +880,27 @@ export class ReportsService {
         maxDurationHours: Math.round(maxDuration * 100) / 100,
         activeTransactionsCount: stats.activeCount,
       };
+    });
+
+    const allowedSortFields = [
+      'stageName',
+      'totalTransactionsPassed',
+      'averageDurationHours',
+      'maxDurationHours',
+      'activeTransactionsCount',
+    ];
+    const cleanSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'stageName';
+    const isAsc = sortOrder.toLowerCase() === 'asc';
+
+    allReportItems.sort((a: any, b: any) => {
+      const valA = a[cleanSortBy];
+      const valB = b[cleanSortBy];
+      if (valA === null || valA === undefined) return isAsc ? 1 : -1;
+      if (valB === null || valB === undefined) return isAsc ? -1 : 1;
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      return isAsc ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
     });
 
     const total = allReportItems.length;

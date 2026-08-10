@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Printer, Download, Search, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
@@ -75,21 +76,67 @@ export const ReportDetailPage: React.FC = () => {
     }
   }, [config.id, userDept, isAdmin, isManager]);
 
-  // Parameters State
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [sortBy, setSortBy] = useState<string | undefined>(config.sortBy);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  // Parameters State (Derived from URL parameters for bookmarkable URL state synchronization)
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Specific filters
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [productId, setProductId] = useState('');
-  const [departmentId, setDepartmentId] = useState('');
-  const [vendorId, setVendorId] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  // Local search text input state to ensure immediate UI responsiveness
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
+
+  // Derived filters from URL search params
+  const page = Number(searchParams.get('page') || '1');
+  const limit = Number(searchParams.get('limit') || '10');
+  const search = searchParams.get('search') || '';
+  const sortBy = searchParams.get('sortBy') || config.sortBy;
+  const sortOrder = (searchParams.get('sortOrder') || 'asc') as 'asc' | 'desc';
+  const dateFrom = searchParams.get('dateFrom') || '';
+  const dateTo = searchParams.get('dateTo') || '';
+  const productId = searchParams.get('productId') || '';
+  const departmentId = searchParams.get('departmentId') || '';
+  const vendorId = searchParams.get('vendorId') || '';
+  const statusFilter = searchParams.get('status') || '';
+  const processCode = searchParams.get('processCode') || '';
+
+  // Synchronize debounced search to URL
+  const debouncedSearch = useDebouncedValue(searchInput, 400);
+
+  useEffect(() => {
+    const currentUrlSearch = searchParams.get('search') || '';
+    if (debouncedSearch !== currentUrlSearch) {
+      updateParam('search', debouncedSearch || undefined, true);
+    }
+  }, [debouncedSearch]);
+
+  // Synchronize local input state if URL changes (e.g. forward/back buttons)
+  useEffect(() => {
+    const currentUrlSearch = searchParams.get('search') || '';
+    if (searchInput !== currentUrlSearch) {
+      setSearchInput(currentUrlSearch);
+    }
+  }, [searchParams]);
+
+  // Safe helper to update single URL search parameters and reset page to 1
+  const updateParam = (key: string, value: string | undefined, resetPage = true) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) {
+        next.set(key, value);
+      } else {
+        next.delete(key);
+      }
+      if (resetPage) {
+        next.set('page', '1');
+      }
+      return next;
+    });
+  };
+
+  const setPage = (newPage: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('page', String(newPage));
+      return next;
+    });
+  };
 
   // Fetch dropdown lists
   const { data: productsData } = useProducts({ limit: 100 });
@@ -135,6 +182,7 @@ export const ReportDetailPage: React.FC = () => {
       departmentId: departmentId || undefined,
       vendorId: vendorId || undefined,
       status: statusFilter || undefined,
+      processCode: processCode || undefined,
     };
   }, [
     page,
@@ -148,6 +196,7 @@ export const ReportDetailPage: React.FC = () => {
     departmentId,
     vendorId,
     statusFilter,
+    processCode,
   ]);
 
   // Hook mappings
@@ -237,31 +286,39 @@ export const ReportDetailPage: React.FC = () => {
     );
   }
 
-  // Handle search submit
+  // Handle search submit immediately
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearch(searchInput);
-    setPage(1);
+    updateParam('search', searchInput || undefined, true);
   };
 
-  // Handle sorting
+  // Handle sorting URL state update
   const handleSort = (columnKey: string) => {
-    if (sortBy === columnKey) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(columnKey);
-      setSortOrder('asc');
-    }
-    setPage(1);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      const currentSortBy = next.get('sortBy') || config.sortBy;
+      const currentSortOrder = next.get('sortOrder') || 'asc';
+      if (currentSortBy === columnKey) {
+        next.set('sortOrder', currentSortOrder === 'asc' ? 'desc' : 'asc');
+      } else {
+        next.set('sortBy', columnKey);
+        next.set('sortOrder', 'asc');
+      }
+      next.set('page', '1');
+      return next;
+    });
   };
 
   // Convert registry columns to Table.tsx Column interface
-  const tableColumns = config.columns.map((col: any, idx: number) => ({
-    key: typeof col.accessor === 'string' ? col.accessor : `col-${idx}`,
-    header: col.header,
-    sortable: typeof col.accessor === 'string',
-    render: typeof col.accessor === 'function' ? col.accessor : undefined,
-  }));
+  const tableColumns = config.columns.map((col: any, idx: number) => {
+    const key = col.sortKey || (typeof col.accessor === 'string' ? col.accessor : `col-${idx}`);
+    return {
+      key,
+      header: col.header,
+      sortable: !!(col.sortKey || typeof col.accessor === 'string'),
+      render: typeof col.accessor === 'function' ? col.accessor : undefined,
+    };
+  });
 
   const handleExportClick = (type: string) => {
     alert(
@@ -271,14 +328,7 @@ export const ReportDetailPage: React.FC = () => {
 
   const handleResetFilters = () => {
     setSearchInput('');
-    setSearch('');
-    setDateFrom('');
-    setDateTo('');
-    setProductId('');
-    setDepartmentId('');
-    setVendorId('');
-    setStatusFilter('');
-    setPage(1);
+    setSearchParams(new URLSearchParams());
   };
 
   return (
@@ -347,8 +397,7 @@ export const ReportDetailPage: React.FC = () => {
                   type="date"
                   value={dateFrom}
                   onChange={(e) => {
-                    setDateFrom(e.target.value);
-                    setPage(1);
+                    updateParam('dateFrom', e.target.value || undefined);
                   }}
                 />
                 <Input
@@ -356,8 +405,7 @@ export const ReportDetailPage: React.FC = () => {
                   type="date"
                   value={dateTo}
                   onChange={(e) => {
-                    setDateTo(e.target.value);
-                    setPage(1);
+                    updateParam('dateTo', e.target.value || undefined);
                   }}
                 />
               </>
@@ -382,11 +430,8 @@ export const ReportDetailPage: React.FC = () => {
                       : statusFilter;
 
               const onChange = (val: string) => {
-                if (f.field === 'productId') setProductId(val);
-                else if (f.field === 'departmentId') setDepartmentId(val);
-                else if (f.field === 'vendorId') setVendorId(val);
-                else setStatusFilter(val);
-                setPage(1);
+                const paramKey = f.field === 'status' ? 'status' : f.field;
+                updateParam(paramKey, val || undefined);
               };
 
               return (
@@ -403,15 +448,15 @@ export const ReportDetailPage: React.FC = () => {
             {/* Text Field Filters */}
             {config.filters.map((f) => {
               if (f.type !== 'text') return null;
+              const value = f.field === 'processCode' ? processCode : '';
               return (
                 <Input
                   key={f.field}
                   label={f.name}
                   placeholder={f.placeholder}
-                  value={f.field === 'processCode' ? statusFilter : ''}
+                  value={value}
                   onChange={(e) => {
-                    if (f.field === 'processCode') setStatusFilter(e.target.value);
-                    setPage(1);
+                    updateParam(f.field, e.target.value || undefined);
                   }}
                 />
               );

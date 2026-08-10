@@ -2,6 +2,7 @@ export interface ReportColumn<T = any> {
   header: string;
   accessor: keyof T | ((row: T) => React.ReactNode);
   align?: 'left' | 'center' | 'right';
+  sortKey?: string;
 }
 
 export interface ReportFilter {
@@ -83,12 +84,18 @@ export const REPORTS_REGISTRY: Record<string, ReportConfig> = {
       {
         header: 'Required Date',
         accessor: (row) => new Date(row.requiredDate).toLocaleDateString(),
+        sortKey: 'requiredDate',
       },
-      { header: 'Created At', accessor: (row) => new Date(row.createdAt).toLocaleDateString() },
+      {
+        header: 'Created At',
+        accessor: (row) => new Date(row.createdAt).toLocaleDateString(),
+        sortKey: 'createdAt',
+      },
       {
         header: 'Delivery Date',
         accessor: (row) =>
           row.receivedDate ? new Date(row.receivedDate).toLocaleDateString() : '-',
+        sortKey: 'receivedDate',
       },
     ],
   },
@@ -221,25 +228,33 @@ export const REPORTS_REGISTRY: Record<string, ReportConfig> = {
         header: 'Planned Total ($)',
         accessor: (row) => Number(row.predictedTotal).toFixed(2),
         align: 'right',
+        sortKey: 'predictedTotal',
       },
       {
         header: 'Actual Total ($)',
         accessor: (row) => (row.actualTotal !== null ? Number(row.actualTotal).toFixed(2) : '-'),
         align: 'right',
+        sortKey: 'actualTotal',
       },
       {
         header: 'Variance ($)',
         accessor: (row) =>
           row.varianceAmount !== null ? Number(row.varianceAmount).toFixed(2) : '-',
         align: 'right',
+        sortKey: 'varianceAmount',
       },
       {
         header: 'Variance %',
         accessor: (row) => (row.variancePercentage !== null ? `${row.variancePercentage}%` : '-'),
         align: 'right',
+        sortKey: 'variancePercentage',
       },
       { header: 'Status', accessor: 'status' },
-      { header: 'Created At', accessor: (row) => new Date(row.createdAt).toLocaleDateString() },
+      {
+        header: 'Created At',
+        accessor: (row) => new Date(row.createdAt).toLocaleDateString(),
+        sortKey: 'createdAt',
+      },
     ],
   },
   'material-breakdown': {
@@ -277,23 +292,27 @@ export const REPORTS_REGISTRY: Record<string, ReportConfig> = {
         header: 'Total Act. Qty',
         accessor: (row) => (row.totalActualQty !== null ? row.totalActualQty : '-'),
         align: 'right',
+        sortKey: 'totalActualQty',
       },
       {
         header: 'Est. Amount ($)',
         accessor: (row) => Number(row.totalPredictedAmount).toFixed(2),
         align: 'right',
+        sortKey: 'totalPredictedAmount',
       },
       {
         header: 'Act. Amount ($)',
         accessor: (row) =>
           row.totalActualAmount !== null ? Number(row.totalActualAmount).toFixed(2) : '-',
         align: 'right',
+        sortKey: 'totalActualAmount',
       },
       {
         header: 'Variance ($)',
         accessor: (row) =>
           row.varianceAmount !== null ? Number(row.varianceAmount).toFixed(2) : '-',
         align: 'right',
+        sortKey: 'varianceAmount',
       },
     ],
   },
@@ -365,24 +384,28 @@ export const REPORTS_REGISTRY: Record<string, ReportConfig> = {
         header: 'Predicted Total ($)',
         accessor: (row) => Number(row.totalPredictedAmount).toFixed(2),
         align: 'right',
+        sortKey: 'totalPredictedAmount',
       },
       {
         header: 'Actual Total ($)',
         accessor: (row) =>
           row.totalActualAmount !== null ? Number(row.totalActualAmount).toFixed(2) : '-',
         align: 'right',
+        sortKey: 'totalActualAmount',
       },
       {
         header: 'Variance ($)',
         accessor: (row) =>
           row.totalVariance !== null ? Number(row.totalVariance).toFixed(2) : '-',
         align: 'right',
+        sortKey: 'totalVariance',
       },
       {
         header: 'Variance %',
         accessor: (row) =>
           row.variancePercentage !== null ? `${Number(row.variancePercentage).toFixed(2)}%` : '-',
         align: 'right',
+        sortKey: 'variancePercentage',
       },
     ],
   },
@@ -410,13 +433,21 @@ export const REPORTS_REGISTRY: Record<string, ReportConfig> = {
     columns: [
       { header: 'Product Code', accessor: 'productCode' },
       { header: 'Product Name', accessor: 'productName' },
-      { header: 'Drawing Number', accessor: (row) => row.drawingNumber || '-' },
-      { header: 'Revision', accessor: (row) => row.revision || '-' },
+      {
+        header: 'Drawing Number',
+        accessor: (row) => row.drawingNumber || '-',
+        sortKey: 'drawingNumber',
+      },
+      { header: 'Revision', accessor: (row) => row.revision || '-', sortKey: 'revision' },
       { header: 'Status', accessor: 'status' },
       { header: 'Materials Mapped', accessor: 'materialCount', align: 'center' },
       { header: 'Processes Mapped', accessor: 'processCount', align: 'center' },
       { header: 'Active Indents', accessor: 'activeIndentCount', align: 'center' },
-      { header: 'Created At', accessor: (row) => new Date(row.createdAt).toLocaleDateString() },
+      {
+        header: 'Created At',
+        accessor: (row) => new Date(row.createdAt).toLocaleDateString(),
+        sortKey: 'createdAt',
+      },
     ],
   },
   'workflow-bottleneck': {
