@@ -220,6 +220,12 @@ const NestedProcessArray: React.FC<{
   processesList,
   itemTotal,
 }) => {
+  const user = useAuthStore((s) => s.user);
+  const canViewCostSheet = !!(
+    user?.permissions?.includes('costsheet.view') ||
+    user?.permissions?.includes('settings.manage')
+  );
+
   const { fields, append, remove } = useFieldArray({
     control,
     name: `indent.items.${itemIndex}.processes`,
@@ -266,7 +272,12 @@ const NestedProcessArray: React.FC<{
           let plannedCol = 'md:col-span-2';
           let actualCol = 'md:col-span-1';
 
-          if (showActual) {
+          if (!canViewCostSheet) {
+            processCol = 'md:col-span-4';
+            sourceCol = 'md:col-span-3';
+            prodSourceCol = 'md:col-span-3';
+            hoursCol = 'md:col-span-2';
+          } else if (showActual) {
             processCol = 'md:col-span-2';
             sourceCol = 'md:col-span-2';
             prodSourceCol = 'md:col-span-2';
@@ -359,21 +370,23 @@ const NestedProcessArray: React.FC<{
                   }
                 />
               </div>
-              <div className={plannedCol}>
-                <Input
-                  label="Planned Cost (₹)"
-                  type="number"
-                  step="0.01"
-                  disabled={isReadOnly || isProductionMode}
-                  {...register(`indent.items.${itemIndex}.processes.${pIndex}.predictedCost`, {
-                    valueAsNumber: true,
-                  })}
-                  error={
-                    errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.predictedCost?.message
-                  }
-                />
-              </div>
-              {showActual && (
+              {canViewCostSheet && (
+                <div className={plannedCol}>
+                  <Input
+                    label="Planned Cost (₹)"
+                    type="number"
+                    step="0.01"
+                    disabled={isReadOnly || isProductionMode}
+                    {...register(`indent.items.${itemIndex}.processes.${pIndex}.predictedCost`, {
+                      valueAsNumber: true,
+                    })}
+                    error={
+                      errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.predictedCost?.message
+                    }
+                  />
+                </div>
+              )}
+              {canViewCostSheet && showActual && (
                 <div className={actualCol}>
                   <Input
                     label="Actual Cost (₹)"
@@ -397,30 +410,31 @@ const NestedProcessArray: React.FC<{
           );
         })}
       </div>
-
-      <div className="mt-4 flex justify-end border-t border-border-default pt-3">
-        <div className="text-right">
-          <p className="text-xs text-text-secondary uppercase">
-            Total Cost for this Product (Material + Process)
-          </p>
-          <p className="text-lg font-bold text-accent-primary">
-            ₹
-            {(itemTotal?.predicted || 0).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </p>
-          {(isAccountsMode || itemTotal?.actual > 0) && (
-            <p className="text-sm font-bold text-status-success mt-1">
-              Actual: ₹
-              {(itemTotal?.actual || 0).toLocaleString(undefined, {
+      {canViewCostSheet && (
+        <div className="mt-4 flex justify-end border-t border-border-default pt-3">
+          <div className="text-right">
+            <p className="text-xs text-text-secondary uppercase">
+              Total Cost for this Product (Material + Process)
+            </p>
+            <p className="text-lg font-bold text-accent-primary">
+              ₹
+              {(itemTotal?.predicted || 0).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </p>
-          )}
+            {(isAccountsMode || itemTotal?.actual > 0) && (
+              <p className="text-sm font-bold text-status-success mt-1">
+                Actual: ₹
+                {(itemTotal?.actual || 0).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -434,6 +448,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   isProductionMode,
 }) => {
   const user = useAuthStore((s) => s.user);
+  const canViewCostSheet = !!(
+    user?.permissions?.includes('costsheet.view') ||
+    user?.permissions?.includes('settings.manage')
+  );
 
   const isReadOnly = React.useMemo(() => {
     if (isProductionMode) return false;
@@ -909,7 +927,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
               {/* Row 2: Qty, Unit, Est. Rate, Amount */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border-t border-border-default/50 pt-3">
                 <div className="md:col-span-1" />
-                <div className="md:col-span-2">
+                <div className={canViewCostSheet ? 'md:col-span-2' : 'md:col-span-3'}>
                   <Input
                     label="Quantity"
                     type="number"
@@ -926,7 +944,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     error={errors.indent?.items?.[index]?.quantity?.message}
                   />
                 </div>
-                <div className="md:col-span-2">
+                <div className={canViewCostSheet ? 'md:col-span-2' : 'md:col-span-3'}>
                   <Controller
                     control={control}
                     name={`indent.items.${index}.unitId`}
@@ -944,7 +962,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     )}
                   />
                 </div>
-                <div className="md:col-span-3">
+                <div className={canViewCostSheet ? 'md:col-span-3' : 'md:col-span-4'}>
                   <Input
                     label="Prod. Source"
                     placeholder="e.g. Supplier XYZ"
@@ -952,58 +970,62 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     {...register(`indent.items.${index}.productionSource`)}
                   />
                 </div>
-                <div className={isAccountsMode ? 'md:col-span-2' : 'md:col-span-3'}>
-                  <Input
-                    label="Est. Rate (₹)"
-                    type="number"
-                    step="0.01"
-                    disabled={isReadOnly && !isProductionMode}
-                    {...register(`costSheet.costItems.${index}.predictedRate`, {
-                      valueAsNumber: true,
-                      onChange: (e) => {
-                        const rate = parseFloat(e.target.value) || 0;
-                        const qty = watchedItems?.[index]?.quantity || 0;
-                        setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
-                      },
-                    })}
-                    error={errors.costSheet?.costItems?.[index]?.predictedRate?.message}
-                  />
-                </div>
-                <div className={isAccountsMode ? 'md:col-span-2' : 'md:col-span-3'}>
-                  <Input
-                    label="Material Cost (₹)"
-                    type="number"
-                    disabled={true}
-                    {...register(`costSheet.costItems.${index}.predictedAmount`)}
-                  />
-                </div>
-                {(isAccountsMode || watchedCostItems?.[index]?.actualRate !== undefined) && (
-                  <div className="md:col-span-2">
-                    <Input
-                      label="Actual Rate (₹)"
-                      type="number"
-                      step="0.01"
-                      disabled={!isAccountsMode}
-                      {...register(`costSheet.costItems.${index}.actualRate`, {
-                        valueAsNumber: true,
-                        onChange: (e) => {
-                          const rate = parseFloat(e.target.value) || 0;
-                          const qty = watchedItems?.[index]?.quantity || 0;
-                          setValue(`costSheet.costItems.${index}.actualAmount`, rate * qty);
-                        },
-                      })}
-                    />
-                  </div>
-                )}
-                {(isAccountsMode || watchedCostItems?.[index]?.actualAmount !== undefined) && (
-                  <div className="md:col-span-2">
-                    <Input
-                      label="Actual Mat. Cost (₹)"
-                      type="number"
-                      disabled
-                      {...register(`costSheet.costItems.${index}.actualAmount`)}
-                    />
-                  </div>
+                {canViewCostSheet && (
+                  <>
+                    <div className={isAccountsMode ? 'md:col-span-2' : 'md:col-span-3'}>
+                      <Input
+                        label="Est. Rate (₹)"
+                        type="number"
+                        step="0.01"
+                        disabled={isReadOnly && !isProductionMode}
+                        {...register(`costSheet.costItems.${index}.predictedRate`, {
+                          valueAsNumber: true,
+                          onChange: (e) => {
+                            const rate = parseFloat(e.target.value) || 0;
+                            const qty = watchedItems?.[index]?.quantity || 0;
+                            setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
+                          },
+                        })}
+                        error={errors.costSheet?.costItems?.[index]?.predictedRate?.message}
+                      />
+                    </div>
+                    <div className={isAccountsMode ? 'md:col-span-2' : 'md:col-span-3'}>
+                      <Input
+                        label="Material Cost (₹)"
+                        type="number"
+                        disabled={true}
+                        {...register(`costSheet.costItems.${index}.predictedAmount`)}
+                      />
+                    </div>
+                    {(isAccountsMode || watchedCostItems?.[index]?.actualRate !== undefined) && (
+                      <div className="md:col-span-2">
+                        <Input
+                          label="Actual Rate (₹)"
+                          type="number"
+                          step="0.01"
+                          disabled={!isAccountsMode}
+                          {...register(`costSheet.costItems.${index}.actualRate`, {
+                            valueAsNumber: true,
+                            onChange: (e) => {
+                              const rate = parseFloat(e.target.value) || 0;
+                              const qty = watchedItems?.[index]?.quantity || 0;
+                              setValue(`costSheet.costItems.${index}.actualAmount`, rate * qty);
+                            },
+                          })}
+                        />
+                      </div>
+                    )}
+                    {(isAccountsMode || watchedCostItems?.[index]?.actualAmount !== undefined) && (
+                      <div className="md:col-span-2">
+                        <Input
+                          label="Actual Mat. Cost (₹)"
+                          type="number"
+                          disabled
+                          {...register(`costSheet.costItems.${index}.actualAmount`)}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
                 <div className="md:col-span-1" />
               </div>
@@ -1026,108 +1048,110 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       </div>
 
       {/* Global Cost Form section */}
-      <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
-        <h3 className="text-sm font-bold text-text-primary mb-4">
-          Global Costs (Design & Overhead)
-        </h3>
+      {canViewCostSheet && (
+        <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
+          <h3 className="text-sm font-bold text-text-primary mb-4">
+            Global Costs (Design & Overhead)
+          </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="p-4 bg-background-primary border border-border-default rounded-lg text-center">
-            <p className="text-xs text-text-secondary uppercase">Total Material Cost</p>
-            <p className="text-xl font-bold text-text-primary">
-              ₹
-              {totalMaterialCost.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </p>
-          </div>
-          <div className="p-4 bg-background-primary border border-border-default rounded-lg text-center">
-            <p className="text-xs text-text-secondary uppercase">Total Process Cost</p>
-            <p className="text-xl font-bold text-text-primary">
-              ₹
-              {totalProcessCost.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <div className="md:col-span-2">
-            <Input
-              label="Design Cost (₹)"
-              type="number"
-              step="0.01"
-              disabled={isReadOnly}
-              {...register('costSheet.designCost', { valueAsNumber: true })}
-              error={errors.costSheet?.designCost?.message}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <Input
-              label="Overhead Cost (₹)"
-              type="number"
-              step="0.01"
-              disabled={isReadOnly}
-              {...register('costSheet.overheadCost', { valueAsNumber: true })}
-              error={errors.costSheet?.overheadCost?.message}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <Input
-              label="Contingency Cost (₹)"
-              type="number"
-              step="0.01"
-              disabled={isReadOnly}
-              {...register('costSheet.contingencyCost', { valueAsNumber: true })}
-              error={errors.costSheet?.contingencyCost?.message}
-            />
-          </div>
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-border-default pt-6">
-          <div className="text-right md:text-left">
-            <p className="text-sm text-text-secondary">Subtotal (Material + Process)</p>
-            <p className="text-xl font-bold text-text-primary">
-              ₹
-              {subTotal.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </p>
-            {(isAccountsMode || actualSubTotal > 0) && (
-              <p className="text-sm font-bold text-status-success mt-1">
-                Actual: ₹
-                {actualSubTotal.toLocaleString(undefined, {
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="p-4 bg-background-primary border border-border-default rounded-lg text-center">
+              <p className="text-xs text-text-secondary uppercase">Total Material Cost</p>
+              <p className="text-xl font-bold text-text-primary">
+                ₹
+                {totalMaterialCost.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </p>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-text-secondary">Grand Total (Material + Process + Global)</p>
-            <p className="text-2xl font-bold text-accent-primary">
-              ₹
-              {grandTotal.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </p>
-            {(isAccountsMode || actualGrandTotal > 0) && (
-              <p className="text-lg font-bold text-status-success mt-1">
-                Actual: ₹
-                {actualGrandTotal.toLocaleString(undefined, {
+            </div>
+            <div className="p-4 bg-background-primary border border-border-default rounded-lg text-center">
+              <p className="text-xs text-text-secondary uppercase">Total Process Cost</p>
+              <p className="text-xl font-bold text-text-primary">
+                ₹
+                {totalProcessCost.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </p>
-            )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <div className="md:col-span-2">
+              <Input
+                label="Design Cost (₹)"
+                type="number"
+                step="0.01"
+                disabled={isReadOnly}
+                {...register('costSheet.designCost', { valueAsNumber: true })}
+                error={errors.costSheet?.designCost?.message}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Input
+                label="Overhead Cost (₹)"
+                type="number"
+                step="0.01"
+                disabled={isReadOnly}
+                {...register('costSheet.overheadCost', { valueAsNumber: true })}
+                error={errors.costSheet?.overheadCost?.message}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Input
+                label="Contingency Cost (₹)"
+                type="number"
+                step="0.01"
+                disabled={isReadOnly}
+                {...register('costSheet.contingencyCost', { valueAsNumber: true })}
+                error={errors.costSheet?.contingencyCost?.message}
+              />
+            </div>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-border-default pt-6">
+            <div className="text-right md:text-left">
+              <p className="text-sm text-text-secondary">Subtotal (Material + Process)</p>
+              <p className="text-xl font-bold text-text-primary">
+                ₹
+                {subTotal.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              {(isAccountsMode || actualSubTotal > 0) && (
+                <p className="text-sm font-bold text-status-success mt-1">
+                  Actual: ₹
+                  {actualSubTotal.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-text-secondary">Grand Total (Material + Process + Global)</p>
+              <p className="text-2xl font-bold text-accent-primary">
+                ₹
+                {grandTotal.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              {(isAccountsMode || actualGrandTotal > 0) && (
+                <p className="text-lg font-bold text-status-success mt-1">
+                  Actual: ₹
+                  {actualGrandTotal.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {(!isReadOnly || isAccountsMode || isProductionMode) && (
         <div className="flex justify-end gap-3 pt-6">

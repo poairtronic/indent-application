@@ -266,8 +266,6 @@ async function main() {
 
     'Senior Manager': [
       permMap['workflow.view'],
-      permMap['workflow.approve'],
-      permMap['workflow.reject'],
       permMap['indent.view'],
       permMap['reports.view'],
       permMap['reports.export'],
@@ -278,8 +276,6 @@ async function main() {
 
     'General Manager': [
       permMap['workflow.view'],
-      permMap['workflow.approve'],
-      permMap['workflow.reject'],
       permMap['indent.view'],
       permMap['reports.view'],
       permMap['reports.export'],

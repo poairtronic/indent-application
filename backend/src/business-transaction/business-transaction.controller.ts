@@ -24,8 +24,10 @@ import {
 import { StoresIssueDto } from './dto/stores-issue.dto';
 import { ProductionUpdateDto, CustomerDeliveryDto } from './dto/production-update.dto';
 import { ActualCostEntryDto, FinancialClosureDto } from './dto/actual-cost-entry.dto';
+import { CostSheetVisibilityInterceptor } from './interceptors/cost-sheet-visibility.interceptor';
 
 @Controller('business-transactions')
+@UseInterceptors(CostSheetVisibilityInterceptor)
 export class BusinessTransactionController {
   constructor(private readonly businessTransactionService: BusinessTransactionService) {}
 

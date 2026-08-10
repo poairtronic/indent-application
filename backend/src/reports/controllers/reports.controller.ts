@@ -83,9 +83,9 @@ export class ReportsController {
   @Get('production/process-yield/export')
   @Permissions('reports.view')
   async exportProcessYield(@Res() res: Response) {
-    return res.status(400).json({
+    return res.status(501).json({
       message:
-        'Yield data unavailable — required process input/output tracking fields are not stored in the database.',
+        'Process Yield export is not available in IMCMS V1.0. Yield input/output tracking (IoT integration) is scheduled for a future release.',
     });
   }
 
@@ -98,9 +98,9 @@ export class ReportsController {
   @Get('production/machine-utilization/export')
   @Permissions('reports.view')
   async exportMachineUtilization(@Res() res: Response) {
-    return res.status(400).json({
+    return res.status(501).json({
       message:
-        'Machine utilization data unavailable — required source tables (e.g. Machine, MachineLog, MachineOperatingTime) are not stored in the database.',
+        'Machine Utilization export is not available in IMCMS V1.0. Machine monitoring (IoT/telemetry integration) is scheduled for a future release.',
     });
   }
 
@@ -247,9 +247,9 @@ export class ReportsController {
   @Get('cost/department-budget/export')
   @Permissions('reports.view')
   async exportDepartmentBudgetUtilization(@Res() res: Response) {
-    return res.status(400).json({
+    return res.status(501).json({
       message:
-        'Department budget utilization data unavailable — required budget limit, forecast, and allocation records are not stored in the database.',
+        'Department Budget Utilization export is not available in IMCMS V1.0. Budget allocation and forecast records are scheduled for a future release.',
     });
   }
 

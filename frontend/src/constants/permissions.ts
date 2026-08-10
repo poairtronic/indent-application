@@ -48,8 +48,6 @@ export enum AppPermission {
   COSTSHEET_CREATE = 'costsheet.create',
   COSTSHEET_UPDATE = 'costsheet.update',
   WORKFLOW_VIEW = 'workflow.view',
-  WORKFLOW_APPROVE = 'workflow.approve',
-  WORKFLOW_REJECT = 'workflow.reject',
   STORES_ISSUE = 'stores.issue',
   PRODUCTION_VIEW = 'production.view',
   PRODUCTION_RECEIVE = 'production.receive',
@@ -99,8 +97,6 @@ export const MODULE_PERMISSIONS: Record<string, AppPermission[]> = {
   ],
   workflow: [
     AppPermission.WORKFLOW_VIEW,
-    AppPermission.WORKFLOW_APPROVE,
-    AppPermission.WORKFLOW_REJECT,
   ],
   production: [
     AppPermission.PRODUCTION_VIEW,
