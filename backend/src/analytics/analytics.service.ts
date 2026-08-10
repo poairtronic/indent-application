@@ -11,7 +11,6 @@ import { IndentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { KpiService } from './kpi.service';
 import { KpiQueryDto } from './dto/kpi-query.dto';
-import { WorkflowStateMapper } from '../business-transaction/mappers/workflow-state.mapper';
 import {
   IExecutiveSummary,
   ITransactionStatusBreakdown,
@@ -143,12 +142,10 @@ export class AnalyticsService {
 
     const [allIndents, completedIndents, total, stalledCount] = await Promise.all([
       // Fetch all non-deleted indents to compute domain-state-level distribution.
-      // This is necessary because multiple domain WorkflowStates map to the same
-      // Prisma IndentStatus (e.g. STORES_PROCESSING and MATERIALS_ISSUED both map
-      // to PENDING_STORES), so groupBy('status') would merge distinct workflow stages.
+      // Uses currentState column for direct domain WorkflowState grouping.
       this.prisma.indent.findMany({
         where: { isDeleted: false },
-        select: { status: true, remarks: true },
+        select: { currentState: true },
       }),
       // Completed indents with timestamps for cycle time calculation
       this.prisma.indent.findMany({
@@ -169,10 +166,10 @@ export class AnalyticsService {
       }),
     ]);
 
-    // Group by domain WorkflowState using the mapper (remarks-based disambiguation)
+    // Group by domain WorkflowState using currentState column directly
     const domainStateCounts = new Map<string, number>();
     for (const indent of allIndents) {
-      const domainState = WorkflowStateMapper.toDomain(indent.status, indent);
+      const domainState = indent.currentState || 'DRAFT';
       domainStateCounts.set(domainState, (domainStateCounts.get(domainState) ?? 0) + 1);
     }
 

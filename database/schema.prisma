@@ -500,6 +500,7 @@ model Indent {
   departmentId          String           @db.Uuid
   priority              Priority         @default(MEDIUM)
   status                IndentStatus     @default(DRAFT)
+  currentState          String?          @db.VarChar(50)  // Domain WorkflowState key (e.g. 'DRAFT', 'DESIGN_COMPLETED')
   currentStageId        String?          @db.Uuid
   requiredDate          DateTime         @db.Timestamptz(6)
   requiredDeliveryDate  DateTime?        @db.Timestamptz(6)
@@ -536,6 +537,7 @@ model Indent {
   @@index([departmentId])
   @@index([createdBy])
   @@index([status])
+  @@index([currentState])
   @@index([currentStageId])
   @@index([requiredDate])
   @@index([createdAt])

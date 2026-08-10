@@ -320,13 +320,8 @@ export class BusinessTransactionService {
   /**
    * List all Business Transactions with pagination and filters.
    *
-   * When a domain WorkflowState filter is provided, we must resolve the Prisma
-   * IndentStatus first (via WorkflowStateMapper.toPrisma). However, multiple
-   * domain states can map to the same Prisma status (e.g. STORES_PROCESSING
-   * and MATERIALS_ISSUED both → PENDING_STORES). In those ambiguous cases we
-   * fetch all indents matching the Prisma status, map each to its domain state
-   * using the remarks-based mapper, and post-filter to the exact requested state
-   * before paginating.
+   * Uses the currentState column for direct domain WorkflowState filtering,
+   * which is efficient and avoids the lossy Prisma IndentStatus mapping.
    */
   public async findAllTransactions(query: {
     page?: number;
@@ -352,76 +347,10 @@ export class BusinessTransactionService {
       ];
     }
 
-    // Check whether the requested domain state maps to an ambiguous Prisma status
-    // (i.e. more than one domain state shares the same Prisma IndentStatus).
+    // Use currentState column for direct domain WorkflowState filtering
     const requestedDomainState = query.state as WorkflowState | undefined;
-    let needsDomainPostFilter = false;
-
     if (requestedDomainState) {
-      const prismaStatus = WorkflowStateMapper.toPrisma(requestedDomainState);
-      where.status = prismaStatus;
-
-      // Count how many domain states share this Prisma status
-      const allDomainStates = Object.values(WorkflowState);
-      const sharingStates = allDomainStates.filter(
-        (s) => WorkflowStateMapper.toPrisma(s) === prismaStatus,
-      );
-      needsDomainPostFilter = sharingStates.length > 1;
-    }
-
-    if (needsDomainPostFilter && requestedDomainState) {
-      // Ambiguous Prisma status: fetch ALL matching indents (no pagination at DB level),
-      // map to domain state, post-filter, then paginate in memory.
-      const allMatching = await this.prisma.indent.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          product: { select: { productName: true, productCode: true } },
-          department: { select: { departmentName: true, departmentCode: true } },
-          creator: { select: { firstName: true, lastName: true } },
-          costSheet: { select: { predictedTotal: true, costNumber: true } },
-        },
-      });
-
-      // Map to domain state and filter
-      const filtered = allMatching.filter((indent) => {
-        const domainState = WorkflowStateMapper.toDomain(indent.status, indent);
-        return domainState === requestedDomainState;
-      });
-
-      const total = filtered.length;
-      const paged = filtered.slice(skip, skip + limit);
-
-      const data = paged.map((indent) => {
-        const domainState = WorkflowStateMapper.toDomain(indent.status, indent);
-        const stageDef = this.workflowStateMachine.getStageDefinition(domainState);
-        return {
-          id: indent.id,
-          indentNumber: indent.indentNumber,
-          costNumber: indent.costSheet?.costNumber,
-          productName: indent.product?.productName,
-          departmentName: indent.department?.departmentName,
-          priority: indent.priority,
-          currentState: domainState,
-          currentLoop: stageDef ? stageDef.loop : WorkflowLoop.MANUFACTURING_LOOP,
-          predictedTotal: indent.costSheet?.predictedTotal || 0,
-          creatorName: indent.creator
-            ? `${indent.creator.firstName} ${indent.creator.lastName}`
-            : 'N/A',
-          createdAt: indent.createdAt,
-          requiredDate: indent.requiredDate,
-        };
-      });
-
-      return {
-        data,
-        meta: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit),
-        },
-      };
+      where.currentState = requestedDomainState;
     }
 
     // Unambiguous or no state filter: use standard DB pagination
@@ -561,6 +490,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           updatedBy: userId,
           remarks: remarks ? `${txData.remarks || ''}\nSubmit Notes: ${remarks}` : txData.remarks,
         },
@@ -634,6 +564,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           remarks: `${txData.remarks || ''}\n${verificationRemarks}`,
           updatedBy: userId,
         },
@@ -697,6 +628,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           remarks: updatedRemarks,
           updatedBy: userId,
         },
@@ -765,7 +697,7 @@ export class BusinessTransactionService {
         const prismaStatus = WorkflowStateMapper.toPrisma(WorkflowState.STORES_PROCESSING);
         await this.prisma.indent.update({
           where: { id },
-          data: { status: prismaStatus, updatedBy: userId },
+          data: { status: prismaStatus, currentState: WorkflowState.STORES_PROCESSING, updatedBy: userId },
         });
       }
     }
@@ -800,6 +732,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           updatedBy: userId,
         },
       }),
@@ -935,6 +868,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           remarks: `${txData.remarks || ''}\n[PRODUCTION_COMPLETED] Manufacturing completed. ${remarks ? `Notes: ${remarks}` : ''}`,
           updatedBy: userId,
         },
@@ -993,6 +927,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           requiredDeliveryDate: new Date(dto.deliveryDate),
           updatedBy: userId,
           remarks: `${txData.remarks || ''}\nCustomer Delivery Notes: ${dto.deliveryNotes || 'Delivered'} (Ref: ${dto.customerReceiptReference || 'N/A'})`,
@@ -1055,6 +990,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           updatedBy: userId,
           remarks: remarks
             ? `${txData.remarks || ''}\nAccounts Verification Notes: ${remarks}`
@@ -1239,6 +1175,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           remarks: updatedRemarks,
           updatedBy: userId,
         },
@@ -1378,6 +1315,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           updatedBy: userId,
           remarks: dto.closureNotes
             ? `${txData.remarks || ''}\nFinancial Closure Notes: ${dto.closureNotes}`
@@ -1437,6 +1375,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           isLocked: true, // Lock record against edits
           updatedBy: userId,
         },
@@ -1486,6 +1425,7 @@ export class BusinessTransactionService {
         where: { id },
         data: {
           status: prismaTargetStatus,
+          currentState: targetState,
           isLocked: true,
           updatedBy: userId,
         },

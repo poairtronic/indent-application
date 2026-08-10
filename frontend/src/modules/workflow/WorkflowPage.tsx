@@ -57,19 +57,11 @@ export const WorkflowPage: React.FC = () => {
 
   const activeIndents = indentsData?.items ?? [];
 
-  // Map stage distribution to quick count lookup
+  // Map stage distribution to quick count lookup (stageName is domain WorkflowState key)
   const stageCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     analytics?.stageDistribution.forEach((dist) => {
-      // Find matching workflow state key by checking label
-      const stateKey = Object.keys(WORKFLOW_STAGES).find(
-        (key) => WORKFLOW_STAGES[key as WorkflowState].label === dist.stageName,
-      );
-      if (stateKey) {
-        counts[stateKey] = dist.count;
-      } else {
-        counts[dist.stageName] = dist.count;
-      }
+      counts[dist.stageName] = dist.count;
     });
     return counts;
   }, [analytics]);

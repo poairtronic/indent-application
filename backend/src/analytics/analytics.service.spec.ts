@@ -96,27 +96,47 @@ describe('AnalyticsService', () => {
 
   describe('getWorkflowAnalytics()', () => {
     beforeEach(() => {
-      mockPrisma.indent.groupBy.mockResolvedValue([
-        { status: 'DRAFT', _count: { id: 4 } },
-        { status: 'SUBMITTED', _count: { id: 6 } },
-        { status: 'COMPLETED', _count: { id: 10 } },
-      ]);
-      mockPrisma.indent.findMany.mockResolvedValue([
-        {
-          createdAt: new Date('2025-01-01'),
-          updatedAt: new Date('2025-01-11'), // 10 days
-        },
-        {
-          createdAt: new Date('2025-02-01'),
-          updatedAt: new Date('2025-02-06'), // 5 days
-        },
-      ]);
+      // First findMany call: all non-deleted indents for domain state counting (uses currentState)
+      // Second findMany call: completed indents for cycle time calculation
+      mockPrisma.indent.findMany
+        .mockResolvedValueOnce([
+          { currentState: 'DRAFT' },
+          { currentState: 'DRAFT' },
+          { currentState: 'DRAFT' },
+          { currentState: 'DRAFT' },
+          { currentState: 'DESIGN_COMPLETED' },
+          { currentState: 'DESIGN_COMPLETED' },
+          { currentState: 'DESIGN_COMPLETED' },
+          { currentState: 'DESIGN_COMPLETED' },
+          { currentState: 'DESIGN_COMPLETED' },
+          { currentState: 'DESIGN_COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+          { currentState: 'COMPLETED' },
+        ])
+        .mockResolvedValueOnce([
+          {
+            createdAt: new Date('2025-01-01'),
+            updatedAt: new Date('2025-01-11'), // 10 days
+          },
+          {
+            createdAt: new Date('2025-02-01'),
+            updatedAt: new Date('2025-02-06'), // 5 days
+          },
+        ]);
       mockPrisma.indent.count.mockResolvedValue(20);
     });
 
     it('should compute completionRate correctly', async () => {
       const result = await service.getWorkflowAnalytics();
-      // groupBy sum: 4 + 6 + 10 = 20 total; 10 completed / 20 = 50%
+      // 4 DRAFT + 6 SUBMITTED + 10 COMPLETED = 20 total; 10 completed / 20 = 50%
       expect(result.completionRate).toBe(50);
     });
 
@@ -128,8 +148,8 @@ describe('AnalyticsService', () => {
 
     it('should identify the bottleneck stage', async () => {
       const result = await service.getWorkflowAnalytics();
-      // SUBMITTED has count 6 (highest non-terminal)
-      expect(result.bottleneckStage).toBe('Design Completed');
+      // SUBMITTED → DESIGN_COMPLETED has count 6 (highest non-terminal)
+      expect(result.bottleneckStage).toBe('DESIGN_COMPLETED');
     });
 
     it('should return stalledTransactions count', async () => {
@@ -138,15 +158,20 @@ describe('AnalyticsService', () => {
     });
 
     it('should return null averageCycleDays when no completed indents exist', async () => {
-      mockPrisma.indent.findMany.mockResolvedValue([]);
+      mockPrisma.indent.findMany
+        .mockReset()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
       const result = await service.getWorkflowAnalytics();
       expect(result.averageCycleDays).toBeNull();
     });
 
     it('should include percentage in stageDistribution', async () => {
       const result = await service.getWorkflowAnalytics();
-      const submitted = result.stageDistribution.find((s) => s.stageName === 'Design Completed');
-      expect(submitted?.percentage).toBe(30); // 6/20 = 30%
+      const designCompleted = result.stageDistribution.find(
+        (s) => s.stageName === 'DESIGN_COMPLETED',
+      );
+      expect(designCompleted?.percentage).toBe(30); // 6/20 = 30%
     });
   });
 
