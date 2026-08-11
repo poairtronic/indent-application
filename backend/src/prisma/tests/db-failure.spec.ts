@@ -11,7 +11,8 @@ describe('Database Resilience & Failure Recovery', () => {
 
   beforeEach(async () => {
     // Inject bad database URL before module instantiation
-    process.env.DATABASE_URL = 'postgresql://invalid_user:invalid_password@localhost:5432/invalid_db?schema=public';
+    process.env.DATABASE_URL =
+      'postgresql://invalid_user:invalid_password@localhost:5432/invalid_db?schema=public';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [PrismaService],
@@ -27,13 +28,15 @@ describe('Database Resilience & Failure Recovery', () => {
     }
     try {
       await prismaService.$disconnect();
-    } catch (e) {}
+    } catch {
+      // ignore
+    }
   });
 
   it('should reject queries with a connection error rather than hanging indefinitely', async () => {
     const startTime = Date.now();
     let error: any;
-    
+
     try {
       await prismaService.user.findFirst();
     } catch (e) {
@@ -41,11 +44,11 @@ describe('Database Resilience & Failure Recovery', () => {
     }
 
     const duration = Date.now() - startTime;
-    
+
     expect(error).toBeDefined();
     expect(error.message).toMatch(/Authentication failed|Can't reach database server/);
-    
+
     // Ensure timeout resolves gracefully rather than hanging
-    expect(duration).toBeLessThan(5000); 
+    expect(duration).toBeLessThan(5000);
   });
 });

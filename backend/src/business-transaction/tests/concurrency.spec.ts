@@ -10,7 +10,7 @@ import { RedisCacheService } from '../../redis-cache/redis-cache.service';
 describe('Concurrency & Race Condition Resilience', () => {
   let service: BusinessTransactionService;
 
-  let dbRow = {
+  const dbRow = {
     id: 'tx-123',
     currentState: 'DRAFT',
     indentNumber: 'IND-2026-001',
@@ -59,7 +59,9 @@ describe('Concurrency & Race Condition Resilience', () => {
 
   const mockStateMachine = {
     validateTransition: jest.fn().mockReturnValue({ isValid: true, errors: [] }),
-    getStageDefinition: jest.fn().mockReturnValue({ targetState: 'DESIGN_COMPLETED', requireAuth: true }),
+    getStageDefinition: jest
+      .fn()
+      .mockReturnValue({ targetState: 'DESIGN_COMPLETED', requireAuth: true }),
   };
 
   const mockEventService = {
@@ -99,12 +101,15 @@ describe('Concurrency & Race Condition Resilience', () => {
     ];
 
     const results = await Promise.allSettled(requests);
-    
+
     const fulfilled = results.filter((r) => r.status === 'fulfilled');
     const rejected = results.filter((r) => r.status === 'rejected');
 
     if (fulfilled.length !== 1) {
-      console.log('REJECTED:', rejected.map(r => (r as any).reason.message || (r as any).reason));
+      console.log(
+        'REJECTED:',
+        rejected.map((r) => (r as any).reason.message || (r as any).reason),
+      );
     }
 
     expect(fulfilled.length).toBe(1);
