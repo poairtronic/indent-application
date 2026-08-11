@@ -10,7 +10,7 @@ on:
       runtime:
         description: 'Run live endpoint testing'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 jobs:

@@ -587,6 +587,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const watchedDesignCost = useWatch({ control, name: 'costSheet.designCost' });
   const watchedOverheadCost = useWatch({ control, name: 'costSheet.overheadCost' });
   const watchedContingencyCost = useWatch({ control, name: 'costSheet.contingencyCost' });
+  const watchedActualDesignCost = useWatch({ control, name: 'costSheet.actualDesignCost' });
+  const watchedActualOverheadCost = useWatch({ control, name: 'costSheet.actualOverheadCost' });
+  const watchedActualContingencyCost = useWatch({ control, name: 'costSheet.actualContingencyCost' });
 
   // Live API data for the master-data fields below.
   const { data: unitsData } = useUnits({ page: 1, limit: 200 });
@@ -661,9 +664,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const actualSubTotal = actualTotalMaterialCost + actualTotalProcessCost;
   const actualGrandTotal =
     actualSubTotal +
-    (Number(watchedDesignCost) || 0) +
-    (Number(watchedOverheadCost) || 0) +
-    (Number(watchedContingencyCost) || 0);
+    (Number(watchedActualDesignCost) || 0) +
+    (Number(watchedActualOverheadCost) || 0) +
+    (Number(watchedActualContingencyCost) || 0);
 
   // Calculate Predicted Total
   useEffect(() => {

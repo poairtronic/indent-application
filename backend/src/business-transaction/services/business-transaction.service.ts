@@ -217,6 +217,7 @@ export class BusinessTransactionService {
             departmentId: department.id,
             priority: dto.indent.priority,
             status: prismaDraftStatus,
+            currentState: WorkflowState.DRAFT,
             requiredDate: new Date(dto.indent.requiredDate),
             requiredDeliveryDate: dto.indent.requiredDeliveryDate
               ? new Date(dto.indent.requiredDeliveryDate)
@@ -517,7 +518,12 @@ export class BusinessTransactionService {
       );
     }
 
+    const existingCostSheet = await this.prisma.costSheet.findFirst({
+      where: { indentId: id },
+    });
+
     await this.prisma.$transaction(async (tx) => {
+      // 1. Update Indent basic details
       await tx.indent.update({
         where: { id },
         data: {
@@ -531,19 +537,112 @@ export class BusinessTransactionService {
         },
       });
 
-      if (dto.indent?.items && dto.indent.items.length > 0) {
+      // 2. Resolve materials and recreate items if provided
+      if (dto.indent?.items) {
+        const itemIds = existing.items.map((item: any) => item.id);
+        
+        // Delete all old processes for the items of this indent
+        await tx.indentProcess.deleteMany({
+          where: { indentItemId: { in: itemIds } },
+        });
+
+        // Delete all old items of this indent
+        await tx.indentItem.deleteMany({
+          where: { indentId: id },
+        });
+
+        const resolvedMaterialIds: string[] = [];
+        for (let i = 0; i < dto.indent.items.length; i++) {
+          const item = dto.indent.items[i];
+          const material = await this.resolveMaterial(
+            tx,
+            item.materialName,
+            item.unitId,
+            userId,
+            i,
+          );
+          resolvedMaterialIds.push(material.id);
+        }
+
+        // Recreate items
+        const createdItems = [];
+        for (let i = 0; i < dto.indent.items.length; i++) {
+          const item = dto.indent.items[i];
+          const createdItem = await tx.indentItem.create({
+            data: {
+              indentId: id,
+              materialId: resolvedMaterialIds[i],
+              quantity: item.quantity,
+              unitId: item.unitId,
+              remarks: item.remarks || null,
+              status: 'DRAFT',
+            },
+          });
+          createdItems.push(createdItem);
+        }
+
+        // Recreate processes
         for (let i = 0; i < dto.indent.items.length; i++) {
           const itemDto = dto.indent.items[i];
-          const existingItem = existing.items[i];
-          if (existingItem && itemDto.remarks !== undefined) {
-            await tx.indentItem.update({
-              where: { id: existingItem.id },
-              data: { remarks: itemDto.remarks },
+          const createdItem = createdItems[i];
+          if (itemDto.processes && itemDto.processes.length > 0 && createdItem) {
+            await tx.indentProcess.createMany({
+              data: itemDto.processes.map((proc, idx) => ({
+                indentItemId: createdItem.id,
+                processId: proc.processId,
+                sequence: idx + 1,
+                estimatedHours: proc.estimatedHours,
+              })),
+            });
+          }
+        }
+
+        // 3. Update CostSheet if provided
+        if (dto.costSheet && existingCostSheet) {
+          await tx.costSheet.update({
+            where: { id: existingCostSheet.id },
+            data: {
+              predictedTotal: dto.costSheet.predictedTotal,
+            },
+          });
+
+          // Delete all old cost items and process costs
+          await tx.costItem.deleteMany({
+            where: { costSheetId: existingCostSheet.id },
+          });
+          await tx.processCost.deleteMany({
+            where: { costSheetId: existingCostSheet.id },
+          });
+
+          // Recreate cost items
+          if (dto.costSheet.costItems) {
+            await tx.costItem.createMany({
+              data: dto.costSheet.costItems.map((ci, index) => ({
+                costSheetId: existingCostSheet.id,
+                materialId: resolvedMaterialIds[index],
+                vendorId: ci.vendorId || null,
+                predictedRate: ci.predictedRate,
+                predictedQuantity: ci.predictedQuantity,
+                predictedAmount: ci.predictedAmount,
+                remarks: ci.remarks || null,
+              })),
+            });
+          }
+
+          // Recreate process costs
+          if (dto.costSheet.processCosts) {
+            await tx.processCost.createMany({
+              data: dto.costSheet.processCosts.map((pc) => ({
+                costSheetId: existingCostSheet.id,
+                processId: pc.processId,
+                predictedCost: pc.predictedCost,
+                estimatedHours: pc.estimatedHours,
+              })),
             });
           }
         }
       }
-    });
+    }, { maxWait: 5000, timeout: 20000 });
 
     await this.eventService.logAudit(
       AuditEventType.CREATE_DRAFT,
