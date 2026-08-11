@@ -32,7 +32,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       this.logger.error(`Prisma error: ${exception.code} - ${exception.message}`);
-      
+
       switch (exception.code) {
         case 'P2002':
           status = HttpStatus.CONFLICT;
