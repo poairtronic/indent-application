@@ -84,7 +84,7 @@ export class BusinessTransactionController {
     return this.businessTransactionService.findTransactionById(id);
   }
 
-  @Put(':id')
+  @Patch(':id')
   @Permissions('indent.edit')
   async updateDraft(
     @Param('id') id: string,
