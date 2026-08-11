@@ -293,7 +293,7 @@ export class BusinessTransactionService {
         indent: createdIndent,
         costSheet: createdCostSheet,
       };
-    });
+    }, { maxWait: 5000, timeout: 20000 });
 
     // Log Audit
     await this.eventService.logAudit(AuditEventType.CREATE_DRAFT, result.indent.id, userId, null, {
