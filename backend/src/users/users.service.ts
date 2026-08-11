@@ -130,7 +130,7 @@ export class UsersService {
       employeeCode: newUser.employeeCode,
       departmentName: newUser.department?.departmentName || 'General',
       roleName: newUser.role?.roleName || 'Employee',
-      loginUrl: 'http://localhost:5173/login',
+      loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
     });
 
     return response;
@@ -355,11 +355,12 @@ export class UsersService {
     );
 
     if (dto.status === UserStatus.ACTIVE) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       this.eventBus.emit(CommunicationEventType.ACCOUNT_ACTIVATED, {
         email: updatedUser.email,
         name: `${updatedUser.firstName} ${updatedUser.lastName}`,
         roleName: updatedUser.role?.roleName || 'Employee',
-        loginUrl: 'http://localhost:5173/login',
+        loginUrl: `${frontendUrl}/login`,
       });
     } else if (dto.status === UserStatus.INACTIVE || dto.status === UserStatus.SUSPENDED) {
       this.eventBus.emit(CommunicationEventType.ACCOUNT_DISABLED, {

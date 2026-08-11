@@ -180,13 +180,14 @@ export class BusinessTransactionEventService {
         : 'System';
 
       let commType: CommunicationEventType | null = null;
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const context: Record<string, any> = {
         indentId,
         indentNumber,
         productName,
         requestedBy,
         purpose: indent?.purpose || 'Production requirements',
-        transactionUrl: `http://localhost:5173/transactions/${indentId}`,
+        transactionUrl: `${frontendUrl}/transactions/${indentId}`,
         correlationId: notification.id,
       };
 

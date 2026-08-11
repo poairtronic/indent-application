@@ -27,6 +27,7 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
     const port = parseInt(process.env.REDIS_PORT || '6379', 10);
     const password = process.env.REDIS_PASSWORD || undefined;
     const db = parseInt(process.env.REDIS_DB || '0', 10);
+    const useTls = process.env.REDIS_TLS === 'true';
 
     try {
       this.logger.log(`Connecting to Redis for Caching at ${host}:${port} (DB ${db})`);
@@ -38,6 +39,7 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
         maxRetriesPerRequest: 1, // fast failure
         connectTimeout: 2000, // 2s timeout
         lazyConnect: true,
+        tls: useTls ? {} : undefined,
       });
 
       this.redisClient.on('error', (err) => {

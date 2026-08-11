@@ -1,0 +1,65 @@
+services:
+  # Backend API Web Service
+  - type: web
+    name: imcms-backend
+    env: node
+    nodeVersion: 20
+    region: ohio
+    buildCommand: npm run build
+    startCommand: npm run start:prod
+    rootDir: backend
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://imcms-frontend.onrender.com
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        sync: false
+      - key: REDIS_PASSWORD
+        sync: false
+      - key: REDIS_TLS
+        value: "true"
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_PUBLIC_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+  # Frontend Static Site
+  - type: web
+    name: imcms-frontend
+    env: static
+    region: ohio
+    buildCommand: npm run build
+    staticPublishPath: dist
+    rootDir: frontend
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://imcms-backend.onrender.com/api

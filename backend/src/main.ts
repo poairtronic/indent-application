@@ -40,8 +40,12 @@ async function bootstrap() {
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      // Allow server-to-server requests (no origin) and localhost origins
-      if (!origin || /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+      // Allow server-to-server requests (no origin), localhost origins, and production FRONTEND_URL
+      if (
+        !origin ||
+        /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin) ||
+        origin === process.env.FRONTEND_URL
+      ) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS policy'), false);

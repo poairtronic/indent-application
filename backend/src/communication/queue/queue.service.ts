@@ -30,6 +30,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     const port = parseInt(process.env.REDIS_PORT || '6379', 10);
     const password = process.env.REDIS_PASSWORD || undefined;
     const db = parseInt(process.env.REDIS_DB || '0', 10);
+    const useTls = process.env.REDIS_TLS === 'true';
 
     if (isNaN(port)) {
       throw new ConfigurationException('REDIS_PORT', 'Redis Port number must be a valid integer.');
@@ -45,6 +46,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         maxRetriesPerRequest: null, // Critical requirement for BullMQ
         lazyConnect: true,
         enableOfflineQueue: false,
+        tls: useTls ? {} : undefined,
       };
 
       this.redisConnection = new Redis(connectionOptions);

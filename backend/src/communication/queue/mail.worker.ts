@@ -33,6 +33,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
     const port = parseInt(process.env.REDIS_PORT || '6379', 10);
     const password = process.env.REDIS_PASSWORD || undefined;
     const db = parseInt(process.env.REDIS_DB || '0', 10);
+    const useTls = process.env.REDIS_TLS === 'true';
 
     const concurrency = parseInt(process.env.SMTP_CONCURRENCY || '2', 10);
 
@@ -49,6 +50,7 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         maxRetriesPerRequest: null, // Critical requirement for BullMQ
         lazyConnect: true,
         enableOfflineQueue: false,
+        tls: useTls ? {} : undefined,
       });
 
       this.redisConnection.on('error', (err) => {

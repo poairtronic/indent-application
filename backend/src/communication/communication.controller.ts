@@ -81,11 +81,11 @@ export class CommunicationController {
       subject: dto.subject || 'IMCMS SMTP Integration Test Confirmation',
       templateName: 'welcome',
       templateContext: {
-        name: 'IMCMS Integration Administrator',
+        name: 'Test User',
         employeeCode: 'ADMIN-SMTP-TEST',
         department: 'System Infrastructure Group',
         role: 'Administrator',
-        loginUrl: 'http://localhost:3000/login',
+        loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
       },
     });
 

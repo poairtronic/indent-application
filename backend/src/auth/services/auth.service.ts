@@ -275,12 +275,13 @@ export class AuthService {
       },
     });
 
-    console.info(`[STUB] Password Reset Link: http://localhost:5173/reset-password?token=${token}`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    console.info(`[STUB] Password Reset Link: ${frontendUrl}/reset-password?token=${token}`);
 
     this.eventBus.emit(CommunicationEventType.PASSWORD_RESET, {
       email: user.email,
-      name: `${user.firstName} ${user.lastName}`,
-      resetUrl: `http://localhost:5173/reset-password?token=${token}`,
+      name: user.firstName,
+      resetUrl: `${frontendUrl}/reset-password?token=${token}`,
     });
   }
 
@@ -338,11 +339,12 @@ export class AuthService {
       },
     });
 
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     this.eventBus.emit(CommunicationEventType.PASSWORD_CHANGED, {
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
       changeDate: new Date().toLocaleString(),
-      securityUrl: `http://localhost:5173/security-logs`,
+      securityUrl: `${frontendUrl}/security-logs`,
     });
   }
 
