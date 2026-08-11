@@ -22,6 +22,7 @@ import {
 import { StoresIssueDto } from '../dto/stores-issue.dto';
 import { ProductionUpdateDto, CustomerDeliveryDto } from '../dto/production-update.dto';
 import { RedisCacheService } from '../../redis-cache/redis-cache.service';
+import { validateFileSignature } from '../../common/utils/file-validator.util';
 
 @Injectable()
 export class BusinessTransactionService {
@@ -1669,6 +1670,8 @@ export class BusinessTransactionService {
     }
 
     const ext = path.extname(file.originalname).toLowerCase();
+
+    await validateFileSignature(file.buffer, ext);
     let fileType: FileType = FileType.OTHER;
 
     const isDesignDept = departmentCode === 'DESIGN' || departmentCode === 'DSGN';

@@ -1,0 +1,5 @@
+- [x] Install `helmet`
+- [x] Configure `helmet` in `backend/src/main.ts`
+- [x] Create `backend/test-headers.ts`
+- [x] Run automated tests and verify headers
+- [x] Create `docs/PHASE_28E_HELMET_HTTP_SECURITY.md` report

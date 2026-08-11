@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
+import helmet from 'helmet';
 import { AppLogger } from './observability/app-logger.service';
 
 async function bootstrap() {
@@ -11,6 +12,29 @@ async function bootstrap() {
     bufferLogs: true,
   });
   app.useLogger(app.get(AppLogger));
+
+  app.use(
+    helmet({
+      crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'validator.swagger.io'],
+        },
+      },
+      hsts:
+        process.env.NODE_ENV === 'production'
+          ? {
+              maxAge: 31536000,
+              includeSubDomains: true,
+              preload: true,
+            }
+          : false,
+      xFrameOptions: { action: 'deny' },
+    }),
+  );
 
   app.use(
     compression({
