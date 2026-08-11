@@ -6,6 +6,7 @@
  */
 
 import { Controller, Get, Query, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { AnalyticsService } from './analytics.service';
 import { KpiService } from './kpi.service';
@@ -18,6 +19,7 @@ import {
 import { Cache } from '../redis-cache/decorators/cache.decorator';
 
 @Controller('analytics')
+@Throttle({ default: { limit: 50, ttl: 60000 } })
 export class AnalyticsController {
   constructor(
     private readonly analyticsService: AnalyticsService,

@@ -13,6 +13,7 @@ import {
   UploadedFile,
   Res,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { Permissions } from '../auth/decorators/permissions.decorator';
@@ -312,6 +313,7 @@ export class BusinessTransactionController {
 
   @Post(':id/attachments')
   @Permissions('indent.edit', 'accounts.verify')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseInterceptors(FileInterceptor('file'))
   async uploadAttachment(
     @Param('id') id: string,
@@ -324,6 +326,7 @@ export class BusinessTransactionController {
 
   @Get('attachments/download/:fileName')
   @Permissions('indent.view', 'accounts.verify')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   async downloadAttachment(
     @Param('fileName') fileName: string,
     @Request() req: any,
@@ -358,6 +361,7 @@ export class BusinessTransactionController {
 
   @Put(':id/attachments/:attachmentId')
   @Permissions('indent.edit', 'accounts.verify')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseInterceptors(FileInterceptor('file'))
   async replaceAttachment(
     @Param('id') id: string,

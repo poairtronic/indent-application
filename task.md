@@ -1,5 +1,2 @@
-- [x] Install `helmet`
-- [x] Configure `helmet` in `backend/src/main.ts`
-- [x] Create `backend/test-headers.ts`
-- [x] Run automated tests and verify headers
-- [x] Create `docs/PHASE_28E_HELMET_HTTP_SECURITY.md` report
+- [x] Modify `backend/src/common/filters/global-exception.filter.ts` to sanitize Prisma exception messages and obscure DB details
+- [x] Create `docs/PHASE_28G_ERROR_DISCLOSURE_HARDENING.md` report

@@ -13,6 +13,12 @@ async function bootstrap() {
   });
   app.useLogger(app.get(AppLogger));
 
+  // Trust the Render load balancer proxy to correctly resolve client IPs (req.ip)
+  const httpAdapter = app.getHttpAdapter();
+  if (httpAdapter && httpAdapter.getInstance) {
+    httpAdapter.getInstance().set('trust proxy', 1);
+  }
+
   app.use(
     helmet({
       crossOriginEmbedderPolicy: false,
