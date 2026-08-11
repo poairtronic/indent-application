@@ -950,10 +950,13 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                       <Select
                         label="Unit"
                         disabled={isReadOnly || isProductionMode}
-                        options={units.map((u) => ({
-                          label: `${u.symbol || u.unitName}`,
-                          value: u.id,
-                        }))}
+                        options={[
+                          { label: 'Select Unit', value: '' },
+                          ...units.map((u) => ({
+                            label: `${u.symbol || u.unitName}`,
+                            value: u.id,
+                          })),
+                        ]}
                         error={errors.indent?.items?.[index]?.unitId?.message}
                         {...field}
                       />
