@@ -171,129 +171,138 @@ export class BusinessTransactionService {
     const { indentNumber, costNumber } = this.generateDocumentNumbers();
     const prismaDraftStatus = WorkflowStateMapper.toPrisma(WorkflowState.DRAFT);
 
-    const result = await this.prisma.$transaction(async (tx) => {
-      const productName = dto.indent.productName.trim();
-      const departmentName = dto.indent.departmentName.trim();
-      const uniqueSuffix = Date.now().toString().slice(-6);
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        const productName = dto.indent.productName.trim();
+        const departmentName = dto.indent.departmentName.trim();
+        const uniqueSuffix = Date.now().toString().slice(-6);
 
-      const product =
-        (await tx.product.findFirst({ where: { productName, isDeleted: false } })) ??
-        (await tx.product.create({
-          data: {
-            productName,
-            productCode: `PRD-${uniqueSuffix}`,
-            createdBy: userId,
-          },
-        }));
-      const department =
-        (await tx.department.findFirst({ where: { departmentName, isDeleted: false } })) ??
-        (await tx.department.create({
-          data: {
-            departmentName,
-            departmentCode: `DEP-${uniqueSuffix}`,
-            createdBy: userId,
-          },
-        }));
+        const product =
+          (await tx.product.findFirst({ where: { productName, isDeleted: false } })) ??
+          (await tx.product.create({
+            data: {
+              productName,
+              productCode: `PRD-${uniqueSuffix}`,
+              createdBy: userId,
+            },
+          }));
+        const department =
+          (await tx.department.findFirst({ where: { departmentName, isDeleted: false } })) ??
+          (await tx.department.create({
+            data: {
+              departmentName,
+              departmentCode: `DEP-${uniqueSuffix}`,
+              createdBy: userId,
+            },
+          }));
 
-      const resolvedMaterialIds: string[] = [];
-      for (let i = 0; i < dto.indent.items.length; i++) {
-        const item = dto.indent.items[i];
-        const material = await this.resolveMaterial(tx, item.materialName, item.unitId, userId, i);
-        resolvedMaterialIds.push(material.id);
-      }
-
-      // 1. Create Indent record
-      const createdIndent = await tx.indent.create({
-        data: {
-          indentNumber,
-          productId: product.id,
-          departmentId: department.id,
-          priority: dto.indent.priority,
-          status: prismaDraftStatus,
-          requiredDate: new Date(dto.indent.requiredDate),
-          requiredDeliveryDate: dto.indent.requiredDeliveryDate
-            ? new Date(dto.indent.requiredDeliveryDate)
-            : null,
-          purpose: dto.indent.purpose || null,
-          remarks: dto.indent.remarks || null,
-          createdBy: userId,
-          version: 1,
-          isLocked: false,
-          indentItems: {
-            create: dto.indent.items.map((item, index) => ({
-              materialId: resolvedMaterialIds[index],
-              quantity: item.quantity,
-              unitId: item.unitId,
-              remarks: item.remarks || null,
-              status: 'DRAFT',
-            })),
-          },
-        },
-        include: {
-          indentItems: true,
-        },
-      });
-
-      // Attach IndentProcesses if specified
-      for (let i = 0; i < dto.indent.items.length; i++) {
-        const itemDto = dto.indent.items[i];
-        const createdItem = createdIndent.indentItems[i];
-        if (itemDto.processes && itemDto.processes.length > 0 && createdItem) {
-          await tx.indentProcess.createMany({
-            data: itemDto.processes.map((proc) => ({
-              indentItemId: createdItem.id,
-              processId: proc.processId,
-              sequence: proc.sequence,
-              estimatedHours: proc.estimatedHours,
-            })),
-          });
+        const resolvedMaterialIds: string[] = [];
+        for (let i = 0; i < dto.indent.items.length; i++) {
+          const item = dto.indent.items[i];
+          const material = await this.resolveMaterial(
+            tx,
+            item.materialName,
+            item.unitId,
+            userId,
+            i,
+          );
+          resolvedMaterialIds.push(material.id);
         }
-      }
 
-      // 2. Create CostSheet record linked to Indent
-      const createdCostSheet = await tx.costSheet.create({
-        data: {
-          costNumber,
-          indentId: createdIndent.id,
-          preparedBy: userId,
-          predictedTotal: dto.costSheet.predictedTotal,
-          status: 'DRAFT',
-          createdBy: userId,
-          costItems: {
-            create: dto.costSheet.costItems.map((ci, index) => ({
-              materialId: resolvedMaterialIds[index],
-              vendorId: ci.vendorId || null,
-              predictedRate: ci.predictedRate,
-              predictedQuantity: ci.predictedQuantity,
-              predictedAmount: ci.predictedAmount,
-              remarks: ci.remarks || null,
-            })),
+        // 1. Create Indent record
+        const createdIndent = await tx.indent.create({
+          data: {
+            indentNumber,
+            productId: product.id,
+            departmentId: department.id,
+            priority: dto.indent.priority,
+            status: prismaDraftStatus,
+            requiredDate: new Date(dto.indent.requiredDate),
+            requiredDeliveryDate: dto.indent.requiredDeliveryDate
+              ? new Date(dto.indent.requiredDeliveryDate)
+              : null,
+            purpose: dto.indent.purpose || null,
+            remarks: dto.indent.remarks || null,
+            createdBy: userId,
+            version: 1,
+            isLocked: false,
+            indentItems: {
+              create: dto.indent.items.map((item, index) => ({
+                materialId: resolvedMaterialIds[index],
+                quantity: item.quantity,
+                unitId: item.unitId,
+                remarks: item.remarks || null,
+                status: 'DRAFT',
+              })),
+            },
           },
-          processCosts: {
-            create: dto.costSheet.processCosts.map((pc) => ({
-              processId: pc.processId,
-              predictedCost: pc.predictedCost,
-              estimatedHours: pc.estimatedHours,
-            })),
+          include: {
+            indentItems: true,
           },
-        },
-      });
+        });
 
-      // 3. Record initial WorkflowHistory
-      await tx.workflowHistory.create({
-        data: {
-          indentId: createdIndent.id,
-          toDepartmentId: department.id,
-          movedBy: userId,
-          remarks: 'Created initial Business Transaction draft.',
-        },
-      });
+        // Attach IndentProcesses if specified
+        for (let i = 0; i < dto.indent.items.length; i++) {
+          const itemDto = dto.indent.items[i];
+          const createdItem = createdIndent.indentItems[i];
+          if (itemDto.processes && itemDto.processes.length > 0 && createdItem) {
+            await tx.indentProcess.createMany({
+              data: itemDto.processes.map((proc) => ({
+                indentItemId: createdItem.id,
+                processId: proc.processId,
+                sequence: proc.sequence,
+                estimatedHours: proc.estimatedHours,
+              })),
+            });
+          }
+        }
 
-      return {
-        indent: createdIndent,
-        costSheet: createdCostSheet,
-      };
-    }, { maxWait: 5000, timeout: 20000 });
+        // 2. Create CostSheet record linked to Indent
+        const createdCostSheet = await tx.costSheet.create({
+          data: {
+            costNumber,
+            indentId: createdIndent.id,
+            preparedBy: userId,
+            predictedTotal: dto.costSheet.predictedTotal,
+            status: 'DRAFT',
+            createdBy: userId,
+            costItems: {
+              create: dto.costSheet.costItems.map((ci, index) => ({
+                materialId: resolvedMaterialIds[index],
+                vendorId: ci.vendorId || null,
+                predictedRate: ci.predictedRate,
+                predictedQuantity: ci.predictedQuantity,
+                predictedAmount: ci.predictedAmount,
+                remarks: ci.remarks || null,
+              })),
+            },
+            processCosts: {
+              create: dto.costSheet.processCosts.map((pc) => ({
+                processId: pc.processId,
+                predictedCost: pc.predictedCost,
+                estimatedHours: pc.estimatedHours,
+              })),
+            },
+          },
+        });
+
+        // 3. Record initial WorkflowHistory
+        await tx.workflowHistory.create({
+          data: {
+            indentId: createdIndent.id,
+            toDepartmentId: department.id,
+            movedBy: userId,
+            remarks: 'Created initial Business Transaction draft.',
+          },
+        });
+
+        return {
+          indent: createdIndent,
+          costSheet: createdCostSheet,
+        };
+      },
+      { maxWait: 5000, timeout: 20000 },
+    );
 
     // Log Audit
     await this.eventService.logAudit(AuditEventType.CREATE_DRAFT, result.indent.id, userId, null, {
