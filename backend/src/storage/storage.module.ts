@@ -1,5 +1,5 @@
 import { Module, Global } from '@nestjs/common';
-import { R2StorageAdapter } from './adapters/r2-storage.adapter';
+import { SupabaseStorageAdapter } from './adapters/supabase-storage.adapter';
 import { LocalStorageAdapter } from './adapters/local-storage.adapter';
 
 @Global()
@@ -9,12 +9,12 @@ import { LocalStorageAdapter } from './adapters/local-storage.adapter';
       provide: 'STORAGE_ADAPTER',
       useFactory: () => {
         if (process.env.NODE_ENV === 'production') {
-          return new R2StorageAdapter();
+          return new SupabaseStorageAdapter();
         }
 
-        const useR2 = process.env.R2_ACCOUNT_ID && process.env.R2_BUCKET_NAME;
-        if (useR2) {
-          return new R2StorageAdapter();
+        const useSupabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY;
+        if (useSupabase) {
+          return new SupabaseStorageAdapter();
         }
 
         return new LocalStorageAdapter();
