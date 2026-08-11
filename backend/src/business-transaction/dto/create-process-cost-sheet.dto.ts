@@ -65,6 +65,18 @@ export class CreateProcessCostSheetDto {
   @Min(0)
   predictedTotal: number;
 
+  @IsNumber()
+  @IsOptional()
+  designCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  overheadCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  contingencyCost?: number;
+
   @IsArray()
   @IsNotEmpty()
   @ValidateNested({ each: true })
@@ -83,6 +95,18 @@ export class UpdateProcessCostSheetDto {
   @IsOptional()
   @Min(0)
   predictedTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
+  designCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  overheadCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  contingencyCost?: number;
 
   @IsArray()
   @IsOptional()

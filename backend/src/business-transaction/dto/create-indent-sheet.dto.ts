@@ -108,6 +108,14 @@ export class CreateIndentSheetDto {
 }
 
 export class UpdateIndentSheetDto {
+  @IsString()
+  @IsOptional()
+  productName?: string;
+
+  @IsString()
+  @IsOptional()
+  departmentName?: string;
+
   @IsEnum(IndentPriority)
   @IsOptional()
   priority?: IndentPriority;
