@@ -65,6 +65,7 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
     config: ActionConfig;
   } | null>(null);
   const [remarks, setRemarks] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
 
   // Workflow mutation hooks
   const { mutateAsync: submitIndent, isPending: isSubmitting } = useSubmitIndent();
@@ -330,13 +331,16 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   if (actions.length === 0) return null;
 
   const handleConfirm = async () => {
-    if (!confirmAction) return;
+    if (!confirmAction || isExecuting) return;
+    setIsExecuting(true);
     try {
       await confirmAction.config.action(remarks || undefined);
       setConfirmAction(null);
       setRemarks('');
     } catch (error: any) {
       window.alert(error.message || 'An error occurred while performing this action.');
+    } finally {
+      setIsExecuting(false);
     }
   };
 
@@ -396,7 +400,7 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
         }
         confirmLabel={confirmAction?.config.label ?? 'Confirm'}
         tone={confirmAction?.config.variant === 'danger' ? 'danger' : 'primary'}
-        loading={confirmAction?.config.isPending}
+        loading={isExecuting || confirmAction?.config.isPending}
       />
     </>
   );

@@ -11,13 +11,17 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
 import { Request } from 'express';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: RedisCacheService,
+  ) {}
 
   @Get()
   @Permissions('notifications.view')
@@ -174,7 +178,13 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Get unread notification count for the current user' })
   async getUnreadCount(@Req() req: Request) {
     const userId = (req as any).user?.id;
+    const cacheKey = `notifications:unread-count:${userId}`;
 
+    // Return cached count if available (20-second TTL reduces DB load from polling)
+    const cached = await this.cacheService.get<number>(cacheKey);
+    if (cached !== null) {
+      return cached;
+    }
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { role: true, department: true },
@@ -250,7 +260,9 @@ export class NotificationsController {
       }
     }
 
-    return this.prisma.notificationRecipient.count({ where });
+    const count = await this.prisma.notificationRecipient.count({ where });
+    await this.cacheService.set(cacheKey, count, 20);
+    return count;
   }
 
   @Get(':id')
