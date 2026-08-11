@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.js', 'prettier.config.cjs', 'dist', 'node_modules'],
+    ignores: ['eslint.config.js', 'prettier.config.cjs', 'dist', 'node_modules', 'create-test-user.js'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

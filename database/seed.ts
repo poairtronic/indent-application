@@ -144,15 +144,11 @@ async function main() {
     { module: 'system', action: PermissionAction.UPDATE, code: 'system.complete', description: 'Complete transactions' },
   ];
 
-  const createdPermissions = await Promise.all(
-    permissionDefs.map((p) =>
-      prisma.permission.upsert({
-        where: { code: p.code },
-        update: {},
-        create: p,
-      }),
-    ),
-  );
+  await prisma.permission.createMany({
+    data: permissionDefs,
+    skipDuplicates: true,
+  });
+  const createdPermissions = await prisma.permission.findMany();
   console.log(`Created ${createdPermissions.length} permissions`);
 
   const permMap = Object.fromEntries(createdPermissions.map((p) => [p.code, p.id]));
@@ -285,18 +281,17 @@ async function main() {
     ],
   };
 
+  const rolePermissionData = [];
   for (const [roleName, permissionIds] of Object.entries(rolePermissionsMap)) {
     const roleId = roleMap[roleName];
     for (const permissionId of permissionIds) {
-      await prisma.rolePermission
-        .upsert({
-          where: { roleId_permissionId: { roleId, permissionId } },
-          update: {},
-          create: { roleId, permissionId },
-        })
-        .catch(() => {});
+      rolePermissionData.push({ roleId, permissionId });
     }
   }
+  await prisma.rolePermission.createMany({
+    data: rolePermissionData,
+    skipDuplicates: true,
+  });
   console.log('Role-permission mappings created');
 
   // ==========================================
@@ -314,22 +309,20 @@ async function main() {
     { employeeCode: 'GMG001', firstName: 'General', lastName: 'Manager', email: 'general.manager@indent.com', departmentCode: 'GMGR', roleName: 'General Manager' },
   ];
 
-  for (const u of users) {
-    await prisma.user.upsert({
-      where: { email: u.email },
-      update: {},
-      create: {
-        employeeCode: u.employeeCode,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        email: u.email,
-        password,
-        departmentId: deptMap[u.departmentCode],
-        roleId: roleMap[u.roleName],
-        status: 'ACTIVE',
-      },
-    });
-  }
+  const userData = users.map((u) => ({
+    employeeCode: u.employeeCode,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    email: u.email,
+    password,
+    departmentId: deptMap[u.departmentCode],
+    roleId: roleMap[u.roleName],
+    status: 'ACTIVE' as const,
+  }));
+  await prisma.user.createMany({
+    data: userData,
+    skipDuplicates: true,
+  });
   // ==========================================
   // DEFAULT PRODUCTS & PROCESSES
   // ==========================================
