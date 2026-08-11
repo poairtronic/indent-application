@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import * as fs from 'fs';
+import { Injectable, Inject } from '@nestjs/common';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import { IStorageAdapter, StorageStreamInfo } from '../../storage/storage.interface';
 
 export interface UploadedFileMetadata {
   fieldname: string;
@@ -14,13 +14,7 @@ export interface UploadedFileMetadata {
 
 @Injectable()
 export class AttachmentStorageService {
-  private readonly uploadDir = path.join(process.cwd(), 'uploads', 'attachments');
-
-  constructor() {
-    if (!fs.existsSync(this.uploadDir)) {
-      fs.mkdirSync(this.uploadDir, { recursive: true });
-    }
-  }
+  constructor(@Inject('STORAGE_ADAPTER') private readonly storageAdapter: IStorageAdapter) {}
 
   public async saveFile(
     file: UploadedFileMetadata,
@@ -28,27 +22,19 @@ export class AttachmentStorageService {
     const fileId = randomUUID();
     const extension = path.extname(file.originalname);
     const fileName = `${fileId}${extension}`;
-    const filePath = path.join(this.uploadDir, fileName);
 
-    await fs.promises.writeFile(filePath, file.buffer);
+    await this.storageAdapter.upload(fileName, file);
 
     // Return reference to download route
     const fileUrl = `/business-transactions/attachments/download/${fileName}`;
     return { fileName, fileUrl };
   }
 
-  public async getFilePath(fileName: string): Promise<string> {
-    const filePath = path.join(this.uploadDir, fileName);
-    if (!fs.existsSync(filePath)) {
-      throw new NotFoundException(`File '${fileName}' not found in storage.`);
-    }
-    return filePath;
+  public async getDownloadStream(fileName: string): Promise<StorageStreamInfo> {
+    return this.storageAdapter.getDownloadStream(fileName);
   }
 
   public async deleteFile(fileName: string): Promise<void> {
-    const filePath = path.join(this.uploadDir, fileName);
-    if (fs.existsSync(filePath)) {
-      await fs.promises.unlink(filePath);
-    }
+    await this.storageAdapter.delete(fileName);
   }
 }

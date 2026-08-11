@@ -1964,16 +1964,16 @@ export class BusinessTransactionService {
   }
 
   /**
-   * Get physical file path for download
+   * Get stream for download
    */
-  public async getAttachmentFilePath(fileName: string): Promise<string> {
-    return this.attachmentStorage.getFilePath(fileName);
+  public async getAttachmentStream(fileName: string): Promise<any> {
+    return this.attachmentStorage.getDownloadStream(fileName);
   }
 
   /**
-   * Securely retrieve physical file path for download after validating RBAC and department ownership
+   * Securely retrieve stream for download after validating RBAC and department ownership
    */
-  public async verifyDownloadAccess(fileName: string, userId: string): Promise<string> {
+  public async verifyDownloadAccess(fileName: string, userId: string): Promise<any> {
     const atts = await this.prisma.indentAttachment.findMany({
       where: {
         fileName: {
@@ -2003,7 +2003,7 @@ export class BusinessTransactionService {
 
     // Admin has full unrestricted access
     if (user.role?.roleName === 'Admin') {
-      return this.attachmentStorage.getFilePath(fileName);
+      return this.attachmentStorage.getDownloadStream(fileName);
     }
 
     // Extract meta information
@@ -2033,7 +2033,7 @@ export class BusinessTransactionService {
       }
     }
 
-    return this.attachmentStorage.getFilePath(fileName);
+    return this.attachmentStorage.getDownloadStream(fileName);
   }
 
   /**

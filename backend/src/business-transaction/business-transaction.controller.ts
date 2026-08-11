@@ -329,12 +329,19 @@ export class BusinessTransactionController {
     @Request() req: any,
     @Res() res: Response,
   ) {
-    const filePath = await this.businessTransactionService.verifyDownloadAccess(
+    const streamInfo = await this.businessTransactionService.verifyDownloadAccess(
       fileName,
       req.user.id,
     );
     await this.businessTransactionService.logDocumentDownload(fileName, req.user.id);
-    return res.sendFile(filePath);
+
+    res.set({
+      'Content-Type': streamInfo.contentType,
+      'Content-Length': streamInfo.contentLength,
+      'Content-Disposition': `inline; filename="${fileName}"`,
+    });
+
+    return streamInfo.stream.pipe(res);
   }
 
   @Get(':id/attachments/summary')

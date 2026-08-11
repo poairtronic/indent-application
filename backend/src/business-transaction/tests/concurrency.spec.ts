@@ -20,8 +20,24 @@ describe('Concurrency & Race Condition Resilience', () => {
     indentItems: [],
   };
 
-  const mockPrisma = {
-    $transaction: jest.fn(async (callback) => {
+  interface MockPrismaType {
+    $transaction: jest.Mock;
+    indent: {
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      updateMany: jest.Mock;
+    };
+    workflowHistory: {
+      create: jest.Mock;
+    };
+    department: {
+      findMany: jest.Mock;
+      findFirst: jest.Mock;
+    };
+  }
+
+  const mockPrisma: MockPrismaType = {
+    $transaction: jest.fn(async (callback: any) => {
       if (Array.isArray(callback)) {
         return Promise.all(callback);
       }
@@ -29,14 +45,14 @@ describe('Concurrency & Race Condition Resilience', () => {
     }),
     indent: {
       findUnique: jest.fn().mockImplementation(() => Promise.resolve(dbRow)),
-      update: jest.fn().mockImplementation(async (args) => {
+      update: jest.fn().mockImplementation(async (args: any) => {
         if (args.where.currentState !== dbRow.currentState) {
           throw new Error('Record to update not found.'); // Prisma optimistic lock failure
         }
         dbRow.currentState = args.data.currentState;
         return dbRow;
       }),
-      updateMany: jest.fn().mockImplementation(async (args) => {
+      updateMany: jest.fn().mockImplementation(async (args: any) => {
         if (args.where.currentState !== dbRow.currentState) {
           return { count: 0 }; // Concurrency conflict
         }
@@ -95,9 +111,9 @@ describe('Concurrency & Race Condition Resilience', () => {
 
   it('should allow exactly one transition and reject concurrent overlapping transitions', async () => {
     const requests = [
-      service.submitDesign('tx-123', 'user-1', { remarks: 'Req 1', fileUrl: 'url' }),
-      service.submitDesign('tx-123', 'user-2', { remarks: 'Req 2', fileUrl: 'url' }),
-      service.submitDesign('tx-123', 'user-3', { remarks: 'Req 3', fileUrl: 'url' }),
+      service.submitDesign('tx-123', 'user-1', 'Req 1'),
+      service.submitDesign('tx-123', 'user-2', 'Req 2'),
+      service.submitDesign('tx-123', 'user-3', 'Req 3'),
     ];
 
     const results = await Promise.allSettled(requests);
@@ -106,7 +122,7 @@ describe('Concurrency & Race Condition Resilience', () => {
     const rejected = results.filter((r) => r.status === 'rejected');
 
     if (fulfilled.length !== 1) {
-      console.log(
+      console.info(
         'REJECTED:',
         rejected.map((r) => (r as any).reason.message || (r as any).reason),
       );
