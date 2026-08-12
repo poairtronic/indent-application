@@ -23,6 +23,7 @@ export default tseslint.config(
       'check-admin.js',
       'check-db.js',
       'api-test.js',
+      'get-observability-metrics.js',
     ],
   },
   eslint.configs.recommended,
