@@ -11,9 +11,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default tseslint.config(
-  {
-    ignores: ['eslint.config.js', 'prettier.config.cjs', 'dist', 'node_modules', 'create-test-user.js'],
-  },
+    ignores: [
+      'eslint.config.js',
+      'prettier.config.cjs',
+      'dist',
+      'node_modules',
+      'create-test-user.js',
+      'inspect-history.js',
+      'inspect-indent.js',
+      'check-admin.js',
+      'check-db.js',
+      'api-test.js',
+    ],
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   eslintPluginPrettierRecommended,
