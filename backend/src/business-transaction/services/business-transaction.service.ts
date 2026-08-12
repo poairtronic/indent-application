@@ -506,13 +506,34 @@ export class BusinessTransactionService {
     dto: UpdateBusinessTransactionDto,
     userId: string,
   ): Promise<any> {
+    this.logger.log('--- updateDraftTransaction DTO received ---');
+    this.logger.log(JSON.stringify(dto, null, 2));
     const existing = await this.findTransactionById(id);
     const allowedStates = [
       WorkflowState.DRAFT,
       WorkflowState.PRODUCTION_PROCESSING,
       WorkflowState.ACCOUNTS_COST_VERIFICATION,
     ];
-    if (!allowedStates.includes(existing.currentState as WorkflowState)) {
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: true },
+              where: { isDeleted: false },
+            },
+          },
+        },
+      },
+    });
+
+    const isSystemAdmin = user?.role?.rolePermissions?.some(
+      (rp) => rp.permission.code.toLowerCase() === 'settings.manage',
+    );
+
+    if (!isSystemAdmin && !allowedStates.includes(existing.currentState as WorkflowState)) {
       throw new BadRequestException(
         `Cannot edit Business Transaction in state '${existing.currentState}'.`,
       );

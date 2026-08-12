@@ -744,7 +744,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
         items: formattedItems,
       },
       costSheet: {
-        predictedTotal: data.costSheet.predictedTotal,
+        predictedTotal: grandTotal,
         costItems: data.costSheet.costItems,
         processCosts: allProcessCosts.length
           ? allProcessCosts
