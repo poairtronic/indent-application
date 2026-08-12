@@ -589,7 +589,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const watchedContingencyCost = useWatch({ control, name: 'costSheet.contingencyCost' });
   const watchedActualDesignCost = useWatch({ control, name: 'costSheet.actualDesignCost' });
   const watchedActualOverheadCost = useWatch({ control, name: 'costSheet.actualOverheadCost' });
-  const watchedActualContingencyCost = useWatch({ control, name: 'costSheet.actualContingencyCost' });
+  const watchedActualContingencyCost = useWatch({
+    control,
+    name: 'costSheet.actualContingencyCost',
+  });
 
   // Live API data for the master-data fields below.
   const { data: unitsData } = useUnits({ page: 1, limit: 200 });
