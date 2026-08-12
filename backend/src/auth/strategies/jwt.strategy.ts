@@ -4,10 +4,14 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { jwtConstants } from '../constants/auth.constants';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisCacheService } from '../../redis-cache/redis-cache.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: RedisCacheService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -16,6 +20,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
+    const cacheKey = `user:session:${payload.sub}`;
+    
+    try {
+      const cachedUser = await this.cacheService.get<any>(cacheKey);
+      if (cachedUser) {
+        return cachedUser;
+      }
+    } catch (err) {
+      // Fallback gracefully on cache read failure
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {
@@ -40,6 +55,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const { password: _pw, ...safeUser } = user;
     void _pw;
     const permissions = safeUser.role.rolePermissions.map((rp) => rp.permission.code);
-    return { ...safeUser, permissions };
+    const result = { ...safeUser, permissions };
+
+    try {
+      await this.cacheService.set(cacheKey, result, 300); // Cache for 5 minutes
+    } catch (err) {
+      // Ignore cache write failure
+    }
+
+    return result;
   }
 }

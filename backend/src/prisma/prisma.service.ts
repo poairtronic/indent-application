@@ -38,6 +38,22 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         },
       },
     });
+    // Bind module hooks to the extended instance so NestJS executes them
+    (extended as any).onModuleInit = async () => {
+      try {
+        await (extended as any).$connect();
+        this.logger.log('Successfully connected to database');
+        observabilityEventBus.emit('db.connection', { connected: true });
+      } catch (error: any) {
+        this.logger.warn(`Could not connect to database on startup: ${error.message}`);
+        observabilityEventBus.emit('db.connection', { connected: false });
+      }
+    };
+
+    (extended as any).onModuleDestroy = async () => {
+      await (extended as any).$disconnect();
+    };
+
     return extended as any;
   }
 

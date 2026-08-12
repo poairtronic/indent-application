@@ -7,11 +7,17 @@ import type {
   CreateProcessPayload,
   UpdateProcessPayload,
 } from '../../../types/process';
+import { useAuthStore } from '../../../store/authStore';
+import { AppPermission } from '../../../constants/permissions';
 
-export function useProcesses(params: ProcessQueryParams) {
+export function useProcesses(params: ProcessQueryParams, options?: { enabled?: boolean }) {
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canView = hasPermission(AppPermission.PROCESSES_VIEW);
+
   return useQuery({
     queryKey: [...queryKeys.processes.list('processes'), params],
     queryFn: () => processService.list(params),
+    enabled: (options?.enabled !== false) && canView,
   });
 }
 

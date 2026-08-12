@@ -9,25 +9,13 @@ export function createAuthInterceptor() {
 
     if (!isAuthenticated || !accessToken) return config;
 
-    if (isTokenExpired(accessToken)) {
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
-      return config;
-    }
-
+    // Attach the token even if it may be expired.
+    // The backend will return 401 if truly expired, and the error interceptor
+    // will handle token refresh + request retry. Previously, we proactively
+    // logged out here which prevented the refresh mechanism from ever running.
     if (config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   };
-}
-
-function isTokenExpired(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const currentTime = Math.floor(Date.now() / 1000);
-    return payload.exp !== undefined && payload.exp < currentTime;
-  } catch {
-    return false;
-  }
 }

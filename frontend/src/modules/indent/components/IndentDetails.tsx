@@ -46,6 +46,11 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
 
   const user = useAuthStore((s) => s.user);
 
+  const isDesignTeam = React.useMemo(() => {
+    const code = user?.department?.departmentCode?.toUpperCase() ?? '';
+    return code === 'DESIGN' || code === 'DSGN';
+  }, [user]);
+
   const canIssueStores = React.useMemo(() => {
     const isValidState =
       indent.currentState === 'DESIGN_COMPLETED' || indent.currentState === 'STORES_PROCESSING';
@@ -241,6 +246,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
           {/* Detailed Indent & Costing View */}
           <div className="mt-8">
             <IndentForm
+              key={indent.id + '-' + indent.updatedAt}
               initialData={indent}
               onSubmit={
                 isAccountsMode
@@ -257,81 +263,83 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
           </div>
 
           {/* Component Issue Status (For Stores) */}
-          <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
-            <h3 className="text-sm font-bold text-text-primary mb-4">Component Issue Status</h3>
-            {indent.items && indent.items.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
-                      <th className="py-3 px-4">S.No</th>
-                      <th className="py-3 px-4">Part Name / Product</th>
-                      <th className="py-3 px-4">Material</th>
-                      <th className="py-3 px-4">Quantity</th>
-                      <th className="py-3 px-4">Status</th>
-                      {canIssueStores && <th className="py-3 px-4 text-right">Action</th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border-default/50">
-                    {indent.items.map((item, index) => {
-                      const parsed = parseItemRemarks(item.remarks);
-                      return (
-                        <tr key={item.id} className="hover:bg-background-primary/40 text-sm">
-                          <td className="py-3 px-4 text-text-muted font-mono">{index + 1}</td>
-                          <td className="py-3 px-4 font-medium text-text-primary">
-                            {parsed.product || '—'}
-                          </td>
-                          <td className="py-3 px-4">
-                            {item.material?.materialName || item.materialId}
-                          </td>
-                          <td className="py-3 px-4 font-medium">{item.quantity}</td>
-                          <td className="py-3 px-4">
-                            {item.status && (
-                              <Badge
-                                tone={
-                                  item.status === 'ISSUED'
-                                    ? 'green'
-                                    : item.status === 'VERIFIED'
-                                      ? 'blue'
-                                      : 'yellow'
-                                }
-                              >
-                                {item.status}
-                              </Badge>
-                            )}
-                          </td>
-                          {canIssueStores && (
-                            <td className="py-3 px-4 text-right">
-                              <Button
-                                size="sm"
-                                variant={item.status === 'ISSUED' ? 'outline' : 'primary'}
-                                disabled={item.status === 'ISSUED' || isIssuingItem}
-                                onClick={async () => {
-                                  try {
-                                    await issueItem({ id: indent.id, itemId: item.id });
-                                    window.alert('Component issued successfully');
-                                  } catch (error: any) {
-                                    window.alert(error.message || 'Failed to issue component');
-                                  }
-                                }}
-                                className="text-xs py-1 px-3"
-                              >
-                                {item.status === 'ISSUED' ? 'Issued ✓' : 'Issue Component'}
-                              </Button>
+          {!isDesignTeam && (
+            <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
+              <h3 className="text-sm font-bold text-text-primary mb-4">Component Issue Status</h3>
+              {indent.items && indent.items.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-3 px-4">S.No</th>
+                        <th className="py-3 px-4">Part Name / Product</th>
+                        <th className="py-3 px-4">Material</th>
+                        <th className="py-3 px-4">Quantity</th>
+                        <th className="py-3 px-4">Status</th>
+                        {canIssueStores && <th className="py-3 px-4 text-right">Action</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-default/50">
+                      {indent.items.map((item, index) => {
+                        const parsed = parseItemRemarks(item.remarks);
+                        return (
+                          <tr key={item.id} className="hover:bg-background-primary/40 text-sm">
+                            <td className="py-3 px-4 text-text-muted font-mono">{index + 1}</td>
+                            <td className="py-3 px-4 font-medium text-text-primary">
+                              {parsed.product || '—'}
                             </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-xs text-text-muted text-center py-4">
-                No material requirements recorded.
-              </p>
-            )}
-          </div>
+                            <td className="py-3 px-4">
+                              {item.material?.materialName || item.materialId}
+                            </td>
+                            <td className="py-3 px-4 font-medium">{item.quantity}</td>
+                            <td className="py-3 px-4">
+                              {item.status && (
+                                <Badge
+                                  tone={
+                                    item.status === 'ISSUED'
+                                      ? 'green'
+                                      : item.status === 'VERIFIED'
+                                        ? 'blue'
+                                        : 'yellow'
+                                  }
+                                >
+                                  {item.status}
+                                </Badge>
+                              )}
+                            </td>
+                            {canIssueStores && (
+                              <td className="py-3 px-4 text-right">
+                                <Button
+                                  size="sm"
+                                  variant={item.status === 'ISSUED' ? 'outline' : 'primary'}
+                                  disabled={item.status === 'ISSUED' || isIssuingItem}
+                                  onClick={async () => {
+                                    try {
+                                      await issueItem({ id: indent.id, itemId: item.id });
+                                      window.alert('Component issued successfully');
+                                    } catch (error: any) {
+                                      window.alert(error.message || 'Failed to issue component');
+                                    }
+                                  }}
+                                  className="text-xs py-1 px-3"
+                                >
+                                  {item.status === 'ISSUED' ? 'Issued ✓' : 'Issue Component'}
+                                </Button>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-text-muted text-center py-4">
+                  No material requirements recorded.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Attachments */}
           {indent.attachments && indent.attachments.length > 0 && (

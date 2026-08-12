@@ -25,44 +25,43 @@ export class HttpCacheInterceptor implements NestInterceptor {
 
     const httpContext = context.switchToHttp();
     const req = httpContext.getRequest();
-    const user = req.user;
     const query = req.query || {};
 
-    // 1. Build deterministic user context key parts
-    let userPart = 'anon';
-    if (user) {
-      const deptCode = user.department?.departmentCode || 'NO_DEPT';
-      const deptId = user.departmentId || user.department?.id || 'NO_DEPT_ID';
-      const isAdmin = user.permissions?.includes('settings.manage') ? '1' : '0';
-      const isManager = deptCode === 'SMGR' || deptCode === 'GMGR' ? '1' : '0';
-      const hasFinancialAccess =
-        isAdmin === '1' || isManager === '1' || deptCode === 'ACCT' ? '1' : '0';
-      const hasWorkflowAccess =
-        isAdmin === '1' || isManager === '1' || deptCode === 'DSGN' || deptCode === 'STOR'
-          ? '1'
-          : '0';
+    // Master data (units, processes, materials, etc.) is the same for all users -
+    // permissions are checked separately by the guard. Skip user-specific cache key
+    // for master data to maximize cache hit rate across all users.
+    const isMasterData = prefix.startsWith('master:');
 
-      userPart = `deptCode=${deptCode}:deptId=${deptId}:isAdmin=${isAdmin}:isManager=${isManager}:hasFin=${hasFinancialAccess}:hasWork=${hasWorkflowAccess}`;
-    }
-
-    // 2. Build deterministic query parameters key parts
+    // Build deterministic query parameters key parts
     const sortedQuery = Object.keys(query)
       .sort()
       .map((key) => `${key}=${query[key]}`)
       .join('&');
 
-    const cacheKey = `${prefix}:${userPart}:${sortedQuery || 'no_query'}`;
+    let cacheKey: string;
+    if (isMasterData) {
+      // Master data: same cache for all users, only vary by query params
+      cacheKey = `${prefix}:${sortedQuery || 'no_query'}`;
+    } else {
+      // Analytics/reports: include user context for role-based data
+      const user = req.user;
+      let userPart = 'anon';
+      if (user) {
+        const deptCode = user.department?.departmentCode || 'NO_DEPT';
+        const deptId = user.departmentId || user.department?.id || 'NO_DEPT_ID';
+        const isAdmin = user.permissions?.includes('settings.manage') ? '1' : '0';
+        userPart = `dept=${deptCode}:${deptId}:admin=${isAdmin}`;
+      }
+      cacheKey = `${prefix}:${userPart}:${sortedQuery || 'no_query'}`;
+    }
 
-    // 3. Try to hit the cache
+    // Try to hit the cache
     const cachedData = await this.cacheService.get(cacheKey);
     if (cachedData !== null) {
-      this.logger.log(`Cache HIT on key: ${cacheKey}`);
       return of(cachedData);
     }
 
-    this.logger.log(`Cache MISS on key: ${cacheKey}. Fetching from database.`);
-
-    // 4. If cache miss, execute the route handler and cache the response
+    // If cache miss, execute the route handler and cache the response
     return next.handle().pipe(
       tap(async (response) => {
         if (response !== undefined && response !== null) {

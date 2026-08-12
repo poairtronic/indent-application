@@ -787,10 +787,10 @@ export class BusinessTransactionService {
         prisma,
       );
 
-      for (const res of verificationResults) {
-        await prisma.indentItem.update({
-          where: { id: res.id },
-          data: { status: res.status },
+      if (verificationResults.length > 0) {
+        await prisma.indentItem.updateMany({
+          where: { id: { in: verificationResults.map((res) => res.id) } },
+          data: { status: 'AVAILABLE' },
         });
       }
 

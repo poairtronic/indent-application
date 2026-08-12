@@ -7,11 +7,17 @@ import type {
   CreateUnitPayload,
   UpdateUnitPayload,
 } from '../../../types/unit';
+import { useAuthStore } from '../../../store/authStore';
+import { AppPermission } from '../../../constants/permissions';
 
-export function useUnits(params: UnitQueryParams) {
+export function useUnits(params: UnitQueryParams, options?: { enabled?: boolean }) {
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canView = hasPermission(AppPermission.UNITS_VIEW);
+
   return useQuery({
     queryKey: [...queryKeys.units.list('units'), params],
     queryFn: () => unitService.list(params),
+    enabled: (options?.enabled !== false) && canView,
   });
 }
 

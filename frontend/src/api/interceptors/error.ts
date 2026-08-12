@@ -116,6 +116,7 @@ export function createErrorInterceptor(
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
       }).then((token) => {
+        originalRequest._retry = true;
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return import('axios').then(({ default: axios }) => axios(originalRequest));
       });

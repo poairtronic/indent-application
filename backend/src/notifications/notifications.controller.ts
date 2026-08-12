@@ -40,16 +40,14 @@ export class NotificationsController {
     const limitNum = parseInt(limit, 10) || 20;
     const offset = (pageNum - 1) * limitNum;
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { role: true, department: true },
-    });
-    if (!user) {
+    // Use user info from JWT (already validated and cached) instead of re-querying DB
+    const jwtUser = (req as any).user;
+    if (!jwtUser) {
       return { items: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
     }
 
-    const roleName = user.role?.roleName;
-    const deptCode = user.department?.departmentCode;
+    const roleName = jwtUser.role?.roleName;
+    const deptCode = jwtUser.department?.departmentCode;
     const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
 
     const where: any = {
@@ -180,21 +178,21 @@ export class NotificationsController {
     const userId = (req as any).user?.id;
     const cacheKey = `notifications:unread-count:${userId}`;
 
-    // Return cached count if available (20-second TTL reduces DB load from polling)
+    // Return cached count if available (60-second TTL reduces DB load from polling)
     const cached = await this.cacheService.get<number>(cacheKey);
     if (cached !== null) {
       return cached;
     }
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { role: true, department: true },
-    });
-    if (!user) {
+
+    // Use user info already validated and cached by JWT strategy
+    // instead of re-querying the database on every call
+    const jwtUser = (req as any).user;
+    if (!jwtUser) {
       return 0;
     }
 
-    const roleName = user.role?.roleName;
-    const deptCode = user.department?.departmentCode;
+    const roleName = jwtUser.role?.roleName;
+    const deptCode = jwtUser.department?.departmentCode;
     const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
 
     const where: any = {
@@ -261,7 +259,7 @@ export class NotificationsController {
     }
 
     const count = await this.prisma.notificationRecipient.count({ where });
-    await this.cacheService.set(cacheKey, count, 20);
+    await this.cacheService.set(cacheKey, count, 60);
     return count;
   }
 
@@ -271,11 +269,9 @@ export class NotificationsController {
   async getDetails(@Param('id') id: string, @Req() req: Request) {
     const userId = (req as any).user?.id;
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { role: true, department: true },
-    });
-    if (!user) {
+    // Use user info from JWT (already validated and cached) instead of re-querying DB
+    const jwtUser = (req as any).user;
+    if (!jwtUser) {
       throw new ForbiddenException('User not found.');
     }
 
@@ -292,8 +288,8 @@ export class NotificationsController {
       throw new NotFoundException('Notification not found.');
     }
 
-    const roleName = user.role?.roleName;
-    const deptCode = user.department?.departmentCode;
+    const roleName = jwtUser.role?.roleName;
+    const deptCode = jwtUser.department?.departmentCode;
     const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
 
     let isAuthorized = isAdmin;

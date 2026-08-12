@@ -341,6 +341,7 @@ model Unit {
   indentItems IndentItem[]
   amrItems    AdditionalMaterialItem[]
 
+  @@index([isDeleted])
   @@map("units")
 }
 
@@ -996,6 +997,7 @@ model NotificationRecipient {
   @@index([userId])
   @@index([isRead])
   @@index([isDeleted])
+  @@index([userId, isRead, isDeleted])
   @@map("notification_recipients")
 }
 

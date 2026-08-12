@@ -237,25 +237,6 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
         }
         break;
 
-      case 'ACCOUNTS_COST_VERIFICATION':
-        if (hasPermission(AppPermission.ACCOUNTS_VERIFY)) {
-          actions.push({
-            label: 'Enter Actual Costs',
-            icon: <Calculator size={16} />,
-            variant: 'primary',
-            permission: AppPermission.ACCOUNTS_VERIFY,
-            confirmTitle: `Enter Actual Costs: ${indentNumber}`,
-            confirmMessage:
-              'Navigate to the cost sheet to enter actual vendor and in-house costs. This will update the cost variance calculations.',
-            action: async (r) => {
-              await verifyAccounts({ id: indentId, remarks: r || 'Costs verification started' });
-              onSuccess?.();
-            },
-            isPending: isVerifyingAccounts,
-          });
-        }
-        break;
-
       case 'ACTUAL_COST_UPDATED':
         if (hasPermission(AppPermission.ACCOUNTS_CLOSE)) {
           actions.push({

@@ -1,5 +1,5 @@
 import React, { useEffect, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { useThemeStore } from '../store/theme.store';
 import { useSettingsStore } from '../store/settingsStore';
@@ -7,15 +7,9 @@ import { GlobalErrorBoundary } from '../components/common/GlobalErrorBoundary';
 
 import { useTabSync } from '../hooks/useTabSync';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
+import { createQueryClient } from '../api/hooks/query-client';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+const queryClient = createQueryClient();
 
 import { OfflineBanner } from '../components/common/OfflineBanner';
 

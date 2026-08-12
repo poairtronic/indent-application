@@ -19,6 +19,7 @@ export class BusinessTransactionEventService {
 
   /**
    * Dispatches Notification events to target department users and broadcasts to SM & GM executive roles.
+   * Runs asynchronously in the background so it does not block the transition request-response lifecycle.
    */
   public async dispatchNotification(
     indentId: string,
@@ -31,6 +32,22 @@ export class BusinessTransactionEventService {
       return;
     }
 
+    this.runDispatchNotificationBackground(indentId, indentNumber, toState, triggeredByUserId, rule)
+      .catch((error) => {
+        this.logger.error(
+          `Failed in background dispatch notification for Indent #${indentNumber} to state ${toState}: ${error.message}`,
+          error.stack,
+        );
+      });
+  }
+
+  private async runDispatchNotificationBackground(
+    indentId: string,
+    indentNumber: string,
+    toState: WorkflowState,
+    triggeredByUserId: string,
+    rule: any,
+  ): Promise<void> {
     try {
       // Determine allowed departments and whether to broadcast to managers for this state
       const targetDepts: string[] = [];
@@ -146,17 +163,17 @@ export class BusinessTransactionEventService {
         },
       });
 
-      // Log: Notification delivered for each recipient
-      for (const recId of uniqueUserIds) {
-        await this.prisma.auditLog.create({
-          data: {
-            module: 'NOTIFICATIONS',
-            recordId: notification.id,
-            action: 'DELIVER',
-            newValue: { recipientUserId: recId },
-            performedBy: triggeredByUserId || 'SYSTEM',
-          },
-        });
+      // Log: Notification delivered for each recipient (bulk asynchronous insert)
+      if (uniqueUserIds.length > 0) {
+        const auditLogData = uniqueUserIds.map((recId) => ({
+          module: 'NOTIFICATIONS',
+          recordId: notification.id,
+          action: 'DELIVER',
+          newValue: { recipientUserId: recId } as any,
+          performedBy: triggeredByUserId || 'SYSTEM',
+          ipAddress: '127.0.0.1',
+        }));
+        await this.prisma.auditLog.createMany({ data: auditLogData });
       }
 
       this.logger.log(
@@ -251,26 +268,26 @@ export class BusinessTransactionEventService {
     const moduleName = auditDef ? auditDef.moduleName : 'BUSINESS_TRANSACTION';
     const actionCode = auditDef ? auditDef.actionCode : auditType;
 
-    try {
-      await this.prisma.auditLog.create({
-        data: {
-          module: moduleName,
-          recordId,
-          action: actionCode,
-          oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : null,
-          newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : null,
-          performedBy: performedByUserId,
-          ipAddress: ipAddress || '127.0.0.1',
-        },
-      });
+    // Execute asynchronously in the background so it doesn't block the request path
+    this.prisma.auditLog.create({
+      data: {
+        module: moduleName,
+        recordId,
+        action: actionCode,
+        oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : null,
+        newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : null,
+        performedBy: performedByUserId,
+        ipAddress: ipAddress || '127.0.0.1',
+      },
+    }).then(() => {
       this.logger.log(
         `Audit Log recorded: Action '${actionCode}' on Record '${recordId}' by User '${performedByUserId}'.`,
       );
-    } catch (error) {
+    }).catch((error) => {
       this.logger.error(
         `Failed to record audit log for action ${actionCode}: ${error.message}`,
         error.stack,
       );
-    }
+    });
   }
 }
