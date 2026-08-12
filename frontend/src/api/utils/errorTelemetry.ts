@@ -1,3 +1,5 @@
+import { apiConfig, featureFlags } from '../config';
+
 export interface FrontendErrorReport {
   type: string;
   message: string;
@@ -12,6 +14,13 @@ export function reportFrontendError(
   stack?: string,
   url?: string,
 ): void {
+  // Telemetry must never block or degrade the application. It is disabled in
+  // local development (featureFlags.enableErrorReporting is false) and, when
+  // enabled, is sent to the real backend API base URL rather than a relative
+  // path that resolves to the Vite dev server (which previously produced a
+  // permanent 404 on POST /api/observability/frontend-errors).
+  if (!featureFlags.enableErrorReporting) return;
+
   // Avoid recursion loops if error reporting endpoint fails
   const currentUrl = window.location.href;
   if (currentUrl.includes('/api/observability/frontend-errors')) {
@@ -27,7 +36,7 @@ export function reportFrontendError(
   };
 
   try {
-    const backendUrl = '/api/observability/frontend-errors';
+    const backendUrl = `${apiConfig.baseURL}/observability/frontend-errors`;
     fetch(backendUrl, {
       method: 'POST',
       headers: {

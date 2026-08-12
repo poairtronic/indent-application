@@ -4,15 +4,6 @@ import { reportFrontendError } from '../utils/errorTelemetry';
 import type { ApiErrorResponse } from '../types/api-response';
 import { apiLogger } from '../utils/logger';
 import { logSecurityDenial } from '../../utils/securityLogger';
-import {
-  shouldRetry,
-  calculateRetryDelay,
-  getRetryAttempt,
-  incrementRetryAttempt,
-  sleep,
-} from '../utils/retry';
-import { DEFAULT_RETRY_CONFIG } from '../utils/retry';
-import type { RetryConfig } from '../utils/retry';
 
 let isRefreshing = false;
 let refreshAttempts = 0;
@@ -59,6 +50,13 @@ export function createErrorInterceptor(
         error.stack,
         originalRequest?.url,
       );
+
+      // Fix: Throw the appropriate NetworkError or TimeoutError here so the Query layer
+      // correctly identifies it and passes the correct boolean flags (isNetworkError) to the UI.
+      if (error.code === 'ECONNABORTED' || error.message.toLowerCase().includes('timeout')) {
+        throw new (await import('../errors')).TimeoutError(error.message);
+      }
+      throw new (await import('../errors')).NetworkError(error.message);
     }
 
     if (error.response?.status === 403) {
@@ -71,26 +69,14 @@ export function createErrorInterceptor(
       throw new ForbiddenError();
     }
 
-    const retryConfig: RetryConfig = {
-      ...DEFAULT_RETRY_CONFIG,
-      ...originalRequest.retry,
-    };
-    const currentAttempt = getRetryAttempt(originalRequest);
-
-    if (!originalRequest.skipRetry && shouldRetry(error, currentAttempt, retryConfig)) {
-      incrementRetryAttempt(originalRequest);
-      const delay = calculateRetryDelay(
-        currentAttempt,
-        retryConfig,
-        error.response?.headers?.['retry-after'],
-      );
-
-      apiLogger.retryAttempt(originalRequest.metadata?.requestId ?? '', currentAttempt + 1, delay);
-
-      await sleep(delay);
-      return import('axios').then(({ default: axios }) => axios(originalRequest));
-    }
-
+    // Automatic request retrying is intentionally handled centrally by the
+    // TanStack Query layer (see api/hooks/query-client.ts). Retrying here as
+    // well used to produce a double-retry storm where every query retry also
+    // triggered its own axios-level retry sequence with exponential backoff.
+    // This kept the page stuck on "Loading..." for tens of seconds and sent
+    // bursts of duplicate requests when the backend was briefly unavailable.
+    // Requests are instead retried (bounded + error-class aware) at the query
+    // layer, and 401 responses are handled via the token-refresh flow below.
     if (
       !error.response ||
       error.response.status !== 401 ||

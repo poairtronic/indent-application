@@ -1,5 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { observabilityEventBus } from './observability-event-bus';
+import { PrismaService } from '../prisma/prisma.service';
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 export interface SlowRequestInfo {
   method: string;
@@ -44,6 +46,11 @@ export interface FrontendErrorInfo {
 @Injectable()
 export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ObservabilityService.name);
+
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly redisCacheService: RedisCacheService,
+  ) {}
 
   // API Request Metrics
   private totalApiRequests = 0;
@@ -338,15 +345,24 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
     redis: 'UP' | 'DOWN';
     queue: 'UP' | 'DOWN';
   }> {
-    // DB Check - simple database status check
-    const dbStatus = this.dbConnected ? 'UP' : 'DOWN';
-    const redisStatus = this.redisConnected ? 'UP' : 'DOWN';
-    const queueStatus = this.redisConnected ? 'UP' : 'DOWN';
+    // Perform live, lightweight checks against the actual dependencies instead
+    // of relying only on in-memory event flags (those flags can remain false if
+    // the connection event fired before this service registered its listeners).
+    let database: 'UP' | 'DOWN' = 'DOWN';
+    try {
+      await this.prismaService.$queryRaw`SELECT 1`;
+      database = 'UP';
+    } catch {
+      database = 'DOWN';
+    }
+
+    // The BullMQ queue and the HTTP cache share the same Redis connection.
+    const redis: 'UP' | 'DOWN' = this.redisCacheService.getStatus() ? 'UP' : 'DOWN';
 
     return {
-      database: dbStatus,
-      redis: redisStatus,
-      queue: queueStatus,
+      database,
+      redis,
+      queue: redis,
     };
   }
 

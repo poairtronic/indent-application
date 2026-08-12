@@ -1081,36 +1081,63 @@ export const IndentForm: React.FC<IndentFormProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-4">
               <Input
                 label="Design Cost (₹)"
                 type="number"
                 step="0.01"
-                disabled={isReadOnly}
+                disabled={isReadOnly || isAccountsMode}
                 {...register('costSheet.designCost', { valueAsNumber: true })}
                 error={errors.costSheet?.designCost?.message}
               />
+              {(isAccountsMode || (watchedActualDesignCost ?? 0) > 0) && (
+                <Input
+                  label="Actual Design Cost (₹)"
+                  type="number"
+                  step="0.01"
+                  disabled={!isAccountsMode}
+                  {...register('costSheet.actualDesignCost', { valueAsNumber: true })}
+                />
+              )}
             </div>
-            <div className="md:col-span-2">
+            <div className="space-y-4">
               <Input
                 label="Overhead Cost (₹)"
                 type="number"
                 step="0.01"
-                disabled={isReadOnly}
+                disabled={isReadOnly || isAccountsMode}
                 {...register('costSheet.overheadCost', { valueAsNumber: true })}
                 error={errors.costSheet?.overheadCost?.message}
               />
+              {(isAccountsMode || (watchedActualOverheadCost ?? 0) > 0) && (
+                <Input
+                  label="Actual Overhead Cost (₹)"
+                  type="number"
+                  step="0.01"
+                  disabled={!isAccountsMode}
+                  {...register('costSheet.actualOverheadCost', { valueAsNumber: true })}
+                />
+              )}
             </div>
-            <div className="md:col-span-2">
+            <div className="space-y-4">
               <Input
                 label="Contingency Cost (₹)"
                 type="number"
                 step="0.01"
-                disabled={isReadOnly}
+                disabled={isReadOnly || isAccountsMode}
                 {...register('costSheet.contingencyCost', { valueAsNumber: true })}
                 error={errors.costSheet?.contingencyCost?.message}
               />
+              {(isAccountsMode || (watchedActualContingencyCost ?? 0) > 0) && (
+                <Input
+                  label="Actual Contingency Cost (₹)"
+                  type="number"
+                  step="0.01"
+                  disabled={!isAccountsMode}
+                  {...register('costSheet.actualContingencyCost', { valueAsNumber: true })}
+                />
+              )}
             </div>
           </div>
 

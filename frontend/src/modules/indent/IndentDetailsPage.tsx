@@ -5,8 +5,10 @@ import { IndentDetails } from './components/IndentDetails';
 import { WorkflowActions } from './components/WorkflowActions';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { ErrorState } from '../../components/ui/ErrorState';
 import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { useAuthStore } from '../../store/authStore';
+import { ApiError } from '../../api/errors';
 import {
   getWorkflowStage,
   formatWorkflowState,
@@ -23,7 +25,7 @@ export const IndentDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { toasts, show, dismiss } = useToasts();
   const user = useAuthStore((s) => s.user);
-  const { data: indent, isLoading, refetch } = useIndent(id || '');
+  const { data: indent, isLoading, isError, error, refetch } = useIndent(id || '');
 
   const hasPermission = useAuthStore((s) => s.hasPermission);
 
@@ -44,8 +46,52 @@ export const IndentDetailsPage: React.FC = () => {
     );
   }
 
+  if (isError) {
+    const apiError = error instanceof ApiError ? error : undefined;
+    if (apiError?.isNetworkError || apiError?.isTimeout || apiError?.status === 0) {
+      return (
+        <ErrorState
+          title="Unable to connect to the server"
+          message="The backend service may be unavailable. Verify the API server is running, then retry."
+          onRetry={() => refetch()}
+        />
+      );
+    }
+    if (apiError?.status === 404) {
+      return (
+        <ErrorState
+          title="Indent not found"
+          message="The requested indent could not be located."
+          onRetry={() => refetch()}
+        />
+      );
+    }
+    if (apiError?.isForbidden) {
+      return (
+        <ErrorState
+          title="Access Denied"
+          message="You do not have permission to view this indent."
+          onRetry={() => refetch()}
+        />
+      );
+    }
+    return (
+      <ErrorState
+        title="Failed to load indent details"
+        message={apiError?.message || 'An unexpected error occurred while loading the indent.'}
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
   if (!indent) {
-    return <div className="flex justify-center p-12 text-status-error">Indent not found.</div>;
+    return (
+      <ErrorState
+        title="Indent not found"
+        message="The requested indent could not be located."
+        onRetry={() => refetch()}
+      />
+    );
   }
 
   const currentState = indent.currentState as WorkflowState;

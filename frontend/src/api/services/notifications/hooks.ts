@@ -7,6 +7,7 @@ export function useNotifications(params?: NotificationQueryParams) {
   return useQuery({
     queryKey: [...queryKeys.notifications.list('notifications'), params],
     queryFn: () => notificationService.list(params),
+    retry: false,
   });
 }
 
@@ -36,5 +37,6 @@ export function useUnreadNotificationCount() {
     queryFn: () => notificationService.getUnreadCount(),
     staleTime: 30000,
     refetchInterval: 60000,
+    retry: false,
   });
 }

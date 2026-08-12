@@ -11,7 +11,7 @@ interface EnvironmentConfig {
   };
 }
 
-const DEFAULT_TIMEOUT = 30000;
+const DEFAULT_TIMEOUT = 10000;
 const DEFAULT_VERSION = 'v1';
 
 function getApiBaseUrl(): string {
