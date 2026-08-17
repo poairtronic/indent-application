@@ -43,7 +43,7 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costShee
         )}
         {processPct > 0 && (
           <div
-            className="h-full bg-indigo-500 transition-all duration-500 ease-out flex items-center justify-center text-[10px] text-white font-medium"
+            className="h-full bg-emerald-500 transition-all duration-500 ease-out flex items-center justify-center text-[10px] text-white font-medium"
             style={{ width: `${processPct}%` }}
             title={`Processes: ₹${processCost.toLocaleString()}`}
           >
@@ -82,7 +82,7 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costShee
           <span className="text-xs text-text-secondary">Materials</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm bg-indigo-500"></div>
+          <div className="w-3 h-3 rounded-sm bg-emerald-500"></div>
           <span className="text-xs text-text-secondary">Manufacturing Processes</span>
         </div>
       </div>
