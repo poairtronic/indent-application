@@ -6,9 +6,6 @@ import type {
   CostAnalytics,
   ProductAnalytics,
   VendorAnalytics,
-  CostAnalyticsQuery,
-  ProductAnalyticsQuery,
-  VendorAnalyticsQuery,
   KpiData,
 } from '../../types/analytics';
 import type { ListQueryParams } from '../../types/query-params';
@@ -30,20 +27,29 @@ class AnalyticsService extends BaseService {
     return this.get<DepartmentAnalytics>('/analytics/departments');
   }
 
-  async getCosts(params?: CostAnalyticsQuery): Promise<CostAnalytics> {
-    return this.get<CostAnalytics>('/analytics/costs', params as ListQueryParams | undefined);
+  async getCosts(params?: any): Promise<CostAnalytics> {
+    const query: Record<string, string> = {};
+    if (params?.from) query.from = params.from;
+    else if (params?.dateFrom) query.from = new Date(params.dateFrom).toISOString();
+    if (params?.to) query.to = params.to;
+    else if (params?.dateTo) query.to = new Date(params.dateTo).toISOString();
+    return this.get<CostAnalytics>('/analytics/costs', query as ListQueryParams | undefined);
   }
 
-  async getProducts(params?: ProductAnalyticsQuery): Promise<ProductAnalytics> {
+  async getProducts(params?: any): Promise<ProductAnalytics> {
     return this.get<ProductAnalytics>('/analytics/products', params as ListQueryParams | undefined);
   }
 
-  async getVendors(params?: VendorAnalyticsQuery): Promise<VendorAnalytics> {
+  async getVendors(params?: any): Promise<VendorAnalytics> {
     return this.get<VendorAnalytics>('/analytics/vendors', params as ListQueryParams | undefined);
   }
 
   async getKpis(params?: any): Promise<KpiData[]> {
     return this.get<KpiData[]>('/analytics/kpis', params as ListQueryParams | undefined);
+  }
+
+  async getInsights(params?: any): Promise<any> {
+    return this.get<any>('/analytics/insights', params as ListQueryParams | undefined);
   }
 }
 

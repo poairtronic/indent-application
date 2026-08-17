@@ -43,7 +43,7 @@ const formatRelativeTime = (dateStr: string) => {
 
 export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { data, isLoading } = useNotifications({ page: 1, limit: 20 });
+  const { data, isLoading } = useNotifications({ page: 1, limit: 20 }, isOpen);
   const { mutateAsync: markAsRead } = useMarkNotificationRead();
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
 

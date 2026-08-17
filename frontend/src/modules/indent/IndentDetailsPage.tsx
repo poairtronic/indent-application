@@ -32,7 +32,11 @@ export const IndentDetailsPage: React.FC = () => {
   const isEditable = React.useMemo(() => {
     if (!indent) return false;
     const access = getWorkflowAccess(indent.currentState as any, user);
-    return access.canEdit && hasPermission(AppPermission.INDENT_EDIT);
+    const requiredPermission =
+      indent.currentState === 'ACCOUNTS_COST_VERIFICATION'
+        ? AppPermission.ACCOUNTS_VERIFY
+        : AppPermission.INDENT_EDIT;
+    return access.canEdit && hasPermission(requiredPermission);
   }, [indent, user, hasPermission]);
 
   if (isLoading) {

@@ -18,6 +18,7 @@ export const TIMEOUTS = {
   UPLOAD: 120000,
   LONG_RUNNING: 60000,
   QUICK: 10000,
+  AUTH_REFRESH: 10000,
 } as const;
 
 export const CONTENT_TYPES = {

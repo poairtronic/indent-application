@@ -17,7 +17,7 @@ export function useProcesses(params: ProcessQueryParams, options?: { enabled?: b
   return useQuery({
     queryKey: [...queryKeys.processes.list('processes'), params],
     queryFn: () => processService.list(params),
-    enabled: (options?.enabled !== false) && canView,
+    enabled: options?.enabled !== false && canView,
   });
 }
 

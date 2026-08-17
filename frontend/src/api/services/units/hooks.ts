@@ -17,7 +17,7 @@ export function useUnits(params: UnitQueryParams, options?: { enabled?: boolean 
   return useQuery({
     queryKey: [...queryKeys.units.list('units'), params],
     queryFn: () => unitService.list(params),
-    enabled: (options?.enabled !== false) && canView,
+    enabled: options?.enabled !== false && canView,
   });
 }
 

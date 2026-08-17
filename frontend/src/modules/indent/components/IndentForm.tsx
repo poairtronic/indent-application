@@ -443,9 +443,14 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   onSubmit,
   isLoading,
   forceReadOnly,
-  isAccountsMode,
+  isAccountsMode: propIsAccountsMode,
   isProductionMode,
 }) => {
+  const isAccountsMode =
+    propIsAccountsMode !== undefined
+      ? propIsAccountsMode
+      : initialData?.currentState === 'ACCOUNTS_COST_VERIFICATION';
+
   const user = useAuthStore((s) => s.user);
   const canViewCostSheet = !!(
     user?.permissions?.includes('costsheet.view') || user?.permissions?.includes('settings.manage')

@@ -475,15 +475,15 @@ export const SummaryPage: React.FC = () => {
 
             {insightsData.insights.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {insightsData.insights.map((insight, idx) => {
-                  const severityStyles = {
+                {insightsData.insights.map((insight: any, idx: number) => {
+                  const severityStyles: Record<string, string> = {
                     CRITICAL: 'bg-red-50/20 border-red-500 text-red-700 dark:text-red-400',
                     WARNING: 'bg-amber-50/20 border-amber-500 text-amber-700 dark:text-amber-400',
                     SUCCESS: 'bg-green-50/20 border-green-500 text-green-700 dark:text-green-400',
                     INFO: 'bg-slate-50/10 border-border-default text-text-primary',
                   };
 
-                  const severityIcons = {
+                  const severityIcons: Record<string, string> = {
                     CRITICAL: '🚨',
                     WARNING: '⚠️',
                     SUCCESS: '✅',

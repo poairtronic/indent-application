@@ -35,7 +35,11 @@ function createApiClient(): AxiosInstance {
     (response) => response,
     createErrorInterceptor(
       async (refreshToken: string) => {
-        const response = await axios.post(`${apiConfig.baseURL}/auth/refresh`, { refreshToken });
+        const response = await axios.post(
+          `${apiConfig.baseURL}/auth/refresh`,
+          { refreshToken },
+          { timeout: TIMEOUTS.AUTH_REFRESH || 10000 },
+        );
         const { accessToken, refreshToken: newRefreshToken, user } = response.data.data;
         useAuthStore.getState().login(accessToken, newRefreshToken, user);
         return { accessToken, refreshToken: newRefreshToken };

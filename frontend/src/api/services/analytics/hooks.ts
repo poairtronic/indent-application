@@ -1,11 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../hooks/query-keys';
 import { analyticsService } from './service';
-import type {
-  CostAnalyticsQuery,
-  ProductAnalyticsQuery,
-  VendorAnalyticsQuery,
-} from '../../types/analytics';
 
 export function useAnalyticsSummary(enabled?: boolean) {
   return useQuery({
@@ -34,30 +29,30 @@ export function useDepartmentAnalytics(enabled?: boolean) {
   });
 }
 
-export function useCostAnalytics(params?: CostAnalyticsQuery, enabled?: boolean) {
+export function useCostAnalytics(params?: any, enabled?: boolean) {
   return useQuery({
     queryKey: [...queryKeys.analytics.detail('analytics', 'costs'), params],
     queryFn: () => analyticsService.getCosts(params),
-    staleTime: 60 * 1000,
-    enabled,
+    staleTime: 2 * 60 * 1000,
+    enabled: enabled !== undefined ? enabled : true,
   });
 }
 
-export function useProductAnalytics(params?: ProductAnalyticsQuery, enabled?: boolean) {
+export function useProductAnalytics(params?: any, enabled?: boolean) {
   return useQuery({
     queryKey: [...queryKeys.analytics.detail('analytics', 'products'), params],
     queryFn: () => analyticsService.getProducts(params),
-    staleTime: 60 * 1000,
-    enabled,
+    staleTime: 5 * 60 * 1000,
+    enabled: enabled !== undefined ? enabled : true,
   });
 }
 
-export function useVendorAnalytics(params?: VendorAnalyticsQuery, enabled?: boolean) {
+export function useVendorAnalytics(params?: any, enabled?: boolean) {
   return useQuery({
     queryKey: [...queryKeys.analytics.detail('analytics', 'vendors'), params],
     queryFn: () => analyticsService.getVendors(params),
-    staleTime: 60 * 1000,
-    enabled,
+    staleTime: 5 * 60 * 1000,
+    enabled: enabled !== undefined ? enabled : true,
   });
 }
 
@@ -66,6 +61,15 @@ export function useKpis(params?: any, enabled?: boolean) {
     queryKey: ['analytics', 'kpis', params],
     queryFn: () => analyticsService.getKpis(params),
     staleTime: 60 * 1000,
-    enabled,
+    enabled: enabled !== undefined ? enabled : true,
+  });
+}
+
+export function useInsights(params?: any, enabled?: boolean) {
+  return useQuery({
+    queryKey: ['analytics', 'insights', params],
+    queryFn: () => analyticsService.getInsights(params),
+    staleTime: 2 * 60 * 1000,
+    enabled: enabled !== undefined ? enabled : true,
   });
 }
