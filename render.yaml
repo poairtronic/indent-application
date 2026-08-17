@@ -1,7 +1,7 @@
 services:
   # Backend API Web Service
   - type: web
-    name: imcms-backend
+    name: indent-application
     env: node
     nodeVersion: 20
     region: ohio
@@ -18,7 +18,7 @@ services:
       - key: JWT_REFRESH_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://imcms-frontend.onrender.com
+        value: https://indent-application-frontend.onrender.com
       - key: REDIS_HOST
         sync: false
       - key: REDIS_PORT
@@ -46,7 +46,7 @@ services:
 
   # Frontend Static Site
   - type: web
-    name: imcms-frontend
+    name: indent-application-frontend
     env: static
     region: ohio
     buildCommand: npm run build
@@ -58,4 +58,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://imcms-backend.onrender.com/api
+        value: https://indent-application.onrender.com/api
