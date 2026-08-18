@@ -153,6 +153,7 @@ export class ReportsController {
         query,
       );
     } else {
+      const currency = this.reportsService.getSystemCurrency();
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
@@ -166,9 +167,24 @@ export class ReportsController {
           { header: 'Cost Number', key: 'costNumber' },
           { header: 'Indent Number', key: 'indentNumber' },
           { header: 'Product Name', key: 'productName' },
-          { header: 'Planned ($)', key: 'predictedTotal', type: 'currency', align: 'right' },
-          { header: 'Actual ($)', key: 'actualTotal', type: 'currency', align: 'right' },
-          { header: 'Variance ($)', key: 'varianceAmount', type: 'currency', align: 'right' },
+          {
+            header: `Planned (${currency.symbol})`,
+            key: 'predictedTotal',
+            type: 'currency',
+            align: 'right',
+          },
+          {
+            header: `Actual (${currency.symbol})`,
+            key: 'actualTotal',
+            type: 'currency',
+            align: 'right',
+          },
+          {
+            header: `Variance (${currency.symbol})`,
+            key: 'varianceAmount',
+            type: 'currency',
+            align: 'right',
+          },
           { header: 'Variance %', key: 'variancePercentage', type: 'percentage', align: 'right' },
         ],
         query,
@@ -220,6 +236,7 @@ export class ReportsController {
         query,
       );
     } else {
+      const currency = this.reportsService.getSystemCurrency();
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
@@ -235,9 +252,24 @@ export class ReportsController {
           { header: 'Category', key: 'category' },
           { header: 'Est Qty', key: 'totalPredictedQty', align: 'right' },
           { header: 'Act Qty', key: 'totalActualQty', align: 'right' },
-          { header: 'Est Amt ($)', key: 'totalPredictedAmount', type: 'currency', align: 'right' },
-          { header: 'Act Amt ($)', key: 'totalActualAmount', type: 'currency', align: 'right' },
-          { header: 'Variance ($)', key: 'varianceAmount', type: 'currency', align: 'right' },
+          {
+            header: `Est Amt (${currency.symbol})`,
+            key: 'totalPredictedAmount',
+            type: 'currency',
+            align: 'right',
+          },
+          {
+            header: `Act Amt (${currency.symbol})`,
+            key: 'totalActualAmount',
+            type: 'currency',
+            align: 'right',
+          },
+          {
+            header: `Variance (${currency.symbol})`,
+            key: 'varianceAmount',
+            type: 'currency',
+            align: 'right',
+          },
         ],
         query,
       );
@@ -303,6 +335,7 @@ export class ReportsController {
         query,
       );
     } else {
+      const currency = this.reportsService.getSystemCurrency();
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
@@ -317,13 +350,23 @@ export class ReportsController {
           { header: 'Vendor Name', key: 'vendorName' },
           { header: 'Items Supplied', key: 'totalCostItems', align: 'center' },
           {
-            header: 'Predicted Amt ($)',
+            header: `Predicted Amt (${currency.symbol})`,
             key: 'totalPredictedAmount',
             type: 'currency',
             align: 'right',
           },
-          { header: 'Actual Amt ($)', key: 'totalActualAmount', type: 'currency', align: 'right' },
-          { header: 'Variance ($)', key: 'totalVariance', type: 'currency', align: 'right' },
+          {
+            header: `Actual Amt (${currency.symbol})`,
+            key: 'totalActualAmount',
+            type: 'currency',
+            align: 'right',
+          },
+          {
+            header: `Variance (${currency.symbol})`,
+            key: 'totalVariance',
+            type: 'currency',
+            align: 'right',
+          },
           { header: 'Variance %', key: 'variancePercentage', type: 'percentage', align: 'right' },
         ],
         query,

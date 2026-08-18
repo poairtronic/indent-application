@@ -23,6 +23,13 @@ import { StoresIssueDto } from '../dto/stores-issue.dto';
 import { ProductionUpdateDto, CustomerDeliveryDto } from '../dto/production-update.dto';
 import { RedisCacheService } from '../../redis-cache/redis-cache.service';
 import { validateFileSignature } from '../../common/utils/file-validator.util';
+import {
+  safeMultiply,
+  safeAdd,
+  safeSubtract,
+  safeVariancePercentage,
+  roundTo4Decimals,
+} from '../utils/financial-math.util';
 
 @Injectable()
 export class BusinessTransactionService {
@@ -232,7 +239,7 @@ export class BusinessTransactionService {
             indentItems: {
               create: dto.indent.items.map((item, index) => ({
                 materialId: resolvedMaterialIds[index],
-                quantity: item.quantity,
+                quantity: roundTo4Decimals(item.quantity),
                 unitId: item.unitId,
                 remarks: item.remarks || null,
                 status: 'DRAFT',
@@ -266,26 +273,26 @@ export class BusinessTransactionService {
             costNumber,
             indentId: createdIndent.id,
             preparedBy: userId,
-            designCost: dto.costSheet.designCost || 0,
-            overheadCost: dto.costSheet.overheadCost || 0,
-            contingencyCost: dto.costSheet.contingencyCost || 0,
-            predictedTotal: dto.costSheet.predictedTotal,
+            designCost: roundTo4Decimals(dto.costSheet.designCost || 0),
+            overheadCost: roundTo4Decimals(dto.costSheet.overheadCost || 0),
+            contingencyCost: roundTo4Decimals(dto.costSheet.contingencyCost || 0),
+            predictedTotal: roundTo4Decimals(dto.costSheet.predictedTotal),
             status: 'DRAFT',
             createdBy: userId,
             costItems: {
               create: dto.costSheet.costItems.map((ci, index) => ({
                 materialId: resolvedMaterialIds[index],
                 vendorId: ci.vendorId || null,
-                predictedRate: ci.predictedRate,
-                predictedQuantity: ci.predictedQuantity,
-                predictedAmount: ci.predictedAmount,
+                predictedRate: roundTo4Decimals(ci.predictedRate),
+                predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
+                predictedAmount: safeMultiply(ci.predictedRate, ci.predictedQuantity),
                 remarks: ci.remarks || null,
               })),
             },
             processCosts: {
               create: dto.costSheet.processCosts.map((pc) => ({
                 processId: pc.processId,
-                predictedCost: pc.predictedCost,
+                predictedCost: roundTo4Decimals(pc.predictedCost),
                 estimatedHours: pc.estimatedHours,
               })),
             },
@@ -643,18 +650,18 @@ export class BusinessTransactionService {
             await tx.costSheet.update({
               where: { id: existingCostSheet.id },
               data: {
-                predictedTotal: dto.costSheet.predictedTotal,
+                predictedTotal: roundTo4Decimals(dto.costSheet.predictedTotal),
                 designCost:
                   dto.costSheet.designCost !== undefined
-                    ? dto.costSheet.designCost
+                    ? roundTo4Decimals(dto.costSheet.designCost)
                     : existingCostSheet.designCost,
                 overheadCost:
                   dto.costSheet.overheadCost !== undefined
-                    ? dto.costSheet.overheadCost
+                    ? roundTo4Decimals(dto.costSheet.overheadCost)
                     : existingCostSheet.overheadCost,
                 contingencyCost:
                   dto.costSheet.contingencyCost !== undefined
-                    ? dto.costSheet.contingencyCost
+                    ? roundTo4Decimals(dto.costSheet.contingencyCost)
                     : existingCostSheet.contingencyCost,
               },
             });
@@ -674,9 +681,9 @@ export class BusinessTransactionService {
                   costSheetId: existingCostSheet.id,
                   materialId: resolvedMaterialIds[index],
                   vendorId: ci.vendorId || null,
-                  predictedRate: ci.predictedRate,
-                  predictedQuantity: ci.predictedQuantity,
-                  predictedAmount: ci.predictedAmount,
+                  predictedRate: roundTo4Decimals(ci.predictedRate),
+                  predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
+                  predictedAmount: safeMultiply(ci.predictedRate, ci.predictedQuantity),
                   remarks: ci.remarks || null,
                 })),
               });
@@ -688,7 +695,7 @@ export class BusinessTransactionService {
                 data: dto.costSheet.processCosts.map((pc) => ({
                   costSheetId: existingCostSheet.id,
                   processId: pc.processId,
-                  predictedCost: pc.predictedCost,
+                  predictedCost: roundTo4Decimals(pc.predictedCost),
                   estimatedHours: pc.estimatedHours,
                 })),
               });
@@ -874,6 +881,49 @@ export class BusinessTransactionService {
 
     const updatedRemarks = `${txData.remarks || ''}\n[MATERIALS_ISSUED] Materials issued from Stores. ${dto.remarks ? `Remarks: ${dto.remarks}` : ''}`;
     await this.prisma.$transaction(async (prisma) => {
+      // 1. Fetch active indent items with Material
+      const itemsToIssue = await prisma.indentItem.findMany({
+        where: { indentId: id, isDeleted: false },
+        include: { material: true },
+      });
+
+      // 2. Verify stock availability and decrement atomically for non-issued items
+      for (const item of itemsToIssue) {
+        if (item.status !== 'ISSUED') {
+          const material = await prisma.material.findUnique({
+            where: { id: item.materialId },
+          });
+
+          if (!material) {
+            throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
+          }
+
+          const currentStock = Number(material.currentStock);
+          const requiredQty = Number(item.quantity);
+
+          if (currentStock < requiredQty) {
+            throw new BadRequestException(
+              `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Required: ${requiredQty}`,
+            );
+          }
+
+          const updatedMaterial = await prisma.material.update({
+            where: { id: material.id },
+            data: {
+              currentStock: { decrement: item.quantity },
+              updatedBy: userId,
+            },
+          });
+
+          if (Number(updatedMaterial.currentStock) < 0) {
+            throw new BadRequestException(
+              `Stock cannot be negative for material '${material.materialName}'.`,
+            );
+          }
+        }
+      }
+
+      // 3. State transition with optimistic lock protection
       await this.assertCurrentStateAndUpdate(
         id,
         txData.currentState,
@@ -885,12 +935,14 @@ export class BusinessTransactionService {
         },
         prisma,
       );
-      // Mark all items as ISSUED since we don't track physical inventory
+
+      // 4. Mark all items as ISSUED
       await prisma.indentItem.updateMany({
         where: { indentId: id },
         data: { status: 'ISSUED' },
       });
 
+      // 5. Create workflow history record
       await prisma.workflowHistory.create({
         data: {
           indentId: id,
@@ -926,10 +978,49 @@ export class BusinessTransactionService {
       throw new NotFoundException(`Material item with ID '${itemId}' not found in indent '${id}'.`);
     }
 
-    // 1. Update item status to ISSUED
-    await this.prisma.indentItem.update({
-      where: { id: itemId },
-      data: { status: 'ISSUED' },
+    if (item.status === 'ISSUED') {
+      throw new BadRequestException(
+        `Material item '${item.material?.materialName || itemId}' has already been issued.`,
+      );
+    }
+
+    await this.prisma.$transaction(async (prisma) => {
+      const material = await prisma.material.findUnique({
+        where: { id: item.materialId },
+      });
+
+      if (!material) {
+        throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
+      }
+
+      const currentStock = Number(material.currentStock);
+      const requiredQty = Number(item.quantity);
+
+      if (currentStock < requiredQty) {
+        throw new BadRequestException(
+          `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Required: ${requiredQty}`,
+        );
+      }
+
+      const updatedMaterial = await prisma.material.update({
+        where: { id: material.id },
+        data: {
+          currentStock: { decrement: item.quantity },
+          updatedBy: userId,
+        },
+      });
+
+      if (Number(updatedMaterial.currentStock) < 0) {
+        throw new BadRequestException(
+          `Stock cannot be negative for material '${material.materialName}'.`,
+        );
+      }
+
+      // Update item status to ISSUED
+      await prisma.indentItem.update({
+        where: { id: itemId },
+        data: { status: 'ISSUED' },
+      });
     });
 
     // Fetch updated items
@@ -1324,13 +1415,15 @@ export class BusinessTransactionService {
           if ((ciDto.actualRate || 0) < 0 || (ciDto.actualQuantity || 0) < 0) {
             throw new BadRequestException('Actual rates and quantities must be non-negative.');
           }
-          const actualAmount = (ciDto.actualRate || 0) * (ciDto.actualQuantity || 0);
-          totalMaterialActual += actualAmount;
+          const actualRate = roundTo4Decimals(ciDto.actualRate ?? 0);
+          const actualQuantity = roundTo4Decimals(ciDto.actualQuantity ?? 0);
+          const actualAmount = safeMultiply(actualRate, actualQuantity);
+          totalMaterialActual = safeAdd([totalMaterialActual, actualAmount]);
           await tx.costItem.update({
             where: { id: ciDto.costItemId },
             data: {
-              actualRate: ciDto.actualRate,
-              actualQuantity: ciDto.actualQuantity,
+              actualRate,
+              actualQuantity,
               actualAmount,
               remarks: ciDto.remarks || undefined,
               updatedBy: userId,
@@ -1341,10 +1434,7 @@ export class BusinessTransactionService {
         const existingCostItems = await tx.costItem.findMany({
           where: { costSheetId },
         });
-        totalMaterialActual = existingCostItems.reduce(
-          (sum, item) => sum + Number(item.actualAmount || 0),
-          0,
-        );
+        totalMaterialActual = safeAdd(existingCostItems.map((item) => item.actualAmount));
       }
 
       // 2. Update ProcessCosts actual cost and actual hours
@@ -1353,17 +1443,18 @@ export class BusinessTransactionService {
           if ((pcDto.actualCost || 0) < 0 || (pcDto.actualHours || 0) < 0) {
             throw new BadRequestException('Actual costs and hours must be non-negative.');
           }
-          totalProcessActual += pcDto.actualCost || 0;
+          const actualCost = roundTo4Decimals(pcDto.actualCost ?? 0);
+          totalProcessActual = safeAdd([totalProcessActual, actualCost]);
           const existingPc = await tx.processCost.findUnique({
             where: { id: pcDto.processCostId },
           });
           const predicted = existingPc ? Number(existingPc.predictedCost) : 0;
-          const variance = (pcDto.actualCost || 0) - predicted;
+          const variance = safeSubtract(actualCost, predicted);
 
           await tx.processCost.update({
             where: { id: pcDto.processCostId },
             data: {
-              actualCost: pcDto.actualCost,
+              actualCost,
               actualHours: pcDto.actualHours,
               variance,
               updatedBy: userId,
@@ -1374,39 +1465,37 @@ export class BusinessTransactionService {
         const existingProcessCosts = await tx.processCost.findMany({
           where: { costSheetId },
         });
-        totalProcessActual = existingProcessCosts.reduce(
-          (sum, item) => sum + Number(item.actualCost || 0),
-          0,
-        );
+        totalProcessActual = safeAdd(existingProcessCosts.map((item) => item.actualCost));
       }
 
       // 3. Extract and update global actual costs directly from DTO
       const actualDesignCost =
         dto.actualDesignCost !== undefined && dto.actualDesignCost !== null
-          ? Number(dto.actualDesignCost)
-          : Number(txData.costSheet.actualDesignCost || 0);
+          ? roundTo4Decimals(dto.actualDesignCost)
+          : roundTo4Decimals(txData.costSheet.actualDesignCost || 0);
 
       const actualOverheadCost =
         dto.actualOverheadCost !== undefined && dto.actualOverheadCost !== null
-          ? Number(dto.actualOverheadCost)
-          : Number(txData.costSheet.actualOverheadCost || 0);
+          ? roundTo4Decimals(dto.actualOverheadCost)
+          : roundTo4Decimals(txData.costSheet.actualOverheadCost || 0);
 
       const actualContingencyCost =
         dto.actualContingencyCost !== undefined && dto.actualContingencyCost !== null
-          ? Number(dto.actualContingencyCost)
-          : Number(txData.costSheet.actualContingencyCost || 0);
+          ? roundTo4Decimals(dto.actualContingencyCost)
+          : roundTo4Decimals(txData.costSheet.actualContingencyCost || 0);
 
       // 4. Compute overall CostSheet actual total and variance
-      const actualTotal =
-        totalMaterialActual +
-        totalProcessActual +
-        actualDesignCost +
-        actualOverheadCost +
-        actualContingencyCost;
+      const actualTotal = safeAdd([
+        totalMaterialActual,
+        totalProcessActual,
+        actualDesignCost,
+        actualOverheadCost,
+        actualContingencyCost,
+      ]);
 
-      const predictedTotal = Number(txData.costSheet.predictedTotal || 0);
-      const varianceAmount = actualTotal - predictedTotal;
-      const variancePercentage = predictedTotal > 0 ? (varianceAmount / predictedTotal) * 100 : 0;
+      const predictedTotal = roundTo4Decimals(txData.costSheet.predictedTotal || 0);
+      const varianceAmount = safeSubtract(actualTotal, predictedTotal);
+      const variancePercentage = safeVariancePercentage(varianceAmount, predictedTotal);
 
       await tx.costSheet.update({
         where: { id: costSheetId },
@@ -1494,12 +1583,14 @@ export class BusinessTransactionService {
 
     await this.prisma.$transaction(async (tx) => {
       // 1. Update target CostItem
-      const actualAmount = dto.actualRate * dto.actualQuantity;
+      const actualRate = roundTo4Decimals(dto.actualRate);
+      const actualQuantity = roundTo4Decimals(dto.actualQuantity);
+      const actualAmount = safeMultiply(actualRate, actualQuantity);
       await tx.costItem.update({
         where: { id: dto.costItemId },
         data: {
-          actualRate: dto.actualRate,
-          actualQuantity: dto.actualQuantity,
+          actualRate,
+          actualQuantity,
           actualAmount,
           remarks: dto.remarks || undefined,
           updatedBy: userId,
@@ -1514,24 +1605,19 @@ export class BusinessTransactionService {
         where: { costSheetId },
       });
 
-      const totalMaterialActual = allCostItems.reduce(
-        (sum, item) => sum + Number(item.actualAmount || 0),
-        0,
-      );
-      const totalProcessActual = allProcessCosts.reduce(
-        (sum, item) => sum + Number(item.actualCost || 0),
-        0,
-      );
+      const totalMaterialActual = safeAdd(allCostItems.map((item) => item.actualAmount));
+      const totalProcessActual = safeAdd(allProcessCosts.map((item) => item.actualCost));
 
-      const actualTotal =
-        totalMaterialActual +
-        totalProcessActual +
-        Number(txData.costSheet.actualDesignCost || 0) +
-        Number(txData.costSheet.actualOverheadCost || 0) +
-        Number(txData.costSheet.actualContingencyCost || 0);
-      const predictedTotal = Number(txData.costSheet.predictedTotal || 0);
-      const varianceAmount = actualTotal - predictedTotal;
-      const variancePercentage = predictedTotal > 0 ? (varianceAmount / predictedTotal) * 100 : 0;
+      const actualTotal = safeAdd([
+        totalMaterialActual,
+        totalProcessActual,
+        txData.costSheet.actualDesignCost,
+        txData.costSheet.actualOverheadCost,
+        txData.costSheet.actualContingencyCost,
+      ]);
+      const predictedTotal = roundTo4Decimals(txData.costSheet.predictedTotal || 0);
+      const varianceAmount = safeSubtract(actualTotal, predictedTotal);
+      const variancePercentage = safeVariancePercentage(varianceAmount, predictedTotal);
 
       // 3. Update CostSheet calculations
       await tx.costSheet.update({

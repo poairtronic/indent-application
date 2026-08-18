@@ -32,13 +32,18 @@ export class BusinessTransactionEventService {
       return;
     }
 
-    this.runDispatchNotificationBackground(indentId, indentNumber, toState, triggeredByUserId, rule)
-      .catch((error) => {
-        this.logger.error(
-          `Failed in background dispatch notification for Indent #${indentNumber} to state ${toState}: ${error.message}`,
-          error.stack,
-        );
-      });
+    this.runDispatchNotificationBackground(
+      indentId,
+      indentNumber,
+      toState,
+      triggeredByUserId,
+      rule,
+    ).catch((error) => {
+      this.logger.error(
+        `Failed in background dispatch notification for Indent #${indentNumber} to state ${toState}: ${error.message}`,
+        error.stack,
+      );
+    });
   }
 
   private async runDispatchNotificationBackground(
@@ -269,25 +274,28 @@ export class BusinessTransactionEventService {
     const actionCode = auditDef ? auditDef.actionCode : auditType;
 
     // Execute asynchronously in the background so it doesn't block the request path
-    this.prisma.auditLog.create({
-      data: {
-        module: moduleName,
-        recordId,
-        action: actionCode,
-        oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : null,
-        newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : null,
-        performedBy: performedByUserId,
-        ipAddress: ipAddress || '127.0.0.1',
-      },
-    }).then(() => {
-      this.logger.log(
-        `Audit Log recorded: Action '${actionCode}' on Record '${recordId}' by User '${performedByUserId}'.`,
-      );
-    }).catch((error) => {
-      this.logger.error(
-        `Failed to record audit log for action ${actionCode}: ${error.message}`,
-        error.stack,
-      );
-    });
+    this.prisma.auditLog
+      .create({
+        data: {
+          module: moduleName,
+          recordId,
+          action: actionCode,
+          oldValue: oldValue ? JSON.parse(JSON.stringify(oldValue)) : null,
+          newValue: newValue ? JSON.parse(JSON.stringify(newValue)) : null,
+          performedBy: performedByUserId,
+          ipAddress: ipAddress || '127.0.0.1',
+        },
+      })
+      .then(() => {
+        this.logger.log(
+          `Audit Log recorded: Action '${actionCode}' on Record '${recordId}' by User '${performedByUserId}'.`,
+        );
+      })
+      .catch((error) => {
+        this.logger.error(
+          `Failed to record audit log for action ${actionCode}: ${error.message}`,
+          error.stack,
+        );
+      });
   }
 }

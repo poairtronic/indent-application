@@ -98,6 +98,7 @@ describe('AnalyticsService', () => {
     beforeEach(() => {
       // First findMany call: all non-deleted indents for domain state counting (uses currentState)
       // Second findMany call: completed indents for cycle time calculation
+      // Third findMany call: active indents for stalled check
       mockPrisma.indent.findMany
         .mockResolvedValueOnce([
           { currentState: 'DRAFT' },
@@ -130,6 +131,20 @@ describe('AnalyticsService', () => {
             createdAt: new Date('2025-02-01'),
             updatedAt: new Date('2025-02-06'), // 5 days
           },
+        ])
+        .mockResolvedValueOnce([
+          // Stalled (entered 10 days ago)
+          {
+            id: 'ind-1',
+            createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+            workflowHistory: [{ movedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) }],
+          },
+          // Not stalled (entered 2 days ago, even if created 20 days ago)
+          {
+            id: 'ind-2',
+            createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+            workflowHistory: [{ movedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) }],
+          },
         ]);
       mockPrisma.indent.count.mockResolvedValue(20);
     });
@@ -152,13 +167,17 @@ describe('AnalyticsService', () => {
       expect(result.bottleneckStage).toBe('DESIGN_COMPLETED');
     });
 
-    it('should return stalledTransactions count', async () => {
+    it('should return stalledTransactions count based on current state entry timestamp', async () => {
       const result = await service.getWorkflowAnalytics();
-      expect(result.stalledTransactions).toBe(20);
+      expect(result.stalledTransactions).toBe(1);
     });
 
     it('should return null averageCycleDays when no completed indents exist', async () => {
-      mockPrisma.indent.findMany.mockReset().mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+      mockPrisma.indent.findMany
+        .mockReset()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
       const result = await service.getWorkflowAnalytics();
       expect(result.averageCycleDays).toBeNull();
     });

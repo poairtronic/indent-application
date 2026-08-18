@@ -198,7 +198,10 @@ describe('AuthService', () => {
     };
 
     it('should refresh token pair and revoke only the specific session', async () => {
-      mockTokenService.verifyRefreshToken.mockResolvedValue({ sub: 'user_id', email: 'test@example.com' });
+      mockTokenService.verifyRefreshToken.mockResolvedValue({
+        sub: 'user_id',
+        email: 'test@example.com',
+      });
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
       const result = await service.refresh('user_id', 'old_refresh_token');
@@ -216,4 +219,3 @@ describe('AuthService', () => {
     });
   });
 });
-

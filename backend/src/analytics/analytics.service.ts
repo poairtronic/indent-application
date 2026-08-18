@@ -140,7 +140,7 @@ export class AnalyticsService {
   public async getWorkflowAnalytics(): Promise<IWorkflowAnalytics> {
     this.logger.log('Computing workflow analytics');
 
-    const [allIndents, completedIndents, total, stalledCount] = await Promise.all([
+    const [allIndents, completedIndents, total, activeIndents] = await Promise.all([
       // Fetch all non-deleted indents to compute domain-state-level distribution.
       // Uses currentState column for direct domain WorkflowState grouping.
       this.prisma.indent.findMany({
@@ -154,17 +154,38 @@ export class AnalyticsService {
       }),
       // Total non-deleted
       this.prisma.indent.count({ where: { isDeleted: false } }),
-      // Stalled: pending for more than 7 days in same state
-      this.prisma.indent.count({
+      // Active indents to evaluate stalled duration based on current state entry timestamp (BUG-KPI-001)
+      this.prisma.indent.findMany({
         where: {
           isDeleted: false,
           status: { in: ACTIVE_STATUSES },
-          updatedAt: {
-            lte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        },
+        select: {
+          id: true,
+          createdAt: true,
+          workflowHistory: {
+            where: { isDeleted: false },
+            orderBy: { movedAt: 'desc' },
+            take: 1,
+            select: { movedAt: true },
           },
         },
       }),
     ]);
+
+    // Compute stalled transactions: active indents whose current state entry timestamp is > 7 days ago
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    let stalledCount = 0;
+    for (const indent of activeIndents) {
+      const stateEnteredAt =
+        indent.workflowHistory && indent.workflowHistory.length > 0
+          ? new Date(indent.workflowHistory[0].movedAt)
+          : new Date(indent.createdAt);
+
+      if (stateEnteredAt <= sevenDaysAgo) {
+        stalledCount++;
+      }
+    }
 
     // Group by domain WorkflowState using currentState column directly
     const domainStateCounts = new Map<string, number>();

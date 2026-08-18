@@ -23,6 +23,21 @@ export class ReportsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  public getSystemCurrency(): { symbol: string; code: string; numFmt: string } {
+    const code = (
+      process.env.DEFAULT_CURRENCY ||
+      process.env.SYSTEM_CURRENCY ||
+      'INR'
+    ).toUpperCase();
+    if (code === 'USD') {
+      return { symbol: '$', code: 'USD', numFmt: '$#,##0.00' };
+    }
+    if (code === 'EUR') {
+      return { symbol: '€', code: 'EUR', numFmt: '€#,##0.00' };
+    }
+    return { symbol: '₹', code: 'INR', numFmt: '[$₹-439] #,##0.00' };
+  }
+
   async generateExcel(
     res: any,
     title: string,
@@ -35,6 +50,7 @@ export class ReportsService {
     }[],
     queryParams: any,
   ) {
+    const currency = this.getSystemCurrency();
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Report');
 
@@ -106,7 +122,7 @@ export class ReportsService {
         };
         if (typeof cell.value === 'number') {
           if (colDef.type === 'currency') {
-            cell.numFmt = '$#,##0.00';
+            cell.numFmt = currency.numFmt;
             cell.alignment = { horizontal: 'right' };
           } else if (colDef.type === 'percentage') {
             cell.numFmt = '0.00"%"';
@@ -138,79 +154,89 @@ export class ReportsService {
     columns: {
       header: string;
       key: string;
+      width?: number;
       align?: 'left' | 'center' | 'right';
       type?: 'string' | 'number' | 'date' | 'currency' | 'percentage';
     }[],
     queryParams: any,
   ) {
-    const isLandscape = columns.length > 6;
-    const doc = new PDFDocument({
-      size: 'A4',
-      layout: isLandscape ? 'landscape' : 'portrait',
-      margin: 30,
-      bufferPages: true,
-    });
-
+    const currency = this.getSystemCurrency();
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
     doc.pipe(res);
 
-    // Header Title
-    doc
-      .fillColor('#1E293B')
-      .rect(30, 30, doc.page.width - 60, 40)
-      .fill();
+    // Title Section
+    doc.rect(30, 30, doc.page.width - 60, 40).fill('#1E293B');
     doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(14).text(`IMCMS - ${title}`, 40, 44);
 
-    // Meta Info
-    doc.fillColor('#334155').font('Helvetica-Bold').fontSize(9).text('Generated At:', 30, 85);
-    doc.font('Helvetica').text(new Date().toISOString().replace('T', ' ').slice(0, 19), 110, 85);
+    // Subheader with metadata
+    doc
+      .fillColor('#64748B')
+      .font('Helvetica')
+      .fontSize(9)
+      .text(
+        `Generated: ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`,
+        doc.page.width - 200,
+        45,
+        { align: 'right', width: 160 },
+      );
 
-    doc.font('Helvetica-Bold').text('Filters Applied:', 30, 100);
     const filterText =
       Object.entries(queryParams)
         .filter(([k, v]) => v && !['page', 'limit', 'sortBy', 'sortOrder', 'format'].includes(k))
         .map(([k, v]) => `${k}: ${v}`)
-        .join(', ') || 'None';
-    doc.font('Helvetica').text(filterText, 110, 100, { width: doc.page.width - 150 });
+        .join(' | ') || 'None';
 
-    doc.moveDown(2);
+    doc
+      .fillColor('#475569')
+      .fontSize(8)
+      .text(`Active Filters: ${filterText}`, 30, 80, { width: doc.page.width - 60 });
 
-    let startY = 130;
+    let currentY = 100;
     const colWidth = (doc.page.width - 60) / columns.length;
 
-    const drawHeader = (y: number) => {
+    // Header Background
+    doc.rect(30, currentY, doc.page.width - 60, 20).fill('#334155');
+
+    // Header Text
+    columns.forEach((col, idx) => {
       doc
-        .fillColor('#334155')
-        .rect(30, y, doc.page.width - 60, 20)
-        .fill();
-      doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8);
-      columns.forEach((col, idx) => {
-        doc.text(col.header, 35 + idx * colWidth, y + 6, {
+        .fillColor('#FFFFFF')
+        .font('Helvetica-Bold')
+        .fontSize(9)
+        .text(col.header, 35 + idx * colWidth, currentY + 6, {
           width: colWidth - 10,
           align: col.align || 'left',
         });
-      });
-    };
+    });
 
-    drawHeader(startY);
-    startY += 20;
+    currentY += 20;
 
-    doc.fillColor('#000000').font('Helvetica').fontSize(8);
-    let currentY = startY;
+    // Data Rows
+    doc.font('Helvetica').fontSize(8);
+    data.forEach((row, rowIndex) => {
+      if (currentY > doc.page.height - 60) {
+        doc.addPage({ margin: 30, size: 'A4', layout: 'landscape' });
+        currentY = 30;
 
-    data.forEach((row, rowIdx) => {
-      if (currentY > doc.page.height - 50) {
-        doc.addPage({
-          size: 'A4',
-          layout: isLandscape ? 'landscape' : 'portrait',
-          margin: 30,
+        // Repeat headers on new page
+        doc.rect(30, currentY, doc.page.width - 60, 20).fill('#334155');
+
+        columns.forEach((col, idx) => {
+          doc
+            .fillColor('#FFFFFF')
+            .font('Helvetica-Bold')
+            .fontSize(9)
+            .text(col.header, 35 + idx * colWidth, currentY + 6, {
+              width: colWidth - 10,
+              align: col.align || 'left',
+            });
         });
-        currentY = 40;
-        drawHeader(currentY);
+        doc.font('Helvetica').fontSize(8);
         currentY += 20;
-        doc.fillColor('#000000').font('Helvetica').fontSize(8);
       }
 
-      if (rowIdx % 2 === 1) {
+      // Zebra striping
+      if (rowIndex % 2 === 1) {
         doc
           .fillColor('#F8FAFC')
           .rect(30, currentY, doc.page.width - 60, 18)
@@ -223,7 +249,7 @@ export class ReportsService {
         if (col.type === 'date' && val) {
           val = new Date(val).toLocaleDateString();
         } else if (col.type === 'currency' && typeof val === 'number') {
-          val = `$${val.toFixed(2)}`;
+          val = `${currency.symbol}${val.toFixed(2)}`;
         } else if (col.type === 'percentage' && typeof val === 'number') {
           val = `${val.toFixed(2)}%`;
         } else if (val === null || val === undefined) {
