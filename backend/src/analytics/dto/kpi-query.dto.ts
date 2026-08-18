@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsDateString, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsUUID, IsInt } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class KpiQueryDto {
   @IsOptional()
@@ -28,4 +29,14 @@ export class KpiQueryDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  limit?: number;
 }

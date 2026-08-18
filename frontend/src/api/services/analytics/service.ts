@@ -8,7 +8,6 @@ import type {
   VendorAnalytics,
   KpiData,
 } from '../../types/analytics';
-import type { ListQueryParams } from '../../types/query-params';
 
 class AnalyticsService extends BaseService {
   constructor() {
@@ -16,15 +15,15 @@ class AnalyticsService extends BaseService {
   }
 
   async getSummary(): Promise<AnalyticsSummary> {
-    return this.get<AnalyticsSummary>('/analytics/summary');
+    return this.getRaw<AnalyticsSummary>('/analytics/summary');
   }
 
   async getWorkflow(): Promise<WorkflowAnalytics> {
-    return this.get<WorkflowAnalytics>('/analytics/workflow');
+    return this.getRaw<WorkflowAnalytics>('/analytics/workflow');
   }
 
   async getDepartments(): Promise<DepartmentAnalytics> {
-    return this.get<DepartmentAnalytics>('/analytics/departments');
+    return this.getRaw<DepartmentAnalytics>('/analytics/departments');
   }
 
   async getCosts(params?: any): Promise<CostAnalytics> {
@@ -33,23 +32,33 @@ class AnalyticsService extends BaseService {
     else if (params?.dateFrom) query.from = new Date(params.dateFrom).toISOString();
     if (params?.to) query.to = params.to;
     else if (params?.dateTo) query.to = new Date(params.dateTo).toISOString();
-    return this.get<CostAnalytics>('/analytics/costs', query as ListQueryParams | undefined);
+    return this.getRaw<CostAnalytics>('/analytics/costs', Object.keys(query).length > 0 ? query : undefined);
   }
 
   async getProducts(params?: any): Promise<ProductAnalytics> {
-    return this.get<ProductAnalytics>('/analytics/products', params as ListQueryParams | undefined);
+    const query: Record<string, any> = {};
+    if (params?.limit) query.limit = params.limit;
+    return this.getRaw<ProductAnalytics>(
+      '/analytics/products',
+      Object.keys(query).length > 0 ? query : undefined,
+    );
   }
 
   async getVendors(params?: any): Promise<VendorAnalytics> {
-    return this.get<VendorAnalytics>('/analytics/vendors', params as ListQueryParams | undefined);
+    const query: Record<string, any> = {};
+    if (params?.limit) query.limit = params.limit;
+    return this.getRaw<VendorAnalytics>(
+      '/analytics/vendors',
+      Object.keys(query).length > 0 ? query : undefined,
+    );
   }
 
   async getKpis(params?: any): Promise<KpiData[]> {
-    return this.get<KpiData[]>('/analytics/kpis', params as ListQueryParams | undefined);
+    return this.getRaw<KpiData[]>('/analytics/kpis', params);
   }
 
   async getInsights(params?: any): Promise<any> {
-    return this.get<any>('/analytics/insights', params as ListQueryParams | undefined);
+    return this.getRaw<any>('/analytics/insights', params);
   }
 }
 

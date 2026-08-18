@@ -33,6 +33,15 @@ export class BaseService {
     return unwrap(response.data);
   }
 
+  async getRaw<T>(path: string, params?: Record<string, any>, config?: AxiosRequestConfig): Promise<T> {
+    const response = await apiClient.get<ApiResponse<T>>(path, {
+      params,
+      timeout: this.timeout,
+      ...config,
+    });
+    return unwrap(response.data);
+  }
+
   async getById<T>(id: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await apiClient.get<ApiResponse<T>>(`${this.basePath}/${id}`, {
       timeout: this.timeout,

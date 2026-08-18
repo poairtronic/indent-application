@@ -19,6 +19,16 @@ export class AnalyticsDateRangeDto {
   @IsOptional()
   @IsDateString()
   to?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  limit?: number;
 }
 
 /**
@@ -35,6 +45,11 @@ export class ProductAnalyticsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
   @Min(1)
   @Max(100)
   limit?: number;
@@ -45,6 +60,11 @@ export class ProductAnalyticsQueryDto {
  * Allows limiting results to top-N vendors by cost value.
  */
 export class VendorAnalyticsQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  page?: number;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()
