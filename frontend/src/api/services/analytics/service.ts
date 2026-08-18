@@ -32,7 +32,10 @@ class AnalyticsService extends BaseService {
     else if (params?.dateFrom) query.from = new Date(params.dateFrom).toISOString();
     if (params?.to) query.to = params.to;
     else if (params?.dateTo) query.to = new Date(params.dateTo).toISOString();
-    return this.getRaw<CostAnalytics>('/analytics/costs', Object.keys(query).length > 0 ? query : undefined);
+    return this.getRaw<CostAnalytics>(
+      '/analytics/costs',
+      Object.keys(query).length > 0 ? query : undefined,
+    );
   }
 
   async getProducts(params?: any): Promise<ProductAnalytics> {
