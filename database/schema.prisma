@@ -8,6 +8,12 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../backend/node_modules/.prisma/client"
+}
+
+generator rootClient {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 // ==========================================
