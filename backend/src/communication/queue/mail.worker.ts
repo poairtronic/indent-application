@@ -80,16 +80,28 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`Job completed: ${job.id}`);
       });
 
-      this.worker.on('failed', (job, err) => {
+      this.worker.on('failed', async (job, err) => {
         this.logger.error(
           `Job processing execution failed on worker loop: ${job?.id}. Error: ${err.message}`,
           err.stack,
         );
-        observabilityEventBus.emit('notification.event', {
-          action: 'failed',
-          success: false,
-          error: `Worker loop failure: ${err.message}`,
-        });
+
+        if (job && job.data) {
+          const attemptsMade = job.attemptsMade;
+          const maxAttempts = job.opts.attempts || 1;
+
+          if (attemptsMade >= maxAttempts) {
+            await this.queueProcessor.handleFinalFailure(job.data, err.message);
+          } else {
+            await this.queueProcessor.handleRetry(job.data, err.message, attemptsMade);
+          }
+        } else {
+          observabilityEventBus.emit('notification.event', {
+            action: 'failed',
+            success: false,
+            error: `Worker loop failure: ${err.message}`,
+          });
+        }
       });
 
       this.worker.on('error', (err) => {

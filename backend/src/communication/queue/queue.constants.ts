@@ -19,6 +19,7 @@ export enum EmailState {
 
 export interface IJobPayload {
   jobId: string;
+  emailLogIds?: string[];
   recipient: string;
   recipients: string[];
   template: string;

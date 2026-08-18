@@ -137,18 +137,18 @@ describe('Enterprise Email Delivery Pipeline (Queue & Worker)', () => {
       expect(mockNodemailerProvider.sendEmail).toHaveBeenCalled();
       expect(mockPrisma.emailLog.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'job-123' },
+          where: { id: { in: ['job-123'] } },
           data: expect.objectContaining({ status: EmailState.SENT }),
         }),
       );
     });
 
-    it('should trigger retry logic on SMTP delivery failure', async () => {
+    it('should throw error on SMTP delivery failure to trigger BullMQ native retry', async () => {
       mockNodemailerProvider.sendEmail.mockRejectedValueOnce(new Error('SMTP Offline'));
-      const addJobSpy = jest.spyOn(queueService, 'addJob');
 
       const payload: IJobPayload = {
         jobId: 'job-123',
+        emailLogIds: ['log-123'],
         recipient: 'test@imcms.com',
         recipients: ['test@imcms.com'],
         template: 'welcome',
@@ -156,30 +156,48 @@ describe('Enterprise Email Delivery Pipeline (Queue & Worker)', () => {
         businessEvent: 'USER_REGISTERED',
         payload: { name: 'User' },
         priority: 3,
-        retryCount: 0, // Attempt #1 failed
+        retryCount: 0,
         createdTime: new Date().toISOString(),
         requestedBy: 'SYSTEM',
         correlationId: 'corr-123',
       };
 
-      await processor.processJob(payload);
+      await expect(processor.processJob(payload)).rejects.toThrow('SMTP Offline');
+    });
 
-      // Should add job back to queue with delay
-      expect(addJobSpy).toHaveBeenCalledWith(
+    it('should update log status to RETRYING when handleRetry is called', async () => {
+      const payload: IJobPayload = {
+        jobId: 'job-123',
+        emailLogIds: ['log-123'],
+        recipient: 'test@imcms.com',
+        recipients: ['test@imcms.com'],
+        template: 'welcome',
+        subject: 'Welcome',
+        businessEvent: 'USER_REGISTERED',
+        payload: { name: 'User' },
+        priority: 3,
+        retryCount: 0,
+        createdTime: new Date().toISOString(),
+        requestedBy: 'SYSTEM',
+        correlationId: 'corr-123',
+      };
+
+      await processor.handleRetry(payload, 'SMTP Offline', 1);
+
+      expect(mockPrisma.emailLog.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          jobId: 'job-123',
-          retryCount: 1,
+          where: { id: { in: ['log-123'] } },
+          data: expect.objectContaining({ status: EmailState.RETRYING }),
         }),
-        0, // Attempt 1 delay is 0
       );
     });
 
-    it('should move to DLQ when max retries are exceeded', async () => {
-      mockNodemailerProvider.sendEmail.mockRejectedValueOnce(new Error('SMTP Hard Fail'));
+    it('should move to DLQ when max retries are exceeded via handleFinalFailure', async () => {
       const addDeadSpy = jest.spyOn(queueService, 'addDeadJob');
 
       const payload: IJobPayload = {
         jobId: 'job-123',
+        emailLogIds: ['log-123'],
         recipient: 'test@imcms.com',
         recipients: ['test@imcms.com'],
         template: 'welcome',
@@ -187,21 +205,23 @@ describe('Enterprise Email Delivery Pipeline (Queue & Worker)', () => {
         businessEvent: 'USER_REGISTERED',
         payload: { name: 'User' },
         priority: 3,
-        retryCount: 4, // Max retry attempt limit exceeded
+        retryCount: 4,
         createdTime: new Date().toISOString(),
         requestedBy: 'SYSTEM',
         correlationId: 'corr-123',
       };
 
-      await processor.processJob(payload);
+      await processor.handleFinalFailure(payload, 'SMTP Hard Fail');
 
-      // Should write to DLQ
-      expect(addDeadSpy).toHaveBeenCalledWith(
+      expect(mockPrisma.emailLog.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          jobId: 'job-123',
-          retryCount: 5,
+          where: { id: { in: ['log-123'] } },
+          data: expect.objectContaining({ status: EmailState.DEAD_LETTER }),
         }),
       );
+
+      // Should write to DLQ
+      expect(addDeadSpy).toHaveBeenCalledWith(payload);
     });
   });
 });

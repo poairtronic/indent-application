@@ -61,12 +61,13 @@ export class CommunicationService {
 
     // 2. Pre-save log records in QUEUED state
     const bodyText = `IMCMS Notification. Please view in HTML mode.`;
-    await this.saveEmailLogs(jobId, recipients, options, bodyText, 'QUEUED');
+    const emailLogIds = await this.saveEmailLogs(jobId, recipients, options, bodyText, 'QUEUED');
     observabilityEventBus.emit('notification.event', { action: 'created', success: true });
 
     // 3. Construct queue job payload
     const jobPayload: IJobPayload = {
       jobId,
+      emailLogIds,
       recipient: recipients[0],
       recipients,
       template: options.templateName,
@@ -91,7 +92,7 @@ export class CommunicationService {
       };
     } catch (err: any) {
       this.logger.error(`Failed to queue job ${jobId}`, err);
-      await this.updateLogStatus(jobId, 'FAILED', err?.message || String(err));
+      await this.updateLogStatus(emailLogIds, 'FAILED', err?.message || String(err));
       observabilityEventBus.emit('notification.event', {
         action: 'queue_failure',
         success: false,
@@ -104,17 +105,18 @@ export class CommunicationService {
   }
 
   private async updateLogStatus(
-    jobId: string,
+    logIds: string[],
     status: string,
     errorMessage?: string,
   ): Promise<void> {
     try {
+      if (!logIds || logIds.length === 0) return;
       await this.prisma.emailLog.updateMany({
-        where: { id: jobId },
+        where: { id: { in: logIds } },
         data: { status, errorMessage: errorMessage || null },
       });
     } catch (err) {
-      this.logger.error(`Database log status update failed for job ${jobId}`, err);
+      this.logger.error(`Database log status update failed for jobs`, err);
     }
   }
 
@@ -124,17 +126,21 @@ export class CommunicationService {
     options: ISendEmailOptions,
     body: string,
     status: string,
-  ): Promise<void> {
+  ): Promise<string[]> {
     try {
+      const logIds: string[] = [];
       const logPromises = recipients.map(async (recipient) => {
         const matchedUser = await this.prisma.user.findFirst({
           where: { email: { equals: recipient.trim(), mode: 'insensitive' }, isDeleted: false },
           select: { id: true },
         });
 
+        const logId = crypto.randomUUID();
+        logIds.push(logId);
+
         return this.prisma.emailLog.create({
           data: {
-            id: jobId,
+            id: logId,
             to: recipient,
             userId: matchedUser?.id || null,
             subject: options.subject,
@@ -155,11 +161,13 @@ export class CommunicationService {
       });
 
       await Promise.all(logPromises);
+      return logIds;
     } catch (dbError) {
       this.logger.error(
         'Failed to write email transaction logs to Database',
         dbError?.stack || dbError,
       );
+      return [];
     }
   }
 }

@@ -105,6 +105,11 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
     const jobOptions: any = {
       priority: payload.priority,
       jobId: payload.jobId,
+      attempts: parseInt(process.env.SMTP_MAX_RETRIES || '4', 10),
+      backoff: {
+        type: 'exponential',
+        delay: 5 * 60 * 1000,
+      },
     };
 
     if (delayMs > 0) {
