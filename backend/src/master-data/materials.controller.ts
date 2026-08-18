@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Cache } from '../redis-cache/decorators/cache.decorator';
@@ -47,7 +57,7 @@ export class MaterialsController {
         maximumStock: maxStock,
         currentStock: '0',
         category: createMaterialDto.category || 'UNCATEGORIZED',
-        status: createMaterialDto.status || 'ACTIVE'
+        status: createMaterialDto.status || 'ACTIVE',
       },
     });
   }
@@ -70,7 +80,7 @@ export class MaterialsController {
         where: { id },
         data,
       });
-    } catch (error) {
+    } catch {
       throw new NotFoundException(`Material with ID ${id} not found`);
     }
   }
@@ -86,7 +96,7 @@ export class MaterialsController {
           deletedAt: new Date(),
         },
       });
-    } catch (error) {
+    } catch {
       throw new NotFoundException(`Material with ID ${id} not found`);
     }
   }
