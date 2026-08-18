@@ -14,7 +14,10 @@ function cleanQueryParams(params?: Record<string, any>): Record<string, any> | u
   const cleaned: Record<string, any> = {};
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== '') {
-      if ((key === 'dateFrom' || key === 'dateTo' || key === 'from' || key === 'to') && typeof value === 'string') {
+      if (
+        (key === 'dateFrom' || key === 'dateTo' || key === 'from' || key === 'to') &&
+        typeof value === 'string'
+      ) {
         const parsed = new Date(value);
         if (!isNaN(parsed.getTime())) {
           cleaned[key] = parsed.toISOString();

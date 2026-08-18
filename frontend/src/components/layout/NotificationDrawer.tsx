@@ -59,10 +59,16 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
     if (!workflowAlerts) {
       // Suppress workflow state-change notifications using eventType
       const workflowEventTypes = [
-        'DESIGN_COMPLETED', 'STORES_PENDING', 'MATERIAL_ISSUED',
-        'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED', 'CUSTOMER_DELIVERED',
-        'ACCOUNTS_COST_VERIFICATION', 'FINANCIAL_CLOSURE',
-        'TRANSACTION_ARCHIVED', 'TRANSACTION_COMPLETED',
+        'DESIGN_COMPLETED',
+        'STORES_PENDING',
+        'MATERIAL_ISSUED',
+        'PRODUCTION_STARTED',
+        'PRODUCTION_COMPLETED',
+        'CUSTOMER_DELIVERED',
+        'ACCOUNTS_COST_VERIFICATION',
+        'FINANCIAL_CLOSURE',
+        'TRANSACTION_ARCHIVED',
+        'TRANSACTION_COMPLETED',
       ];
       items = items.filter((n) => !n.eventType || !workflowEventTypes.includes(n.eventType));
     }
