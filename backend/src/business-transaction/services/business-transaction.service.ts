@@ -159,6 +159,9 @@ export class BusinessTransactionService {
         materialCode: `MAT-${uniqueSuffix}`,
         unitId,
         category: 'General',
+        currentStock: 100,
+        minimumStock: 10,
+        maximumStock: 1000,
         createdBy: userId,
       },
     });
