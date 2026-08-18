@@ -87,10 +87,7 @@ export class QueueProcessor {
   /**
    * Called by the Worker when a job reaches maximum attempts (Final Failure)
    */
-  public async handleFinalFailure(
-    payload: IJobPayload,
-    errorMessage: string,
-  ): Promise<void> {
+  public async handleFinalFailure(payload: IJobPayload, errorMessage: string): Promise<void> {
     const logIds = payload.emailLogIds || [payload.jobId];
     await this.updateLogStatus(logIds, EmailState.DEAD_LETTER, errorMessage);
     await this.queueService.addDeadJob(payload);

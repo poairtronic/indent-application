@@ -123,7 +123,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         // ────────────────────────────────────────────────────────
         case CommunicationEventType.INDENT_SUBMITTED:
           await this.communicationService.sendEmail({
-            to: { departmentCode: 'DESIGN' }, // resolve designers to process layout specs
+            to: { departmentCode: 'DESIGN', roleName: ['Senior Manager', 'General Manager'] }, // resolve designers and managers
             subject: `Indent Submitted: #${payload.indentNumber}`,
             templateName: 'indent_submitted',
             templateContext: {
@@ -139,7 +139,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
 
         case CommunicationEventType.DESIGN_COMPLETED:
           await this.communicationService.sendEmail({
-            to: { departmentCode: 'STORES' }, // resolve stores to check stocks
+            to: { departmentCode: 'STORES', roleName: ['Senior Manager', 'General Manager'] }, // resolve stores and managers
             subject: `Design Specs Completed: #${payload.indentNumber}`,
             templateName: 'design_completed',
             templateContext: {
@@ -154,7 +154,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
 
         case CommunicationEventType.STORES_PENDING:
           await this.communicationService.sendEmail({
-            to: { departmentCode: 'STORES' },
+            to: { departmentCode: 'STORES', roleName: ['Senior Manager', 'General Manager'] },
             subject: `Stock Check Pending: #${payload.indentNumber}`,
             templateName: 'stores_pending',
             templateContext: {
@@ -168,7 +168,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
 
         case CommunicationEventType.MATERIAL_ISSUED:
           await this.communicationService.sendEmail({
-            to: { departmentCode: 'PRODUCTION' }, // notify production team
+            to: { departmentCode: 'PRODUCTION', roleName: ['Senior Manager', 'General Manager'] }, // notify production and managers
             subject: `Materials Issued for Indent: #${payload.indentNumber}`,
             templateName: 'material_issued',
             templateContext: {
@@ -183,7 +183,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
 
         case CommunicationEventType.PRODUCTION_STARTED:
           await this.communicationService.sendEmail({
-            to: { indentId: payload.indentId }, // notify creator
+            to: { indentId: payload.indentId, roleName: ['Senior Manager', 'General Manager'] }, // notify creator and managers
             subject: `Production Started: #${payload.indentNumber}`,
             templateName: 'production_started',
             templateContext: {
@@ -197,7 +197,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
 
         case CommunicationEventType.PRODUCTION_COMPLETED:
           await this.communicationService.sendEmail({
-            to: { roleName: 'Senior Manager' }, // notify manager to view shipping details
+            to: { roleName: ['Senior Manager', 'General Manager'] }, // notify managers to view shipping details
             subject: `Production Completed: #${payload.indentNumber}`,
             templateName: 'production_completed',
             templateContext: {
@@ -211,7 +211,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
 
         case CommunicationEventType.CUSTOMER_DELIVERED:
           await this.communicationService.sendEmail({
-            to: { departmentCode: 'ACCOUNTS' }, // notify accounts to verify costs
+            to: { departmentCode: 'ACCOUNTS', roleName: ['Senior Manager', 'General Manager'] }, // notify accounts and managers
             subject: `Delivered to Customer: #${payload.indentNumber}`,
             templateName: 'customer_delivered',
             templateContext: {

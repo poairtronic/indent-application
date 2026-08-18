@@ -98,7 +98,9 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
 
     const config = CommunicationConfig.getSmtpConfig();
     const appConfig = CommunicationConfig.getAppMailConfig();
-    const fromString = config.fromName ? `"${config.fromName}" <${payload.meta?.from || config.from}>` : (payload.meta?.from || config.from);
+    const fromString = config.fromName
+      ? `"${config.fromName}" <${payload.meta?.from || config.from}>`
+      : payload.meta?.from || config.from;
 
     const mailOptions: nodemailer.SendMailOptions = {
       from: fromString,

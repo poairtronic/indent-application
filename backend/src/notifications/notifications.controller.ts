@@ -19,36 +19,12 @@ import { NotificationQueryDto } from '../common/dto/pagination-query.dto';
 // DEPARTMENT / ROLE → ALLOWED EVENT TYPES (eventType-based)
 // ──────────────────────────────────────────────────────────────
 const DEPT_EVENT_MAP: Record<string, string[]> = {
-  DESIGN: [
-    'ACTUAL_COST_UPDATED',
-    'DOCUMENT_UPLOADED',
-    'DOCUMENT_DELETED',
-    'DOCUMENT_REPLACED',
-  ],
-  DSGN: [
-    'ACTUAL_COST_UPDATED',
-    'DOCUMENT_UPLOADED',
-    'DOCUMENT_DELETED',
-    'DOCUMENT_REPLACED',
-  ],
-  STORES: [
-    'DESIGN_COMPLETED',
-    'STORES_PENDING',
-  ],
-  STOR: [
-    'DESIGN_COMPLETED',
-    'STORES_PENDING',
-  ],
-  PRODUCTION: [
-    'MATERIAL_ISSUED',
-    'PRODUCTION_STARTED',
-    'PRODUCTION_COMPLETED',
-  ],
-  PROD: [
-    'MATERIAL_ISSUED',
-    'PRODUCTION_STARTED',
-    'PRODUCTION_COMPLETED',
-  ],
+  DESIGN: ['ACTUAL_COST_UPDATED', 'DOCUMENT_UPLOADED', 'DOCUMENT_DELETED', 'DOCUMENT_REPLACED'],
+  DSGN: ['ACTUAL_COST_UPDATED', 'DOCUMENT_UPLOADED', 'DOCUMENT_DELETED', 'DOCUMENT_REPLACED'],
+  STORES: ['DESIGN_COMPLETED', 'STORES_PENDING'],
+  STOR: ['DESIGN_COMPLETED', 'STORES_PENDING'],
+  PRODUCTION: ['MATERIAL_ISSUED', 'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED'],
+  PROD: ['MATERIAL_ISSUED', 'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED'],
   ACCOUNTS: [
     'PRODUCTION_COMPLETED',
     'CUSTOMER_DELIVERED',
@@ -68,6 +44,14 @@ const DEPT_EVENT_MAP: Record<string, string[]> = {
 };
 
 const MANAGER_EVENT_TYPES = [
+  'INDENT_SUBMITTED',
+  'DESIGN_COMPLETED',
+  'STORES_PENDING',
+  'MATERIAL_ISSUED',
+  'PRODUCTION_STARTED',
+  'PRODUCTION_COMPLETED',
+  'CUSTOMER_DELIVERED',
+  'ACCOUNTS_COST_VERIFICATION',
   'ACTUAL_COST_UPDATED',
   'FINANCIAL_CLOSURE',
   'TRANSACTION_ARCHIVED',
@@ -85,8 +69,7 @@ function resolveAllowedEventTypes(
   roleName: string | undefined,
   deptCode: string | undefined,
 ): string[] | null {
-  const isAdmin =
-    roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
+  const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
   if (isAdmin) return null; // Admin: unrestricted
 
   if (roleName === 'Senior Manager' || roleName === 'General Manager') {
@@ -113,10 +96,7 @@ export class NotificationsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'isRead', required: false, type: Boolean })
   @ApiQuery({ name: 'eventType', required: false, type: String })
-  async list(
-    @Req() req: Request,
-    @Query() query: NotificationQueryDto,
-  ) {
+  async list(@Req() req: Request, @Query() query: NotificationQueryDto) {
     const userId = (req as any).user?.id;
     const pageNum = query.page || 1;
     const limitNum = query.limit || 20;

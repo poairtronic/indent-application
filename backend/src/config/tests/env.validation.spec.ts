@@ -55,7 +55,7 @@ describe('Environment Validation (Phase B8)', () => {
     process.env.NODE_ENV = 'development';
     process.env.SMTP_HOST = '';
     process.env.FRONTEND_URL = '';
-    
+
     expect(() => validateEnvironmentConfig()).not.toThrow();
   });
 });
