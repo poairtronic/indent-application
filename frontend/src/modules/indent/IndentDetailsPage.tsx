@@ -211,6 +211,8 @@ export const IndentDetailsPage: React.FC = () => {
             currentState={currentState}
             indentId={indent.id}
             indentNumber={indent.indentNumber}
+            indentRemarks={indent.remarks || undefined}
+            workflowHistory={indent.workflowHistory}
             onSuccess={handleWorkflowSuccess}
           />
         </div>

@@ -36,6 +36,8 @@ interface WorkflowActionsProps {
   currentState: WorkflowState;
   indentId: string;
   indentNumber: string;
+  indentRemarks?: string;
+  workflowHistory?: Array<{ remarks?: string }>;
   onSuccess?: () => void;
 }
 
@@ -57,6 +59,8 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   currentState,
   indentId,
   indentNumber,
+  indentRemarks,
+  workflowHistory,
   onSuccess,
 }) => {
   const hasPermission = useAuthStore((s) => s.hasPermission);
@@ -66,6 +70,7 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   } | null>(null);
   const [remarks, setRemarks] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
+  const [startedLocally, setStartedLocally] = useState(false);
 
   // Workflow mutation hooks
   const { mutateAsync: submitIndent, isPending: isSubmitting } = useSubmitIndent();
@@ -79,6 +84,17 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   const { mutateAsync: financialClose, isPending: isClosing } = useFinancialClose();
   const { mutateAsync: archive, isPending: isArchiving } = useArchiveIndent();
   const { mutateAsync: complete, isPending: isCompleting } = useCompleteIndent();
+
+  const isManufacturingStarted =
+    startedLocally ||
+    indentRemarks?.includes('[PRODUCTION_STARTED]') ||
+    Boolean(
+      workflowHistory?.some(
+        (h) =>
+          h.remarks?.toLowerCase().includes('started manufacturing') ||
+          h.remarks?.includes('[PRODUCTION_STARTED]'),
+      ),
+    );
 
   const buildActions = (): ActionConfig[] => {
     const actions: ActionConfig[] = [];
@@ -161,33 +177,37 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
 
       case 'PRODUCTION_PROCESSING':
         if (hasPermission(AppPermission.PRODUCTION_UPDATE)) {
-          actions.push({
-            label: 'Start Manufacturing',
-            icon: <Play size={16} />,
-            variant: 'outline',
-            permission: AppPermission.PRODUCTION_UPDATE,
-            confirmTitle: `Start Manufacturing: ${indentNumber}`,
-            confirmMessage: 'Confirm manufacturing has started for this indent.',
-            action: async (r) => {
-              await startProduction({ id: indentId, remarks: r || 'Manufacturing started' });
-              onSuccess?.();
-            },
-            isPending: isStarting,
-          });
-          actions.push({
-            label: 'Complete Manufacturing',
-            icon: <CheckCircle size={16} />,
-            variant: 'primary',
-            permission: AppPermission.PRODUCTION_UPDATE,
-            confirmTitle: `Complete Manufacturing: ${indentNumber}`,
-            confirmMessage:
-              'Confirm manufacturing is complete and the product is ready for delivery.',
-            action: async (r) => {
-              await completeProduction({ id: indentId, remarks: r || 'Manufacturing completed' });
-              onSuccess?.();
-            },
-            isPending: isCompletingProd,
-          });
+          if (!isManufacturingStarted) {
+            actions.push({
+              label: 'Start Manufacturing',
+              icon: <Play size={16} />,
+              variant: 'primary',
+              permission: AppPermission.PRODUCTION_UPDATE,
+              confirmTitle: `Start Manufacturing: ${indentNumber}`,
+              confirmMessage: 'Confirm manufacturing has started for this indent.',
+              action: async (r) => {
+                await startProduction({ id: indentId, remarks: r || 'Manufacturing started' });
+                setStartedLocally(true);
+                onSuccess?.();
+              },
+              isPending: isStarting,
+            });
+          } else {
+            actions.push({
+              label: 'Complete Manufacturing',
+              icon: <CheckCircle size={16} />,
+              variant: 'primary',
+              permission: AppPermission.PRODUCTION_UPDATE,
+              confirmTitle: `Complete Manufacturing: ${indentNumber}`,
+              confirmMessage:
+                'Confirm manufacturing is complete and the product is ready for delivery.',
+              action: async (r) => {
+                await completeProduction({ id: indentId, remarks: r || 'Manufacturing completed' });
+                onSuccess?.();
+              },
+              isPending: isCompletingProd,
+            });
+          }
         }
         break;
 
