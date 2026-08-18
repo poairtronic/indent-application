@@ -21,14 +21,6 @@ export const CostsPage: React.FC = () => {
     setFilters({});
   }, []);
 
-  if (error) {
-    return (
-      <AnalyticsLayout title="Cost Estimation & Actual Variance" subtitle="Financial analytics">
-        <ErrorState message="Error loading cost analytics" onRetry={() => refetch()} />
-      </AnalyticsLayout>
-    );
-  }
-
   const isOverPlanned = (data?.totalVarianceAmount ?? 0) > 0;
   const costChartData = useMemo(
     () =>
@@ -40,6 +32,14 @@ export const CostsPage: React.FC = () => {
         : [],
     [data],
   );
+
+  if (error) {
+    return (
+      <AnalyticsLayout title="Cost Estimation & Actual Variance" subtitle="Financial analytics">
+        <ErrorState message="Error loading cost analytics" onRetry={() => refetch()} />
+      </AnalyticsLayout>
+    );
+  }
 
   return (
     <AnalyticsLayout

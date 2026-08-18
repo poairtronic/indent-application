@@ -8,17 +8,6 @@ import { ErrorState } from '../../../components/ui/ErrorState';
 export const DepartmentsPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useDepartmentAnalytics();
 
-  if (error) {
-    return (
-      <AnalyticsLayout
-        title="Department Workload Metrics"
-        subtitle="Active queues and department capacity"
-      >
-        <ErrorState message="Error loading department workload" onRetry={() => refetch()} />
-      </AnalyticsLayout>
-    );
-  }
-
   const deptChartData = useMemo(
     () =>
       data?.departments?.map((dept) => ({
@@ -32,6 +21,17 @@ export const DepartmentsPage: React.FC = () => {
     () => data?.departments?.reduce((sum, d) => sum + d.pendingQueue, 0) ?? 0,
     [data?.departments],
   );
+
+  if (error) {
+    return (
+      <AnalyticsLayout
+        title="Department Workload Metrics"
+        subtitle="Active queues and department capacity"
+      >
+        <ErrorState message="Error loading department workload" onRetry={() => refetch()} />
+      </AnalyticsLayout>
+    );
+  }
 
   return (
     <AnalyticsLayout

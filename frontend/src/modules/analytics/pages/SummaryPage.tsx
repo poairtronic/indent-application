@@ -239,26 +239,6 @@ export const SummaryPage: React.FC = () => {
     (!!(isAdmin || isManager) && !!productError) ||
     (hasFinancialAccess && !!vendorError);
 
-  if (hasError) {
-    return (
-      <AnalyticsLayout title="Enterprise Analytics Dashboard" subtitle="Live KPI Engine">
-        <ErrorState
-          message="Error loading analytics data"
-          onRetry={() => {
-            void refetchSummary();
-            void refetchKpis();
-            void refetchInsights();
-            if (hasWorkflowAccess) void refetchWorkflow();
-            if (isAdmin || isManager) void refetchDept();
-            if (hasFinancialAccess) void refetchCosts();
-            if (isAdmin || isManager) void refetchProducts();
-            if (hasFinancialAccess) void refetchVendors();
-          }}
-        />
-      </AnalyticsLayout>
-    );
-  }
-
   const chartData = useMemo(
     () =>
       summaryData?.statusBreakdown?.map((item) => ({
@@ -318,6 +298,26 @@ export const SummaryPage: React.FC = () => {
   const kpis: IKpiData[] = kpiData ?? [];
   const grouped = groupKpis(kpis);
   const hasActiveFilters = Object.values(appliedFilters).some((v) => v);
+
+  if (hasError) {
+    return (
+      <AnalyticsLayout title="Enterprise Analytics Dashboard" subtitle="Live KPI Engine">
+        <ErrorState
+          message="Error loading analytics data"
+          onRetry={() => {
+            void refetchSummary();
+            void refetchKpis();
+            void refetchInsights();
+            if (hasWorkflowAccess) void refetchWorkflow();
+            if (isAdmin || isManager) void refetchDept();
+            if (hasFinancialAccess) void refetchCosts();
+            if (isAdmin || isManager) void refetchProducts();
+            if (hasFinancialAccess) void refetchVendors();
+          }}
+        />
+      </AnalyticsLayout>
+    );
+  }
 
   return (
     <AnalyticsLayout

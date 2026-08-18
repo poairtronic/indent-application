@@ -22,14 +22,6 @@ export const VendorsPage: React.FC = () => {
     setFilters({ limit: 50 });
   }, []);
 
-  if (error) {
-    return (
-      <AnalyticsLayout title="Vendor Supply & Cost Adherence" subtitle="Vendor analytics">
-        <ErrorState message="Error loading vendor analytics" onRetry={() => refetch()} />
-      </AnalyticsLayout>
-    );
-  }
-
   // Map values for the Horizontal Bar Chart representation
   const chartData = useMemo(
     () =>
@@ -39,6 +31,14 @@ export const VendorsPage: React.FC = () => {
       })) || [],
     [data?.vendors],
   );
+
+  if (error) {
+    return (
+      <AnalyticsLayout title="Vendor Supply & Cost Adherence" subtitle="Vendor analytics">
+        <ErrorState message="Error loading vendor analytics" onRetry={() => refetch()} />
+      </AnalyticsLayout>
+    );
+  }
 
   return (
     <AnalyticsLayout

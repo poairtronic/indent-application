@@ -22,14 +22,6 @@ export const ProductsPage: React.FC = () => {
     setFilters({ limit: 50 });
   }, []);
 
-  if (error) {
-    return (
-      <AnalyticsLayout title="Product Intelligence & Estimation" subtitle="Product costing metrics">
-        <ErrorState message="Error loading product analytics" onRetry={() => refetch()} />
-      </AnalyticsLayout>
-    );
-  }
-
   const productChartData = useMemo(
     () =>
       data?.products?.map((item) => ({
@@ -38,6 +30,14 @@ export const ProductsPage: React.FC = () => {
       })) ?? [],
     [data?.products],
   );
+
+  if (error) {
+    return (
+      <AnalyticsLayout title="Product Intelligence & Estimation" subtitle="Product costing metrics">
+        <ErrorState message="Error loading product analytics" onRetry={() => refetch()} />
+      </AnalyticsLayout>
+    );
+  }
 
   return (
     <AnalyticsLayout
