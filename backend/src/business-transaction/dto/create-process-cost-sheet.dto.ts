@@ -33,6 +33,18 @@ export class CostItemDto {
   @Min(0)
   predictedAmount: number;
 
+  @IsNumber()
+  @IsOptional()
+  actualRate?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualQuantity?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualAmount?: number;
+
   @IsString()
   @IsOptional()
   remarks?: string;
@@ -51,6 +63,14 @@ export class ProcessCostDto {
   @Min(0)
   estimatedHours: number;
 
+  @IsNumber()
+  @IsOptional()
+  actualCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualHours?: number;
+
   @IsEnum(VendorProcessType)
   @IsOptional()
   vendorType?: VendorProcessType;
@@ -67,6 +87,10 @@ export class CreateProcessCostSheetDto {
 
   @IsNumber()
   @IsOptional()
+  actualTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
   designCost?: number;
 
   @IsNumber()
@@ -76,6 +100,18 @@ export class CreateProcessCostSheetDto {
   @IsNumber()
   @IsOptional()
   contingencyCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualDesignCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualOverheadCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualContingencyCost?: number;
 
   @IsArray()
   @IsNotEmpty()
@@ -98,6 +134,10 @@ export class UpdateProcessCostSheetDto {
 
   @IsNumber()
   @IsOptional()
+  actualTotal?: number;
+
+  @IsNumber()
+  @IsOptional()
   designCost?: number;
 
   @IsNumber()
@@ -107,6 +147,18 @@ export class UpdateProcessCostSheetDto {
   @IsNumber()
   @IsOptional()
   contingencyCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualDesignCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualOverheadCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualContingencyCost?: number;
 
   @IsArray()
   @IsOptional()
