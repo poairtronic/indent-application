@@ -74,7 +74,7 @@ export class BusinessTransactionController {
   }
 
   @Patch(':id')
-  @Permissions('indent.edit')
+  @Permissions('indent.edit', 'production.update')
   async updateDraft(
     @Param('id') id: string,
     @Body() dto: UpdateBusinessTransactionDto,
