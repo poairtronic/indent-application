@@ -152,6 +152,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
               <option value="ELECTRICAL">Electrical Wires</option>
               <option value="HARDWARE">Fasteners & Hardware</option>
               <option value="CHEMICALS">Chemicals & Paints</option>
+              <option value="GENERAL">General</option>
             </select>
           </div>
 

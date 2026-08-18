@@ -295,6 +295,7 @@ export const MaterialsPage: React.FC = () => {
               <option value="ELECTRICAL">Electrical Wires</option>
               <option value="HARDWARE">Hardware</option>
               <option value="CHEMICALS">Chemicals</option>
+              <option value="GENERAL">General</option>
             </select>
           </div>
 
