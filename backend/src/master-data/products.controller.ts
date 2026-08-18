@@ -1,5 +1,16 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
@@ -31,5 +42,45 @@ export class ProductsController {
       limit: pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+  }
+
+  @Post()
+  @Permissions('products.create')
+  async create(@Body() createProductDto: CreateProductDto) {
+    return this.prisma.product.create({
+      data: {
+        ...createProductDto,
+        status: createProductDto.status || 'ACTIVE',
+      },
+    });
+  }
+
+  @Put(':id')
+  @Permissions('products.update')
+  async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
+    try {
+      return await this.prisma.product.update({
+        where: { id },
+        data: updateProductDto,
+      });
+    } catch {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+  }
+
+  @Delete(':id')
+  @Permissions('products.delete')
+  async remove(@Param('id') id: string) {
+    try {
+      return await this.prisma.product.update({
+        where: { id },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      });
+    } catch {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
   }
 }
