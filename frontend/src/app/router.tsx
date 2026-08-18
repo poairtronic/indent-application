@@ -18,23 +18,6 @@ const suspended = (Component: React.LazyExoticComponent<React.FC<any>>) => (
   </Suspense>
 );
 
-// Coming Soon Placeholder Card
-const ComingSoon: React.FC<{ title: string }> = ({ title }) => (
-  <div className="bg-surface-card border border-border-default rounded-xl p-8 shadow-card text-center max-w-md mx-auto my-12 font-sans transition-colors duration-300">
-    <div className="w-12 h-12 bg-accent-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-      <span className="text-xl text-accent-primary">⏳</span>
-    </div>
-    <h2 className="text-lg font-bold text-text-primary mb-2">{title} Module</h2>
-    <p className="text-xs text-text-secondary mb-6">
-      This business engine module is currently under active development as per the IMCMS roadmap.
-      All database models and core APIs are secured.
-    </p>
-    <div className="inline-flex items-center text-[10px] bg-background-primary text-text-muted px-2.5 py-1 rounded border border-border-default font-medium uppercase tracking-wider">
-      Future Phase Execution
-    </div>
-  </div>
-);
-
 // Lazy Loaded Layout Components
 const AuthLayout = lazy(() =>
   import('../components/layout/AuthLayout').then((m) => ({ default: m.AuthLayout })),
@@ -137,6 +120,11 @@ const MaterialsPage = lazy(() =>
 );
 const WorkflowPage = lazy(() =>
   import('../modules/workflow/WorkflowPage').then((m) => ({ default: m.WorkflowPage })),
+);
+const ProductionDashboardPage = lazy(() =>
+  import('../modules/production/ProductionDashboardPage').then((m) => ({
+    default: m.ProductionDashboardPage,
+  })),
 );
 const MasterDataDashboardPage = lazy(() =>
   import('../modules/dashboard/MasterDataDashboardPage').then((m) => ({
@@ -363,7 +351,7 @@ export const AppRouter: React.FC = () => {
           path="/production"
           element={
             <ProtectedRoute permissions={['production.view']}>
-              <ComingSoon title="Manufacturing Production" />
+              {suspended(ProductionDashboardPage)}
             </ProtectedRoute>
           }
         />
