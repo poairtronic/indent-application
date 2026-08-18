@@ -172,7 +172,6 @@ model Role {
   // Relations
   users           User[]
   rolePermissions RolePermission[]
-  approvals       ApprovalHistory[]
 
   @@index([createdAt])
   @@map("roles")
@@ -261,7 +260,6 @@ model User {
   costSheetsPrepared CostSheet[]                 @relation("CostSheetPreparer")
   amrRequested       AdditionalMaterialRequest[] @relation("AMRRequester")
   amrApproved        AdditionalMaterialRequest[] @relation("AMRApprover")
-  approvals          ApprovalHistory[]
   workflowMoves      WorkflowHistory[]
   productionReceipts ProductionReceipt[]
   indentChanges      IndentHistory[]
@@ -503,6 +501,8 @@ model Indent {
   status                IndentStatus     @default(DRAFT)
   currentState          String?          @db.VarChar(50)  // Domain WorkflowState key (e.g. 'DRAFT', 'DESIGN_COMPLETED')
   currentStageId        String?          @db.Uuid
+  customerName          String?          @db.VarChar(150)
+  layoutNumber          String?          @db.VarChar(100)
   requiredDate          DateTime         @db.Timestamptz(6)
   requiredDeliveryDate  DateTime?        @db.Timestamptz(6)
   purpose               String?          @db.Text
@@ -527,13 +527,14 @@ model Indent {
   indentItems           IndentItem[]
   attachments           IndentAttachment[]
   costSheet             CostSheet?
-  approvalHistory       ApprovalHistory[]
   workflowHistory       WorkflowHistory[]
   additionalRequests    AdditionalMaterialRequest[]
   productionReceipt     ProductionReceipt?
   history               IndentHistory[]
 
   @@index([indentNumber])
+  @@index([customerName])
+  @@index([layoutNumber])
   @@index([productId])
   @@index([departmentId])
   @@index([createdBy])
@@ -640,6 +641,12 @@ model CostSheet {
   costNumber        String          @unique @db.VarChar(50)
   indentId          String          @unique @db.Uuid
   preparedBy        String          @db.Uuid
+  designCost        Decimal         @default(0) @db.Decimal(18, 4)
+  overheadCost      Decimal         @default(0) @db.Decimal(18, 4)
+  contingencyCost   Decimal         @default(0) @db.Decimal(18, 4)
+  actualDesignCost  Decimal?        @db.Decimal(18, 4)
+  actualOverheadCost Decimal?       @db.Decimal(18, 4)
+  actualContingencyCost Decimal?    @db.Decimal(18, 4)
   predictedTotal    Decimal         @db.Decimal(18, 4)
   actualTotal       Decimal?        @db.Decimal(18, 4)
   varianceAmount    Decimal?        @db.Decimal(18, 4)
@@ -792,36 +799,6 @@ model AdditionalMaterialItem {
   @@index([isDeleted])
   @@index([createdAt])
   @@map("additional_material_items")
-}
-
-model ApprovalHistory {
-  id          String       @id @default(uuid()) @db.Uuid
-  indentId    String       @db.Uuid
-  approvedBy  String       @db.Uuid
-  roleId      String       @db.Uuid
-  status      IndentStatus
-  remarks     String?      @db.Text
-  approvedAt  DateTime     @default(now()) @db.Timestamptz(6)
-
-  // Audit Fields
-  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
-  isDeleted   Boolean      @default(false)
-  deletedAt   DateTime?    @db.Timestamptz(6)
-  createdBy   String?      @db.Uuid
-  updatedBy   String?      @db.Uuid
-  deletedBy   String?      @db.Uuid
-
-  // Relations
-  indent      Indent       @relation(fields: [indentId], references: [id], onDelete: Cascade)
-  approver    User         @relation(fields: [approvedBy], references: [id])
-  role        Role         @relation(fields: [roleId], references: [id])
-
-  @@index([indentId])
-  @@index([approvedBy])
-  @@index([isDeleted])
-  @@index([createdAt])
-  @@map("approval_history")
 }
 
 model WorkflowStage {

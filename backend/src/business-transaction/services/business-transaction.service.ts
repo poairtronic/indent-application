@@ -218,6 +218,8 @@ export class BusinessTransactionService {
             priority: dto.indent.priority,
             status: prismaDraftStatus,
             currentState: WorkflowState.DRAFT,
+            customerName: dto.indent.customerName || null,
+            layoutNumber: dto.indent.layoutNumber || null,
             requiredDate: new Date(dto.indent.requiredDate),
             requiredDeliveryDate: dto.indent.requiredDeliveryDate
               ? new Date(dto.indent.requiredDeliveryDate)
@@ -264,6 +266,9 @@ export class BusinessTransactionService {
             costNumber,
             indentId: createdIndent.id,
             preparedBy: userId,
+            designCost: dto.costSheet.designCost || 0,
+            overheadCost: dto.costSheet.overheadCost || 0,
+            contingencyCost: dto.costSheet.contingencyCost || 0,
             predictedTotal: dto.costSheet.predictedTotal,
             status: 'DRAFT',
             createdBy: userId,
@@ -370,6 +375,8 @@ export class BusinessTransactionService {
     return {
       id: indent.id,
       indentNumber: indent.indentNumber,
+      customerName: indent.customerName,
+      layoutNumber: indent.layoutNumber,
       productId: indent.productId,
       productName: indent.product?.productName,
       departmentId: indent.departmentId,
@@ -439,6 +446,8 @@ export class BusinessTransactionService {
     if (query.search) {
       where.OR = [
         { indentNumber: { contains: query.search, mode: 'insensitive' } },
+        { customerName: { contains: query.search, mode: 'insensitive' } },
+        { layoutNumber: { contains: query.search, mode: 'insensitive' } },
         { purpose: { contains: query.search, mode: 'insensitive' } },
       ];
     }
@@ -473,6 +482,8 @@ export class BusinessTransactionService {
         id: indent.id,
         indentNumber: indent.indentNumber,
         costNumber: indent.costSheet?.costNumber,
+        customerName: indent.customerName,
+        layoutNumber: indent.layoutNumber,
         productName: indent.product?.productName,
         departmentName: indent.department?.departmentName,
         priority: indent.priority,
@@ -550,6 +561,14 @@ export class BusinessTransactionService {
           where: { id },
           data: {
             priority: dto.indent?.priority || existing.priority,
+            customerName:
+              dto.indent?.customerName !== undefined
+                ? dto.indent.customerName
+                : existing.customerName,
+            layoutNumber:
+              dto.indent?.layoutNumber !== undefined
+                ? dto.indent.layoutNumber
+                : existing.layoutNumber,
             requiredDate: dto.indent?.requiredDate
               ? new Date(dto.indent.requiredDate)
               : existing.requiredDate,
@@ -625,6 +644,18 @@ export class BusinessTransactionService {
               where: { id: existingCostSheet.id },
               data: {
                 predictedTotal: dto.costSheet.predictedTotal,
+                designCost:
+                  dto.costSheet.designCost !== undefined
+                    ? dto.costSheet.designCost
+                    : existingCostSheet.designCost,
+                overheadCost:
+                  dto.costSheet.overheadCost !== undefined
+                    ? dto.costSheet.overheadCost
+                    : existingCostSheet.overheadCost,
+                contingencyCost:
+                  dto.costSheet.contingencyCost !== undefined
+                    ? dto.costSheet.contingencyCost
+                    : existingCostSheet.contingencyCost,
               },
             });
 
@@ -1349,39 +1380,29 @@ export class BusinessTransactionService {
         );
       }
 
-      // 3. Extract and update global actual costs in Remarks JSON
-      let parsedRemarks: any = {};
-      const originalTextRemarks = txData.remarks || '';
-      const verificationIndex = originalTextRemarks.indexOf('Stock Verification Results:');
-      const costUpdatedIndex = originalTextRemarks.indexOf('[ACTUAL_COST_UPDATED]');
-      let jsonPart = originalTextRemarks;
+      // 3. Extract and update global actual costs directly from DTO
+      const actualDesignCost =
+        dto.actualDesignCost !== undefined && dto.actualDesignCost !== null
+          ? Number(dto.actualDesignCost)
+          : Number(txData.costSheet.actualDesignCost || 0);
 
-      // Extract the JSON part if there are appended text blocks
-      if (verificationIndex !== -1) {
-        jsonPart = originalTextRemarks.substring(0, verificationIndex).trim();
-      } else if (costUpdatedIndex !== -1) {
-        jsonPart = originalTextRemarks.substring(0, costUpdatedIndex).trim();
-      }
+      const actualOverheadCost =
+        dto.actualOverheadCost !== undefined && dto.actualOverheadCost !== null
+          ? Number(dto.actualOverheadCost)
+          : Number(txData.costSheet.actualOverheadCost || 0);
 
-      try {
-        parsedRemarks = JSON.parse(jsonPart);
-      } catch {
-        // Fallback if parsing fails
-      }
-
-      parsedRemarks.actualDesignCost = dto.actualDesignCost ?? parsedRemarks.actualDesignCost ?? 0;
-      parsedRemarks.actualOverheadCost =
-        dto.actualOverheadCost ?? parsedRemarks.actualOverheadCost ?? 0;
-      parsedRemarks.actualContingencyCost =
-        dto.actualContingencyCost ?? parsedRemarks.actualContingencyCost ?? 0;
+      const actualContingencyCost =
+        dto.actualContingencyCost !== undefined && dto.actualContingencyCost !== null
+          ? Number(dto.actualContingencyCost)
+          : Number(txData.costSheet.actualContingencyCost || 0);
 
       // 4. Compute overall CostSheet actual total and variance
       const actualTotal =
         totalMaterialActual +
         totalProcessActual +
-        Number(parsedRemarks.actualDesignCost) +
-        Number(parsedRemarks.actualOverheadCost) +
-        Number(parsedRemarks.actualContingencyCost);
+        actualDesignCost +
+        actualOverheadCost +
+        actualContingencyCost;
 
       const predictedTotal = Number(txData.costSheet.predictedTotal || 0);
       const varianceAmount = actualTotal - predictedTotal;
@@ -1390,6 +1411,9 @@ export class BusinessTransactionService {
       await tx.costSheet.update({
         where: { id: costSheetId },
         data: {
+          actualDesignCost,
+          actualOverheadCost,
+          actualContingencyCost,
           actualTotal,
           varianceAmount,
           variancePercentage,
@@ -1397,30 +1421,25 @@ export class BusinessTransactionService {
         },
       });
 
-      // 5. Update Indent state and append tag [ACTUAL_COST_UPDATED]
-      // We must reconstruct the remarks with the new JSON + any original appended text + the new tag.
-      // To prevent duplicate tags, we strip the old [ACTUAL_COST_UPDATED] if it exists.
-      let remainingText = '';
-      if (verificationIndex !== -1) {
-        remainingText = '\n\n' + originalTextRemarks.substring(verificationIndex);
+      // 5. Update Indent state and append tag [ACTUAL_COST_UPDATED] to remarks if not already present
+      let cleanRemarks = txData.remarks || '';
+      if (!cleanRemarks.includes('[ACTUAL_COST_UPDATED]')) {
+        cleanRemarks = cleanRemarks
+          ? `${cleanRemarks}\n\n[ACTUAL_COST_UPDATED] Actual costs and variance calculations updated.`
+          : `[ACTUAL_COST_UPDATED] Actual costs and variance calculations updated.`;
       }
-      if (costUpdatedIndex !== -1) {
-        remainingText = remainingText.split('[ACTUAL_COST_UPDATED]')[0].trim();
-      }
-
-      const updatedRemarks = `${JSON.stringify(parsedRemarks)}${remainingText}\n\n[ACTUAL_COST_UPDATED] Actual costs and variance calculations updated.`;
 
       await tx.indent.update({
         where: { id },
         data: {
           status: prismaTargetStatus,
           currentState: targetState,
-          remarks: updatedRemarks,
+          remarks: cleanRemarks,
           updatedBy: userId,
         },
       });
 
-      // 5. Create workflow history record
+      // 6. Create workflow history record
       await tx.workflowHistory.create({
         data: {
           indentId: id,
@@ -1504,7 +1523,12 @@ export class BusinessTransactionService {
         0,
       );
 
-      const actualTotal = totalMaterialActual + totalProcessActual;
+      const actualTotal =
+        totalMaterialActual +
+        totalProcessActual +
+        Number(txData.costSheet.actualDesignCost || 0) +
+        Number(txData.costSheet.actualOverheadCost || 0) +
+        Number(txData.costSheet.actualContingencyCost || 0);
       const predictedTotal = Number(txData.costSheet.predictedTotal || 0);
       const varianceAmount = actualTotal - predictedTotal;
       const variancePercentage = predictedTotal > 0 ? (varianceAmount / predictedTotal) * 100 : 0;

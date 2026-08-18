@@ -209,11 +209,10 @@ export class AuthService {
       throw new UnauthorizedException('User is inactive or not found');
     }
 
-    await this.accountSecurityService.checkAccountLocked(user.id);
-
+    const hashedOldToken = this.tokenService.hashToken(refreshToken);
     await this.tokenService.revokeRefreshToken(refreshToken);
 
-    await this.sessionService.revokeAllSessions(user.id);
+    await this.sessionService.revokeSessionByToken(hashedOldToken, user.id);
 
     const newAccessToken = await this.tokenService.generateAccessToken(user.id, user.email);
     const newRefreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);

@@ -182,13 +182,13 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
               <div>
                 <p className="text-xs text-text-muted mb-1">Layout Number</p>
                 <p className="text-sm font-medium text-text-primary">
-                  {parsedRemarks.layoutNumber || 'N/A'}
+                  {indent.layoutNumber || parsedRemarks.layoutNumber || 'N/A'}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-text-muted mb-1">Customer Name</p>
                 <p className="text-sm font-medium text-text-primary">
-                  {parsedRemarks.customerName || 'N/A'}
+                  {indent.customerName || parsedRemarks.customerName || 'N/A'}
                 </p>
               </div>
               <div>

@@ -485,9 +485,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
             priority: initialData.priority as Priority,
             requiredDate: initialData.requiredDate.split('T')[0],
             purpose: initialData.purpose || '',
-            layoutNumber: parsedIndentRemarks.layoutNumber || '',
-            customerName: parsedIndentRemarks.customerName || '',
-            remarks: parsedIndentRemarks.userRemarks || '',
+            layoutNumber: initialData.layoutNumber || parsedIndentRemarks.layoutNumber || '',
+            customerName: initialData.customerName || parsedIndentRemarks.customerName || '',
+            remarks: initialData.customerName
+              ? initialData.remarks || ''
+              : parsedIndentRemarks.userRemarks || initialData.remarks || '',
             items:
               initialData.items?.map((item, index) => {
                 const parsed = parseItemRemarks(item.remarks);
@@ -524,12 +526,33 @@ export const IndentForm: React.FC<IndentFormProps> = ({
           },
           costSheet: {
             predictedTotal: initialData.costSheet?.predictedTotal || 0,
-            designCost: parsedIndentRemarks.designCost || 0,
-            overheadCost: parsedIndentRemarks.overheadCost || 0,
-            contingencyCost: parsedIndentRemarks.contingencyCost || 0,
-            actualDesignCost: parsedIndentRemarks.actualDesignCost || 0,
-            actualOverheadCost: parsedIndentRemarks.actualOverheadCost || 0,
-            actualContingencyCost: parsedIndentRemarks.actualContingencyCost || 0,
+            designCost:
+              initialData.costSheet?.designCost !== undefined
+                ? Number(initialData.costSheet.designCost)
+                : parsedIndentRemarks.designCost || 0,
+            overheadCost:
+              initialData.costSheet?.overheadCost !== undefined
+                ? Number(initialData.costSheet.overheadCost)
+                : parsedIndentRemarks.overheadCost || 0,
+            contingencyCost:
+              initialData.costSheet?.contingencyCost !== undefined
+                ? Number(initialData.costSheet.contingencyCost)
+                : parsedIndentRemarks.contingencyCost || 0,
+            actualDesignCost:
+              initialData.costSheet?.actualDesignCost !== undefined &&
+              initialData.costSheet?.actualDesignCost !== null
+                ? Number(initialData.costSheet.actualDesignCost)
+                : parsedIndentRemarks.actualDesignCost || 0,
+            actualOverheadCost:
+              initialData.costSheet?.actualOverheadCost !== undefined &&
+              initialData.costSheet?.actualOverheadCost !== null
+                ? Number(initialData.costSheet.actualOverheadCost)
+                : parsedIndentRemarks.actualOverheadCost || 0,
+            actualContingencyCost:
+              initialData.costSheet?.actualContingencyCost !== undefined &&
+              initialData.costSheet?.actualContingencyCost !== null
+                ? Number(initialData.costSheet.actualContingencyCost)
+                : parsedIndentRemarks.actualContingencyCost || 0,
             costItems:
               initialData.costSheet?.costItems?.map((ci) => ({
                 materialName: ci.material?.materialName ?? '',
@@ -587,6 +610,12 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     name: 'indent.items',
   });
 
+  const { data: unitsData } = useUnits({ page: 1, limit: 200 });
+  const { data: processesData } = useProcesses({ page: 1, limit: 200 });
+
+  const units = unitsData?.items ?? [];
+  const processes = processesData?.items ?? [];
+
   const watchedItems = useWatch({ control, name: 'indent.items' });
   const watchedCostItems = useWatch({ control, name: 'costSheet.costItems' });
   const watchedDesignCost = useWatch({ control, name: 'costSheet.designCost' });
@@ -599,13 +628,6 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     name: 'costSheet.actualContingencyCost',
   });
 
-  // Live API data for the master-data fields below.
-  const { data: unitsData } = useUnits({ page: 1, limit: 200 });
-  const { data: processesData } = useProcesses({ page: 1, limit: 200 });
-
-  const units = unitsData?.items ?? [];
-  const processes = processesData?.items ?? [];
-
   // Sync items to costItems when materials are added/removed
   useEffect(() => {
     if (!watchedItems) return;
@@ -613,12 +635,14 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     const newCostItems = watchedItems.map((item, index) => {
       const existingCostItem = watchedCostItems?.[index];
       const rate = existingCostItem?.predictedRate || 0;
-      const qty = item.quantity || 0;
+      const qty = item?.quantity || 0;
       return {
-        materialName: item.materialName,
+        materialName: item?.materialName || '',
         predictedRate: rate,
         predictedQuantity: qty,
         predictedAmount: rate * qty,
+        actualRate: existingCostItem?.actualRate,
+        actualAmount: existingCostItem?.actualAmount,
       };
     });
 
@@ -644,11 +668,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const itemTotals = (watchedItems || []).map((item, index) => {
     const matCost = watchedCostItems?.[index]?.predictedAmount || 0;
     const actualMatCost = watchedCostItems?.[index]?.actualAmount || 0;
-    const procCost = (item.processes || []).reduce(
+    const procCost = (item?.processes || []).reduce(
       (sum, p) => sum + (Number(p.predictedCost) || 0),
       0,
     );
-    const actualProcCost = (item.processes || []).reduce(
+    const actualProcCost = (item?.processes || []).reduce(
       (sum, p) => sum + (Number(p.actualCost) || 0),
       0,
     );
@@ -676,7 +700,6 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     (Number(watchedActualOverheadCost) || 0) +
     (Number(watchedActualContingencyCost) || 0);
 
-  // Calculate Predicted Total
   useEffect(() => {
     setValue('costSheet.predictedTotal', grandTotal);
     setValue('costSheet.actualTotal', actualGrandTotal);
@@ -723,36 +746,34 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       };
     });
 
-    const itemProcessCostsMap = data.indent.items.map(
-      (item) =>
-        item.processes?.map((p) => ({
-          processId: p.processId,
-          predictedCost: p.predictedCost,
-        })) || [],
-    );
-
     const formattedData = {
       ...data,
       indent: {
-        ...restIndent,
+        ...data.indent,
+        customerName: customerName || '',
+        layoutNumber: layoutNumber || '',
         productName: poNumber ? `PO ${poNumber}` : 'Materials',
         departmentName: user?.department?.departmentName || 'Design',
-        remarks: JSON.stringify({
-          layoutNumber: layoutNumber || '',
-          customerName: customerName || '',
-          userRemarks: restIndent.remarks || '',
-          designCost: data.costSheet.designCost || 0,
-          overheadCost: data.costSheet.overheadCost || 0,
-          contingencyCost: data.costSheet.contingencyCost || 0,
-          actualDesignCost: data.costSheet.actualDesignCost || 0,
-          actualOverheadCost: data.costSheet.actualOverheadCost || 0,
-          actualContingencyCost: data.costSheet.actualContingencyCost || 0,
-          itemProcessCosts: itemProcessCostsMap,
-        }),
+        remarks: restIndent.remarks || '',
         items: formattedItems,
       },
       costSheet: {
         predictedTotal: grandTotal,
+        designCost: data.costSheet.designCost || 0,
+        overheadCost: data.costSheet.overheadCost || 0,
+        contingencyCost: data.costSheet.contingencyCost || 0,
+        actualDesignCost:
+          data.costSheet.actualDesignCost !== undefined
+            ? data.costSheet.actualDesignCost
+            : undefined,
+        actualOverheadCost:
+          data.costSheet.actualOverheadCost !== undefined
+            ? data.costSheet.actualOverheadCost
+            : undefined,
+        actualContingencyCost:
+          data.costSheet.actualContingencyCost !== undefined
+            ? data.costSheet.actualContingencyCost
+            : undefined,
         costItems: data.costSheet.costItems,
         processCosts: allProcessCosts.length
           ? allProcessCosts
@@ -762,7 +783,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 predictedCost: 0,
                 estimatedHours: 0,
               },
-            ], // Fallback to avoid empty array error if validation slips
+            ],
       },
     };
 

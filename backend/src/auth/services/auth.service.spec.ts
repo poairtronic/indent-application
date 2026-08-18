@@ -50,6 +50,7 @@ describe('AuthService', () => {
   const mockSessionService = {
     createSession: jest.fn().mockResolvedValue({ id: 'session_id' }),
     revokeAllSessions: jest.fn().mockResolvedValue(undefined),
+    revokeSessionByToken: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockLoginHistoryService = {
@@ -182,4 +183,37 @@ describe('AuthService', () => {
       });
     });
   });
+
+  describe('refresh', () => {
+    const mockUser = {
+      id: 'user_id',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      employeeCode: 'EMP001',
+      status: 'ACTIVE',
+      isDeleted: false,
+      department: { id: 'dept_id', departmentCode: 'ENG', departmentName: 'Engineering' },
+      role: { id: 'role_id', roleName: 'Engineer', rolePermissions: [] },
+    };
+
+    it('should refresh token pair and revoke only the specific session', async () => {
+      mockTokenService.verifyRefreshToken.mockResolvedValue({ sub: 'user_id', email: 'test@example.com' });
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+
+      const result = await service.refresh('user_id', 'old_refresh_token');
+
+      expect(result).toBeDefined();
+      expect(result.accessToken).toBe('access_token');
+      expect(result.refreshToken).toBe('refresh_token');
+      expect(mockTokenService.revokeRefreshToken).toHaveBeenCalledWith('old_refresh_token');
+      expect(mockSessionService.revokeSessionByToken).toHaveBeenCalledWith(
+        'hashed_refresh_token',
+        'user_id',
+      );
+      expect(mockSessionService.revokeAllSessions).not.toHaveBeenCalled();
+      expect(mockSessionService.createSession).toHaveBeenCalled();
+    });
+  });
 });
+

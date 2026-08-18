@@ -111,6 +111,34 @@ export class SessionService {
     return result;
   }
 
+  async revokeSessionByToken(hashedToken: string, userId?: string) {
+    const where: any = {
+      OR: [{ sessionToken: hashedToken }, { refreshToken: hashedToken }],
+      isDeleted: false,
+      status: 'ACTIVE',
+    };
+    if (userId) {
+      where.userId = userId;
+    }
+    const result = await this.prisma.userSession.updateMany({
+      where,
+      data: {
+        status: 'REVOKED',
+        logoutAt: new Date(),
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+    if (userId) {
+      observabilityEventBus.emit('auth.event', {
+        action: 'session_revocation',
+        employeeCode: userId,
+        success: true,
+      });
+    }
+    return result;
+  }
+
   async revokeAllSessions(userId: string) {
     const result = await this.prisma.userSession.updateMany({
       where: { userId, isDeleted: false, status: 'ACTIVE' },

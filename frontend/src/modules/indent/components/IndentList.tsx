@@ -73,14 +73,16 @@ export const IndentList: React.FC<IndentListProps> = ({
           </Badge>
         </div>
         <div className="text-xs text-text-secondary mt-2 space-y-1">
-          {parsedRemarks.customerName && (
+          {(item.customerName || parsedRemarks.customerName) && (
             <p>
-              <span className="text-text-muted">Customer:</span> {parsedRemarks.customerName}
+              <span className="text-text-muted">Customer:</span>{' '}
+              {item.customerName || parsedRemarks.customerName}
             </p>
           )}
-          {parsedRemarks.layoutNumber && (
+          {(item.layoutNumber || parsedRemarks.layoutNumber) && (
             <p>
-              <span className="text-text-muted">Layout:</span> {parsedRemarks.layoutNumber}
+              <span className="text-text-muted">Layout:</span>{' '}
+              {item.layoutNumber || parsedRemarks.layoutNumber}
             </p>
           )}
           <p>
@@ -177,10 +179,10 @@ export const IndentList: React.FC<IndentListProps> = ({
                           )}
                         </td>
                         <td className="py-3.5 px-4 font-medium">
-                          {parsedRemarks.customerName || 'N/A'}
+                          {item.customerName || parsedRemarks.customerName || 'N/A'}
                         </td>
                         <td className="py-3.5 px-4 font-mono text-text-secondary">
-                          {parsedRemarks.layoutNumber || 'N/A'}
+                          {item.layoutNumber || parsedRemarks.layoutNumber || 'N/A'}
                         </td>
                         <td className="py-3.5 px-4 text-text-secondary">
                           {item.departmentName || 'N/A'}

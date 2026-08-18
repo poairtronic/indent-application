@@ -67,6 +67,14 @@ export class IndentAttachmentDto {
 
 export class CreateIndentSheetDto {
   @IsString()
+  @IsOptional()
+  customerName?: string;
+
+  @IsString()
+  @IsOptional()
+  layoutNumber?: string;
+
+  @IsString()
   @IsNotEmpty()
   productName: string;
 
@@ -108,6 +116,14 @@ export class CreateIndentSheetDto {
 }
 
 export class UpdateIndentSheetDto {
+  @IsString()
+  @IsOptional()
+  customerName?: string;
+
+  @IsString()
+  @IsOptional()
+  layoutNumber?: string;
+
   @IsString()
   @IsOptional()
   productName?: string;

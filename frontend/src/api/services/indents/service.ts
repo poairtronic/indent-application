@@ -7,6 +7,8 @@ export interface IndentData {
   id: string;
   indentNumber: string;
   costNumber?: string;
+  customerName?: string | null;
+  layoutNumber?: string | null;
   productId: string;
   productName?: string;
   departmentId: string;
@@ -61,6 +63,12 @@ export interface IndentAttachmentData {
 export interface CostSheetData {
   id: string;
   costNumber: string;
+  designCost?: number;
+  overheadCost?: number;
+  contingencyCost?: number;
+  actualDesignCost?: number | null;
+  actualOverheadCost?: number | null;
+  actualContingencyCost?: number | null;
   predictedTotal: number;
   actualTotal?: number;
   varianceAmount?: number;
