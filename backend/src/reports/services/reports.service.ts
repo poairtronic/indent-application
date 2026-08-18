@@ -452,23 +452,86 @@ export class ReportsService {
     query: ReportQueryDto,
   ): Promise<ReportResponse<ProcessYieldReportItem>> {
     this.checkReportAccess(user, 'process-yield');
-    const { page = 1, limit = 10 } = query;
+    const { page = 1, limit = 10, search, productId, dateFrom, dateTo } = query;
+
+    const processCode = (query as any).processCode || search;
+
+    const where: Prisma.IndentProcessWhereInput = { isDeleted: false };
+
+    if (processCode) {
+      where.process = { processCode: { contains: processCode, mode: 'insensitive' } };
+    }
+
+    const indentWhere: Prisma.IndentWhereInput = {};
+    if (productId) indentWhere.productId = productId;
+    if (search && !processCode) {
+      indentWhere.indentNumber = { contains: search, mode: 'insensitive' };
+    }
+
+    if (Object.keys(indentWhere).length > 0) {
+      where.indentItem = { indent: indentWhere };
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) where.createdAt.lte = new Date(dateTo);
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.indentProcess.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          process: true,
+          indentItem: {
+            include: {
+              indent: { include: { product: true } },
+              material: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.indentProcess.count({ where }),
+    ]);
+
+    const data: ProcessYieldReportItem[] = items.map((item: any) => {
+      const input = Number(item.inputQuantity || 0);
+      const output = Number(item.outputQuantity || 0);
+      const scrap = Number(item.scrapQuantity || 0);
+
+      let efficiencyPercentage = null;
+      if (input > 0) {
+        efficiencyPercentage = Number(((output / input) * 100).toFixed(2));
+      }
+
+      return {
+        indentProcessId: item.id,
+        indentNumber: item.indentItem.indent.indentNumber,
+        productCode: item.indentItem.indent.product.productCode,
+        productName: item.indentItem.indent.product.productName,
+        processCode: item.process.processCode,
+        processName: item.process.processName,
+        sequence: item.sequence,
+        estimatedHours: Number(item.estimatedHours),
+        actualHours: item.actualHours !== null ? Number(item.actualHours) : null,
+        varianceHours:
+          item.actualHours !== null ? Number(item.actualHours) - Number(item.estimatedHours) : null,
+        efficiencyPercentage,
+        scrapFactor: scrap > 0 && input > 0 ? Number(((scrap / input) * 100).toFixed(2)) : 0,
+      };
+    });
+
     return {
-      data: [],
+      data,
       meta: {
-        total: 0,
+        total,
         page,
         limit,
-        totalPages: 0,
+        totalPages: Math.ceil(total / limit),
       },
-      isDatabaseGap: true,
-      gapMessage:
-        'Yield data unavailable — required process input/output tracking fields are not stored in the database.',
-      missingFields: [
-        'IndentProcess.inputQuantity (Decimal)',
-        'IndentProcess.outputQuantity (Decimal)',
-        'IndentProcess.scrapQuantity (Decimal)',
-      ],
     };
   }
 
@@ -481,22 +544,68 @@ export class ReportsService {
     query: ReportQueryDto,
   ): Promise<ReportResponse<MachineUtilizationReportItem>> {
     this.checkReportAccess(user, 'machine-utilization');
-    const { page = 1, limit = 10 } = query;
+    const { page = 1, limit = 10, search, dateFrom, dateTo } = query;
+
+    const where: Prisma.MachineLogWhereInput = { isDeleted: false };
+
+    if (search) {
+      where.machine = { machineName: { contains: search, mode: 'insensitive' } };
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) where.createdAt.lte = new Date(dateTo);
+    }
+
+    // Group logs by processId
+    const groupedLogs = await this.prisma.machineLog.groupBy({
+      by: ['processId'],
+      where,
+      _sum: {
+        operatingHours: true,
+        downtimeHours: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    const total = groupedLogs.length;
+
+    // Pagination
+    const paginatedGroups = groupedLogs.slice((page - 1) * limit, page * limit);
+
+    const processIds = paginatedGroups.map((g) => g.processId);
+
+    const processes = await this.prisma.manufacturingProcess.findMany({
+      where: { id: { in: processIds } },
+    });
+
+    const processMap = new Map(processes.map((p) => [p.id, p]));
+
+    const data: MachineUtilizationReportItem[] = paginatedGroups.map((group) => {
+      const process = processMap.get(group.processId);
+      const totalOp = Number(group._sum.operatingHours || 0);
+      return {
+        processCode: process?.processCode || 'UNKNOWN',
+        processName: process?.processName || 'Unknown Process',
+        totalIndentCount: group._count.id,
+        totalEstimatedHours: Number(process?.estimatedHours || 0) * group._count.id,
+        totalActualHours: totalOp,
+        averageActualHours:
+          group._count.id > 0 ? Number((totalOp / group._count.id).toFixed(2)) : null,
+      };
+    });
+
     return {
-      data: [],
+      data,
       meta: {
-        total: 0,
+        total,
         page,
         limit,
-        totalPages: 0,
+        totalPages: Math.ceil(total / limit),
       },
-      isDatabaseGap: true,
-      gapMessage:
-        'Machine utilization data unavailable — required source tables (e.g. Machine, MachineLog, MachineOperatingTime) are not stored in the database.',
-      missingFields: [
-        'Machine model (id, machineCode, machineName, status)',
-        'MachineLog model (machineId, processId, operatingHours, downtimeHours)',
-      ],
     };
   }
 
@@ -755,22 +864,52 @@ export class ReportsService {
     query: ReportQueryDto,
   ): Promise<ReportResponse<DepartmentBudgetReportItem>> {
     this.checkReportAccess(user, 'department-budget');
-    const { page = 1, limit = 10 } = query;
+    const { page = 1, limit = 10, search, departmentId } = query;
+
+    const where: Prisma.DepartmentBudgetWhereInput = { isDeleted: false };
+
+    if (departmentId) where.departmentId = departmentId;
+    if (search) {
+      where.department = { departmentName: { contains: search, mode: 'insensitive' } };
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.departmentBudget.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { department: true },
+        orderBy: { fiscalYear: 'desc' },
+      }),
+      this.prisma.departmentBudget.count({ where }),
+    ]);
+
+    const data: DepartmentBudgetReportItem[] = items.map((item: any) => {
+      const budgetAmount = Number(item.budgetAmount);
+      const allocatedAmount = Number(item.allocatedAmount);
+      const variance = budgetAmount - allocatedAmount;
+      const variancePct =
+        budgetAmount > 0 ? Number(((variance / budgetAmount) * 100).toFixed(2)) : 0;
+
+      return {
+        departmentId: item.departmentId,
+        departmentCode: item.department.departmentCode,
+        departmentName: item.department.departmentName,
+        totalPlannedCost: budgetAmount,
+        totalActualCost: allocatedAmount,
+        varianceAmount: variance,
+        variancePercentage: variancePct,
+      };
+    });
+
     return {
-      data: [],
+      data,
       meta: {
-        total: 0,
+        total,
         page,
         limit,
-        totalPages: 0,
+        totalPages: Math.ceil(total / limit),
       },
-      isDatabaseGap: true,
-      gapMessage:
-        'Budget data unavailable — required department budget models or budget fields are not stored in the database.',
-      missingFields: [
-        'Department.budgetLimit (Decimal)',
-        'DepartmentBudget model (id, departmentId, fiscalYear, budgetAmount, allocatedAmount)',
-      ],
     };
   }
 

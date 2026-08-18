@@ -139,21 +139,22 @@ model Department {
   departmentName String           @db.VarChar(100)
   description    String?          @db.VarChar(255)
   status         DepartmentStatus @default(ACTIVE)
-  
+
   // Audit Fields
-  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime         @updatedAt @db.Timestamptz(6)
-  isDeleted      Boolean          @default(false)
-  deletedAt      DateTime?        @db.Timestamptz(6)
-  createdBy      String?          @db.Uuid
-  updatedBy      String?          @db.Uuid
-  deletedBy      String?          @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  users          User[]
-  indents        Indent[]
-  workflowFrom   WorkflowHistory[] @relation("WorkflowFrom")
-  workflowTo     WorkflowHistory[] @relation("WorkflowTo")
+  users             User[]
+  indents           Indent[]
+  workflowFrom      WorkflowHistory[]  @relation("WorkflowFrom")
+  workflowTo        WorkflowHistory[]  @relation("WorkflowTo")
+  departmentBudgets DepartmentBudget[]
 
   @@index([status])
   @@index([createdAt])
@@ -161,19 +162,19 @@ model Department {
 }
 
 model Role {
-  id              String           @id @default(uuid()) @db.Uuid
-  roleName        String           @unique @db.VarChar(100)
-  description     String?          @db.VarChar(255)
-  isSystem        Boolean          @default(false)
-  
+  id          String  @id @default(uuid()) @db.Uuid
+  roleName    String  @unique @db.VarChar(100)
+  description String? @db.VarChar(255)
+  isSystem    Boolean @default(false)
+
   // Audit Fields
-  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean          @default(false)
-  deletedAt       DateTime?        @db.Timestamptz(6)
-  createdBy       String?          @db.Uuid
-  updatedBy       String?          @db.Uuid
-  deletedBy       String?          @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
   users           User[]
@@ -184,20 +185,20 @@ model Role {
 }
 
 model Permission {
-  id              String           @id @default(uuid()) @db.Uuid
-  module          String           @db.VarChar(100)
-  action          PermissionAction
-  code            String           @unique @db.VarChar(150)
-  description     String?          @db.VarChar(255)
-  
+  id          String           @id @default(uuid()) @db.Uuid
+  module      String           @db.VarChar(100)
+  action      PermissionAction
+  code        String           @unique @db.VarChar(150)
+  description String?          @db.VarChar(255)
+
   // Audit Fields
-  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean          @default(false)
-  deletedAt       DateTime?        @db.Timestamptz(6)
-  createdBy       String?          @db.Uuid
-  updatedBy       String?          @db.Uuid
-  deletedBy       String?          @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
   rolePermissions RolePermission[]
@@ -209,21 +210,21 @@ model Permission {
 }
 
 model RolePermission {
-  roleId       String     @db.Uuid
-  permissionId String     @db.Uuid
-  
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
   // Audit Fields
-  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
-  isDeleted    Boolean    @default(false)
-  deletedAt    DateTime?  @db.Timestamptz(6)
-  createdBy    String?    @db.Uuid
-  updatedBy    String?    @db.Uuid
-  deletedBy    String?    @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
   @@index([roleId])
@@ -232,15 +233,15 @@ model RolePermission {
 }
 
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  employeeCode String     @unique @db.VarChar(50)
-  firstName    String     @db.VarChar(100)
-  lastName     String     @db.VarChar(100)
-  email        String     @unique @db.VarChar(150)
-  phone        String?    @db.VarChar(20)
-  password     String     @db.VarChar(255)
-  departmentId String     @db.Uuid
-  roleId       String     @db.Uuid
+  id                  String     @id @default(uuid()) @db.Uuid
+  employeeCode        String     @unique @db.VarChar(50)
+  firstName           String     @db.VarChar(100)
+  lastName            String     @db.VarChar(100)
+  email               String     @unique @db.VarChar(150)
+  phone               String?    @db.VarChar(20)
+  password            String     @db.VarChar(255)
+  departmentId        String     @db.Uuid
+  roleId              String     @db.Uuid
   status              UserStatus @default(ACTIVE)
   profileImage        String?    @db.VarChar(255)
   lastLogin           DateTime?  @db.Timestamptz(6)
@@ -248,31 +249,31 @@ model User {
   lockedAt            DateTime?  @db.Timestamptz(6)
   lockedUntil         DateTime?  @db.Timestamptz(6)
   lastPasswordChange  DateTime?  @db.Timestamptz(6)
-  
+
   // Audit Fields
-  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
-  isDeleted    Boolean    @default(false)
-  deletedAt    DateTime?  @db.Timestamptz(6)
-  createdBy    String?    @db.Uuid
-  updatedBy    String?    @db.Uuid
-  deletedBy    String?    @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  department         Department                  @relation(fields: [departmentId], references: [id])
-  role               Role                        @relation(fields: [roleId], references: [id])
-  indentsCreated     Indent[]                    @relation("IndentCreator")
+  department          Department                  @relation(fields: [departmentId], references: [id])
+  role                Role                        @relation(fields: [roleId], references: [id])
+  indentsCreated      Indent[]                    @relation("IndentCreator")
   attachmentsUploaded IndentAttachment[]
-  costSheetsPrepared CostSheet[]                 @relation("CostSheetPreparer")
-  amrRequested       AdditionalMaterialRequest[] @relation("AMRRequester")
-  amrApproved        AdditionalMaterialRequest[] @relation("AMRApprover")
-  workflowMoves      WorkflowHistory[]
-  productionReceipts ProductionReceipt[]
-  indentChanges      IndentHistory[]
-  
+  costSheetsPrepared  CostSheet[]                 @relation("CostSheetPreparer")
+  amrRequested        AdditionalMaterialRequest[] @relation("AMRRequester")
+  amrApproved         AdditionalMaterialRequest[] @relation("AMRApprover")
+  workflowMoves       WorkflowHistory[]
+  productionReceipts  ProductionReceipt[]
+  indentChanges       IndentHistory[]
+
   // Infrastructure Relations (Phase 7C)
   notificationRecipients NotificationRecipient[]
-  notificationsCreated   Notification[]            @relation("NotificationCreator")
+  notificationsCreated   Notification[]          @relation("NotificationCreator")
   emailLogs              EmailLog[]
   auditLogs              AuditLog[]
   activityLogs           ActivityLog[]
@@ -293,28 +294,28 @@ model User {
 }
 
 model Vendor {
-  id              String         @id @default(uuid()) @db.Uuid
-  vendorCode      String         @unique @db.VarChar(50)
-  vendorName      String         @db.VarChar(150)
-  email           String         @unique @db.VarChar(150)
-  phone           String?        @db.VarChar(20)
-  gstNumber       String?        @unique @db.VarChar(15)
-  panNumber       String?        @unique @db.VarChar(10)
-  address         String         @db.Text
-  city            String         @db.VarChar(100)
-  state           String         @db.VarChar(100)
-  country         String         @db.VarChar(100)
-  pincode         String         @db.VarChar(10)
-  status          VendorStatus   @default(ACTIVE)
-  
+  id         String       @id @default(uuid()) @db.Uuid
+  vendorCode String       @unique @db.VarChar(50)
+  vendorName String       @db.VarChar(150)
+  email      String       @unique @db.VarChar(150)
+  phone      String?      @db.VarChar(20)
+  gstNumber  String?      @unique @db.VarChar(15)
+  panNumber  String?      @unique @db.VarChar(10)
+  address    String       @db.Text
+  city       String       @db.VarChar(100)
+  state      String       @db.VarChar(100)
+  country    String       @db.VarChar(100)
+  pincode    String       @db.VarChar(10)
+  status     VendorStatus @default(ACTIVE)
+
   // Audit Fields
-  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean        @default(false)
-  deletedAt       DateTime?      @db.Timestamptz(6)
-  createdBy       String?        @db.Uuid
-  updatedBy       String?        @db.Uuid
-  deletedBy       String?        @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
   materialVendors MaterialVendor[]
@@ -326,19 +327,19 @@ model Vendor {
 }
 
 model Unit {
-  id        String     @id @default(uuid()) @db.Uuid
-  unitCode  String     @unique @db.VarChar(20)
-  unitName  String     @db.VarChar(100)
-  symbol    String     @db.VarChar(10)
-  
+  id       String @id @default(uuid()) @db.Uuid
+  unitCode String @unique @db.VarChar(20)
+  unitName String @db.VarChar(100)
+  symbol   String @db.VarChar(10)
+
   // Audit Fields
-  createdAt DateTime   @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime   @updatedAt @db.Timestamptz(6)
-  isDeleted Boolean    @default(false)
-  deletedAt DateTime?  @db.Timestamptz(6)
-  createdBy String?    @db.Uuid
-  updatedBy String?    @db.Uuid
-  deletedBy String?    @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
   materials   Material[]
@@ -350,25 +351,25 @@ model Unit {
 }
 
 model Material {
-  id              String         @id @default(uuid()) @db.Uuid
-  materialCode    String         @unique @db.VarChar(50)
-  materialName    String         @db.VarChar(150)
-  description     String?        @db.Text
-  unitId          String         @db.Uuid
-  minimumStock    Decimal        @default(0) @db.Decimal(18, 4)
-  maximumStock    Decimal        @default(0) @db.Decimal(18, 4)
-  currentStock    Decimal        @default(0) @db.Decimal(18, 4)
-  category        String         @db.VarChar(100)
-  status          MaterialStatus @default(ACTIVE)
-  
+  id           String         @id @default(uuid()) @db.Uuid
+  materialCode String         @unique @db.VarChar(50)
+  materialName String         @db.VarChar(150)
+  description  String?        @db.Text
+  unitId       String         @db.Uuid
+  minimumStock Decimal        @default(0) @db.Decimal(18, 4)
+  maximumStock Decimal        @default(0) @db.Decimal(18, 4)
+  currentStock Decimal        @default(0) @db.Decimal(18, 4)
+  category     String         @db.VarChar(100)
+  status       MaterialStatus @default(ACTIVE)
+
   // Audit Fields
-  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean        @default(false)
-  deletedAt       DateTime?      @db.Timestamptz(6)
-  createdBy       String?        @db.Uuid
-  updatedBy       String?        @db.Uuid
-  deletedBy       String?        @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
   unit             Unit                     @relation(fields: [unitId], references: [id])
@@ -385,23 +386,23 @@ model Material {
 }
 
 model MaterialVendor {
-  materialId   String    @db.Uuid
-  vendorId     String    @db.Uuid
-  leadTimeDays Int?      @db.Integer
-  unitPrice    Decimal?  @db.Decimal(18, 4)
-  
+  materialId   String   @db.Uuid
+  vendorId     String   @db.Uuid
+  leadTimeDays Int?     @db.Integer
+  unitPrice    Decimal? @db.Decimal(18, 4)
+
   // Audit Fields
-  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted    Boolean   @default(false)
-  deletedAt    DateTime? @db.Timestamptz(6)
-  createdBy    String?   @db.Uuid
-  updatedBy    String?   @db.Uuid
-  deletedBy    String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  material     Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  vendor       Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  vendor   Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@id([materialId, vendorId])
   @@index([materialId])
@@ -410,22 +411,22 @@ model MaterialVendor {
 }
 
 model Product {
-  id                     String                 @id @default(uuid()) @db.Uuid
-  productCode            String                 @unique @db.VarChar(50)
-  productName            String                 @db.VarChar(150)
-  drawingNumber          String?                @db.VarChar(100)
-  revision               String?                @db.VarChar(20)
-  description            String?                @db.Text
-  status                 ProductStatus          @default(ACTIVE)
-  
+  id            String        @id @default(uuid()) @db.Uuid
+  productCode   String        @unique @db.VarChar(50)
+  productName   String        @db.VarChar(150)
+  drawingNumber String?       @db.VarChar(100)
+  revision      String?       @db.VarChar(20)
+  description   String?       @db.Text
+  status        ProductStatus @default(ACTIVE)
+
   // Audit Fields
-  createdAt              DateTime               @default(now()) @db.Timestamptz(6)
-  updatedAt              DateTime               @updatedAt @db.Timestamptz(6)
-  isDeleted              Boolean                @default(false)
-  deletedAt              DateTime?              @db.Timestamptz(6)
-  createdBy              String?                @db.Uuid
-  updatedBy              String?                @db.Uuid
-  deletedBy              String?                @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
   manufacturingProcesses ManufacturingProcess[]
@@ -438,23 +439,23 @@ model Product {
 }
 
 model ProductMaterial {
-  productId        String    @db.Uuid
-  materialId       String    @db.Uuid
-  quantityRequired Decimal   @db.Decimal(18, 4)
-  scrapFactor      Decimal   @default(0) @db.Decimal(5, 2) // Percentage: e.g. 5.50%
-  
+  productId        String  @db.Uuid
+  materialId       String  @db.Uuid
+  quantityRequired Decimal @db.Decimal(18, 4)
+  scrapFactor      Decimal @default(0) @db.Decimal(5, 2) // Percentage: e.g. 5.50%
+
   // Audit Fields
-  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt        DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted        Boolean   @default(false)
-  deletedAt        DateTime? @db.Timestamptz(6)
-  createdBy        String?   @db.Uuid
-  updatedBy        String?   @db.Uuid
-  deletedBy        String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  product          Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  material         Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
 
   @@id([productId, materialId])
   @@index([productId])
@@ -471,20 +472,21 @@ model ManufacturingProcess {
   sequence       Int           @db.Integer
   estimatedHours Decimal       @db.Decimal(8, 2)
   status         ProcessStatus @default(ACTIVE)
-  
+
   // Audit Fields
-  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime      @updatedAt @db.Timestamptz(6)
-  isDeleted      Boolean       @default(false)
-  deletedAt      DateTime?     @db.Timestamptz(6)
-  createdBy      String?       @db.Uuid
-  updatedBy      String?       @db.Uuid
-  deletedBy      String?       @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
   product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   indentProcesses IndentProcess[]
   processCosts    ProcessCost[]
+  machineLogs     MachineLog[]
 
   @@unique([productId, processCode])
   @@unique([productId, sequence])
@@ -499,44 +501,44 @@ model ManufacturingProcess {
 // ==========================================
 
 model Indent {
-  id                    String           @id @default(uuid()) @db.Uuid
-  indentNumber          String           @unique @db.VarChar(50)
-  productId             String           @db.Uuid
-  departmentId          String           @db.Uuid
-  priority              Priority         @default(MEDIUM)
-  status                IndentStatus     @default(DRAFT)
-  currentState          String?          @db.VarChar(50)  // Domain WorkflowState key (e.g. 'DRAFT', 'DESIGN_COMPLETED')
-  currentStageId        String?          @db.Uuid
-  customerName          String?          @db.VarChar(150)
-  layoutNumber          String?          @db.VarChar(100)
-  requiredDate          DateTime         @db.Timestamptz(6)
-  requiredDeliveryDate  DateTime?        @db.Timestamptz(6)
-  purpose               String?          @db.Text
-  remarks               String?          @db.Text
-  version               Int              @default(1)
-  isLocked              Boolean          @default(false)
-  
+  id                   String       @id @default(uuid()) @db.Uuid
+  indentNumber         String       @unique @db.VarChar(50)
+  productId            String       @db.Uuid
+  departmentId         String       @db.Uuid
+  priority             Priority     @default(MEDIUM)
+  status               IndentStatus @default(DRAFT)
+  currentState         String?      @db.VarChar(50) // Domain WorkflowState key (e.g. 'DRAFT', 'DESIGN_COMPLETED')
+  currentStageId       String?      @db.Uuid
+  customerName         String?      @db.VarChar(150)
+  layoutNumber         String?      @db.VarChar(100)
+  requiredDate         DateTime     @db.Timestamptz(6)
+  requiredDeliveryDate DateTime?    @db.Timestamptz(6)
+  purpose              String?      @db.Text
+  remarks              String?      @db.Text
+  version              Int          @default(1)
+  isLocked             Boolean      @default(false)
+
   // Audit Fields
-  createdAt             DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt             DateTime         @updatedAt @db.Timestamptz(6)
-  isDeleted             Boolean          @default(false)
-  deletedAt             DateTime?        @db.Timestamptz(6)
-  createdBy             String           @db.Uuid
-  updatedBy             String?          @db.Uuid
-  deletedBy             String?          @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  product               Product          @relation(fields: [productId], references: [id])
-  department            Department       @relation(fields: [departmentId], references: [id])
-  creator               User             @relation("IndentCreator", fields: [createdBy], references: [id])
-  currentStage          WorkflowStage?   @relation(fields: [currentStageId], references: [id])
-  indentItems           IndentItem[]
-  attachments           IndentAttachment[]
-  costSheet             CostSheet?
-  workflowHistory       WorkflowHistory[]
-  additionalRequests    AdditionalMaterialRequest[]
-  productionReceipt     ProductionReceipt?
-  history               IndentHistory[]
+  product            Product                     @relation(fields: [productId], references: [id])
+  department         Department                  @relation(fields: [departmentId], references: [id])
+  creator            User                        @relation("IndentCreator", fields: [createdBy], references: [id])
+  currentStage       WorkflowStage?              @relation(fields: [currentStageId], references: [id])
+  indentItems        IndentItem[]
+  attachments        IndentAttachment[]
+  costSheet          CostSheet?
+  workflowHistory    WorkflowHistory[]
+  additionalRequests AdditionalMaterialRequest[]
+  productionReceipt  ProductionReceipt?
+  history            IndentHistory[]
 
   @@index([indentNumber])
   @@index([customerName])
@@ -553,27 +555,27 @@ model Indent {
 }
 
 model IndentItem {
-  id              String           @id @default(uuid()) @db.Uuid
-  indentId        String           @db.Uuid
-  materialId      String           @db.Uuid
-  quantity        Decimal          @db.Decimal(18, 4)
-  unitId          String           @db.Uuid
-  remarks         String?          @db.Text
-  status          String?          @db.VarChar(50) // e.g., AVAILABLE, TO_BE_PURCHASED
-  
+  id         String  @id @default(uuid()) @db.Uuid
+  indentId   String  @db.Uuid
+  materialId String  @db.Uuid
+  quantity   Decimal @db.Decimal(18, 4)
+  unitId     String  @db.Uuid
+  remarks    String? @db.Text
+  status     String? @db.VarChar(50) // e.g., AVAILABLE, TO_BE_PURCHASED
+
   // Audit Fields
-  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime         @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean          @default(false)
-  deletedAt       DateTime?        @db.Timestamptz(6)
-  createdBy       String?          @db.Uuid
-  updatedBy       String?          @db.Uuid
-  deletedBy       String?          @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  indent          Indent           @relation(fields: [indentId], references: [id], onDelete: Cascade)
-  material        Material         @relation(fields: [materialId], references: [id])
-  unit            Unit             @relation(fields: [unitId], references: [id])
+  indent          Indent          @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  material        Material        @relation(fields: [materialId], references: [id])
+  unit            Unit            @relation(fields: [unitId], references: [id])
   indentProcesses IndentProcess[]
 
   @@index([indentId])
@@ -585,25 +587,25 @@ model IndentItem {
 }
 
 model IndentAttachment {
-  id          String   @id @default(uuid()) @db.Uuid
-  indentId    String   @db.Uuid
-  fileName    String   @db.VarChar(255)
-  fileUrl     String   @db.VarChar(500)
-  fileType    FileType @default(OTHER)
-  uploadedBy  String   @db.Uuid
-  
+  id         String   @id @default(uuid()) @db.Uuid
+  indentId   String   @db.Uuid
+  fileName   String   @db.VarChar(255)
+  fileUrl    String   @db.VarChar(500)
+  fileType   FileType @default(OTHER)
+  uploadedBy String   @db.Uuid
+
   // Audit Fields
-  createdAt   DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
-  isDeleted   Boolean  @default(false)
-  deletedAt   DateTime? @db.Timestamptz(6)
-  createdBy   String?  @db.Uuid
-  updatedBy   String?  @db.Uuid
-  deletedBy   String?  @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  indent      Indent   @relation(fields: [indentId], references: [id], onDelete: Cascade)
-  uploader    User     @relation(fields: [uploadedBy], references: [id])
+  indent   Indent @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  uploader User   @relation(fields: [uploadedBy], references: [id])
 
   @@index([indentId])
   @@index([uploadedBy])
@@ -613,26 +615,29 @@ model IndentAttachment {
 }
 
 model IndentProcess {
-  id              String        @id @default(uuid()) @db.Uuid
-  indentItemId    String        @db.Uuid
-  processId       String        @db.Uuid
-  sequence        Int           @db.Integer
-  estimatedHours  Decimal       @db.Decimal(8, 2)
-  actualHours     Decimal?      @db.Decimal(8, 2)
-  status          ProcessStatus @default(ACTIVE)
+  id             String        @id @default(uuid()) @db.Uuid
+  indentItemId   String        @db.Uuid
+  processId      String        @db.Uuid
+  sequence       Int           @db.Integer
+  estimatedHours Decimal       @db.Decimal(8, 2)
+  actualHours    Decimal?      @db.Decimal(8, 2)
+  inputQuantity  Decimal?      @db.Decimal(18, 4)
+  outputQuantity Decimal?      @db.Decimal(18, 4)
+  scrapQuantity  Decimal?      @db.Decimal(18, 4)
+  status         ProcessStatus @default(ACTIVE)
 
   // Audit Fields
-  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime      @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean       @default(false)
-  deletedAt       DateTime?     @db.Timestamptz(6)
-  createdBy       String?       @db.Uuid
-  updatedBy       String?       @db.Uuid
-  deletedBy       String?       @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  indentItem      IndentItem           @relation(fields: [indentItemId], references: [id], onDelete: Cascade)
-  process         ManufacturingProcess @relation(fields: [processId], references: [id])
+  indentItem IndentItem           @relation(fields: [indentItemId], references: [id], onDelete: Cascade)
+  process    ManufacturingProcess @relation(fields: [processId], references: [id])
 
   @@unique([indentItemId, processId])
   @@index([indentItemId])
@@ -643,36 +648,36 @@ model IndentProcess {
 }
 
 model CostSheet {
-  id                String          @id @default(uuid()) @db.Uuid
-  costNumber        String          @unique @db.VarChar(50)
-  indentId          String          @unique @db.Uuid
-  preparedBy        String          @db.Uuid
-  designCost        Decimal         @default(0) @db.Decimal(18, 4)
-  overheadCost      Decimal         @default(0) @db.Decimal(18, 4)
-  contingencyCost   Decimal         @default(0) @db.Decimal(18, 4)
-  actualDesignCost  Decimal?        @db.Decimal(18, 4)
-  actualOverheadCost Decimal?       @db.Decimal(18, 4)
-  actualContingencyCost Decimal?    @db.Decimal(18, 4)
-  predictedTotal    Decimal         @db.Decimal(18, 4)
-  actualTotal       Decimal?        @db.Decimal(18, 4)
-  varianceAmount    Decimal?        @db.Decimal(18, 4)
-  variancePercentage Decimal?       @db.Decimal(5, 2)
-  status            CostSheetStatus @default(DRAFT)
-  
+  id                    String          @id @default(uuid()) @db.Uuid
+  costNumber            String          @unique @db.VarChar(50)
+  indentId              String          @unique @db.Uuid
+  preparedBy            String          @db.Uuid
+  designCost            Decimal         @default(0) @db.Decimal(18, 4)
+  overheadCost          Decimal         @default(0) @db.Decimal(18, 4)
+  contingencyCost       Decimal         @default(0) @db.Decimal(18, 4)
+  actualDesignCost      Decimal?        @db.Decimal(18, 4)
+  actualOverheadCost    Decimal?        @db.Decimal(18, 4)
+  actualContingencyCost Decimal?        @db.Decimal(18, 4)
+  predictedTotal        Decimal         @db.Decimal(18, 4)
+  actualTotal           Decimal?        @db.Decimal(18, 4)
+  varianceAmount        Decimal?        @db.Decimal(18, 4)
+  variancePercentage    Decimal?        @db.Decimal(5, 2)
+  status                CostSheetStatus @default(DRAFT)
+
   // Audit Fields
-  createdAt         DateTime        @default(now()) @db.Timestamptz(6)
-  updatedAt         DateTime        @updatedAt @db.Timestamptz(6)
-  isDeleted         Boolean         @default(false)
-  deletedAt         DateTime?       @db.Timestamptz(6)
-  createdBy         String          @db.Uuid
-  updatedBy         String?         @db.Uuid
-  deletedBy         String?         @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  indent            Indent          @relation(fields: [indentId], references: [id])
-  preparer          User            @relation("CostSheetPreparer", fields: [preparedBy], references: [id])
-  costItems         CostItem[]
-  processCosts      ProcessCost[]
+  indent       Indent        @relation(fields: [indentId], references: [id])
+  preparer     User          @relation("CostSheetPreparer", fields: [preparedBy], references: [id])
+  costItems    CostItem[]
+  processCosts ProcessCost[]
 
   @@index([costNumber])
   @@index([indentId])
@@ -695,18 +700,18 @@ model CostItem {
   remarks           String?  @db.Text
 
   // Audit Fields
-  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted         Boolean   @default(false)
-  deletedAt         DateTime? @db.Timestamptz(6)
-  createdBy         String?   @db.Uuid
-  updatedBy         String?   @db.Uuid
-  deletedBy         String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  costSheet         CostSheet @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
-  material          Material  @relation(fields: [materialId], references: [id])
-  vendor            Vendor?   @relation(fields: [vendorId], references: [id])
+  costSheet CostSheet @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
+  material  Material  @relation(fields: [materialId], references: [id])
+  vendor    Vendor?   @relation(fields: [vendorId], references: [id])
 
   @@index([costSheetId])
   @@index([materialId])
@@ -717,27 +722,27 @@ model CostItem {
 }
 
 model ProcessCost {
-  id              String    @id @default(uuid()) @db.Uuid
-  costSheetId     String    @db.Uuid
-  processId       String    @db.Uuid
-  predictedCost   Decimal   @db.Decimal(18, 4)
-  actualCost      Decimal?  @db.Decimal(18, 4)
-  variance        Decimal?  @db.Decimal(18, 4)
-  estimatedHours  Decimal   @db.Decimal(8, 2)
-  actualHours     Decimal?  @db.Decimal(8, 2)
+  id             String   @id @default(uuid()) @db.Uuid
+  costSheetId    String   @db.Uuid
+  processId      String   @db.Uuid
+  predictedCost  Decimal  @db.Decimal(18, 4)
+  actualCost     Decimal? @db.Decimal(18, 4)
+  variance       Decimal? @db.Decimal(18, 4)
+  estimatedHours Decimal  @db.Decimal(8, 2)
+  actualHours    Decimal? @db.Decimal(8, 2)
 
   // Audit Fields
-  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean   @default(false)
-  deletedAt       DateTime? @db.Timestamptz(6)
-  createdBy       String?   @db.Uuid
-  updatedBy       String?   @db.Uuid
-  deletedBy       String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  costSheet       CostSheet            @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
-  process         ManufacturingProcess @relation(fields: [processId], references: [id])
+  costSheet CostSheet            @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
+  process   ManufacturingProcess @relation(fields: [processId], references: [id])
 
   @@index([costSheetId])
   @@index([processId])
@@ -747,28 +752,28 @@ model ProcessCost {
 }
 
 model AdditionalMaterialRequest {
-  id              String      @id @default(uuid()) @db.Uuid
-  parentIndentId  String      @db.Uuid
-  requestNumber   String      @unique @db.VarChar(50)
-  requestedBy     String      @db.Uuid
-  approvedBy      String?     @db.Uuid
-  reason          String      @db.Text
-  status          AMRStatus   @default(DRAFT)
-  
+  id             String    @id @default(uuid()) @db.Uuid
+  parentIndentId String    @db.Uuid
+  requestNumber  String    @unique @db.VarChar(50)
+  requestedBy    String    @db.Uuid
+  approvedBy     String?   @db.Uuid
+  reason         String    @db.Text
+  status         AMRStatus @default(DRAFT)
+
   // Audit Fields
-  createdAt       DateTime    @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime    @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean     @default(false)
-  deletedAt       DateTime?   @db.Timestamptz(6)
-  createdBy       String      @db.Uuid
-  updatedBy       String?     @db.Uuid
-  deletedBy       String?     @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  parentIndent    Indent      @relation(fields: [parentIndentId], references: [id])
-  requester       User        @relation("AMRRequester", fields: [requestedBy], references: [id])
-  approver        User?       @relation("AMRApprover", fields: [approvedBy], references: [id])
-  items           AdditionalMaterialItem[]
+  parentIndent Indent                   @relation(fields: [parentIndentId], references: [id])
+  requester    User                     @relation("AMRRequester", fields: [requestedBy], references: [id])
+  approver     User?                    @relation("AMRApprover", fields: [approvedBy], references: [id])
+  items        AdditionalMaterialItem[]
 
   @@index([parentIndentId])
   @@index([requestNumber])
@@ -778,26 +783,26 @@ model AdditionalMaterialRequest {
 }
 
 model AdditionalMaterialItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  requestId   String   @db.Uuid
-  materialId  String   @db.Uuid
-  quantity    Decimal  @db.Decimal(18, 4)
-  unitId      String   @db.Uuid
-  remarks     String?  @db.Text
+  id         String  @id @default(uuid()) @db.Uuid
+  requestId  String  @db.Uuid
+  materialId String  @db.Uuid
+  quantity   Decimal @db.Decimal(18, 4)
+  unitId     String  @db.Uuid
+  remarks    String? @db.Text
 
   // Audit Fields
-  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted   Boolean   @default(false)
-  deletedAt   DateTime? @db.Timestamptz(6)
-  createdBy   String?   @db.Uuid
-  updatedBy   String?   @db.Uuid
-  deletedBy   String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  request     AdditionalMaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  material    Material                  @relation(fields: [materialId], references: [id])
-  unit        Unit                      @relation(fields: [unitId], references: [id])
+  request  AdditionalMaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  material Material                  @relation(fields: [materialId], references: [id])
+  unit     Unit                      @relation(fields: [unitId], references: [id])
 
   @@index([requestId])
   @@index([materialId])
@@ -808,19 +813,19 @@ model AdditionalMaterialItem {
 }
 
 model WorkflowStage {
-  id          String   @id @default(uuid()) @db.Uuid
-  stageName   String   @unique @db.VarChar(100)
-  sequence    Int      @unique @db.Integer
-  description String?  @db.VarChar(255)
-  
+  id          String  @id @default(uuid()) @db.Uuid
+  stageName   String  @unique @db.VarChar(100)
+  sequence    Int     @unique @db.Integer
+  description String? @db.VarChar(255)
+
   // Audit Fields
-  createdAt   DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
-  isDeleted   Boolean  @default(false)
-  deletedAt   DateTime? @db.Timestamptz(6)
-  createdBy   String?  @db.Uuid
-  updatedBy   String?  @db.Uuid
-  deletedBy   String?  @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
   workflowHistory WorkflowHistory[]
@@ -832,30 +837,30 @@ model WorkflowStage {
 }
 
 model WorkflowHistory {
-  id              String   @id @default(uuid()) @db.Uuid
-  indentId        String   @db.Uuid
+  id               String   @id @default(uuid()) @db.Uuid
+  indentId         String   @db.Uuid
   fromDepartmentId String?  @db.Uuid
   toDepartmentId   String   @db.Uuid
-  stageId         String?  @db.Uuid
-  movedBy         String   @db.Uuid
-  movedAt         DateTime @default(now()) @db.Timestamptz(6)
-  remarks         String?  @db.Text
+  stageId          String?  @db.Uuid
+  movedBy          String   @db.Uuid
+  movedAt          DateTime @default(now()) @db.Timestamptz(6)
+  remarks          String?  @db.Text
 
   // Audit Fields
-  createdAt       DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean  @default(false)
-  deletedAt       DateTime? @db.Timestamptz(6)
-  createdBy       String?  @db.Uuid
-  updatedBy       String?  @db.Uuid
-  deletedBy       String?  @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  indent          Indent         @relation(fields: [indentId], references: [id], onDelete: Cascade)
-  fromDepartment  Department?    @relation("WorkflowFrom", fields: [fromDepartmentId], references: [id])
-  toDepartment    Department     @relation("WorkflowTo", fields: [toDepartmentId], references: [id])
-  stage           WorkflowStage? @relation(fields: [stageId], references: [id])
-  mover           User           @relation(fields: [movedBy], references: [id])
+  indent         Indent         @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  fromDepartment Department?    @relation("WorkflowFrom", fields: [fromDepartmentId], references: [id])
+  toDepartment   Department     @relation("WorkflowTo", fields: [toDepartmentId], references: [id])
+  stage          WorkflowStage? @relation(fields: [stageId], references: [id])
+  mover          User           @relation(fields: [movedBy], references: [id])
 
   @@index([indentId])
   @@index([stageId])
@@ -869,24 +874,24 @@ model WorkflowHistory {
 }
 
 model ProductionReceipt {
-  id            String   @id @default(uuid()) @db.Uuid
-  indentId      String   @unique @db.Uuid
-  receivedBy    String   @db.Uuid
-  receivedDate  DateTime @default(now()) @db.Timestamptz(6)
-  remarks       String?  @db.Text
+  id           String   @id @default(uuid()) @db.Uuid
+  indentId     String   @unique @db.Uuid
+  receivedBy   String   @db.Uuid
+  receivedDate DateTime @default(now()) @db.Timestamptz(6)
+  remarks      String?  @db.Text
 
   // Audit Fields
-  createdAt     DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
-  isDeleted     Boolean  @default(false)
-  deletedAt     DateTime? @db.Timestamptz(6)
-  createdBy     String?  @db.Uuid
-  updatedBy     String?  @db.Uuid
-  deletedBy     String?  @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  indent        Indent   @relation(fields: [indentId], references: [id])
-  receiver      User     @relation(fields: [receivedBy], references: [id])
+  indent   Indent @relation(fields: [indentId], references: [id])
+  receiver User   @relation(fields: [receivedBy], references: [id])
 
   @@index([indentId])
   @@index([isDeleted])
@@ -904,17 +909,17 @@ model IndentHistory {
   changeNotes String?  @db.Text
 
   // Audit Fields
-  createdAt   DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
-  isDeleted   Boolean  @default(false)
-  deletedAt   DateTime? @db.Timestamptz(6)
-  createdBy   String?  @db.Uuid
-  updatedBy   String?  @db.Uuid
-  deletedBy   String?  @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  indent      Indent   @relation(fields: [indentId], references: [id], onDelete: Cascade)
-  changer     User     @relation(fields: [changedBy], references: [id])
+  indent  Indent @relation(fields: [indentId], references: [id], onDelete: Cascade)
+  changer User   @relation(fields: [changedBy], references: [id])
 
   @@index([indentId])
   @@index([changedAt])
@@ -928,27 +933,27 @@ model IndentHistory {
 // ==========================================
 
 model Notification {
-  id              String                  @id @default(uuid()) @db.Uuid
-  title           String                  @db.VarChar(150)
-  message         String                  @db.Text
-  eventType       String?                 @db.VarChar(100) // Machine-readable event identity (e.g. DESIGN_COMPLETED)
-  type            NotificationType        @default(INFO)
-  priority        Priority                @default(MEDIUM)
-  referenceId     String?                 @db.Uuid
-  referenceModule String?                 @db.VarChar(100)
-  createdBy       String                  @db.Uuid
-  
+  id              String           @id @default(uuid()) @db.Uuid
+  title           String           @db.VarChar(150)
+  message         String           @db.Text
+  eventType       String?          @db.VarChar(100) // Machine-readable event identity (e.g. DESIGN_COMPLETED)
+  type            NotificationType @default(INFO)
+  priority        Priority         @default(MEDIUM)
+  referenceId     String?          @db.Uuid
+  referenceModule String?          @db.VarChar(100)
+  createdBy       String           @db.Uuid
+
   // Audit Fields
-  createdAt       DateTime                @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime                @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean                 @default(false)
-  deletedAt       DateTime?               @db.Timestamptz(6)
-  updatedBy       String?                 @db.Uuid
-  deletedBy       String?                 @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  creator         User                    @relation("NotificationCreator", fields: [createdBy], references: [id])
-  recipients      NotificationRecipient[]
+  creator    User                    @relation("NotificationCreator", fields: [createdBy], references: [id])
+  recipients NotificationRecipient[]
 
   @@index([createdBy])
   @@index([createdAt])
@@ -965,17 +970,17 @@ model NotificationRecipient {
   deliveryStatus String    @default("PENDING") @db.VarChar(50) // e.g. DELIVERED, PENDING, FAILED
 
   // Audit Fields
-  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted      Boolean   @default(false)
-  deletedAt      DateTime? @db.Timestamptz(6)
-  createdBy      String?   @db.Uuid
-  updatedBy      String?   @db.Uuid
-  deletedBy      String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([notificationId, userId])
   @@index([notificationId])
@@ -987,22 +992,22 @@ model NotificationRecipient {
 }
 
 model EmailLog {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String?   @db.Uuid // Linked recipient user (optional)
-  to           String    @db.VarChar(150)
-  cc           String?   @db.Text
-  bcc          String?   @db.Text
-  subject      String    @db.VarChar(255)
-  body         String    @db.Text
-  status       String    @db.VarChar(50) // e.g. SENT, FAILED, PENDING
-  errorMessage String?   @db.Text
-  sentAt       DateTime  @default(now()) @db.Timestamptz(6)
-  retryCount   Int       @default(0) @db.Integer
-  messageId    String?   @db.VarChar(255)
-  durationMs   Int?      @db.Integer
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String?  @db.Uuid // Linked recipient user (optional)
+  to           String   @db.VarChar(150)
+  cc           String?  @db.Text
+  bcc          String?  @db.Text
+  subject      String   @db.VarChar(255)
+  body         String   @db.Text
+  status       String   @db.VarChar(50) // e.g. SENT, FAILED, PENDING
+  errorMessage String?  @db.Text
+  sentAt       DateTime @default(now()) @db.Timestamptz(6)
+  retryCount   Int      @default(0) @db.Integer
+  messageId    String?  @db.VarChar(255)
+  durationMs   Int?     @db.Integer
 
   // Relations
-  user         User?     @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([status])
@@ -1014,7 +1019,7 @@ model AuditLog {
   id              String   @id @default(uuid()) @db.Uuid
   module          String   @db.VarChar(100) // e.g. Indent, CostSheet
   recordId        String   @db.VarChar(100) // Uuid of the modified record
-  action          String   @db.VarChar(50)  // e.g. CREATE, UPDATE, DELETE
+  action          String   @db.VarChar(50) // e.g. CREATE, UPDATE, DELETE
   oldValue        Json?    @db.JsonB
   newValue        Json?    @db.JsonB
   performedBy     String?  @db.Uuid
@@ -1025,7 +1030,7 @@ model AuditLog {
   createdAt       DateTime @default(now()) @db.Timestamptz(6)
 
   // Relations
-  user            User?    @relation(fields: [performedBy], references: [id])
+  user User? @relation(fields: [performedBy], references: [id])
 
   @@index([module])
   @@index([recordId])
@@ -1043,7 +1048,7 @@ model ActivityLog {
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
 
   // Relations
-  user        User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([activity])
@@ -1052,26 +1057,26 @@ model ActivityLog {
 }
 
 model Report {
-  id          String           @id @default(uuid()) @db.Uuid
-  reportName  String           @db.VarChar(150)
-  reportType  String           @db.VarChar(50) // e.g. PDF, EXCEL, CSV
-  generatedBy String           @db.Uuid
-  fileUrl     String           @db.VarChar(500)
-  fileSize    BigInt           @db.BigInt
-  generatedAt DateTime         @default(now()) @db.Timestamptz(6)
+  id          String   @id @default(uuid()) @db.Uuid
+  reportName  String   @db.VarChar(150)
+  reportType  String   @db.VarChar(50) // e.g. PDF, EXCEL, CSV
+  generatedBy String   @db.Uuid
+  fileUrl     String   @db.VarChar(500)
+  fileSize    BigInt   @db.BigInt
+  generatedAt DateTime @default(now()) @db.Timestamptz(6)
 
   // Audit & Soft Delete Fields
-  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
-  isDeleted   Boolean          @default(false)
-  deletedAt   DateTime?        @db.Timestamptz(6)
-  createdBy   String?          @db.Uuid
-  updatedBy   String?          @db.Uuid
-  deletedBy   String?          @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  generator   User             @relation(fields: [generatedBy], references: [id])
-  downloads   ReportDownload[]
+  generator User             @relation(fields: [generatedBy], references: [id])
+  downloads ReportDownload[]
 
   @@index([generatedBy])
   @@index([generatedAt])
@@ -1086,13 +1091,92 @@ model ReportDownload {
   downloadedAt DateTime @default(now()) @db.Timestamptz(6)
 
   // Relations
-  report       Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  downloader   User     @relation(fields: [downloadedBy], references: [id])
+  report     Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  downloader User   @relation(fields: [downloadedBy], references: [id])
 
   @@index([reportId])
   @@index([downloadedBy])
   @@index([downloadedAt])
   @@map("report_downloads")
+}
+
+// ==========================================
+// REPORTS MODULE MODELS (Phase 10)
+// ==========================================
+
+model Machine {
+  id          String        @id @default(uuid()) @db.Uuid
+  machineCode String        @unique @db.VarChar(50)
+  machineName String        @db.VarChar(150)
+  status      ProcessStatus @default(ACTIVE)
+
+  // Audit Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  machineLogs MachineLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("machines")
+}
+
+model MachineLog {
+  id             String  @id @default(uuid()) @db.Uuid
+  machineId      String  @db.Uuid
+  processId      String  @db.Uuid
+  operatingHours Decimal @db.Decimal(8, 2)
+  downtimeHours  Decimal @default(0) @db.Decimal(8, 2)
+
+  // Audit Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  machine Machine              @relation(fields: [machineId], references: [id])
+  process ManufacturingProcess @relation(fields: [processId], references: [id])
+
+  @@index([machineId])
+  @@index([processId])
+  @@index([createdAt])
+  @@map("machine_logs")
+}
+
+model DepartmentBudget {
+  id              String  @id @default(uuid()) @db.Uuid
+  departmentId    String  @db.Uuid
+  fiscalYear      Int     @db.Integer
+  budgetAmount    Decimal @db.Decimal(18, 4)
+  allocatedAmount Decimal @default(0) @db.Decimal(18, 4)
+
+  // Audit Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  department Department @relation(fields: [departmentId], references: [id])
+
+  @@unique([departmentId, fiscalYear])
+  @@index([departmentId])
+  @@index([fiscalYear])
+  @@index([createdAt])
+  @@map("department_budgets")
 }
 
 model UserSession {
@@ -1113,16 +1197,16 @@ model UserSession {
   expiresAt       DateTime      @db.Timestamptz(6)
 
   // Audit & Soft Delete Fields
-  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted    Boolean   @default(false)
-  deletedAt    DateTime? @db.Timestamptz(6)
-  createdBy    String?   @db.Uuid
-  updatedBy    String?   @db.Uuid
-  deletedBy    String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  user         User      @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([sessionToken])
@@ -1147,7 +1231,7 @@ model RefreshToken {
   deletedBy String?   @db.Uuid
 
   // Relations
-  user      User      @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([token])
@@ -1172,7 +1256,7 @@ model PasswordResetToken {
   deletedBy String?   @db.Uuid
 
   // Relations
-  user      User      @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([token])
@@ -1181,20 +1265,20 @@ model PasswordResetToken {
 }
 
 model ApplicationSetting {
-  id          String   @id @default(uuid()) @db.Uuid
-  key         String   @unique @db.VarChar(100)
-  value       String   @db.Text
-  category    String   @db.VarChar(100) // e.g. SMTP, Company, Theme, SLA, Email, Notification, Dashboard
-  description String?  @db.VarChar(255)
+  id          String  @id @default(uuid()) @db.Uuid
+  key         String  @unique @db.VarChar(100)
+  value       String  @db.Text
+  category    String  @db.VarChar(100) // e.g. SMTP, Company, Theme, SLA, Email, Notification, Dashboard
+  description String? @db.VarChar(255)
 
   // Audit & Soft Delete Fields
-  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted   Boolean   @default(false)
-  deletedAt   DateTime? @db.Timestamptz(6)
-  createdBy   String?   @db.Uuid
-  updatedBy   String?   @db.Uuid
-  deletedBy   String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   @@index([key])
   @@index([category])
@@ -1203,64 +1287,15 @@ model ApplicationSetting {
 }
 
 model FileUpload {
-  id              String   @id @default(uuid()) @db.Uuid
-  fileName        String   @db.VarChar(255)
-  originalName    String   @db.VarChar(255)
-  extension       String   @db.VarChar(20)
-  mimeType        String   @db.VarChar(100)
-  size            BigInt   @db.BigInt
-  storageProvider String   @db.VarChar(50) // e.g. LOCAL, S3, CLOUDINARY
-  url             String   @db.VarChar(500)
-  uploadedBy      String   @db.Uuid
-
-  // Audit & Soft Delete Fields
-  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean   @default(false)
-  deletedAt       DateTime? @db.Timestamptz(6)
-  createdBy       String?   @db.Uuid
-  updatedBy       String?   @db.Uuid
-  deletedBy       String?   @db.Uuid
-
-  // Relations
-  uploader        User      @relation(fields: [uploadedBy], references: [id])
-
-  @@index([uploadedBy])
-  @@index([extension])
-  @@index([isDeleted])
-  @@map("file_uploads")
-}
-
-model DashboardWidget {
-  id          String   @id @default(uuid()) @db.Uuid
-  widgetCode  String   @unique @db.VarChar(100)
-  widgetName  String   @db.VarChar(150)
-  icon        String?  @db.VarChar(50)
-  description String?  @db.VarChar(255)
-
-  // Audit & Soft Delete Fields
-  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted   Boolean   @default(false)
-  deletedAt   DateTime? @db.Timestamptz(6)
-  createdBy   String?   @db.Uuid
-  updatedBy   String?   @db.Uuid
-  deletedBy   String?   @db.Uuid
-
-  // Relations
-  preferences DashboardPreference[]
-
-  @@index([widgetCode])
-  @@index([isDeleted])
-  @@map("dashboard_widgets")
-}
-
-model DashboardPreference {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  widgetId  String   @db.Uuid
-  position  Int      @db.Integer
-  visible   Boolean  @default(true)
+  id              String @id @default(uuid()) @db.Uuid
+  fileName        String @db.VarChar(255)
+  originalName    String @db.VarChar(255)
+  extension       String @db.VarChar(20)
+  mimeType        String @db.VarChar(100)
+  size            BigInt @db.BigInt
+  storageProvider String @db.VarChar(50) // e.g. LOCAL, S3, CLOUDINARY
+  url             String @db.VarChar(500)
+  uploadedBy      String @db.Uuid
 
   // Audit & Soft Delete Fields
   createdAt DateTime  @default(now()) @db.Timestamptz(6)
@@ -1272,8 +1307,57 @@ model DashboardPreference {
   deletedBy String?   @db.Uuid
 
   // Relations
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  widget    DashboardWidget @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+  uploader User @relation(fields: [uploadedBy], references: [id])
+
+  @@index([uploadedBy])
+  @@index([extension])
+  @@index([isDeleted])
+  @@map("file_uploads")
+}
+
+model DashboardWidget {
+  id          String  @id @default(uuid()) @db.Uuid
+  widgetCode  String  @unique @db.VarChar(100)
+  widgetName  String  @db.VarChar(150)
+  icon        String? @db.VarChar(50)
+  description String? @db.VarChar(255)
+
+  // Audit & Soft Delete Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  preferences DashboardPreference[]
+
+  @@index([widgetCode])
+  @@index([isDeleted])
+  @@map("dashboard_widgets")
+}
+
+model DashboardPreference {
+  id       String  @id @default(uuid()) @db.Uuid
+  userId   String  @db.Uuid
+  widgetId String  @db.Uuid
+  position Int     @db.Integer
+  visible  Boolean @default(true)
+
+  // Audit & Soft Delete Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  widget DashboardWidget @relation(fields: [widgetId], references: [id], onDelete: Cascade)
 
   @@unique([userId, widgetId])
   @@index([userId])
@@ -1283,22 +1367,22 @@ model DashboardPreference {
 }
 
 model ScheduledJob {
-  id             String   @id @default(uuid()) @db.Uuid
-  jobName        String   @unique @db.VarChar(150) // e.g. SLA Reminder, Daily Report
-  cronExpression String   @db.VarChar(100)
-  enabled        Boolean  @default(true)
+  id             String  @id @default(uuid()) @db.Uuid
+  jobName        String  @unique @db.VarChar(150) // e.g. SLA Reminder, Daily Report
+  cronExpression String  @db.VarChar(100)
+  enabled        Boolean @default(true)
 
   // Audit & Soft Delete Fields
-  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted      Boolean   @default(false)
-  deletedAt      DateTime? @db.Timestamptz(6)
-  createdBy      String?   @db.Uuid
-  updatedBy      String?   @db.Uuid
-  deletedBy      String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  history        JobExecutionHistory[]
+  history JobExecutionHistory[]
 
   @@index([jobName])
   @@index([isDeleted])
@@ -1314,7 +1398,7 @@ model JobExecutionHistory {
   error       String?   @db.Text
 
   // Relations
-  job         ScheduledJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job ScheduledJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@index([status])
@@ -1333,13 +1417,13 @@ model SLATracker {
   breachTime      DateTime? @db.Timestamptz(6)
 
   // Audit & Soft Delete Fields
-  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean   @default(false)
-  deletedAt       DateTime? @db.Timestamptz(6)
-  createdBy       String?   @db.Uuid
-  updatedBy       String?   @db.Uuid
-  deletedBy       String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   @@index([referenceId])
   @@index([referenceModule])
@@ -1349,24 +1433,24 @@ model SLATracker {
 }
 
 model Timeline {
-  id              String   @id @default(uuid()) @db.Uuid
-  module          String   @db.VarChar(100) // e.g. Indent
-  recordId        String   @db.Uuid
-  title           String   @db.VarChar(150)
-  description     String   @db.Text
-  performedBy     String   @db.Uuid
+  id          String @id @default(uuid()) @db.Uuid
+  module      String @db.VarChar(100) // e.g. Indent
+  recordId    String @db.Uuid
+  title       String @db.VarChar(150)
+  description String @db.Text
+  performedBy String @db.Uuid
 
   // Audit & Soft Delete Fields
-  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
-  isDeleted       Boolean   @default(false)
-  deletedAt       DateTime? @db.Timestamptz(6)
-  createdBy       String?   @db.Uuid
-  updatedBy       String?   @db.Uuid
-  deletedBy       String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
 
   // Relations
-  performer       User     @relation(fields: [performedBy], references: [id])
+  performer User @relation(fields: [performedBy], references: [id])
 
   @@index([recordId])
   @@index([module])
