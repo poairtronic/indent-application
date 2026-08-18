@@ -31,12 +31,17 @@ export const IndentDetailsPage: React.FC = () => {
 
   const isEditable = React.useMemo(() => {
     if (!indent) return false;
-    const access = getWorkflowAccess(indent.currentState as any, user);
-    const requiredPermission =
-      indent.currentState === 'ACCOUNTS_COST_VERIFICATION'
-        ? AppPermission.ACCOUNTS_VERIFY
-        : AppPermission.INDENT_EDIT;
-    return access.canEdit && hasPermission(requiredPermission);
+    // Design team can ONLY edit while the indent is in DRAFT stage
+    if (indent.currentState === 'DRAFT') {
+      const access = getWorkflowAccess('DRAFT', user);
+      return access.canEdit && hasPermission(AppPermission.INDENT_EDIT);
+    }
+    // Accounts can verify/enter actual costs during ACCOUNTS_COST_VERIFICATION
+    if (indent.currentState === 'ACCOUNTS_COST_VERIFICATION') {
+      const access = getWorkflowAccess('ACCOUNTS_COST_VERIFICATION', user);
+      return access.canEdit && hasPermission(AppPermission.ACCOUNTS_VERIFY);
+    }
+    return false;
   }, [indent, user, hasPermission]);
 
   if (isLoading) {

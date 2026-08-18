@@ -9,7 +9,16 @@ export class DepartmentsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  @Permissions('departments.view')
+  @Permissions(
+    'departments.view',
+    'indent.view',
+    'indent.create',
+    'inventory.view',
+    'production.view',
+    'costsheet.view',
+    'reports.view',
+    'notifications.view',
+  )
   @Cache('master:departments', 86400)
   async list(@Query() query: PaginationQueryDto) {
     if (!query.page && !query.limit) {

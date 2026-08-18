@@ -37,6 +37,21 @@ export const IndentFormPage: React.FC = () => {
     return <div className="flex justify-center p-12">Loading indent...</div>;
   }
 
+  if (isEdit && indent && indent.currentState !== 'DRAFT') {
+    return (
+      <div className="bg-surface-card rounded-xl p-8 border border-border-default text-center space-y-4 max-w-lg mx-auto mt-12">
+        <h2 className="text-xl font-bold text-text-primary">Indent Is Locked</h2>
+        <p className="text-text-secondary text-sm">
+          This indent has already been submitted (current status: {indent.currentState?.replace(/_/g, ' ')}).
+          Design modifications are only permitted while the indent is in Draft status.
+        </p>
+        <Button variant="primary" onClick={() => navigate(`/indents/${id}`)}>
+          View Indent Details
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
