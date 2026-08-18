@@ -263,13 +263,17 @@ const NestedProcessArray: React.FC<{
       )}
       <div className="space-y-3">
         {fields.map((field, pIndex) => {
-          const showActual = isAccountsMode || field.actualCost !== undefined;
+          const canViewCostSheet = true;
+          const showActual =
+            isAccountsMode ||
+            fields.some((f) => (f as any).actualCost !== undefined && (f as any).actualCost !== null);
+
           let processCol = 'md:col-span-3';
           let sourceCol = 'md:col-span-2';
           let prodSourceCol = 'md:col-span-2';
-          let hoursCol = 'md:col-span-2';
+          let hoursCol = 'md:col-span-1';
           let plannedCol = 'md:col-span-2';
-          let actualCol = 'md:col-span-1';
+          let actualCol = 'md:col-span-2';
 
           if (!canViewCostSheet) {
             processCol = 'md:col-span-4';
@@ -280,7 +284,7 @@ const NestedProcessArray: React.FC<{
             processCol = 'md:col-span-2';
             sourceCol = 'md:col-span-2';
             prodSourceCol = 'md:col-span-2';
-            hoursCol = 'md:col-span-2';
+            hoursCol = 'md:col-span-1';
             plannedCol = 'md:col-span-2';
             actualCol = 'md:col-span-2';
           } else if (isReadOnly) {
@@ -311,7 +315,7 @@ const NestedProcessArray: React.FC<{
                           placeholder="Type or select process"
                           value={inputValue}
                           list={`processes-datalist-${itemIndex}-${pIndex}`}
-                          disabled={isReadOnly || isProductionMode}
+                          disabled={isReadOnly || isProductionMode || isAccountsMode}
                           onChange={(e) => {
                             const val = e.target.value;
                             const matched = processesList.find(
@@ -340,7 +344,7 @@ const NestedProcessArray: React.FC<{
                 <Input
                   label="Source"
                   placeholder="e.g. In-house"
-                  disabled={isReadOnly || isProductionMode}
+                  disabled={isReadOnly || isProductionMode || isAccountsMode}
                   {...register(`indent.items.${itemIndex}.processes.${pIndex}.vendorType`)}
                   error={
                     errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.vendorType?.message
@@ -360,7 +364,7 @@ const NestedProcessArray: React.FC<{
                   label="Est. Hours"
                   type="number"
                   step="0.5"
-                  disabled={isReadOnly || isProductionMode}
+                  disabled={isReadOnly || isProductionMode || isAccountsMode}
                   {...register(`indent.items.${itemIndex}.processes.${pIndex}.estimatedHours`, {
                     valueAsNumber: true,
                   })}
@@ -375,7 +379,7 @@ const NestedProcessArray: React.FC<{
                     label="Planned Cost (₹)"
                     type="number"
                     step="0.01"
-                    disabled={isReadOnly || isProductionMode}
+                    disabled={isReadOnly || isProductionMode || isAccountsMode}
                     {...register(`indent.items.${itemIndex}.processes.${pIndex}.predictedCost`, {
                       valueAsNumber: true,
                     })}
@@ -417,15 +421,15 @@ const NestedProcessArray: React.FC<{
             </p>
             <p className="text-lg font-bold text-accent-primary">
               ₹
-              {(itemTotal?.predicted || 0).toLocaleString(undefined, {
+              {(Number(itemTotal?.predicted) || 0).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </p>
-            {(isAccountsMode || itemTotal?.actual > 0) && (
+            {(isAccountsMode || (Number(itemTotal?.actual) || 0) > 0) && (
               <p className="text-sm font-bold text-status-success mt-1">
                 Actual: ₹
-                {(itemTotal?.actual || 0).toLocaleString(undefined, {
+                {(Number(itemTotal?.actual) || 0).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -660,26 +664,54 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   }, [watchedItems, watchedCostItems, setValue]);
 
   // Derived Totals
-  let totalMaterialCost = 0;
-  let totalProcessCost = 0;
-  let actualTotalMaterialCost = 0;
-  let actualTotalProcessCost = 0;
+  const totalMaterialCost = (watchedCostItems || []).reduce(
+    (sum, ci) => sum + (Number(ci?.predictedAmount) || 0),
+    0,
+  );
+  const totalProcessCost = (watchedItems || []).reduce(
+    (sum, item) =>
+      sum +
+      (item?.processes || []).reduce((pSum, p) => pSum + (Number(p?.predictedCost) || 0), 0),
+    0,
+  );
+
+  const actualTotalMaterialCost = (watchedItems || []).reduce((sum, item, index) => {
+    const costItem = watchedCostItems?.[index];
+    const actualRate = Number(costItem?.actualRate) || 0;
+    const qty = Number(item?.quantity) || 0;
+    const actualAmt =
+      costItem?.actualAmount !== undefined && costItem?.actualAmount !== null
+        ? Number(costItem.actualAmount) || 0
+        : actualRate * qty;
+    return sum + (Number(actualAmt) || 0);
+  }, 0);
+
+  const actualTotalProcessCost = (watchedItems || []).reduce((sum, item) => {
+    const procActual = (item?.processes || []).reduce(
+      (pSum, p) => pSum + (Number(p?.actualCost) || 0),
+      0,
+    );
+    return sum + procActual;
+  }, 0);
 
   const itemTotals = (watchedItems || []).map((item, index) => {
-    const matCost = watchedCostItems?.[index]?.predictedAmount || 0;
-    const actualMatCost = watchedCostItems?.[index]?.actualAmount || 0;
+    const matCost = Number(watchedCostItems?.[index]?.predictedAmount) || 0;
+    const actualMatRate = Number(watchedCostItems?.[index]?.actualRate) || 0;
+    const qty = Number(item?.quantity) || 0;
+    const actualMatCost =
+      watchedCostItems?.[index]?.actualAmount !== undefined &&
+      watchedCostItems?.[index]?.actualAmount !== null
+        ? Number(watchedCostItems[index].actualAmount) || 0
+        : actualMatRate * qty;
+
     const procCost = (item?.processes || []).reduce(
-      (sum, p) => sum + (Number(p.predictedCost) || 0),
+      (sum, p) => sum + (Number(p?.predictedCost) || 0),
       0,
     );
     const actualProcCost = (item?.processes || []).reduce(
-      (sum, p) => sum + (Number(p.actualCost) || 0),
+      (sum, p) => sum + (Number(p?.actualCost) || 0),
       0,
     );
-    totalMaterialCost += matCost;
-    totalProcessCost += procCost;
-    actualTotalMaterialCost += actualMatCost;
-    actualTotalProcessCost += actualProcCost;
     return {
       predicted: matCost + procCost,
       actual: actualMatCost + actualProcCost,
@@ -853,7 +885,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
           <h3 className="text-sm font-bold text-text-primary">
             Material & Manufacturing Process Requirements
           </h3>
-          {!isReadOnly && !isProductionMode && (
+          {!isReadOnly && !isProductionMode && !isAccountsMode && (
             <Button
               type="button"
               variant="outline"
@@ -899,7 +931,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   <Input
                     label="Part Name / Product"
                     placeholder="e.g. Base plate"
-                    disabled={isReadOnly || isProductionMode}
+                    disabled={isReadOnly || isProductionMode || isAccountsMode}
                     {...register(`indent.items.${index}.product`)}
                     error={errors.indent?.items?.[index]?.product?.message}
                   />
@@ -908,7 +940,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   <Input
                     label="Material"
                     placeholder="e.g. MS"
-                    disabled={isReadOnly || isProductionMode}
+                    disabled={isReadOnly || isProductionMode || isAccountsMode}
                     {...register(`indent.items.${index}.materialName`)}
                     error={errors.indent?.items?.[index]?.materialName?.message}
                   />
@@ -917,7 +949,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   <Input
                     label="Size"
                     placeholder="e.g. 250*250*25"
-                    disabled={isReadOnly || isProductionMode}
+                    disabled={isReadOnly || isProductionMode || isAccountsMode}
                     {...register(`indent.items.${index}.size`)}
                     error={errors.indent?.items?.[index]?.size?.message}
                   />
@@ -926,7 +958,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   <Input
                     label="Weight (kgs)"
                     placeholder="e.g. 15.5"
-                    disabled={isReadOnly || isProductionMode}
+                    disabled={isReadOnly || isProductionMode || isAccountsMode}
                     {...register(`indent.items.${index}.weight`)}
                     error={errors.indent?.items?.[index]?.weight?.message}
                   />
@@ -935,12 +967,12 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   <Input
                     label="Source"
                     placeholder="e.g. In-house"
-                    disabled={isReadOnly || isProductionMode}
+                    disabled={isReadOnly || isProductionMode || isAccountsMode}
                     {...register(`indent.items.${index}.source`)}
                     error={errors.indent?.items?.[index]?.source?.message}
                   />
                 </div>
-                {!isReadOnly && !isProductionMode && (
+                {!isReadOnly && !isProductionMode && !isAccountsMode && (
                   <div className="md:col-span-1 flex justify-end">
                     <Button
                       type="button"
@@ -962,7 +994,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     label="Quantity"
                     type="number"
                     step="0.01"
-                    disabled={isReadOnly || isProductionMode}
+                    disabled={isReadOnly || isProductionMode || isAccountsMode}
                     {...register(`indent.items.${index}.quantity`, {
                       valueAsNumber: true,
                       onChange: (e) => {
@@ -981,7 +1013,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     render={({ field }) => (
                       <Select
                         label="Unit"
-                        disabled={isReadOnly || isProductionMode}
+                        disabled={isReadOnly || isProductionMode || isAccountsMode}
                         options={[
                           { label: 'Select Unit', value: '' },
                           ...units.map((u) => ({
@@ -1010,7 +1042,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         label="Est. Rate (₹)"
                         type="number"
                         step="0.01"
-                        disabled={isReadOnly && !isProductionMode}
+                        disabled={isReadOnly || isProductionMode || isAccountsMode}
                         {...register(`costSheet.costItems.${index}.predictedRate`, {
                           valueAsNumber: true,
                           onChange: (e) => {
@@ -1041,7 +1073,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                             valueAsNumber: true,
                             onChange: (e) => {
                               const rate = parseFloat(e.target.value) || 0;
-                              const qty = watchedItems?.[index]?.quantity || 0;
+                              const qty = Number(watchedItems?.[index]?.quantity) || 0;
                               setValue(`costSheet.costItems.${index}.actualAmount`, rate * qty);
                             },
                           })}
@@ -1116,7 +1148,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 label="Design Cost (₹)"
                 type="number"
                 step="0.01"
-                disabled={isReadOnly || isAccountsMode}
+                disabled={isReadOnly || isAccountsMode || isProductionMode}
                 {...register('costSheet.designCost', { valueAsNumber: true })}
                 error={errors.costSheet?.designCost?.message}
               />
@@ -1125,7 +1157,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   label="Actual Design Cost (₹)"
                   type="number"
                   step="0.01"
-                  disabled={!isAccountsMode}
+                  disabled={true}
                   {...register('costSheet.actualDesignCost', { valueAsNumber: true })}
                 />
               )}
@@ -1135,7 +1167,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 label="Overhead Cost (₹)"
                 type="number"
                 step="0.01"
-                disabled={isReadOnly || isAccountsMode}
+                disabled={isReadOnly || isAccountsMode || isProductionMode}
                 {...register('costSheet.overheadCost', { valueAsNumber: true })}
                 error={errors.costSheet?.overheadCost?.message}
               />
@@ -1144,7 +1176,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   label="Actual Overhead Cost (₹)"
                   type="number"
                   step="0.01"
-                  disabled={!isAccountsMode}
+                  disabled={true}
                   {...register('costSheet.actualOverheadCost', { valueAsNumber: true })}
                 />
               )}
@@ -1154,7 +1186,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 label="Contingency Cost (₹)"
                 type="number"
                 step="0.01"
-                disabled={isReadOnly || isAccountsMode}
+                disabled={isReadOnly || isAccountsMode || isProductionMode}
                 {...register('costSheet.contingencyCost', { valueAsNumber: true })}
                 error={errors.costSheet?.contingencyCost?.message}
               />
@@ -1163,7 +1195,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   label="Actual Contingency Cost (₹)"
                   type="number"
                   step="0.01"
-                  disabled={!isAccountsMode}
+                  disabled={true}
                   {...register('costSheet.actualContingencyCost', { valueAsNumber: true })}
                 />
               )}

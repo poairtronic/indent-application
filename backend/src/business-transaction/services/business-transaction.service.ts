@@ -1936,8 +1936,14 @@ export class BusinessTransactionService {
     await validateFileSignature(file.buffer, ext);
     let fileType: FileType = FileType.OTHER;
 
-    const isDesignDept = departmentCode === 'DESIGN' || departmentCode === 'DSGN';
-    const isAccountsDept = departmentCode === 'ACCOUNTS' || departmentCode === 'ACCT';
+    const deptUpper = (departmentCode || '').toUpperCase();
+    const isDesignDept = deptUpper === 'DESIGN' || deptUpper === 'DSGN';
+    const isAccountsDept =
+      deptUpper === 'ACCOUNTS' ||
+      deptUpper === 'ACCT' ||
+      deptUpper === 'ACC' ||
+      deptUpper === 'FINANCE' ||
+      deptUpper === 'FIN';
 
     if (isDesignDept) {
       if (txData.currentState !== WorkflowState.DRAFT) {
@@ -1955,17 +1961,19 @@ export class BusinessTransactionService {
     } else if (isAccountsDept) {
       if (
         txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
-        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
+        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED &&
+        txData.currentState !== WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE
       ) {
         throw new BadRequestException('Accounts uploads allowed only in cost verification states.');
       }
-      const allowedExtensions = ['.pdf', '.xlsx', '.xls'];
+      const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
       if (!allowedExtensions.includes(ext)) {
         throw new BadRequestException(`Extension '${ext}' not supported for Accounts uploads.`);
       }
 
       if (ext === '.pdf') fileType = FileType.PDF;
       else if (ext === '.xlsx' || ext === '.xls') fileType = FileType.EXCEL;
+      else if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') fileType = FileType.IMAGE;
     } else {
       throw new ForbiddenException(
         `Department '${departmentCode}' is not authorized to upload attachments.`,
