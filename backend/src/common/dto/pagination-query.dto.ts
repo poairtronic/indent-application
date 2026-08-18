@@ -35,6 +35,11 @@ export class NotificationQueryDto extends PaginationQueryDto {
   })
   @IsBoolean()
   isRead?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  eventType?: string;
 }
 
 export class CommunicationQueryDto extends PaginationQueryDto {

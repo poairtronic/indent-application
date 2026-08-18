@@ -66,7 +66,7 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
         connection: this.redisConnection,
         defaultJobOptions: {
           removeOnComplete: true, // Clean up completed jobs
-          removeOnFail: false, // Keep failed jobs for manual DLQ or status review
+          removeOnFail: { count: 200 }, // D5: Retain last 200 failed jobs for troubleshooting, prevent unbounded Redis growth
         },
       });
 

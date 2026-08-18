@@ -1,5 +1,45 @@
 import type { AuthUser } from '../api/services/auth/types';
 
+// ──────────────────────────────────────────────────────────────
+// DEPARTMENT / ROLE → ALLOWED EVENT TYPES (eventType-based)
+// Mirrors the server-side DEPT_EVENT_MAP for local fallback.
+// Server-side filtering is authoritative (D2).
+// ──────────────────────────────────────────────────────────────
+const DEPT_EVENT_MAP: Record<string, string[]> = {
+  DESIGN: ['ACTUAL_COST_UPDATED', 'DOCUMENT_UPLOADED', 'DOCUMENT_DELETED', 'DOCUMENT_REPLACED'],
+  DSGN: ['ACTUAL_COST_UPDATED', 'DOCUMENT_UPLOADED', 'DOCUMENT_DELETED', 'DOCUMENT_REPLACED'],
+  STORES: ['DESIGN_COMPLETED', 'STORES_PENDING'],
+  STOR: ['DESIGN_COMPLETED', 'STORES_PENDING'],
+  PRODUCTION: ['MATERIAL_ISSUED', 'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED'],
+  PROD: ['MATERIAL_ISSUED', 'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED'],
+  ACCOUNTS: [
+    'PRODUCTION_COMPLETED',
+    'CUSTOMER_DELIVERED',
+    'ACCOUNTS_COST_VERIFICATION',
+    'ACTUAL_COST_UPDATED',
+    'FINANCIAL_CLOSURE',
+    'DOCUMENT_UPLOADED',
+  ],
+  ACCT: [
+    'PRODUCTION_COMPLETED',
+    'CUSTOMER_DELIVERED',
+    'ACCOUNTS_COST_VERIFICATION',
+    'ACTUAL_COST_UPDATED',
+    'FINANCIAL_CLOSURE',
+    'DOCUMENT_UPLOADED',
+  ],
+};
+
+const MANAGER_EVENT_TYPES = [
+  'ACTUAL_COST_UPDATED',
+  'FINANCIAL_CLOSURE',
+  'TRANSACTION_ARCHIVED',
+  'TRANSACTION_COMPLETED',
+  'DOCUMENT_UPLOADED',
+  'DOCUMENT_DELETED',
+  'DOCUMENT_REPLACED',
+];
+
 export function filterNotificationsForUser(items: any[], user: AuthUser | null): any[] {
   if (!user) return [];
 
@@ -7,54 +47,22 @@ export function filterNotificationsForUser(items: any[], user: AuthUser | null):
   const isAdmin = roleName === 'ADMIN' || roleName === 'System Administrator';
   if (isAdmin) return items;
 
+  // Senior Manager / General Manager
+  if (roleName === 'Senior Manager' || roleName === 'General Manager') {
+    return items.filter((item) => {
+      if (item.eventType) return MANAGER_EVENT_TYPES.includes(item.eventType);
+      // Legacy fallback for notifications without eventType (pre-D1 records)
+      return true;
+    });
+  }
+
   const userDept = user.department?.departmentCode?.toUpperCase() ?? '';
+  const allowed = DEPT_EVENT_MAP[userDept];
+  if (!allowed) return [];
 
   return items.filter((item) => {
-    const title = (item.title || '').toLowerCase();
-
-    if (userDept === 'DSGN' || userDept === 'DESIGN') {
-      // Design: Draft Returned, Cost Sheet Updated (represented as actual cost updated)
-      return (
-        (title.includes('draft') && title.includes('returned')) ||
-        title.includes('cost sheet updated') ||
-        title.includes('actual cost')
-      );
-    }
-
-    if (userDept === 'STOR' || userDept === 'STORES') {
-      // Stores: New Indent Submitted
-      return title.includes('new manufacturing indent') || title.includes('indent submitted');
-    }
-
-    if (userDept === 'PROD' || userDept === 'PRODUCTION') {
-      // Production: Materials Issued
-      return title.includes('material issued') || title.includes('materials issued');
-    }
-
-    if (userDept === 'ACCT' || userDept === 'ACCOUNTS') {
-      // Accounts: Production Completed
-      return (
-        title.includes('production completed') ||
-        title.includes('production manufacturing completed') ||
-        title.includes('manufacturing completed')
-      );
-    }
-
-    if (
-      userDept === 'SMGR' ||
-      userDept === 'GMGR' ||
-      roleName === 'Senior Manager' ||
-      roleName === 'General Manager'
-    ) {
-      // Senior/General Manager: Actual Cost Updated, Financial Closure, Archive Completed
-      return (
-        title.includes('actual cost') ||
-        title.includes('financial closure') ||
-        title.includes('archived') ||
-        title.includes('completed')
-      );
-    }
-
-    return false;
+    if (item.eventType) return allowed.includes(item.eventType);
+    // Legacy fallback for notifications without eventType (pre-D1 records)
+    return true;
   });
 }

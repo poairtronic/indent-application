@@ -15,6 +15,88 @@ import { RedisCacheService } from '../redis-cache/redis-cache.service';
 import { Request } from 'express';
 import { NotificationQueryDto } from '../common/dto/pagination-query.dto';
 
+// ──────────────────────────────────────────────────────────────
+// DEPARTMENT / ROLE → ALLOWED EVENT TYPES (eventType-based)
+// ──────────────────────────────────────────────────────────────
+const DEPT_EVENT_MAP: Record<string, string[]> = {
+  DESIGN: [
+    'ACTUAL_COST_UPDATED',
+    'DOCUMENT_UPLOADED',
+    'DOCUMENT_DELETED',
+    'DOCUMENT_REPLACED',
+  ],
+  DSGN: [
+    'ACTUAL_COST_UPDATED',
+    'DOCUMENT_UPLOADED',
+    'DOCUMENT_DELETED',
+    'DOCUMENT_REPLACED',
+  ],
+  STORES: [
+    'DESIGN_COMPLETED',
+    'STORES_PENDING',
+  ],
+  STOR: [
+    'DESIGN_COMPLETED',
+    'STORES_PENDING',
+  ],
+  PRODUCTION: [
+    'MATERIAL_ISSUED',
+    'PRODUCTION_STARTED',
+    'PRODUCTION_COMPLETED',
+  ],
+  PROD: [
+    'MATERIAL_ISSUED',
+    'PRODUCTION_STARTED',
+    'PRODUCTION_COMPLETED',
+  ],
+  ACCOUNTS: [
+    'PRODUCTION_COMPLETED',
+    'CUSTOMER_DELIVERED',
+    'ACCOUNTS_COST_VERIFICATION',
+    'ACTUAL_COST_UPDATED',
+    'FINANCIAL_CLOSURE',
+    'DOCUMENT_UPLOADED',
+  ],
+  ACCT: [
+    'PRODUCTION_COMPLETED',
+    'CUSTOMER_DELIVERED',
+    'ACCOUNTS_COST_VERIFICATION',
+    'ACTUAL_COST_UPDATED',
+    'FINANCIAL_CLOSURE',
+    'DOCUMENT_UPLOADED',
+  ],
+};
+
+const MANAGER_EVENT_TYPES = [
+  'ACTUAL_COST_UPDATED',
+  'FINANCIAL_CLOSURE',
+  'TRANSACTION_ARCHIVED',
+  'TRANSACTION_COMPLETED',
+  'DOCUMENT_UPLOADED',
+  'DOCUMENT_DELETED',
+  'DOCUMENT_REPLACED',
+];
+
+/**
+ * Resolves allowed eventTypes for a user based on department code and role.
+ * Returns null for admin (no restriction needed).
+ */
+function resolveAllowedEventTypes(
+  roleName: string | undefined,
+  deptCode: string | undefined,
+): string[] | null {
+  const isAdmin =
+    roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
+  if (isAdmin) return null; // Admin: unrestricted
+
+  if (roleName === 'Senior Manager' || roleName === 'General Manager') {
+    return MANAGER_EVENT_TYPES;
+  }
+
+  const upperDept = deptCode?.toUpperCase() ?? '';
+  return DEPT_EVENT_MAP[upperDept] || [];
+}
+
 @ApiTags('Notifications')
 @ApiBearerAuth()
 @Controller('notifications')
@@ -30,6 +112,7 @@ export class NotificationsController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'isRead', required: false, type: Boolean })
+  @ApiQuery({ name: 'eventType', required: false, type: String })
   async list(
     @Req() req: Request,
     @Query() query: NotificationQueryDto,
@@ -38,6 +121,7 @@ export class NotificationsController {
     const pageNum = query.page || 1;
     const limitNum = query.limit || 20;
     const isRead = query.isRead;
+    const eventTypeFilter = query.eventType;
     const offset = (pageNum - 1) * limitNum;
 
     // Use user info from JWT (already validated and cached) instead of re-querying DB
@@ -48,14 +132,14 @@ export class NotificationsController {
 
     const roleName = jwtUser.role?.roleName;
     const deptCode = jwtUser.department?.departmentCode;
-    const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
+    const allowedEventTypes = resolveAllowedEventTypes(roleName, deptCode);
 
     const where: any = {
       isDeleted: false,
     };
 
-    if (!isAdmin) {
-      // Must be a recipient
+    if (allowedEventTypes !== null) {
+      // Non-admin: must be a recipient
       where.recipients = {
         some: {
           userId,
@@ -63,56 +147,22 @@ export class NotificationsController {
         },
       };
 
-      // Filter based on department visibility rules
-      const titleConditions: any[] = [];
-      if (deptCode === 'DESIGN' || deptCode === 'DSGN') {
-        titleConditions.push(
-          { title: { contains: 'Draft Returned', mode: 'insensitive' } },
-          { title: { contains: 'Cost Sheet Updated', mode: 'insensitive' } },
-          { title: { contains: 'Actual Cost', mode: 'insensitive' } },
-          { title: { contains: 'Design Drawing', mode: 'insensitive' } },
-          { title: { contains: 'Document Deleted', mode: 'insensitive' } },
-          { title: { contains: 'Document Replaced', mode: 'insensitive' } },
-        );
-      } else if (deptCode === 'STORES' || deptCode === 'STOR') {
-        titleConditions.push(
-          { title: { contains: 'New Manufacturing Indent', mode: 'insensitive' } },
-          { title: { contains: 'Stores Stock Verification', mode: 'insensitive' } },
-        );
-      } else if (deptCode === 'PRODUCTION' || deptCode === 'PROD') {
-        titleConditions.push(
-          { title: { contains: 'Material Issued', mode: 'insensitive' } },
-          { title: { contains: 'Production Manufacturing Started', mode: 'insensitive' } },
-          { title: { contains: 'Production Manufacturing Completed', mode: 'insensitive' } },
-        );
-      } else if (deptCode === 'ACCOUNTS' || deptCode === 'ACCT') {
-        titleConditions.push(
-          { title: { contains: 'Production Manufacturing Completed', mode: 'insensitive' } },
-          { title: { contains: 'Product Delivered', mode: 'insensitive' } },
-          { title: { contains: 'Accounts Cost Verification', mode: 'insensitive' } },
-          { title: { contains: 'Actual Cost', mode: 'insensitive' } },
-          { title: { contains: 'Financial Closure', mode: 'insensitive' } },
-          { title: { contains: 'Vendor Bill', mode: 'insensitive' } },
-        );
-      } else if (roleName === 'Senior Manager' || roleName === 'General Manager') {
-        titleConditions.push(
-          { title: { contains: 'Actual Cost', mode: 'insensitive' } },
-          { title: { contains: 'Financial Closure', mode: 'insensitive' } },
-          { title: { contains: 'Archived', mode: 'insensitive' } },
-          { title: { contains: 'Completed', mode: 'insensitive' } },
-          { title: { contains: 'Design Drawing', mode: 'insensitive' } },
-          { title: { contains: 'Vendor Bill', mode: 'insensitive' } },
-          { title: { contains: 'Document Deleted', mode: 'insensitive' } },
-          { title: { contains: 'Document Replaced', mode: 'insensitive' } },
-        );
-      }
-
-      if (titleConditions.length > 0) {
-        where.OR = titleConditions;
+      // Filter by eventType-based department visibility
+      if (allowedEventTypes.length > 0) {
+        where.eventType = { in: allowedEventTypes };
       } else {
         // No matching department — return zero results safely
         where.id = '00000000-0000-0000-0000-000000000000';
       }
+    }
+
+    // Optional client-requested eventType filter (must intersect with allowed types)
+    if (eventTypeFilter) {
+      if (allowedEventTypes !== null && !allowedEventTypes.includes(eventTypeFilter)) {
+        // User is requesting an event type they are not authorized to see
+        return { items: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 };
+      }
+      where.eventType = eventTypeFilter;
     }
 
     if (isRead !== undefined) {
@@ -121,6 +171,7 @@ export class NotificationsController {
       } else {
         where.recipients = {
           some: {
+            userId,
             isRead: isRead,
             isDeleted: false,
           },
@@ -151,6 +202,7 @@ export class NotificationsController {
       id: n.id,
       title: n.title,
       message: n.message,
+      eventType: n.eventType,
       type: n.type,
       isRead: n.recipients[0]?.isRead ?? false,
       readAt: n.recipients[0]?.readAt ?? null,
@@ -193,7 +245,7 @@ export class NotificationsController {
 
     const roleName = jwtUser.role?.roleName;
     const deptCode = jwtUser.department?.departmentCode;
-    const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
+    const allowedEventTypes = resolveAllowedEventTypes(roleName, deptCode);
 
     const where: any = {
       userId,
@@ -204,58 +256,8 @@ export class NotificationsController {
       },
     };
 
-    if (!isAdmin) {
-      const titleConditions: any[] = [];
-      if (deptCode === 'DESIGN' || deptCode === 'DSGN') {
-        titleConditions.push(
-          { title: { contains: 'Draft Returned', mode: 'insensitive' } },
-          { title: { contains: 'Cost Sheet Updated', mode: 'insensitive' } },
-          { title: { contains: 'Actual Cost', mode: 'insensitive' } },
-          { title: { contains: 'Design Drawing', mode: 'insensitive' } },
-          { title: { contains: 'Document Deleted', mode: 'insensitive' } },
-          { title: { contains: 'Document Replaced', mode: 'insensitive' } },
-        );
-      } else if (deptCode === 'STORES' || deptCode === 'STOR') {
-        titleConditions.push(
-          { title: { contains: 'New Manufacturing Indent', mode: 'insensitive' } },
-          { title: { contains: 'Stores Stock Verification', mode: 'insensitive' } },
-        );
-      } else if (deptCode === 'PRODUCTION' || deptCode === 'PROD') {
-        titleConditions.push(
-          { title: { contains: 'Material Issued', mode: 'insensitive' } },
-          { title: { contains: 'Production Manufacturing Started', mode: 'insensitive' } },
-          { title: { contains: 'Production Manufacturing Completed', mode: 'insensitive' } },
-        );
-      } else if (deptCode === 'ACCOUNTS' || deptCode === 'ACCT') {
-        titleConditions.push(
-          { title: { contains: 'Production Manufacturing Completed', mode: 'insensitive' } },
-          { title: { contains: 'Product Delivered', mode: 'insensitive' } },
-          { title: { contains: 'Accounts Cost Verification', mode: 'insensitive' } },
-          { title: { contains: 'Actual Cost', mode: 'insensitive' } },
-          { title: { contains: 'Financial Closure', mode: 'insensitive' } },
-          { title: { contains: 'Vendor Bill', mode: 'insensitive' } },
-        );
-      } else if (roleName === 'Senior Manager' || roleName === 'General Manager') {
-        titleConditions.push(
-          { title: { contains: 'Actual Cost', mode: 'insensitive' } },
-          { title: { contains: 'Financial Closure', mode: 'insensitive' } },
-          { title: { contains: 'Archived', mode: 'insensitive' } },
-          { title: { contains: 'Completed', mode: 'insensitive' } },
-          { title: { contains: 'Design Drawing', mode: 'insensitive' } },
-          { title: { contains: 'Vendor Bill', mode: 'insensitive' } },
-          { title: { contains: 'Document Deleted', mode: 'insensitive' } },
-          { title: { contains: 'Document Replaced', mode: 'insensitive' } },
-        );
-      }
-
-      if (titleConditions.length > 0) {
-        // Combine with existing notification.isDeleted filter using AND
-        where.notification.AND = [{ isDeleted: false }, { OR: titleConditions }];
-        delete where.notification.isDeleted;
-      } else {
-        // No matching department — return zero results
-        where.notification.id = '00000000-0000-0000-0000-000000000000';
-      }
+    if (allowedEventTypes !== null) {
+      where.notification.eventType = { in: allowedEventTypes };
     }
 
     const count = await this.prisma.notificationRecipient.count({ where });
@@ -290,49 +292,20 @@ export class NotificationsController {
 
     const roleName = jwtUser.role?.roleName;
     const deptCode = jwtUser.department?.departmentCode;
-    const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
+    const allowedEventTypes = resolveAllowedEventTypes(roleName, deptCode);
 
-    let isAuthorized = isAdmin;
+    let isAuthorized = allowedEventTypes === null; // Admin is always authorized
 
     if (!isAuthorized) {
       const isRecipient = notification.recipients.some((r) => r.userId === userId);
       if (isRecipient) {
-        const title = notification.title.toLowerCase();
-        if (deptCode === 'DESIGN' || deptCode === 'DSGN') {
-          isAuthorized =
-            title.includes('draft returned') ||
-            title.includes('cost sheet updated') ||
-            title.includes('actual cost') ||
-            title.includes('design drawing') ||
-            title.includes('document deleted') ||
-            title.includes('document replaced');
-        } else if (deptCode === 'STORES' || deptCode === 'STOR') {
-          isAuthorized =
-            title.includes('new manufacturing indent') ||
-            title.includes('stores stock verification');
-        } else if (deptCode === 'PRODUCTION' || deptCode === 'PROD') {
-          isAuthorized =
-            title.includes('material issued') ||
-            title.includes('production manufacturing started') ||
-            title.includes('production manufacturing completed');
-        } else if (deptCode === 'ACCOUNTS' || deptCode === 'ACCT') {
-          isAuthorized =
-            title.includes('production manufacturing completed') ||
-            title.includes('product delivered') ||
-            title.includes('accounts cost verification') ||
-            title.includes('actual cost') ||
-            title.includes('financial closure') ||
-            title.includes('vendor bill');
-        } else if (roleName === 'Senior Manager' || roleName === 'General Manager') {
-          isAuthorized =
-            title.includes('actual cost') ||
-            title.includes('financial closure') ||
-            title.includes('archived') ||
-            title.includes('completed') ||
-            title.includes('design drawing') ||
-            title.includes('vendor bill') ||
-            title.includes('document deleted') ||
-            title.includes('document replaced');
+        // Authorize based on eventType
+        const notifEventType = notification.eventType;
+        if (notifEventType && allowedEventTypes!.includes(notifEventType)) {
+          isAuthorized = true;
+        } else if (!notifEventType) {
+          // Legacy notifications without eventType — allow if user is recipient
+          isAuthorized = true;
         }
       }
     }
@@ -364,6 +337,7 @@ export class NotificationsController {
       id: notification.id,
       title: notification.title,
       message: notification.message,
+      eventType: notification.eventType,
       type: notification.type,
       referenceModule: notification.referenceModule,
       referenceId: notification.referenceId,

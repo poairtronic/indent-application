@@ -2033,6 +2033,7 @@ export class BusinessTransactionService {
           data: {
             title,
             message: msg,
+            eventType: 'DOCUMENT_UPLOADED',
             type: 'INFO',
             priority: 'MEDIUM',
             referenceId: id,
@@ -2190,6 +2191,7 @@ export class BusinessTransactionService {
           data: {
             title: 'Document Deleted',
             message: `Document '${metaName}' has been deleted from Indent #${txData.indentNumber}.`,
+            eventType: 'DOCUMENT_DELETED',
             type: 'WARNING',
             priority: 'HIGH',
             referenceId: id,
@@ -2665,6 +2667,7 @@ export class BusinessTransactionService {
           data: {
             title: 'Document Replaced',
             message: `Document '${oldMeta.originalName || attachment.fileName}' has been replaced with '${file.originalname}' on Indent #${txData.indentNumber}.`,
+            eventType: 'DOCUMENT_REPLACED',
             type: 'INFO',
             priority: 'MEDIUM',
             referenceId: id,

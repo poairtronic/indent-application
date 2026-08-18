@@ -1,7 +1,8 @@
-import { WorkflowState, NotificationEventType } from '../enums/workflow-state.enum';
+import { WorkflowState } from '../enums/workflow-state.enum';
+import { CommunicationEventType } from '../../communication/events/communication-event.bus';
 
 export interface NotificationEventRule {
-  eventType: NotificationEventType;
+  eventType: CommunicationEventType;
   triggerState: WorkflowState;
   targetDepartmentCode?: string;
   executiveBroadcast: boolean; // Always true for SM & GM in Zero-Approval architecture
@@ -13,7 +14,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   [WorkflowState.DRAFT]: null, // No notification on draft save
 
   [WorkflowState.DESIGN_COMPLETED]: {
-    eventType: NotificationEventType.BUSINESS_TRANSACTION_SUBMITTED,
+    eventType: CommunicationEventType.DESIGN_COMPLETED,
     triggerState: WorkflowState.DESIGN_COMPLETED,
     targetDepartmentCode: 'STORES',
     executiveBroadcast: true,
@@ -23,7 +24,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.STORES_PROCESSING]: {
-    eventType: NotificationEventType.BUSINESS_TRANSACTION_SUBMITTED,
+    eventType: CommunicationEventType.STORES_PENDING,
     triggerState: WorkflowState.STORES_PROCESSING,
     targetDepartmentCode: 'STORES',
     executiveBroadcast: true,
@@ -32,7 +33,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.MATERIALS_ISSUED]: {
-    eventType: NotificationEventType.STORES_MATERIAL_ISSUED,
+    eventType: CommunicationEventType.MATERIAL_ISSUED,
     triggerState: WorkflowState.MATERIALS_ISSUED,
     targetDepartmentCode: 'PRODUCTION',
     executiveBroadcast: true,
@@ -42,7 +43,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.PRODUCTION_PROCESSING]: {
-    eventType: NotificationEventType.PRODUCTION_COMPLETED,
+    eventType: CommunicationEventType.PRODUCTION_STARTED,
     triggerState: WorkflowState.PRODUCTION_PROCESSING,
     targetDepartmentCode: 'PRODUCTION',
     executiveBroadcast: true,
@@ -51,7 +52,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.PRODUCTION_COMPLETED]: {
-    eventType: NotificationEventType.PRODUCTION_COMPLETED,
+    eventType: CommunicationEventType.PRODUCTION_COMPLETED,
     triggerState: WorkflowState.PRODUCTION_COMPLETED,
     targetDepartmentCode: 'PRODUCTION',
     executiveBroadcast: true,
@@ -61,7 +62,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.CUSTOMER_DELIVERED]: {
-    eventType: NotificationEventType.CUSTOMER_DELIVERED,
+    eventType: CommunicationEventType.CUSTOMER_DELIVERED,
     triggerState: WorkflowState.CUSTOMER_DELIVERED,
     targetDepartmentCode: 'ACCOUNTS',
     executiveBroadcast: true,
@@ -71,7 +72,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.ACCOUNTS_COST_VERIFICATION]: {
-    eventType: NotificationEventType.ACCOUNTS_COST_VERIFIED,
+    eventType: CommunicationEventType.ACCOUNTS_COST_VERIFICATION,
     triggerState: WorkflowState.ACCOUNTS_COST_VERIFICATION,
     targetDepartmentCode: 'ACCOUNTS',
     executiveBroadcast: true,
@@ -81,7 +82,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.ACTUAL_COST_UPDATED]: {
-    eventType: NotificationEventType.ACCOUNTS_COST_VERIFIED,
+    eventType: CommunicationEventType.ACTUAL_COST_UPDATED,
     triggerState: WorkflowState.ACTUAL_COST_UPDATED,
     targetDepartmentCode: 'ACCOUNTS',
     executiveBroadcast: true,
@@ -90,7 +91,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE]: {
-    eventType: NotificationEventType.ACCOUNTS_FINANCIAL_CLOSED,
+    eventType: CommunicationEventType.FINANCIAL_CLOSURE,
     triggerState: WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE,
     targetDepartmentCode: 'SYSTEM',
     executiveBroadcast: true,
@@ -100,7 +101,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.ARCHIVED]: {
-    eventType: NotificationEventType.TRANSACTION_ARCHIVED,
+    eventType: CommunicationEventType.TRANSACTION_ARCHIVED,
     triggerState: WorkflowState.ARCHIVED,
     targetDepartmentCode: 'SYSTEM',
     executiveBroadcast: true,
@@ -110,7 +111,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
   },
 
   [WorkflowState.COMPLETED]: {
-    eventType: NotificationEventType.TRANSACTION_COMPLETED,
+    eventType: CommunicationEventType.TRANSACTION_COMPLETED,
     triggerState: WorkflowState.COMPLETED,
     targetDepartmentCode: 'SYSTEM',
     executiveBroadcast: true,

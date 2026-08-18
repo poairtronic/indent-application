@@ -143,6 +143,7 @@ export class BusinessTransactionEventService {
         data: {
           title: formattedTitle,
           message: formattedMessage,
+          eventType: rule.eventType,
           type: 'INFO',
           priority: 'MEDIUM',
           referenceId: indentId,

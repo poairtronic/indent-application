@@ -5,6 +5,7 @@ import { CommunicationService } from './communication.service';
 import { CommunicationEventBus, CommunicationEventType } from './events/communication-event.bus';
 import { CommunicationConfig } from './config/communication.config';
 import { QueueService } from './queue/queue.service';
+import { NodemailerProvider } from './providers/nodemailer.provider';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 import { CommunicationQueryDto } from '../common/dto/pagination-query.dto';
@@ -25,6 +26,7 @@ export class CommunicationController {
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
     private readonly queueService: QueueService,
+    private readonly nodemailerProvider: NodemailerProvider,
   ) {}
 
   /**
@@ -104,10 +106,25 @@ export class CommunicationController {
   @Get('health')
   @Permissions('settings.manage')
   async getHealth() {
-    const redisStatus = await this.queueService.checkRedisHealth();
+    const [redisStatus, smtpStatus] = await Promise.all([
+      this.queueService.checkRedisHealth(),
+      this.nodemailerProvider.verifySmtp(),
+    ]);
+
+    // Overall status: UP only if both are healthy. SMTP degraded = DEGRADED overall.
+    // SMTP failure does NOT kill core business APIs — it only degrades the notification subsystem.
+    let overall: string = 'UP';
+    if (redisStatus !== 'UP' || smtpStatus !== 'ok') {
+      overall = 'DEGRADED';
+    }
+    if (redisStatus === 'DOWN' && smtpStatus === 'unavailable') {
+      overall = 'DOWN';
+    }
+
     return {
-      status: redisStatus === 'UP' ? 'UP' : 'DEGRADED',
+      status: overall,
       redis: redisStatus,
+      smtp: smtpStatus,
       timestamp: new Date().toISOString(),
     };
   }

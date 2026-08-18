@@ -57,26 +57,19 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
     let items = filterNotificationsForUser(rawNotifications, user);
 
     if (!workflowAlerts) {
-      // Suppress workflow state-change notifications
-      items = items.filter((n) => {
-        const t = (n.title || '').toLowerCase();
-        return !(
-          t.includes('submitted') ||
-          t.includes('issued') ||
-          t.includes('completed') ||
-          t.includes('delivered') ||
-          t.includes('closure') ||
-          t.includes('archived')
-        );
-      });
+      // Suppress workflow state-change notifications using eventType
+      const workflowEventTypes = [
+        'DESIGN_COMPLETED', 'STORES_PENDING', 'MATERIAL_ISSUED',
+        'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED', 'CUSTOMER_DELIVERED',
+        'ACCOUNTS_COST_VERIFICATION', 'FINANCIAL_CLOSURE',
+        'TRANSACTION_ARCHIVED', 'TRANSACTION_COMPLETED',
+      ];
+      items = items.filter((n) => !n.eventType || !workflowEventTypes.includes(n.eventType));
     }
 
     if (!costDeviationWarnings) {
-      // Suppress cost deviation warning notifications
-      items = items.filter((n) => {
-        const t = (n.title || '').toLowerCase();
-        return !t.includes('cost') && !(n.type === 'WARNING' && t.includes('deviation'));
-      });
+      // Suppress cost deviation warning notifications using eventType
+      items = items.filter((n) => n.eventType !== 'ACTUAL_COST_UPDATED');
     }
 
     return items;

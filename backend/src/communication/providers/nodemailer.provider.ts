@@ -132,4 +132,25 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
       throw new SMTPException(error);
     }
   }
+
+  /**
+   * D4: SMTP health verification using transporter.verify().
+   * Never sends an actual email. Returns connectivity status only.
+   * Does NOT expose SMTP credentials.
+   */
+  public async verifySmtp(): Promise<'ok' | 'degraded' | 'unavailable'> {
+    if (!this.transporter) {
+      this.initializeTransporter();
+    }
+    if (!this.transporter) {
+      return 'unavailable';
+    }
+    try {
+      await this.transporter.verify();
+      return 'ok';
+    } catch (err) {
+      this.logger.warn(`SMTP verification failed: ${(err as any)?.message || err}`);
+      return 'degraded';
+    }
+  }
 }

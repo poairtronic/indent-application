@@ -931,6 +931,7 @@ model Notification {
   id              String                  @id @default(uuid()) @db.Uuid
   title           String                  @db.VarChar(150)
   message         String                  @db.Text
+  eventType       String?                 @db.VarChar(100) // Machine-readable event identity (e.g. DESIGN_COMPLETED)
   type            NotificationType        @default(INFO)
   priority        Priority                @default(MEDIUM)
   referenceId     String?                 @db.Uuid
@@ -952,6 +953,7 @@ model Notification {
   @@index([createdBy])
   @@index([createdAt])
   @@index([isDeleted])
+  @@index([eventType])
   @@map("notifications")
 }
 

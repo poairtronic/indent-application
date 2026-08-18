@@ -69,6 +69,10 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
           connection: this.redisConnection,
           concurrency,
           lockDuration: 30000, // 30s lock duration
+          limiter: {
+            max: parseInt(process.env.SMTP_RATE_LIMIT_MAX || '30', 10), // D3: max emails per window
+            duration: parseInt(process.env.SMTP_RATE_LIMIT_DURATION || '60000', 10), // D3: window in ms (default 60s)
+          },
         },
       );
 
