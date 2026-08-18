@@ -25,6 +25,7 @@ import {
 import { StoresIssueDto } from './dto/stores-issue.dto';
 import { ProductionUpdateDto, CustomerDeliveryDto } from './dto/production-update.dto';
 import { ActualCostEntryDto, FinancialClosureDto } from './dto/actual-cost-entry.dto';
+import { QueryBusinessTransactionDto } from './dto/query-business-transaction.dto';
 import { CostSheetVisibilityInterceptor } from './interceptors/cost-sheet-visibility.interceptor';
 
 @Controller('business-transactions')
@@ -40,20 +41,8 @@ export class BusinessTransactionController {
 
   @Get()
   @Permissions('indent.view')
-  async findAll(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('state') state?: string,
-    @Query('search') search?: string,
-    @Query('departmentId') departmentId?: string,
-  ) {
-    return this.businessTransactionService.findAllTransactions({
-      page,
-      limit,
-      state,
-      search,
-      departmentId,
-    });
+  async findAll(@Query() query: QueryBusinessTransactionDto) {
+    return this.businessTransactionService.findAllTransactions(query);
   }
 
   @Get('attachments/search')

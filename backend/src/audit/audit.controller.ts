@@ -1,7 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditQueryDto } from './dto/audit-query.dto';
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
@@ -12,25 +13,15 @@ export class AuditController {
   @Get()
   @Permissions('audit.view')
   @ApiOperation({ summary: 'List audit logs with pagination and filtering' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'module', required: false, type: String })
-  @ApiQuery({ name: 'action', required: false, type: String })
-  @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'sortBy', required: false, type: String })
-  @ApiQuery({ name: 'sortOrder', required: false, type: String })
-  async list(
-    @Query('page') page = '1',
-    @Query('limit') limit = '50',
-    @Query('module') module?: string,
-    @Query('action') action?: string,
-    @Query('search') search?: string,
-    @Query('sortBy') sortBy = 'createdAt',
-    @Query('sortOrder') sortOrder = 'desc',
-  ) {
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 50;
+  async list(@Query() query: AuditQueryDto) {
+    const pageNum = query.page || 1;
+    const limitNum = query.limit || 50;
     const offset = (pageNum - 1) * limitNum;
+    const module = query.module;
+    const action = query.action;
+    const search = query.search;
+    const sortBy = query.sortBy || 'createdAt';
+    const sortOrder = query.sortOrder || 'desc';
 
     const where: any = {};
 

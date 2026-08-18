@@ -101,6 +101,7 @@ function groupKpis(kpis: IKpiData[]): Record<string, IKpiData[]> {
     workflow: [],
     performance: [],
   };
+  if (!Array.isArray(kpis)) return groups;
   kpis.forEach((kpi) => {
     if (
       ['total-indents', 'active-indents', 'completed-indents', 'production-in-progress'].includes(
@@ -295,15 +296,22 @@ export const SummaryPage: React.FC = () => {
     [vendorData],
   );
 
-  const kpis: IKpiData[] = kpiData ?? [];
+  const kpis: IKpiData[] = Array.isArray(kpiData) ? kpiData : [];
   const grouped = groupKpis(kpis);
   const hasActiveFilters = Object.values(appliedFilters).some((v) => v);
 
   if (hasError) {
+    const errorMessage =
+      (summaryError as any)?.message ||
+      (kpiError as any)?.message ||
+      (costError as any)?.message ||
+      (workflowError as any)?.message ||
+      'Error loading analytics data';
+
     return (
       <AnalyticsLayout title="Enterprise Analytics Dashboard" subtitle="Live KPI Engine">
         <ErrorState
-          message="Error loading analytics data"
+          message={errorMessage}
           onRetry={() => {
             void refetchSummary();
             void refetchKpis();

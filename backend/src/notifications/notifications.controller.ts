@@ -13,6 +13,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisCacheService } from '../redis-cache/redis-cache.service';
 import { Request } from 'express';
+import { NotificationQueryDto } from '../common/dto/pagination-query.dto';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
@@ -31,13 +32,12 @@ export class NotificationsController {
   @ApiQuery({ name: 'isRead', required: false, type: Boolean })
   async list(
     @Req() req: Request,
-    @Query('page') page = '1',
-    @Query('limit') limit = '20',
-    @Query('isRead') isRead?: string,
+    @Query() query: NotificationQueryDto,
   ) {
     const userId = (req as any).user?.id;
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 20;
+    const pageNum = query.page || 1;
+    const limitNum = query.limit || 20;
+    const isRead = query.isRead;
     const offset = (pageNum - 1) * limitNum;
 
     // Use user info from JWT (already validated and cached) instead of re-querying DB
@@ -115,13 +115,13 @@ export class NotificationsController {
       }
     }
 
-    if (isRead !== undefined && isRead !== '') {
+    if (isRead !== undefined) {
       if (where.recipients) {
-        where.recipients.some.isRead = isRead === 'true';
+        where.recipients.some.isRead = isRead;
       } else {
         where.recipients = {
           some: {
-            isRead: isRead === 'true',
+            isRead: isRead,
             isDeleted: false,
           },
         };

@@ -5,6 +5,8 @@ import { CommunicationService } from './communication.service';
 import { QueueService } from './queue/queue.service';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
+import { CommunicationQueryDto } from '../common/dto/pagination-query.dto';
+
 class TestEmailDto {
   @IsString()
   @IsNotEmpty()
@@ -30,18 +32,14 @@ export class CommunicationController {
    */
   @Get('logs')
   @Permissions('audit.view')
-  async getEmailLogs(
-    @Query('page') page = '1',
-    @Query('limit') limit = '50',
-    @Query('status') status?: string,
-  ) {
-    const pageNum = parseInt(page, 10) || 1;
-    const limitNum = parseInt(limit, 10) || 50;
+  async getEmailLogs(@Query() query: CommunicationQueryDto) {
+    const pageNum = query.page || 1;
+    const limitNum = query.limit || 50;
     const offset = (pageNum - 1) * limitNum;
 
     const where: any = {};
-    if (status) {
-      where.status = status;
+    if (query.status) {
+      where.status = query.status;
     }
 
     const [logs, total] = await this.prisma.$transaction([

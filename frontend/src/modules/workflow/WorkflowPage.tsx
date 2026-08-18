@@ -60,9 +60,11 @@ export const WorkflowPage: React.FC = () => {
   // Map stage distribution to quick count lookup (stageName is domain WorkflowState key)
   const stageCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    analytics?.stageDistribution.forEach((dist) => {
-      counts[dist.stageName] = dist.count;
-    });
+    if (Array.isArray(analytics?.stageDistribution)) {
+      analytics.stageDistribution.forEach((dist) => {
+        counts[dist.stageName] = dist.count;
+      });
+    }
     return counts;
   }, [analytics]);
 

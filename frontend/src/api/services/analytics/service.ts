@@ -9,6 +9,24 @@ import type {
   KpiData,
 } from '../../types/analytics';
 
+function cleanQueryParams(params?: Record<string, any>): Record<string, any> | undefined {
+  if (!params) return undefined;
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      if ((key === 'dateFrom' || key === 'dateTo' || key === 'from' || key === 'to') && typeof value === 'string') {
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) {
+          cleaned[key] = parsed.toISOString();
+        }
+      } else {
+        cleaned[key] = value;
+      }
+    }
+  }
+  return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
 class AnalyticsService extends BaseService {
   constructor() {
     super({ basePath: '/analytics' });
@@ -27,41 +45,28 @@ class AnalyticsService extends BaseService {
   }
 
   async getCosts(params?: any): Promise<CostAnalytics> {
-    const query: Record<string, string> = {};
-    if (params?.from) query.from = params.from;
-    else if (params?.dateFrom) query.from = new Date(params.dateFrom).toISOString();
-    if (params?.to) query.to = params.to;
-    else if (params?.dateTo) query.to = new Date(params.dateTo).toISOString();
-    return this.getRaw<CostAnalytics>(
-      '/analytics/costs',
-      Object.keys(query).length > 0 ? query : undefined,
-    );
+    const query = cleanQueryParams(params);
+    return this.getRaw<CostAnalytics>('/analytics/costs', query);
   }
 
   async getProducts(params?: any): Promise<ProductAnalytics> {
-    const query: Record<string, any> = {};
-    if (params?.limit) query.limit = params.limit;
-    return this.getRaw<ProductAnalytics>(
-      '/analytics/products',
-      Object.keys(query).length > 0 ? query : undefined,
-    );
+    const query = cleanQueryParams(params);
+    return this.getRaw<ProductAnalytics>('/analytics/products', query);
   }
 
   async getVendors(params?: any): Promise<VendorAnalytics> {
-    const query: Record<string, any> = {};
-    if (params?.limit) query.limit = params.limit;
-    return this.getRaw<VendorAnalytics>(
-      '/analytics/vendors',
-      Object.keys(query).length > 0 ? query : undefined,
-    );
+    const query = cleanQueryParams(params);
+    return this.getRaw<VendorAnalytics>('/analytics/vendors', query);
   }
 
   async getKpis(params?: any): Promise<KpiData[]> {
-    return this.getRaw<KpiData[]>('/analytics/kpis', params);
+    const query = cleanQueryParams(params);
+    return this.getRaw<KpiData[]>('/analytics/kpis', query);
   }
 
   async getInsights(params?: any): Promise<any> {
-    return this.getRaw<any>('/analytics/insights', params);
+    const query = cleanQueryParams(params);
+    return this.getRaw<any>('/analytics/insights', query);
   }
 }
 
