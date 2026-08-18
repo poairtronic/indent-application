@@ -355,6 +355,25 @@ async function main() {
     });
   }
 
+  // ==========================================
+  // DEFAULT UNITS
+  // ==========================================
+  const defaultUnits = [
+    { unitCode: 'KG', unitName: 'Kilograms', symbol: 'KG', createdBy: adminId },
+    { unitCode: 'METERS', unitName: 'Meters', symbol: 'M', createdBy: adminId },
+    { unitCode: 'PCS', unitName: 'Pieces', symbol: 'PCS', createdBy: adminId },
+    { unitCode: 'LITERS', unitName: 'Liters', symbol: 'L', createdBy: adminId },
+    { unitCode: 'SHEETS', unitName: 'Sheets', symbol: 'SHT', createdBy: adminId },
+  ];
+
+  for (const u of defaultUnits) {
+    await prisma.unit.upsert({
+      where: { unitCode: u.unitCode },
+      update: {},
+      create: u,
+    });
+  }
+
   console.log(`Created ${users.length} users`);
   console.log('Default password for all users: Password123!');
 

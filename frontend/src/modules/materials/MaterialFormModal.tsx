@@ -28,13 +28,7 @@ interface MaterialFormModalProps {
   unitOptions?: UnitOption[];
 }
 
-const DEFAULT_UNITS: UnitOption[] = [
-  { id: 'KG', label: 'Kilograms', symbol: 'KG' },
-  { id: 'METERS', label: 'Meters', symbol: 'M' },
-  { id: 'PCS', label: 'Pieces', symbol: 'PCS' },
-  { id: 'LITERS', label: 'Liters', symbol: 'L' },
-  { id: 'SHEETS', label: 'Sheets', symbol: 'SHT' },
-];
+// Removed hardcoded default units that caused invalid UUID validation errors
 
 export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
   open,
@@ -43,12 +37,12 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
   initialData,
   unitOptions,
 }) => {
-  const units = unitOptions && unitOptions.length > 0 ? unitOptions : DEFAULT_UNITS;
+  const units = unitOptions || [];
 
   const [materialCode, setMaterialCode] = useState('');
   const [materialName, setMaterialName] = useState('');
   const [category, setCategory] = useState('METALS');
-  const [unitOfMeasure, setUnitOfMeasure] = useState(units[0]?.id ?? 'KG');
+  const [unitOfMeasure, setUnitOfMeasure] = useState(units[0]?.id ?? '');
   const [reorderPoint, setReorderPoint] = useState<number>(100);
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -66,7 +60,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
       setMaterialCode('');
       setMaterialName('');
       setCategory('METALS');
-      setUnitOfMeasure(units[0]?.id ?? 'KG');
+      setUnitOfMeasure(units[0]?.id ?? '');
       setReorderPoint(100);
       setIsActive(true);
     }
@@ -77,6 +71,10 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
     e.preventDefault();
     if (!materialCode.trim() || !materialName.trim()) {
       setError('Material Code and Name are required.');
+      return;
+    }
+    if (!unitOfMeasure) {
+      setError('A valid Unit of Measure is required. Please create one first in the Units module.');
       return;
     }
     setLoading(true);
@@ -165,7 +163,11 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
               value={unitOfMeasure}
               onChange={(e) => setUnitOfMeasure(e.target.value)}
               className="w-full bg-surface-card border border-border-default rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent-primary"
+              disabled={units.length === 0}
             >
+              {units.length === 0 && (
+                <option value="">No Units Available</option>
+              )}
               {units.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.symbol} ({u.label})
