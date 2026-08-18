@@ -86,6 +86,10 @@ export const DepartmentsPage: React.FC = () => {
     setFormModalOpen(true);
   }, []);
 
+  const resetPage = useCallback(() => {
+    setPage(1);
+  }, []);
+
   const handleSaveDepartment = useCallback(
     async (deptData: DepartmentData) => {
       if (deptData.id) {
@@ -133,7 +137,7 @@ export const DepartmentsPage: React.FC = () => {
         });
       });
     },
-    [createMutation, updateMutation, show],
+    [createMutation, updateMutation, show, resetPage],
   );
 
   const handleStatusConfirm = useCallback(() => {
@@ -169,10 +173,6 @@ export const DepartmentsPage: React.FC = () => {
       },
     });
   }, [deleteTarget, deleteMutation, detailDept, show]);
-
-  const resetPage = useCallback(() => {
-    setPage(1);
-  }, []);
 
   return (
     <div className="space-y-6 font-sans">

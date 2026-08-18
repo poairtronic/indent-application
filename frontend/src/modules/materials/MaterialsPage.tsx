@@ -80,18 +80,21 @@ export const MaterialsPage: React.FC = () => {
   const deleteMutation = useDeleteMaterial();
 
   const { data, isLoading, isError, error, refetch } = materialsQuery;
-  const items = data?.items ?? [];
-  const unitOptions = useMemo(
-    () =>
-      (unitsQuery.data?.items ?? []).map((u) => ({
-        id: u.id,
-        label: u.unitName,
-        symbol: u.symbol,
-      })),
-    [unitsQuery.data],
-  );
+  const unitOptions = useMemo(() => {
+    const unitItems = unitsQuery.data?.items;
+    if (!unitItems || unitItems.length === 0) return [];
+    return unitItems.map((u) => ({
+      id: u.id,
+      label: u.unitName,
+      symbol: u.symbol,
+    }));
+  }, [unitsQuery.data?.items]);
 
-  const filteredMaterials = useMemo(() => items.map(toMaterialData), [items]);
+  const filteredMaterials = useMemo(() => {
+    const matItems = data?.items;
+    if (!matItems || matItems.length === 0) return [];
+    return matItems.map(toMaterialData);
+  }, [data?.items]);
 
   const hasActiveFilters = Boolean(search || categoryFilter);
 

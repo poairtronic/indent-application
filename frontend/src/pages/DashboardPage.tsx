@@ -66,9 +66,10 @@ export const DashboardPage: React.FC = () => {
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
   const { data: unreadNotificationCount = 0 } = useUnreadNotificationCount();
   const notifications = useMemo(() => {
-    const items = notificationsData?.items ?? [];
+    const items = notificationsData?.items;
+    if (!items || items.length === 0) return [];
     return filterNotificationsForUser(items, user);
-  }, [notificationsData, user]);
+  }, [notificationsData?.items, user]);
 
   // Live Date & Time ticker
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -145,7 +146,6 @@ export const DashboardPage: React.FC = () => {
     },
     hasAuditAccess,
   );
-  const auditLogs = auditData?.items ?? [];
 
   const isLoading =
     hasAnalyticsAccess &&
@@ -306,33 +306,41 @@ export const DashboardPage: React.FC = () => {
   const workflowTimelineItems = useMemo(() => {
     if (!workflowData?.stageDistribution?.length) return [];
 
-    const icons = [
-      <FileText size={14} className="text-accent-primary" />,
-      <CheckCircle2 size={14} className="text-status-success" />,
-      <Package size={14} className="text-status-warning" />,
-      <Activity size={14} className="text-info" />,
-      <ShieldCheck size={14} className="text-status-success" />,
-    ];
+    const getStageIcon = (idx: number) => {
+      switch (idx % 5) {
+        case 0:
+          return <FileText key="stage-icon-file" size={14} className="text-accent-primary" />;
+        case 1:
+          return <CheckCircle2 key="stage-icon-check" size={14} className="text-status-success" />;
+        case 2:
+          return <Package key="stage-icon-pkg" size={14} className="text-status-warning" />;
+        case 3:
+          return <Activity key="stage-icon-act" size={14} className="text-info" />;
+        default:
+          return <ShieldCheck key="stage-icon-shield" size={14} className="text-status-success" />;
+      }
+    };
 
     return workflowData.stageDistribution.map((stage, idx) => ({
-      id: `stage-${idx}`,
+      id: stage.stageName || `stage-${idx}`,
       title: formatWorkflowState(stage.stageName as any),
       description: `${stage.count} Indents (${stage.percentage.toFixed(1)}%)`,
       timestamp: `Stage ${idx + 1}`,
-      icon: icons[idx % icons.length],
+      icon: getStageIcon(idx),
     }));
   }, [workflowData]);
 
   // Recent User Activity Feed Items
   const recentActivities = useMemo(() => {
-    if (!auditLogs.length) return [];
-    return auditLogs.map((log, index) => ({
+    const items = auditData?.items;
+    if (!items || items.length === 0) return [];
+    return items.map((log, index) => ({
       id: log.id || `act-${index}`,
       title: `${log.module} - ${log.action}`,
       description: `Record ID: ${log.recordId} ${log.user ? `by ${log.user.firstName} ${log.user.lastName}` : ''}`,
       timestamp: new Date(log.createdAt).toLocaleString(),
     }));
-  }, [auditLogs]);
+  }, [auditData?.items]);
 
   // Chart Data for Monthly Cost Trends -> adapted to Planned vs Actual
   const costTrendChartData = useMemo(() => {

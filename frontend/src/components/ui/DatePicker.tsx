@@ -45,6 +45,9 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     } ${className}`;
 
     if (variant === 'range') {
+      const isStartReadOnly = props.readOnly || (!props.onChange && props.value !== undefined);
+      const isEndReadOnly = props.readOnly || (!onChangeEnd && valueEnd !== undefined);
+
       return (
         <div className="w-full font-sans">
           {label && (
@@ -60,6 +63,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
               aria-invalid={error ? 'true' : 'false'}
               aria-describedby={describedBy}
               className={baseInputStyle}
+              readOnly={isStartReadOnly}
               {...props}
             />
             <span className="text-text-muted text-xs font-semibold" aria-hidden="true">
@@ -68,8 +72,9 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             <input
               type="date"
               name={nameEnd}
-              value={valueEnd}
+              value={valueEnd ?? ''}
               onChange={onChangeEnd}
+              readOnly={isEndReadOnly}
               aria-label="End date"
               aria-invalid={error ? 'true' : 'false'}
               aria-describedby={describedBy}
@@ -94,6 +99,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       );
     }
 
+    const isDefaultReadOnly = props.readOnly || (!props.onChange && props.value !== undefined);
+
     return (
       <div className="w-full font-sans">
         {label && (
@@ -111,6 +118,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={describedBy}
           className={baseInputStyle}
+          readOnly={isDefaultReadOnly}
           {...(variant === 'year' ? { min: 1900, max: 2100, placeholder: 'YYYY' } : {})}
           {...props}
         />

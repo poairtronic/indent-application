@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { menuItems, settingsMenuItems } from '../../config/menuConfig';
@@ -26,6 +26,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         item.label.toLowerCase().includes(query.toLowerCase()) ||
         item.path.toLowerCase().includes(query.toLowerCase()),
     );
+
+  const handleSelect = useCallback(
+    (path: string) => {
+      navigate(path);
+      onClose();
+    },
+    [navigate, onClose],
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -61,12 +69,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, filtered, selectedIndex, onClose]);
-
-  const handleSelect = (path: string) => {
-    navigate(path);
-    onClose();
-  };
+  }, [isOpen, filtered, selectedIndex, handleSelect, onClose]);
 
   if (!isOpen) return null;
 
