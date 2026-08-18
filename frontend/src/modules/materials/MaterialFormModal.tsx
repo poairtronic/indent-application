@@ -165,9 +165,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
               className="w-full bg-surface-card border border-border-default rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent-primary"
               disabled={units.length === 0}
             >
-              {units.length === 0 && (
-                <option value="">No Units Available</option>
-              )}
+              {units.length === 0 && <option value="">No Units Available</option>}
               {units.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.symbol} ({u.label})
