@@ -266,7 +266,9 @@ const NestedProcessArray: React.FC<{
           const canViewCostSheet = true;
           const showActual =
             isAccountsMode ||
-            fields.some((f) => (f as any).actualCost !== undefined && (f as any).actualCost !== null);
+            fields.some(
+              (f) => (f as any).actualCost !== undefined && (f as any).actualCost !== null,
+            );
 
           let processCol = 'md:col-span-3';
           let sourceCol = 'md:col-span-2';
@@ -670,8 +672,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   );
   const totalProcessCost = (watchedItems || []).reduce(
     (sum, item) =>
-      sum +
-      (item?.processes || []).reduce((pSum, p) => pSum + (Number(p?.predictedCost) || 0), 0),
+      sum + (item?.processes || []).reduce((pSum, p) => pSum + (Number(p?.predictedCost) || 0), 0),
     0,
   );
 

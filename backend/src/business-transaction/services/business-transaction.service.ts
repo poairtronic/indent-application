@@ -588,7 +588,7 @@ export class BusinessTransactionService {
           },
         });
 
-        let resolvedMaterialIds: string[] = [];
+        const resolvedMaterialIds: string[] = [];
         // 2. Resolve materials and recreate items if provided
         if (dto.indent?.items) {
           if (existing.currentState === WorkflowState.PRODUCTION_PROCESSING) {
