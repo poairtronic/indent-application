@@ -996,6 +996,8 @@ model EmailLog {
   errorMessage String?   @db.Text
   sentAt       DateTime  @default(now()) @db.Timestamptz(6)
   retryCount   Int       @default(0) @db.Integer
+  messageId    String?   @db.VarChar(255)
+  durationMs   Int?      @db.Integer
 
   // Relations
   user         User?     @relation(fields: [userId], references: [id])

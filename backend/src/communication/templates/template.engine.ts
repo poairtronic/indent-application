@@ -62,8 +62,10 @@ const INLINE_TEMPLATES: Record<string, string> = {
 export class TemplateEngine {
   private readonly logger = new Logger(TemplateEngine.name);
   private templatesDir = '';
+  private hbs: typeof Handlebars;
 
   constructor() {
+    this.hbs = Handlebars.create();
     this.resolveTemplatesDirectory();
     this.registerPartials();
   }
@@ -108,11 +110,11 @@ export class TemplateEngine {
       }
     }
 
-    Handlebars.registerPartial('header', headerSource);
-    Handlebars.registerPartial('footer', footerSource);
+    this.hbs.registerPartial('header', headerSource);
+    this.hbs.registerPartial('footer', footerSource);
 
     // Helpers
-    Handlebars.registerHelper('currentYear', () => new Date().getFullYear());
+    this.hbs.registerHelper('currentYear', () => new Date().getFullYear());
   }
 
   public render(templateName: string, context: Record<string, any> = {}): string {
@@ -156,11 +158,11 @@ export class TemplateEngine {
 
     try {
       // Compile template and render inner body
-      const templateDelegate = Handlebars.compile(templateSource);
+      const templateDelegate = this.hbs.compile(templateSource);
       const bodyHtml = templateDelegate(fullContext);
 
       // Wrap inside layout
-      const layoutDelegate = Handlebars.compile(layoutSource);
+      const layoutDelegate = this.hbs.compile(layoutSource);
       return layoutDelegate({
         ...fullContext,
         body: bodyHtml,

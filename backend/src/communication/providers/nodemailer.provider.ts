@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { IEmailProvider, IEmailPayload } from '../interfaces/provider.interface';
 import { CommunicationConfig } from '../config/communication.config';
@@ -8,16 +8,30 @@ import {
 } from '../exceptions/communication.exceptions';
 
 @Injectable()
-export class NodemailerProvider implements IEmailProvider {
+export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModuleDestroy {
   public readonly channel = 'email';
   private transporter: nodemailer.Transporter | null = null;
   private readonly logger = new Logger(NodemailerProvider.name);
 
-  constructor() {
+  public onModuleInit() {
     this.initializeTransporter();
   }
 
+  public async onModuleDestroy() {
+    if (this.transporter) {
+      this.logger.log('Closing Nodemailer transporter connections...');
+      this.transporter.close();
+      this.transporter = null;
+    }
+  }
+
   private initializeTransporter(): void {
+    if (this.transporter) {
+      this.logger.log('Closing existing Nodemailer transporter before re-initialization.');
+      this.transporter.close();
+      this.transporter = null;
+    }
+
     try {
       const config = CommunicationConfig.getSmtpConfig();
       this.logger.log(
@@ -37,6 +51,11 @@ export class NodemailerProvider implements IEmailProvider {
           rejectUnauthorized: config.rejectUnauthorized,
         },
       };
+
+      if (config.service) {
+        smtpOptions.service = config.service;
+        // Host and port are automatically handled by the preset
+      }
 
       if (config.user || config.pass) {
         smtpOptions.auth = {
@@ -79,9 +98,10 @@ export class NodemailerProvider implements IEmailProvider {
 
     const config = CommunicationConfig.getSmtpConfig();
     const appConfig = CommunicationConfig.getAppMailConfig();
+    const fromString = config.fromName ? `"${config.fromName}" <${payload.meta?.from || config.from}>` : (payload.meta?.from || config.from);
 
     const mailOptions: nodemailer.SendMailOptions = {
-      from: payload.meta?.from || config.from,
+      from: fromString,
       to: payload.to,
       subject: payload.subject,
       text: payload.body,

@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from '../auth/services/password.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt';
+import { CommunicationConfig } from '../communication/config/communication.config';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
@@ -130,7 +132,7 @@ export class UsersService {
       employeeCode: newUser.employeeCode,
       departmentName: newUser.department?.departmentName || 'General',
       roleName: newUser.role?.roleName || 'Employee',
-      loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
+      loginUrl: `${CommunicationConfig.getFrontendUrl()}/login`,
     });
 
     return response;
@@ -355,7 +357,7 @@ export class UsersService {
     );
 
     if (dto.status === UserStatus.ACTIVE) {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = CommunicationConfig.getFrontendUrl();
       this.eventBus.emit(CommunicationEventType.ACCOUNT_ACTIVATED, {
         email: updatedUser.email,
         name: `${updatedUser.firstName} ${updatedUser.lastName}`,

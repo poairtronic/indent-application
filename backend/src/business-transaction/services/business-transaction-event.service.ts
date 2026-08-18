@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CommunicationConfig } from '../../communication/config/communication.config';
 import { WorkflowState, AuditEventType } from '../enums/workflow-state.enum';
 import { NOTIFICATION_EVENT_RULES } from '../definitions/notification-event.definition';
 import { AUDIT_EVENT_DEFINITIONS } from '../definitions/audit-event.definition';
@@ -202,7 +203,7 @@ export class BusinessTransactionEventService {
         : 'System';
 
       let commType: CommunicationEventType | null = null;
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = CommunicationConfig.getFrontendUrl();
       const context: Record<string, any> = {
         indentId,
         indentNumber,
@@ -245,6 +246,26 @@ export class BusinessTransactionEventService {
             : 0;
           break;
         }
+        case WorkflowState.ACCOUNTS_COST_VERIFICATION:
+          commType = CommunicationEventType.ACCOUNTS_COST_VERIFICATION;
+          break;
+        case WorkflowState.ACTUAL_COST_UPDATED: {
+          commType = CommunicationEventType.ACTUAL_COST_UPDATED;
+          const costSheet = await this.prisma.costSheet.findFirst({ where: { indentId } });
+          context.plannedTotal = costSheet?.predictedTotal ? Number(costSheet.predictedTotal) : 0;
+          context.actualTotal = costSheet?.actualTotal ? Number(costSheet.actualTotal) : 0;
+          context.varianceAmount = costSheet?.varianceAmount ? Number(costSheet.varianceAmount) : 0;
+          context.variancePercentage = costSheet?.variancePercentage
+            ? Number(costSheet.variancePercentage)
+            : 0;
+          break;
+        }
+        case WorkflowState.ARCHIVED:
+          commType = CommunicationEventType.TRANSACTION_ARCHIVED;
+          break;
+        case WorkflowState.COMPLETED:
+          commType = CommunicationEventType.TRANSACTION_COMPLETED;
+          break;
       }
 
       if (commType) {

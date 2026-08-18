@@ -128,8 +128,8 @@ export class QueueProcessor {
   private async finalizeLogStatus(
     logIds: string[],
     status: EmailState,
-    _durationMs: number,
-    _messageId?: string,
+    durationMs: number,
+    messageId?: string,
   ): Promise<void> {
     try {
       if (!logIds || logIds.length === 0) return;
@@ -140,6 +140,8 @@ export class QueueProcessor {
           errorMessage: null,
           retryCount: { increment: 1 },
           sentAt: new Date(),
+          durationMs,
+          messageId: messageId || null,
         },
       });
     } catch (err) {

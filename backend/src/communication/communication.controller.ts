@@ -2,6 +2,8 @@ import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationService } from './communication.service';
+import { CommunicationEventBus, CommunicationEventType } from './events/communication-event.bus';
+import { CommunicationConfig } from './config/communication.config';
 import { QueueService } from './queue/queue.service';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
@@ -82,8 +84,9 @@ export class CommunicationController {
         name: 'Test User',
         employeeCode: 'ADMIN-SMTP-TEST',
         department: 'System Infrastructure Group',
-        role: 'Administrator',
-        loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`,
+        roleName: 'System Administrator',
+        loginUrl: `${CommunicationConfig.getFrontendUrl()}/login`,
+        supportEmail: CommunicationConfig.getAppMailConfig().supportEmail,
       },
     });
 

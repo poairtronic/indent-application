@@ -5,7 +5,7 @@ import { InvalidRecipientException } from '../exceptions/communication.exception
 export interface IResolverQuery {
   userId?: string | string[];
   departmentCode?: string;
-  roleName?: string;
+  roleName?: string | string[];
   indentId?: string;
   workflowStateTarget?: string;
 }
@@ -61,9 +61,10 @@ export class RecipientResolver {
 
     // 3. Role Name (e.g. "Senior Manager", "General Manager")
     if (query.roleName) {
+      const roleNames = Array.isArray(query.roleName) ? query.roleName : [query.roleName];
       const users = await this.prisma.user.findMany({
         where: {
-          role: { roleName: query.roleName, isDeleted: false },
+          role: { roleName: { in: roleNames }, isDeleted: false },
           isDeleted: false,
           status: 'ACTIVE',
         },

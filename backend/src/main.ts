@@ -7,7 +7,10 @@ import compression from 'compression';
 import helmet from 'helmet';
 import { AppLogger } from './observability/app-logger.service';
 
+import { validateEnvironmentConfig } from './config/env.validation';
+
 async function bootstrap() {
+  validateEnvironmentConfig();
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });

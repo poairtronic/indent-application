@@ -4,6 +4,7 @@ import { observabilityEventBus } from '../../observability/observability-event-b
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
 import { SessionService } from './session.service';
+import { CommunicationConfig } from '../../communication/config/communication.config';
 import { LoginHistoryService } from './login-history.service';
 import { AccountSecurityService } from './account-security.service';
 import { LoginDto } from '../dto/login.dto';
@@ -274,7 +275,7 @@ export class AuthService {
       },
     });
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = CommunicationConfig.getFrontendUrl();
     console.info(`[STUB] Password Reset Link: ${frontendUrl}/reset-password?token=${token}`);
 
     this.eventBus.emit(CommunicationEventType.PASSWORD_RESET, {
@@ -338,7 +339,8 @@ export class AuthService {
       },
     });
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = CommunicationConfig.getFrontendUrl();
+    const loginUrl = `${frontendUrl}/login`;
     this.eventBus.emit(CommunicationEventType.PASSWORD_CHANGED, {
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,

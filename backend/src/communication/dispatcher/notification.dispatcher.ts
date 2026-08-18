@@ -228,7 +228,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         // ────────────────────────────────────────────────────────
         case CommunicationEventType.FINANCIAL_CLOSURE:
           await this.communicationService.sendEmail({
-            to: { roleName: 'General Manager' }, // notify executives of closure
+            to: { roleName: ['Senior Manager', 'General Manager'] }, // notify executives of closure
             subject: `Financial Closure Completed: #${payload.indentNumber}`,
             templateName: 'financial_closure',
             templateContext: {
@@ -237,6 +237,67 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
               actualTotal: payload.actualTotal,
               varianceAmount: payload.varianceAmount,
               variancePercentage: payload.variancePercentage,
+              transactionUrl: payload.transactionUrl,
+            },
+            correlationId: payload.correlationId,
+          });
+          break;
+
+        case CommunicationEventType.ACCOUNTS_COST_VERIFICATION:
+          await this.communicationService.sendEmail({
+            to: { departmentCode: 'ACCOUNTS', roleName: ['Senior Manager', 'General Manager'] },
+            subject: `Accounts Cost Verification Underway: #${payload.indentNumber}`,
+            templateName: 'cost_verification',
+            templateContext: {
+              indentNumber: payload.indentNumber,
+              productName: payload.productName,
+              requestedBy: payload.requestedBy,
+              transactionUrl: payload.transactionUrl,
+            },
+            correlationId: payload.correlationId,
+          });
+          break;
+
+        case CommunicationEventType.ACTUAL_COST_UPDATED:
+          await this.communicationService.sendEmail({
+            to: { departmentCode: 'ACCOUNTS', roleName: ['Senior Manager', 'General Manager'] },
+            subject: `Actual Cost Updated: #${payload.indentNumber}`,
+            templateName: 'actual_cost_updated',
+            templateContext: {
+              indentNumber: payload.indentNumber,
+              productName: payload.productName,
+              plannedTotal: payload.plannedTotal,
+              actualTotal: payload.actualTotal,
+              varianceAmount: payload.varianceAmount,
+              variancePercentage: payload.variancePercentage,
+              transactionUrl: payload.transactionUrl,
+            },
+            correlationId: payload.correlationId,
+          });
+          break;
+
+        case CommunicationEventType.TRANSACTION_ARCHIVED:
+          await this.communicationService.sendEmail({
+            to: { roleName: ['Senior Manager', 'General Manager'] },
+            subject: `Business Transaction Archived: #${payload.indentNumber}`,
+            templateName: 'transaction_archived',
+            templateContext: {
+              indentNumber: payload.indentNumber,
+              productName: payload.productName,
+              transactionUrl: payload.transactionUrl,
+            },
+            correlationId: payload.correlationId,
+          });
+          break;
+
+        case CommunicationEventType.TRANSACTION_COMPLETED:
+          await this.communicationService.sendEmail({
+            to: { roleName: ['Senior Manager', 'General Manager'] },
+            subject: `Business Transaction Completed: #${payload.indentNumber}`,
+            templateName: 'transaction_completed',
+            templateContext: {
+              indentNumber: payload.indentNumber,
+              productName: payload.productName,
               transactionUrl: payload.transactionUrl,
             },
             correlationId: payload.correlationId,
