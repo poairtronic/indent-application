@@ -26,8 +26,8 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
         let responseData = data;
 
         if (data && typeof data === 'object' && 'message' in data && 'data' in data) {
-          message = data.message;
-          responseData = data.data;
+          message = String((data as any).message);
+          responseData = (data as any).data;
         }
 
         return {

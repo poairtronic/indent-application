@@ -48,7 +48,8 @@ async function testCases() {
   await runTest('5. Valid JPG', validJpg, '.jpg', true);
 
   // 6. Valid PNG (Needs to be a minimum viable PNG with IHDR chunk for file-type)
-  const validPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+  const validPngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
   const validPng = Buffer.from(validPngBase64, 'base64');
   await runTest('6. Valid PNG', validPng, '.png', true);
 
