@@ -496,10 +496,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({
             remarks: initialData.customerName
               ? initialData.remarks || ''
               : parsedIndentRemarks.userRemarks || initialData.remarks || '',
-            items:
-              initialData.items?.map((item, index) => {
+            items: (() => {
+              const availableProcessCosts = [...(initialData.costSheet?.processCosts || [])];
+              return initialData.items?.map((item) => {
                 const parsed = parseItemRemarks(item.remarks);
-                const itemProcessCosts = parsedIndentRemarks.itemProcessCosts?.[index] || [];
 
                 return {
                   product: parsed.product ?? '',
@@ -514,21 +514,38 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   processes:
                     item.indentProcesses?.map((ip: any, pIdx: number) => {
                       const pId = ip.processId || ip.process?.id;
-                      const savedCost =
-                        itemProcessCosts.find((ipc) => ipc.processId === pId)?.predictedCost || 0;
+                      
+                      let savedCost = 0;
+                      let savedActualCost = ip.actualCost ? Number(ip.actualCost) : undefined;
+                      let savedActualHours = ip.actualHours ? Number(ip.actualHours) : undefined;
+                      
+                      const costIndex = availableProcessCosts.findIndex(pc => pc.processId === pId);
+                      if (costIndex !== -1) {
+                        const matchedPc = availableProcessCosts[costIndex];
+                        savedCost = Number(matchedPc.predictedCost) || 0;
+                        if (matchedPc.actualCost !== undefined && matchedPc.actualCost !== null) {
+                           savedActualCost = Number(matchedPc.actualCost);
+                        }
+                        if (matchedPc.actualHours !== undefined && matchedPc.actualHours !== null) {
+                           savedActualHours = Number(matchedPc.actualHours);
+                        }
+                        availableProcessCosts.splice(costIndex, 1);
+                      }
+
                       return {
                         processId: pId,
                         processName: ip.process?.processName || '',
                         estimatedHours: Number(ip.estimatedHours || 0),
                         predictedCost: savedCost,
-                        actualCost: ip.actualCost ? Number(ip.actualCost) : undefined,
-                        actualHours: ip.actualHours ? Number(ip.actualHours) : undefined,
+                        actualCost: savedActualCost,
+                        actualHours: savedActualHours,
                         vendorType: parsed.processSources?.[pIdx] || '',
                         productionSource: parsed.processProductionSources?.[pIdx] || '',
                       };
                     }) || [],
                 };
-              }) || [],
+              }) || [];
+            })(),
           },
           costSheet: {
             predictedTotal: initialData.costSheet?.predictedTotal || 0,

@@ -47,6 +47,7 @@ export interface DepartmentAnalytics {
 
 export interface CostAnalytics {
   totalPlannedCost: number;
+  totalFinalizedPlannedCost: number;
   totalActualCost: number;
   totalVarianceAmount: number;
   averageVariancePercentage: number;
