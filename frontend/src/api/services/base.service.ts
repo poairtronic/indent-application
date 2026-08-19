@@ -96,7 +96,23 @@ export class BaseService {
     params?: ListQueryParams,
     config?: AxiosRequestConfig,
   ): Promise<PaginatedData<T>> {
-    return this.get<PaginatedData<T>>(this.basePath, params, config);
+    // The backend returns { data: T[], meta: { total, page, limit, totalPages } }
+    // but the frontend expects { items: T[], total, page, limit, totalPages }
+    const result = await this.get<any>(this.basePath, params, config);
+    if (result && Array.isArray(result.data) && result.meta) {
+      return {
+        items: result.data,
+        total: result.meta.total,
+        page: result.meta.page,
+        limit: result.meta.limit,
+        totalPages: result.meta.totalPages,
+      };
+    }
+    // Fallback if the backend already matches PaginatedData or it's an array directly
+    if (Array.isArray(result)) {
+      return { items: result, total: result.length, page: 1, limit: result.length, totalPages: 1 };
+    }
+    return result as PaginatedData<T>;
   }
 
   async create<T>(data: unknown, config?: AxiosRequestConfig): Promise<T> {
