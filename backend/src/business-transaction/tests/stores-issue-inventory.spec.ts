@@ -25,6 +25,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
     status: 'PENDING_STORES',
     departmentId: 'dept-stores',
     remarks: 'Existing notes',
+    attachments: [],
     indentItems: [
       {
         id: 'item-1',
@@ -99,6 +100,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
 
     service = module.get<BusinessTransactionService>(BusinessTransactionService);
     jest.spyOn(service, 'findTransactionById').mockResolvedValue(sampleIndent as any);
+    jest.spyOn(service, 'findTransactionForResponse').mockResolvedValue(sampleIndent as any);
     mockPrisma.indent.findUnique.mockResolvedValue(sampleIndent as any);
   });
 

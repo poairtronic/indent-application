@@ -1139,16 +1139,19 @@ export class ReportsService {
         },
       };
     } else {
+      // SQL-side counts instead of fetching full relation arrays for .length
       const products = await this.prisma.product.findMany({
         where,
         include: {
-          productMaterials: { where: { isDeleted: false } },
-          manufacturingProcesses: { where: { isDeleted: false } },
-          indents: {
-            where: {
-              isDeleted: false,
-              status: {
-                notIn: ['COMPLETED', 'CANCELLED', 'REJECTED'] as any,
+          _count: {
+            select: {
+              productMaterials: { where: { isDeleted: false } },
+              manufacturingProcesses: { where: { isDeleted: false } },
+              indents: {
+                where: {
+                  isDeleted: false,
+                  status: { notIn: ['COMPLETED', 'CANCELLED', 'REJECTED'] as any },
+                },
               },
             },
           },
@@ -1162,9 +1165,9 @@ export class ReportsService {
         drawingNumber: p.drawingNumber,
         revision: p.revision,
         status: p.status,
-        materialCount: p.productMaterials.length,
-        processCount: p.manufacturingProcesses.length,
-        activeIndentCount: p.indents.length,
+        materialCount: p._count.productMaterials,
+        processCount: p._count.manufacturingProcesses,
+        activeIndentCount: p._count.indents,
         createdAt: p.createdAt,
       }));
 
@@ -1200,106 +1203,73 @@ export class ReportsService {
     this.checkReportAccess(user, 'workflow-bottleneck');
     const { page = 1, limit = 10, sortBy, sortOrder = 'asc', search, dateFrom, dateTo } = query;
 
-    const [stages, indents] = await Promise.all([
+    // SQL-side: use window functions to compute transition durations per stage
+    // This replaces the unpaginated findMany + all-JS forEach/for/reduce pattern
+    const dateFilter = dateFrom || dateTo
+      ? Prisma.sql`AND i."createdAt" >= ${dateFrom ? new Date(dateFrom) : new Date('1970-01-01')} AND i."createdAt" <= ${dateTo ? new Date(dateTo) : new Date()}`
+      : Prisma.empty;
+    const searchFilter = search
+      ? Prisma.sql`AND i."indentNumber" ILIKE ${`%${search}%`}`
+      : Prisma.empty;
+
+    const [stages, durationStats, activeCounts] = await Promise.all([
       this.prisma.workflowStage.findMany({
         where: { isDeleted: false },
         orderBy: { sequence: 'asc' },
       }),
-      this.prisma.indent.findMany({
-        where: {
-          isDeleted: false,
-          ...(dateFrom || dateTo
-            ? {
-                createdAt: {
-                  ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-                  ...(dateTo ? { lte: new Date(dateTo) } : {}),
-                },
-              }
-            : {}),
-          ...(search
-            ? {
-                indentNumber: { contains: search, mode: 'insensitive' },
-              }
-            : {}),
-        },
-        select: {
-          id: true,
-          currentStageId: true,
-          workflowHistory: {
-            where: { isDeleted: false },
-            orderBy: { movedAt: 'asc' },
-            select: {
-              stageId: true,
-              movedAt: true,
-            },
-          },
-        },
-      }),
+      // Window function: LEAD computes next movedAt per indent, then GROUP BY stageId
+      this.prisma.$queryRaw<
+        { stageId: string; passedCount: number; averageDurationHours: number; maxDurationHours: number }[]
+      >`
+        SELECT
+          wh_inner."stageId",
+          COUNT(*)::int AS "passedCount",
+          ROUND(AVG(wh_inner.duration_hours)::numeric, 2)::float AS "averageDurationHours",
+          ROUND(MAX(wh_inner.duration_hours)::numeric, 2)::float AS "maxDurationHours"
+        FROM (
+          SELECT
+            wh."stageId",
+            EXTRACT(EPOCH FROM (
+              COALESCE(wh."nextMovedAt", NOW()) - wh."movedAt"
+            )) / 3600 AS duration_hours
+          FROM (
+            SELECT
+              "stageId",
+              "indentId",
+              "movedAt",
+              LEAD("movedAt") OVER (PARTITION BY "indentId" ORDER BY "movedAt") AS "nextMovedAt"
+            FROM "workflow_history"
+            WHERE "isDeleted" = false
+          ) wh
+          INNER JOIN "indents" i ON i."id" = wh."indentId" AND i."isDeleted" = false
+          WHERE wh."stageId" IS NOT NULL ${dateFilter} ${searchFilter}
+        ) wh_inner
+        GROUP BY wh_inner."stageId"
+      `,
+      // Active indent counts per current stage (separate lightweight query)
+      this.prisma.$queryRaw<
+        { stageId: string; activeCount: number }[]
+      >`
+        SELECT "currentStageId" AS "stageId", COUNT(*)::int AS "activeCount"
+        FROM "indents"
+        WHERE "isDeleted" = false AND "currentStageId" IS NOT NULL ${dateFilter} ${searchFilter}
+        GROUP BY "currentStageId"
+      `,
     ]);
 
-    // In-memory calculations of stage transitions
-    const stageStatsMap = new Map<
-      string,
-      {
-        stageName: string;
-        durations: number[]; // in hours
-        activeCount: number;
-        passedCount: number;
-      }
-    >();
-
-    stages.forEach((s: any) => {
-      stageStatsMap.set(s.id, {
-        stageName: s.stageName,
-        durations: [],
-        activeCount: 0,
-        passedCount: 0,
-      });
-    });
-
-    indents.forEach((indent: any) => {
-      const history = indent.workflowHistory;
-      if (history.length === 0) return;
-
-      for (let i = 0; i < history.length; i++) {
-        const current = history[i];
-        const next = history[i + 1];
-
-        if (!current.stageId) continue;
-        const stats = stageStatsMap.get(current.stageId);
-        if (!stats) continue;
-
-        stats.passedCount++;
-
-        const start = new Date(current.movedAt).getTime();
-        const end = next ? new Date(next.movedAt).getTime() : Date.now();
-        const durationHours = (end - start) / (1000 * 60 * 60);
-
-        stats.durations.push(durationHours);
-      }
-
-      if (indent.currentStageId) {
-        const activeStats = stageStatsMap.get(indent.currentStageId);
-        if (activeStats) {
-          activeStats.activeCount++;
-        }
-      }
-    });
+    // Build lookup maps for merging
+    const durationMap = new Map(durationStats.map((r) => [r.stageId, r]));
+    const activeMap = new Map(activeCounts.map((r) => [r.stageId, r.activeCount]));
 
     const allReportItems: WorkflowBottleneckReportItem[] = stages.map((s: any) => {
-      const stats = stageStatsMap.get(s.id)!;
-      const totalDurations = stats.durations.reduce((sum: number, d: number) => sum + d, 0);
-      const averageDuration =
-        stats.durations.length > 0 ? totalDurations / stats.durations.length : 0;
-      const maxDuration = stats.durations.length > 0 ? Math.max(...stats.durations) : 0;
-
+      const ds = durationMap.get(s.id);
       return {
         stageId: s.id,
         stageName: s.stageName,
-        totalTransactionsPassed: stats.passedCount,
-        averageDurationHours: Math.round(averageDuration * 100) / 100,
-        maxDurationHours: Math.round(maxDuration * 100) / 100,
-        activeTransactionsCount: stats.activeCount,
+        totalTransactionsPassed: ds?.passedCount ?? 0,
+        averageDurationHours: ds?.averageDurationHours ?? 0,
+        maxDurationHours: ds?.maxDurationHours ?? 0,
+        activeTransactionsCount: activeMap.get(s.id) ?? 0,
       };
     });
 

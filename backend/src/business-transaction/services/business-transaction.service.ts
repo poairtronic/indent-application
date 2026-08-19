@@ -338,8 +338,8 @@ export class BusinessTransactionService {
     const indent = await this.prisma.indent.findUnique({
       where: { id },
       include: {
-        product: true,
-        department: true,
+        product: { select: { productName: true } },
+        department: { select: { departmentName: true } },
         creator: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
@@ -367,6 +367,7 @@ export class BusinessTransactionService {
         },
         workflowHistory: {
           orderBy: { movedAt: 'desc' },
+          take: 20,
           include: {
             mover: { select: { id: true, firstName: true, lastName: true } },
             toDepartment: true,
@@ -927,7 +928,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateMetadataCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -987,7 +988,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1066,7 +1067,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1175,7 +1176,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1268,7 +1269,7 @@ export class BusinessTransactionService {
     }
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1336,7 +1337,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1379,7 +1380,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1413,7 +1414,7 @@ export class BusinessTransactionService {
     });
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1459,7 +1460,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1526,7 +1527,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   // =========================================================================
@@ -1589,7 +1590,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateWorkflowCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1761,7 +1762,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateCostCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1852,7 +1853,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateCostCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1915,7 +1916,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateAllCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -1968,7 +1969,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateAllCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -2021,7 +2022,7 @@ export class BusinessTransactionService {
     );
 
     await this.invalidateAllCache();
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -2050,7 +2051,7 @@ export class BusinessTransactionService {
       addedAttachment: dto.fileName,
     });
 
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -2093,7 +2094,7 @@ export class BusinessTransactionService {
       null,
     );
 
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -2269,7 +2270,7 @@ export class BusinessTransactionService {
       this.logger.error(`Failed to send attachment upload notification: ${notifErr.message}`);
     }
 
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -2427,7 +2428,7 @@ export class BusinessTransactionService {
       this.logger.error(`Failed to send document delete notification: ${notifErr.message}`);
     }
 
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 
   /**
@@ -2903,6 +2904,6 @@ export class BusinessTransactionService {
       this.logger.error(`Failed to send document replace notification: ${notifErr.message}`);
     }
 
-    return this.findTransactionById(id);
+    return this.findTransactionForResponse(id);
   }
 }
