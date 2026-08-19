@@ -89,9 +89,11 @@ export interface IDepartmentAnalytics {
 export interface ICostAnalytics {
   /** Total planned (predicted) cost across all cost sheets */
   totalPlannedCost: number;
+  /** Total planned cost for finalized cost sheets only */
+  totalFinalizedPlannedCost: number;
   /** Total actual cost across finalized cost sheets */
   totalActualCost: number;
-  /** Total variance amount (actual - planned) */
+  /** Total variance amount (actual - planned) for finalized cost sheets */
   totalVarianceAmount: number;
   /** Average variance percentage across finalized sheets */
   averageVariancePercentage: number;

@@ -26,10 +26,17 @@ const mockPrisma = {
   },
   costSheet: {
     findMany: jest.fn(),
+    aggregate: jest.fn(),
+    groupBy: jest.fn(),
   },
   costItem: {
     findMany: jest.fn(),
+    groupBy: jest.fn(),
   },
+  vendor: {
+    findMany: jest.fn(),
+  },
+  $queryRaw: jest.fn(),
 };
 
 describe('AnalyticsService', () => {
@@ -41,7 +48,7 @@ describe('AnalyticsService', () => {
     }).compile();
 
     service = module.get<AnalyticsService>(AnalyticsService);
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   // ─────────────────────────────────────────────
@@ -96,32 +103,14 @@ describe('AnalyticsService', () => {
 
   describe('getWorkflowAnalytics()', () => {
     beforeEach(() => {
-      // First findMany call: all non-deleted indents for domain state counting (uses currentState)
-      // Second findMany call: completed indents for cycle time calculation
-      // Third findMany call: active indents for stalled check
+      // groupBy call: domain state counting
+      mockPrisma.indent.groupBy.mockResolvedValue([
+        { currentState: 'DRAFT', _count: { id: 4 } },
+        { currentState: 'DESIGN_COMPLETED', _count: { id: 6 } },
+        { currentState: 'COMPLETED', _count: { id: 10 } },
+      ]);
+      // findMany calls: completed indents + active indents for stalled check
       mockPrisma.indent.findMany
-        .mockResolvedValueOnce([
-          { currentState: 'DRAFT' },
-          { currentState: 'DRAFT' },
-          { currentState: 'DRAFT' },
-          { currentState: 'DRAFT' },
-          { currentState: 'DESIGN_COMPLETED' },
-          { currentState: 'DESIGN_COMPLETED' },
-          { currentState: 'DESIGN_COMPLETED' },
-          { currentState: 'DESIGN_COMPLETED' },
-          { currentState: 'DESIGN_COMPLETED' },
-          { currentState: 'DESIGN_COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-          { currentState: 'COMPLETED' },
-        ])
         .mockResolvedValueOnce([
           {
             createdAt: new Date('2025-01-01'),
@@ -173,11 +162,12 @@ describe('AnalyticsService', () => {
     });
 
     it('should return null averageCycleDays when no completed indents exist', async () => {
+      mockPrisma.indent.groupBy.mockResolvedValue([]);
       mockPrisma.indent.findMany
         .mockReset()
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
+      mockPrisma.indent.count.mockResolvedValue(0);
       const result = await service.getWorkflowAnalytics();
       expect(result.averageCycleDays).toBeNull();
     });
@@ -204,11 +194,11 @@ describe('AnalyticsService', () => {
         { id: dept1Id, departmentCode: 'DESIGN', departmentName: 'Design' },
         { id: dept2Id, departmentCode: 'STORES', departmentName: 'Stores' },
       ]);
-      mockPrisma.indent.findMany.mockResolvedValue([
-        { departmentId: dept1Id, status: 'DRAFT' },
-        { departmentId: dept1Id, status: 'SUBMITTED' },
-        { departmentId: dept1Id, status: 'COMPLETED' },
-        { departmentId: dept2Id, status: 'PENDING_STORES' },
+      mockPrisma.indent.groupBy.mockResolvedValue([
+        { departmentId: dept1Id, status: 'DRAFT', _count: { id: 1 } },
+        { departmentId: dept1Id, status: 'SUBMITTED', _count: { id: 1 } },
+        { departmentId: dept1Id, status: 'COMPLETED', _count: { id: 1 } },
+        { departmentId: dept2Id, status: 'PENDING_STORES', _count: { id: 1 } },
       ]);
     });
 
@@ -226,7 +216,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should return all departments even if they have 0 transactions', async () => {
-      mockPrisma.indent.findMany.mockResolvedValue([]);
+      mockPrisma.indent.groupBy.mockResolvedValue([]);
       const result = await service.getDepartmentAnalytics();
       expect(result.departments).toHaveLength(2);
       expect(result.departments[0].totalTransactions).toBe(0);
@@ -239,24 +229,22 @@ describe('AnalyticsService', () => {
 
   describe('getCostAnalytics()', () => {
     beforeEach(() => {
-      mockPrisma.costSheet.findMany.mockResolvedValue([
-        {
-          id: 'cs-1',
-          status: 'FINALIZED',
-          predictedTotal: '10000.00',
-          actualTotal: '10500.00',
-          varianceAmount: '500.00',
-          variancePercentage: '5.00',
+      mockPrisma.costSheet.aggregate.mockResolvedValue({
+        _sum: {
+          predictedTotal: BigInt(18000),
+          actualTotal: BigInt(10500),
+          varianceAmount: BigInt(500),
         },
-        {
-          id: 'cs-2',
-          status: 'DRAFT',
-          predictedTotal: '8000.00',
-          actualTotal: null,
-          varianceAmount: null,
-          variancePercentage: null,
-        },
-      ]);
+        _count: { id: 2 },
+      });
+      mockPrisma.costSheet.groupBy
+        .mockResolvedValueOnce([
+          { status: 'FINALIZED', _count: { id: 1 } },
+          { status: 'DRAFT', _count: { id: 1 } },
+        ])
+        .mockResolvedValueOnce([
+          { status: 'FINALIZED', _count: { id: 1 } },
+        ]);
     });
 
     it('should aggregate planned costs correctly', async () => {
@@ -281,16 +269,14 @@ describe('AnalyticsService', () => {
     });
 
     it('should return zero avgVariance when no sheets have actuals', async () => {
-      mockPrisma.costSheet.findMany.mockResolvedValue([
-        {
-          id: 'cs-1',
-          status: 'DRAFT',
-          predictedTotal: '5000.00',
-          actualTotal: null,
-          varianceAmount: null,
-          variancePercentage: null,
-        },
-      ]);
+      mockPrisma.costSheet.aggregate.mockResolvedValue({
+        _sum: { predictedTotal: BigInt(5000), actualTotal: null, varianceAmount: null },
+        _count: { id: 1 },
+      });
+      mockPrisma.costSheet.groupBy
+        .mockReset()
+        .mockResolvedValueOnce([{ status: 'DRAFT', _count: { id: 1 } }])
+        .mockResolvedValueOnce([]);
       const result = await service.getCostAnalytics();
       expect(result.averageVariancePercentage).toBe(0);
     });
@@ -299,7 +285,7 @@ describe('AnalyticsService', () => {
       const from = new Date('2025-01-01');
       const to = new Date('2025-12-31');
       await service.getCostAnalytics(from, to);
-      expect(mockPrisma.costSheet.findMany).toHaveBeenCalledWith(
+      expect(mockPrisma.costSheet.aggregate).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             createdAt: { gte: from, lte: to },
@@ -315,21 +301,26 @@ describe('AnalyticsService', () => {
 
   describe('getProductAnalytics()', () => {
     beforeEach(() => {
-      mockPrisma.indent.findMany.mockResolvedValue([
+      mockPrisma.$queryRaw.mockResolvedValue([
         {
           productId: 'p-1',
-          product: { id: 'p-1', productCode: 'P001', productName: 'Product A' },
-          costSheet: { predictedTotal: '5000', actualTotal: '5200', status: 'FINALIZED' },
-        },
-        {
-          productId: 'p-1',
-          product: { id: 'p-1', productCode: 'P001', productName: 'Product A' },
-          costSheet: { predictedTotal: '6000', actualTotal: null, status: 'DRAFT' },
+          productCode: 'P001',
+          productName: 'Product A',
+          indentCount: 2,
+          averagePlannedCost: 5500,
+          averageActualCost: 5200,
+          highestPlannedCost: 6000,
+          lowestPlannedCost: 5000,
         },
         {
           productId: 'p-2',
-          product: { id: 'p-2', productCode: 'P002', productName: 'Product B' },
-          costSheet: { predictedTotal: '3000', actualTotal: '2800', status: 'FINALIZED' },
+          productCode: 'P002',
+          productName: 'Product B',
+          indentCount: 1,
+          averagePlannedCost: 3000,
+          averageActualCost: 2800,
+          highestPlannedCost: 3000,
+          lowestPlannedCost: 3000,
         },
       ]);
     });
@@ -352,14 +343,24 @@ describe('AnalyticsService', () => {
     });
 
     it('should respect limit parameter', async () => {
+      mockPrisma.$queryRaw.mockResolvedValue([
+        {
+          productId: 'p-1',
+          productCode: 'P001',
+          productName: 'Product A',
+          indentCount: 2,
+          averagePlannedCost: 5500,
+          averageActualCost: 5200,
+          highestPlannedCost: 6000,
+          lowestPlannedCost: 5000,
+        },
+      ]);
       const result = await service.getProductAnalytics(1);
       expect(result.products.length).toBeLessThanOrEqual(1);
     });
 
     it('should handle indents with no product gracefully', async () => {
-      mockPrisma.indent.findMany.mockResolvedValue([
-        { productId: 'p-1', product: null, costSheet: null },
-      ]);
+      mockPrisma.$queryRaw.mockResolvedValue([]);
       const result = await service.getProductAnalytics();
       expect(result.products).toHaveLength(0);
     });
@@ -371,25 +372,21 @@ describe('AnalyticsService', () => {
 
   describe('getVendorAnalytics()', () => {
     beforeEach(() => {
-      mockPrisma.costItem.findMany.mockResolvedValue([
+      mockPrisma.costItem.groupBy.mockResolvedValue([
         {
           vendorId: 'v-1',
-          predictedAmount: '10000',
-          actualAmount: '10200',
-          vendor: { id: 'v-1', vendorCode: 'V001', vendorName: 'Vendor Alpha' },
-        },
-        {
-          vendorId: 'v-1',
-          predictedAmount: '5000',
-          actualAmount: null,
-          vendor: { id: 'v-1', vendorCode: 'V001', vendorName: 'Vendor Alpha' },
+          _sum: { predictedAmount: BigInt(15000), actualAmount: BigInt(10200) },
+          _count: { id: 2 },
         },
         {
           vendorId: 'v-2',
-          predictedAmount: '8000',
-          actualAmount: '7900',
-          vendor: { id: 'v-2', vendorCode: 'V002', vendorName: 'Vendor Beta' },
+          _sum: { predictedAmount: BigInt(8000), actualAmount: BigInt(7900) },
+          _count: { id: 1 },
         },
+      ]);
+      mockPrisma.vendor.findMany.mockResolvedValue([
+        { id: 'v-1', vendorCode: 'V001', vendorName: 'Vendor Alpha' },
+        { id: 'v-2', vendorCode: 'V002', vendorName: 'Vendor Beta' },
       ]);
     });
 
@@ -407,7 +404,6 @@ describe('AnalyticsService', () => {
 
     it('should compute variance for vendors with actuals', async () => {
       const result = await service.getVendorAnalytics();
-      // Alpha: actual = 10200, predicted = 15000, variance = 10200 - 15000 = -4800
       const alpha = result.vendors.find((v) => v.vendorCode === 'V001');
       expect(alpha?.totalActualAmount).toBe(10200);
     });
@@ -425,7 +421,8 @@ describe('AnalyticsService', () => {
     });
 
     it('should return empty when no cost items exist', async () => {
-      mockPrisma.costItem.findMany.mockResolvedValue([]);
+      mockPrisma.costItem.groupBy.mockResolvedValue([]);
+      mockPrisma.vendor.findMany.mockResolvedValue([]);
       const result = await service.getVendorAnalytics();
       expect(result.vendors).toHaveLength(0);
       expect(result.highestUsageVendor).toBeNull();

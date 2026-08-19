@@ -140,12 +140,12 @@ export class AnalyticsService {
   public async getWorkflowAnalytics(): Promise<IWorkflowAnalytics> {
     this.logger.log('Computing workflow analytics');
 
-    const [allIndents, completedIndents, total, activeIndents] = await Promise.all([
-      // Fetch all non-deleted indents to compute domain-state-level distribution.
-      // Uses currentState column for direct domain WorkflowState grouping.
-      this.prisma.indent.findMany({
+    const [stateCounts, completedIndents, total, activeIndents] = await Promise.all([
+      // SQL-side groupBy: returns ~5-10 rows instead of thousands of indent objects
+      this.prisma.indent.groupBy({
+        by: ['currentState'],
         where: { isDeleted: false },
-        select: { currentState: true },
+        _count: { id: true },
       }),
       // Completed indents with timestamps for cycle time calculation
       this.prisma.indent.findMany({
@@ -187,11 +187,11 @@ export class AnalyticsService {
       }
     }
 
-    // Group by domain WorkflowState using currentState column directly
+    // Build domain state counts directly from SQL groupBy result
     const domainStateCounts = new Map<string, number>();
-    for (const indent of allIndents) {
-      const domainState = indent.currentState || 'DRAFT';
-      domainStateCounts.set(domainState, (domainStateCounts.get(domainState) ?? 0) + 1);
+    for (const row of stateCounts) {
+      const domainState = row.currentState || 'DRAFT';
+      domainStateCounts.set(domainState, row._count.id);
     }
 
     // Stage distribution with percentages — one entry per domain WorkflowState
@@ -249,34 +249,35 @@ export class AnalyticsService {
   public async getDepartmentAnalytics(): Promise<IDepartmentAnalytics> {
     this.logger.log('Computing department analytics');
 
-    const [departments, indents] = await Promise.all([
+    // SQL-side: group indents by departmentId + status in one query
+    const [departments, deptStatusCounts] = await Promise.all([
       this.prisma.department.findMany({
         where: { isDeleted: false, status: 'ACTIVE' },
         select: { id: true, departmentCode: true, departmentName: true },
       }),
-      this.prisma.indent.findMany({
+      this.prisma.indent.groupBy({
+        by: ['departmentId', 'status'],
         where: { isDeleted: false },
-        select: { departmentId: true, status: true },
+        _count: { id: true },
       }),
     ]);
 
-    // Build department stat map
+    // Build a map: departmentId → { total, pending, completed }
     const deptMap = new Map<string, { total: number; pending: number; completed: number }>();
-
-    departments.forEach((dept) => {
+    for (const dept of departments) {
       deptMap.set(dept.id, { total: 0, pending: 0, completed: 0 });
-    });
+    }
 
-    indents.forEach((indent) => {
-      const stats = deptMap.get(indent.departmentId);
-      if (!stats) return;
-      stats.total++;
-      if (indent.status === IndentStatus.COMPLETED) {
-        stats.completed++;
-      } else if (PENDING_STATUSES.includes(indent.status as IndentStatus)) {
-        stats.pending++;
+    for (const row of deptStatusCounts) {
+      const stats = deptMap.get(row.departmentId);
+      if (!stats) continue;
+      stats.total += row._count.id;
+      if (row.status === IndentStatus.COMPLETED) {
+        stats.completed += row._count.id;
+      } else if (PENDING_STATUSES.includes(row.status as IndentStatus)) {
+        stats.pending += row._count.id;
       }
-    });
+    }
 
     const departmentWorkloads: IDepartmentWorkload[] = departments.map((dept) => {
       const stats = deptMap.get(dept.id) ?? { total: 0, pending: 0, completed: 0 };
@@ -316,57 +317,45 @@ export class AnalyticsService {
     this.logger.log('Computing cost analytics');
 
     const dateFilter = this.buildDateFilter(from, to);
+    const where = { isDeleted: false, ...dateFilter };
 
-    const costSheets = await this.prisma.costSheet.findMany({
-      where: {
-        isDeleted: false,
-        ...dateFilter,
-      },
-      select: {
-        id: true,
-        status: true,
-        predictedTotal: true,
-        actualTotal: true,
-        varianceAmount: true,
-        variancePercentage: true,
-      },
-    });
+    // SQL-side aggregation: 3 parallel queries instead of findMany + JS reduce
+    const [totals, conditional, statusCounts] = await Promise.all([
+      this.prisma.costSheet.aggregate({
+        where,
+        _sum: { predictedTotal: true, actualTotal: true, varianceAmount: true },
+        _count: { id: true },
+      }),
+      this.prisma.costSheet.aggregate({
+        where: { ...where, actualTotal: { not: null } },
+        _sum: { variancePercentage: true },
+        _count: { id: true },
+      }),
+      this.prisma.costSheet.groupBy({
+        by: ['status'],
+        where,
+        _count: { id: true },
+      }),
+    ]);
 
-    let totalPlanned = 0;
-    let totalActual = 0;
-    let totalVariance = 0;
-    let variancePercentageSum = 0;
-    let sheetsWithActuals = 0;
-    let finalizedCount = 0;
-    let draftCount = 0;
-
-    for (const sheet of costSheets) {
-      totalPlanned += Number(sheet.predictedTotal ?? 0);
-
-      if (sheet.actualTotal !== null) {
-        totalActual += Number(sheet.actualTotal);
-        sheetsWithActuals++;
-      }
-      if (sheet.varianceAmount !== null) {
-        totalVariance += Number(sheet.varianceAmount);
-      }
-      if (sheet.variancePercentage !== null) {
-        variancePercentageSum += Number(sheet.variancePercentage);
-      }
-      if (sheet.status === 'FINALIZED') {
-        finalizedCount++;
-      } else if (sheet.status === 'DRAFT') {
-        draftCount++;
-      }
-    }
-
+    const totalPlanned = Number(totals._sum.predictedTotal ?? 0);
+    const totalActual = Number(totals._sum.actualTotal ?? 0);
+    const totalVariance = Number(totals._sum.varianceAmount ?? 0);
+    const totalFinalizedPlanned = totalActual - totalVariance;
+    const sheetsWithActuals = conditional._count.id;
+    const variancePercentageSum = Number(conditional._sum.variancePercentage ?? 0);
     const averageVariancePercentage =
       sheetsWithActuals > 0
         ? Math.round((variancePercentageSum / sheetsWithActuals) * 100) / 100
         : 0;
 
+    const statusMap = new Map(statusCounts.map((r) => [r.status, r._count.id]));
+    const finalizedCount = statusMap.get('FINALIZED') ?? 0;
+    const draftCount = statusMap.get('DRAFT') ?? 0;
+
     return {
       totalPlannedCost: Math.round(totalPlanned * 100) / 100,
+      totalFinalizedPlannedCost: Math.round(totalFinalizedPlanned * 100) / 100,
       totalActualCost: Math.round(totalActual * 100) / 100,
       totalVarianceAmount: Math.round(totalVariance * 100) / 100,
       averageVariancePercentage,
@@ -389,93 +378,48 @@ export class AnalyticsService {
   public async getProductAnalytics(limit = 50): Promise<IProductAnalytics> {
     this.logger.log('Computing product analytics');
 
-    const indents = await this.prisma.indent.findMany({
-      where: { isDeleted: false },
-      select: {
-        productId: true,
-        product: {
-          select: {
-            id: true,
-            productCode: true,
-            productName: true,
-          },
-        },
-        costSheet: {
-          select: {
-            predictedTotal: true,
-            actualTotal: true,
-            status: true,
-          },
-        },
-      },
-    });
-
-    // Aggregate per product
-    const productMap = new Map<
-      string,
+    // Single SQL query: JOIN indents + products + costSheets, GROUP BY productId
+    const rows = await this.prisma.$queryRaw<
       {
+        productId: string;
         productCode: string;
         productName: string;
         indentCount: number;
-        plannedCosts: number[];
-        actualCosts: number[];
-      }
-    >();
+        averagePlannedCost: number | null;
+        averageActualCost: number | null;
+        highestPlannedCost: number | null;
+        lowestPlannedCost: number | null;
+      }[]
+    >`
+      SELECT
+        i."productId",
+        p."productCode",
+        p."productName",
+        COUNT(i."id")::int AS "indentCount",
+        AVG(cs."predictedTotal")::float AS "averagePlannedCost",
+        AVG(cs."actualTotal")::float   AS "averageActualCost",
+        MAX(cs."predictedTotal")::float AS "highestPlannedCost",
+        MIN(cs."predictedTotal")::float AS "lowestPlannedCost"
+      FROM "indents" i
+      JOIN "products" p ON p."id" = i."productId" AND p."isDeleted" = false
+      LEFT JOIN "cost_sheets" cs ON cs."indentId" = i."id" AND cs."isDeleted" = false
+      WHERE i."isDeleted" = false
+      GROUP BY i."productId", p."productCode", p."productName"
+      ORDER BY "indentCount" DESC
+      LIMIT ${limit}
+    `;
 
-    for (const indent of indents) {
-      if (!indent.product) continue;
-      const pid = indent.productId;
-
-      if (!productMap.has(pid)) {
-        productMap.set(pid, {
-          productCode: indent.product.productCode,
-          productName: indent.product.productName,
-          indentCount: 0,
-          plannedCosts: [],
-          actualCosts: [],
-        });
-      }
-
-      const stats = productMap.get(pid)!;
-      stats.indentCount++;
-
-      if (indent.costSheet) {
-        if (indent.costSheet.predictedTotal !== null) {
-          stats.plannedCosts.push(Number(indent.costSheet.predictedTotal));
-        }
-        if (indent.costSheet.actualTotal !== null) {
-          stats.actualCosts.push(Number(indent.costSheet.actualTotal));
-        }
-      }
-    }
-
-    // Build output, sorted by indentCount desc, limited
-    const products: IProductStat[] = [...productMap.entries()]
-      .map(([productId, stats]) => {
-        const avgPlanned =
-          stats.plannedCosts.length > 0
-            ? stats.plannedCosts.reduce((a, b) => a + b, 0) / stats.plannedCosts.length
-            : 0;
-        const avgActual =
-          stats.actualCosts.length > 0
-            ? stats.actualCosts.reduce((a, b) => a + b, 0) / stats.actualCosts.length
-            : null;
-        const highestPlanned = stats.plannedCosts.length > 0 ? Math.max(...stats.plannedCosts) : 0;
-        const lowestPlanned = stats.plannedCosts.length > 0 ? Math.min(...stats.plannedCosts) : 0;
-
-        return {
-          productId,
-          productCode: stats.productCode,
-          productName: stats.productName,
-          indentCount: stats.indentCount,
-          averagePlannedCost: Math.round(avgPlanned * 100) / 100,
-          averageActualCost: avgActual !== null ? Math.round(avgActual * 100) / 100 : null,
-          highestPlannedCost: Math.round(highestPlanned * 100) / 100,
-          lowestPlannedCost: Math.round(lowestPlanned * 100) / 100,
-        };
-      })
-      .sort((a, b) => b.indentCount - a.indentCount)
-      .slice(0, limit);
+    // Build output with rounding
+    const products: IProductStat[] = rows.map((r) => ({
+      productId: r.productId,
+      productCode: r.productCode,
+      productName: r.productName,
+      indentCount: r.indentCount,
+      averagePlannedCost: r.averagePlannedCost !== null ? Math.round(r.averagePlannedCost * 100) / 100 : 0,
+      averageActualCost: r.averageActualCost !== null ? Math.round(r.averageActualCost * 100) / 100 : null,
+      highestPlannedCost: r.highestPlannedCost !== null ? Math.round(r.highestPlannedCost * 100) / 100 : 0,
+      lowestPlannedCost: r.lowestPlannedCost !== null ? Math.round(r.lowestPlannedCost * 100) / 100 : 0,
+    }));
 
     const mostProduced = products[0]?.productName ?? null;
     const highestCost =
@@ -507,92 +451,53 @@ export class AnalyticsService {
   public async getVendorAnalytics(limit = 50): Promise<IVendorAnalytics> {
     this.logger.log('Computing vendor analytics');
 
-    const costItems = await this.prisma.costItem.findMany({
-      where: {
-        isDeleted: false,
-        vendorId: { not: null },
-      },
-      select: {
-        vendorId: true,
-        predictedAmount: true,
-        actualAmount: true,
-        vendor: {
-          select: {
-            id: true,
-            vendorCode: true,
-            vendorName: true,
-          },
-        },
-      },
+    // SQL-side: group cost items by vendorId with sums
+    const vendorAggregates = await this.prisma.costItem.groupBy({
+      by: ['vendorId'],
+      where: { isDeleted: false, vendorId: { not: null } },
+      _sum: { predictedAmount: true, actualAmount: true },
+      _count: { id: true },
     });
 
-    // Aggregate per vendor
-    const vendorMap = new Map<
-      string,
-      {
-        vendorCode: string;
-        vendorName: string;
-        totalCostItems: number;
-        totalPredicted: number;
-        totalActual: number | null;
-        hasActuals: boolean;
-      }
-    >();
+    // Batch-fetch vendor names for the vendorIds present in aggregates
+    const vendorIds = vendorAggregates.map((r) => r.vendorId!);
+    const vendors = vendorIds.length
+      ? await this.prisma.vendor.findMany({
+          where: { id: { in: vendorIds }, isDeleted: false },
+          select: { id: true, vendorCode: true, vendorName: true },
+        })
+      : [];
+    const vendorLookup = new Map(vendors.map((v) => [v.id, v]));
 
-    for (const item of costItems) {
-      if (!item.vendorId || !item.vendor) continue;
-      const vid = item.vendorId;
-
-      if (!vendorMap.has(vid)) {
-        vendorMap.set(vid, {
-          vendorCode: item.vendor.vendorCode,
-          vendorName: item.vendor.vendorName,
-          totalCostItems: 0,
-          totalPredicted: 0,
-          totalActual: null,
-          hasActuals: false,
-        });
-      }
-
-      const stats = vendorMap.get(vid)!;
-      stats.totalCostItems++;
-      stats.totalPredicted += Number(item.predictedAmount ?? 0);
-
-      if (item.actualAmount !== null) {
-        stats.totalActual = (stats.totalActual ?? 0) + Number(item.actualAmount);
-        stats.hasActuals = true;
-      }
-    }
-
-    const vendors: IVendorStat[] = [...vendorMap.entries()]
-      .map(([vendorId, stats]) => {
-        const variance =
-          stats.hasActuals && stats.totalActual !== null
-            ? stats.totalActual - stats.totalPredicted
-            : null;
+    const vendorStats: IVendorStat[] = vendorAggregates
+      .map((row) => {
+        const vendor = vendorLookup.get(row.vendorId!);
+        if (!vendor) return null;
+        const totalPredicted = Number(row._sum.predictedAmount ?? 0);
+        const totalActual = row._sum.actualAmount !== null ? Number(row._sum.actualAmount) : null;
+        const variance = totalActual !== null ? totalActual - totalPredicted : null;
         const variancePct =
-          variance !== null && stats.totalPredicted > 0
-            ? Math.round((variance / stats.totalPredicted) * 10000) / 100
+          variance !== null && totalPredicted > 0
+            ? Math.round((variance / totalPredicted) * 10000) / 100
             : null;
 
         return {
-          vendorId,
-          vendorCode: stats.vendorCode,
-          vendorName: stats.vendorName,
-          totalCostItems: stats.totalCostItems,
-          totalPredictedAmount: Math.round(stats.totalPredicted * 100) / 100,
-          totalActualAmount:
-            stats.totalActual !== null ? Math.round(stats.totalActual * 100) / 100 : null,
+          vendorId: row.vendorId!,
+          vendorCode: vendor.vendorCode,
+          vendorName: vendor.vendorName,
+          totalCostItems: row._count.id,
+          totalPredictedAmount: Math.round(totalPredicted * 100) / 100,
+          totalActualAmount: totalActual !== null ? Math.round(totalActual * 100) / 100 : null,
           totalVariance: variance !== null ? Math.round(variance * 100) / 100 : null,
           variancePercentage: variancePct,
         };
       })
+      .filter((v): v is IVendorStat => v !== null)
       .sort((a, b) => b.totalPredictedAmount - a.totalPredictedAmount)
       .slice(0, limit);
 
-    const highestUsage = vendors[0]?.vendorName ?? null;
-    // Best performer = lowest absolute variance %
-    const vendorsWithVariance = vendors.filter((v) => v.variancePercentage !== null);
+    const highestUsage = vendorStats[0]?.vendorName ?? null;
+    const vendorsWithVariance = vendorStats.filter((v) => v.variancePercentage !== null);
     const bestPerformer =
       vendorsWithVariance.length > 0
         ? vendorsWithVariance.reduce((best, v) =>
@@ -601,7 +506,7 @@ export class AnalyticsService {
         : null;
 
     return {
-      vendors,
+      vendors: vendorStats,
       highestUsageVendor: highestUsage,
       bestPerformingVendor: bestPerformer,
       generatedAt: new Date(),

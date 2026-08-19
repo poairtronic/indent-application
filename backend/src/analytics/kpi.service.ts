@@ -244,10 +244,14 @@ export class KpiService {
       const actualPrev = Number(costPrev._sum.actualTotal ?? 0);
       const varianceCurrent = Number(costCurrent._sum.varianceAmount ?? 0);
       const variancePrev = Number(costPrev._sum.varianceAmount ?? 0);
+      
+      const plannedFinalizedCurrent = actualCurrent - varianceCurrent;
+      const plannedFinalizedPrev = actualPrev - variancePrev;
+
       const avgPlannedCurrent = Number(costCurrent._avg.predictedTotal ?? 0);
       const avgActualCurrent = Number(costCurrent._avg.actualTotal ?? 0);
-      const variancePctCurrent = plannedCurrent > 0 ? (varianceCurrent / plannedCurrent) * 100 : 0;
-      const variancePctPrev = plannedPrev > 0 ? (variancePrev / plannedPrev) * 100 : 0;
+      const variancePctCurrent = plannedFinalizedCurrent > 0 ? (varianceCurrent / plannedFinalizedCurrent) * 100 : 0;
+      const variancePctPrev = plannedFinalizedPrev > 0 ? (variancePrev / plannedFinalizedPrev) * 100 : 0;
 
       const matCostCurrent = Number(
         materialCostCurrent._sum.actualAmount ?? materialCostCurrent._sum.predictedAmount ?? 0,
