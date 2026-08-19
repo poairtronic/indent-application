@@ -20,12 +20,16 @@ import { ProcessResponseDto } from './dto/process-response.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Cache } from '../redis-cache/decorators/cache.decorator';
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 @ApiTags('Manufacturing Processes')
 @ApiBearerAuth()
 @Controller('manufacturing-processes')
 export class ProcessesController {
-  constructor(private readonly processesService: ProcessesService) {}
+  constructor(
+    private readonly processesService: ProcessesService,
+    private readonly cacheService: RedisCacheService,
+  ) {}
 
   @Post()
   @Permissions('manufacturing-processes.create')
@@ -42,7 +46,9 @@ export class ProcessesController {
     @Body() dto: CreateProcessDto,
     @CurrentUser() user: any,
   ): Promise<ProcessResponseDto> {
-    return this.processesService.createProcess(dto, user?.id);
+    const process = await this.processesService.createProcess(dto, user?.id);
+    await this.cacheService.invalidateByPattern('master:processes:*');
+    return process;
   }
 
   @Get()
@@ -84,7 +90,9 @@ export class ProcessesController {
     @Body() dto: UpdateProcessDto,
     @CurrentUser() user: any,
   ): Promise<ProcessResponseDto> {
-    return this.processesService.updateProcess(id, dto, user?.id);
+    const process = await this.processesService.updateProcess(id, dto, user?.id);
+    await this.cacheService.invalidateByPattern('master:processes:*');
+    return process;
   }
 
   @Delete(':id')
@@ -98,7 +106,9 @@ export class ProcessesController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ): Promise<{ message: string }> {
-    return this.processesService.softDeleteProcess(id, user?.id);
+    const result = await this.processesService.softDeleteProcess(id, user?.id);
+    await this.cacheService.invalidateByPattern('master:processes:*');
+    return result;
   }
 
   @Patch(':id/restore')
@@ -115,6 +125,8 @@ export class ProcessesController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ): Promise<ProcessResponseDto> {
-    return this.processesService.restoreProcess(id, user?.id);
+    const process = await this.processesService.restoreProcess(id, user?.id);
+    await this.cacheService.invalidateByPattern('master:processes:*');
+    return process;
   }
 }
