@@ -15,9 +15,14 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
+
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: RedisCacheService,
+  ) {}
 
   @Get()
   @Permissions('products.view')
@@ -47,22 +52,26 @@ export class ProductsController {
   @Post()
   @Permissions('products.create')
   async create(@Body() createProductDto: CreateProductDto) {
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         ...createProductDto,
         status: createProductDto.status || 'ACTIVE',
       },
     });
+    await this.cacheService.invalidateByPattern('master:products:*');
+    return product;
   }
 
   @Put(':id')
   @Permissions('products.update')
   async update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     try {
-      return await this.prisma.product.update({
+      const product = await this.prisma.product.update({
         where: { id },
         data: updateProductDto,
       });
+      await this.cacheService.invalidateByPattern('master:products:*');
+      return product;
     } catch {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
@@ -72,13 +81,15 @@ export class ProductsController {
   @Permissions('products.delete')
   async remove(@Param('id') id: string) {
     try {
-      return await this.prisma.product.update({
+      const product = await this.prisma.product.update({
         where: { id },
         data: {
           isDeleted: true,
           deletedAt: new Date(),
         },
       });
+      await this.cacheService.invalidateByPattern('master:products:*');
+      return product;
     } catch {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }

@@ -15,9 +15,14 @@ import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CreateMaterialDto, UpdateMaterialDto } from './dto/material.dto';
 
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
+
 @Controller('materials')
 export class MaterialsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: RedisCacheService,
+  ) {}
 
   @Get()
   @Permissions('materials.view')
@@ -51,7 +56,7 @@ export class MaterialsController {
     const { minStock, maxStock, ...rest } = createMaterialDto;
     const minimumStock = minStock ? minStock.toString() : '0';
     const maximumStock = maxStock ? maxStock.toString() : '0';
-    return this.prisma.material.create({
+    const material = await this.prisma.material.create({
       data: {
         ...rest,
         minimumStock,
@@ -61,6 +66,8 @@ export class MaterialsController {
         status: createMaterialDto.status || 'ACTIVE',
       },
     });
+    await this.cacheService.invalidateByPattern('master:materials:*');
+    return material;
   }
 
   @Put(':id')
@@ -77,10 +84,12 @@ export class MaterialsController {
     }
 
     try {
-      return await this.prisma.material.update({
+      const material = await this.prisma.material.update({
         where: { id },
         data,
       });
+      await this.cacheService.invalidateByPattern('master:materials:*');
+      return material;
     } catch {
       throw new NotFoundException(`Material with ID ${id} not found`);
     }
@@ -90,13 +99,15 @@ export class MaterialsController {
   @Permissions('materials.delete')
   async remove(@Param('id') id: string) {
     try {
-      return await this.prisma.material.update({
+      const material = await this.prisma.material.update({
         where: { id },
         data: {
           isDeleted: true,
           deletedAt: new Date(),
         },
       });
+      await this.cacheService.invalidateByPattern('master:materials:*');
+      return material;
     } catch {
       throw new NotFoundException(`Material with ID ${id} not found`);
     }
