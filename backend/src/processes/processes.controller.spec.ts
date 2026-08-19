@@ -3,6 +3,7 @@ import { ProcessesController } from './processes.controller';
 import { ProcessesService } from './processes.service';
 import { ProcessStatus } from '@prisma/client';
 import { Reflector } from '@nestjs/core';
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 describe('ProcessesController', () => {
   let controller: ProcessesController;
@@ -40,7 +41,19 @@ describe('ProcessesController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProcessesController],
-      providers: [{ provide: ProcessesService, useValue: serviceMock }, Reflector],
+      providers: [
+        { provide: ProcessesService, useValue: serviceMock },
+        {
+          provide: RedisCacheService,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn().mockResolvedValue(undefined),
+            invalidateByPattern: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        Reflector,
+      ],
     }).compile();
 
     controller = module.get<ProcessesController>(ProcessesController);

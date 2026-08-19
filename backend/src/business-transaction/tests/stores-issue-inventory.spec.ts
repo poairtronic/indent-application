@@ -22,9 +22,10 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
     id: 'indent-123',
     indentNumber: 'IND-2026-0001',
     currentState: WorkflowState.STORES_PROCESSING,
+    status: 'PENDING_STORES',
     departmentId: 'dept-stores',
     remarks: 'Existing notes',
-    items: [
+    indentItems: [
       {
         id: 'item-1',
         materialId: 'mat-1',
@@ -68,6 +69,9 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
 
     mockWorkflowStateMachine = {
       validateTransition: jest.fn().mockReturnValue({ isValid: true, errors: [] }),
+      getStageDefinition: jest
+        .fn()
+        .mockReturnValue({ loop: 'MANUFACTURING_LOOP', allowedNextStates: [] }),
     };
 
     mockEventService = {
@@ -95,6 +99,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
 
     service = module.get<BusinessTransactionService>(BusinessTransactionService);
     jest.spyOn(service, 'findTransactionById').mockResolvedValue(sampleIndent as any);
+    mockPrisma.indent.findUnique.mockResolvedValue(sampleIndent as any);
   });
 
   describe('storesIssueMaterials', () => {
@@ -261,14 +266,14 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
     it('should reject single item issue if item is already ISSUED', async () => {
       const indentWithIssuedItem = {
         ...sampleIndent,
-        items: [
+        indentItems: [
           {
-            ...sampleIndent.items[0],
+            ...sampleIndent.indentItems[0],
             status: 'ISSUED',
           },
         ],
       };
-      (service.findTransactionById as jest.Mock).mockResolvedValue(indentWithIssuedItem);
+      (mockPrisma.indent.findUnique as jest.Mock).mockResolvedValue(indentWithIssuedItem);
 
       await expect(
         service.issueSingleMaterialItem('indent-123', 'item-1', 'user-1'),

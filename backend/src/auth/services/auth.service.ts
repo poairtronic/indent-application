@@ -80,7 +80,7 @@ export class AuthService {
       throw new UnauthorizedException('Your account is inactive');
     }
 
-    await this.accountSecurityService.checkAccountLocked(user.id);
+    await this.accountSecurityService.checkAccountLocked(user.id, user);
 
     const isPasswordValid = await this.passwordService.compare(loginDto.password, user.password);
 
@@ -103,32 +103,32 @@ export class AuthService {
     const accessToken = await this.tokenService.generateAccessToken(user.id, user.email);
     const refreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);
 
-    await this.tokenService.saveRefreshToken(user.id, refreshToken);
-
     const hashedToken = this.tokenService.hashToken(refreshToken);
-    await this.sessionService.createSession({
-      userId: user.id,
-      sessionToken: hashedToken,
-      refreshToken: hashedToken,
-      ipAddress: deviceInfo?.ipAddress || 'unknown',
-      browser: deviceInfo?.browser || 'unknown',
-      operatingSystem: deviceInfo?.operatingSystem || 'unknown',
-      device: deviceInfo?.device || 'unknown',
-    });
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() },
-    });
-
-    await this.loginHistoryService.recordLogin({
-      userId: user.id,
-      ipAddress: deviceInfo?.ipAddress || 'unknown',
-      browser: deviceInfo?.browser || 'unknown',
-      operatingSystem: deviceInfo?.operatingSystem || 'unknown',
-      device: deviceInfo?.device || 'unknown',
-      success: true,
-    });
+    await Promise.all([
+      this.tokenService.saveRefreshToken(user.id, refreshToken),
+      this.sessionService.createSession({
+        userId: user.id,
+        sessionToken: hashedToken,
+        refreshToken: hashedToken,
+        ipAddress: deviceInfo?.ipAddress || 'unknown',
+        browser: deviceInfo?.browser || 'unknown',
+        operatingSystem: deviceInfo?.operatingSystem || 'unknown',
+        device: deviceInfo?.device || 'unknown',
+      }),
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() },
+      }),
+      this.loginHistoryService.recordLogin({
+        userId: user.id,
+        ipAddress: deviceInfo?.ipAddress || 'unknown',
+        browser: deviceInfo?.browser || 'unknown',
+        operatingSystem: deviceInfo?.operatingSystem || 'unknown',
+        device: deviceInfo?.device || 'unknown',
+        success: true,
+      }),
+    ]);
 
     return {
       accessToken,

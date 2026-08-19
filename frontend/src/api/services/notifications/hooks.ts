@@ -43,7 +43,7 @@ export function useUnreadNotificationCount() {
     queryKey: queryKeys.notifications.detail('notifications', 'unread'),
     queryFn: () => notificationService.getUnreadCount(),
     staleTime: 30000,
-    refetchInterval: 60000,
+    refetchInterval: 150000,
     retry: false,
   });
 }

@@ -133,7 +133,10 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('accessToken', 'access_token');
       expect(result).toHaveProperty('refreshToken', 'refresh_token');
       expect(result.user.email).toEqual(mockUser.email);
-      expect(mockAccountSecurityService.checkAccountLocked).toHaveBeenCalledWith(mockUser.id);
+      expect(mockAccountSecurityService.checkAccountLocked).toHaveBeenCalledWith(
+        mockUser.id,
+        mockUser,
+      );
       expect(mockAccountSecurityService.resetFailedAttempts).toHaveBeenCalledWith(mockUser.id);
       expect(mockSessionService.createSession).toHaveBeenCalledWith({
         userId: mockUser.id,

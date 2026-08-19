@@ -60,7 +60,8 @@ export function useUpdateRolePermissions() {
   return useMutation({
     mutationFn: ({ id, permissionIds }: { id: string; permissionIds: string[] }) =>
       roleService.updatePermissions(id, permissionIds),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.roles.detail('roles', variables.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.roles.list('roles') });
     },
   });

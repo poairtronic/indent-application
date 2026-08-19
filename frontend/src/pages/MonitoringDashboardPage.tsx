@@ -124,7 +124,7 @@ export const MonitoringDashboardPage: React.FC = () => {
   }>({
     queryKey: ['monitoringMetrics'],
     queryFn: () => get<any>('/observability/metrics'),
-    refetchInterval: 5000, // automatic live refresh every 5 seconds
+    refetchInterval: 30000, // automatic live refresh every 30 seconds
   });
 
   const metrics = data?.data;

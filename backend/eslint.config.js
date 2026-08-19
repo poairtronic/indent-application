@@ -25,6 +25,8 @@ export default tseslint.config(
       'api-test.js',
       'get-observability-metrics.js',
       'test-db.js',
+      'e2e-workflow.js',
+      'test-products.js',
     ],
   },
   eslint.configs.recommended,

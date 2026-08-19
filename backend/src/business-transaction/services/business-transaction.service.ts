@@ -431,6 +431,91 @@ export class BusinessTransactionService {
   }
 
   /**
+   * Lightweight context fetch used by workflow transition methods for validation.
+   *
+   * Returns only the scalar fields plus the item/cost-sheet subsets that transitions
+   * actually read (currentState, remarks, departmentId, indentNumber, items, costSheet
+   * totals). The domain-state mapping is identical to findTransactionById so optimistic
+   * locking and transition validation behave exactly the same.
+   *
+   * The full relational graph remains served by findTransactionById, which is still used
+   * once at the end of each transition to build the API response.
+   */
+  private async getTransactionContext(id: string): Promise<any> {
+    const indent = await this.prisma.indent.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        indentNumber: true,
+        customerName: true,
+        layoutNumber: true,
+        departmentId: true,
+        priority: true,
+        status: true,
+        currentState: true,
+        requiredDate: true,
+        requiredDeliveryDate: true,
+        purpose: true,
+        remarks: true,
+        createdAt: true,
+        updatedAt: true,
+        indentItems: {
+          where: { isDeleted: false },
+          select: {
+            id: true,
+            materialId: true,
+            unitId: true,
+            quantity: true,
+            status: true,
+            remarks: true,
+            material: { select: { materialName: true } },
+          },
+        },
+        costSheet: {
+          select: {
+            id: true,
+            actualDesignCost: true,
+            actualOverheadCost: true,
+            actualContingencyCost: true,
+            predictedTotal: true,
+          },
+        },
+      },
+    });
+
+    if (!indent) {
+      throw new NotFoundException(`Business Transaction with ID '${id}' not found.`);
+    }
+
+    const domainState = WorkflowStateMapper.toDomain(indent.status, indent);
+    const stageDef = this.workflowStateMachine.getStageDefinition(domainState);
+
+    return {
+      id: indent.id,
+      indentNumber: indent.indentNumber,
+      customerName: indent.customerName,
+      layoutNumber: indent.layoutNumber,
+      departmentId: indent.departmentId,
+      priority: indent.priority,
+      currentState: domainState,
+      currentLoop: stageDef ? stageDef.loop : WorkflowLoop.MANUFACTURING_LOOP,
+      requiredDate: indent.requiredDate,
+      requiredDeliveryDate: indent.requiredDeliveryDate,
+      purpose: indent.purpose,
+      remarks: indent.remarks,
+      createdBy: null,
+      createdAt: indent.createdAt,
+      updatedAt: indent.updatedAt,
+      items: indent.indentItems,
+      attachments: [],
+      costSheet: indent.costSheet,
+      productionReceipt: null,
+      workflowHistory: [],
+      allowedNextStates: stageDef ? stageDef.allowedNextStates : [],
+    };
+  }
+
+  /**
    * List all Business Transactions with pagination and filters.
    *
    * Uses the currentState column for direct domain WorkflowState filtering,
@@ -529,7 +614,7 @@ export class BusinessTransactionService {
   ): Promise<any> {
     this.logger.log('--- updateDraftTransaction DTO received ---');
     this.logger.log(JSON.stringify(dto, null, 2));
-    const existing = await this.findTransactionById(id);
+    const existing = await this.getTransactionContext(id);
     const allowedStates = [
       WorkflowState.DRAFT,
       WorkflowState.PRODUCTION_PROCESSING,
@@ -742,7 +827,7 @@ export class BusinessTransactionService {
    * STAGE 1 SUBMIT: Design department submits transaction (DRAFT -> DESIGN_COMPLETED)
    */
   public async submitDesign(id: string, userId: string, remarks?: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.DESIGN_COMPLETED;
 
     // Validate transition
@@ -802,7 +887,7 @@ export class BusinessTransactionService {
    * STORES STOCK VERIFICATION: Checks material availability for Indent Items
    */
   public async storesVerifyStock(id: string, userId: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
 
     if (
       txData.currentState !== WorkflowState.DESIGN_COMPLETED &&
@@ -881,7 +966,7 @@ export class BusinessTransactionService {
    * STORES MATERIAL ISSUE: Issues raw materials to Production and subtracts stock (STORES_PROCESSING -> MATERIALS_ISSUED)
    */
   public async storesIssueMaterials(id: string, userId: string, dto: StoresIssueDto): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.MATERIALS_ISSUED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -991,7 +1076,7 @@ export class BusinessTransactionService {
    * If all items in the indent are marked ISSUED, automatically triggers full stage completion & notifications.
    */
   public async issueSingleMaterialItem(id: string, itemId: string, userId: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
 
     const item = txData.items.find((i: any) => i.id === itemId);
     if (!item) {
@@ -1087,7 +1172,7 @@ export class BusinessTransactionService {
     userId: string,
     remarks?: string,
   ): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.PRODUCTION_PROCESSING;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1151,7 +1236,7 @@ export class BusinessTransactionService {
    * PRODUCTION START WORK: Production starts manufacturing operations
    */
   public async productionStartWork(id: string, userId: string, remarks?: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     if (txData.currentState !== WorkflowState.PRODUCTION_PROCESSING) {
       throw new BadRequestException(
         `Production cannot start in state '${txData.currentState}'. Must be PRODUCTION_PROCESSING (materials received).`,
@@ -1198,7 +1283,7 @@ export class BusinessTransactionService {
     userId: string,
     dto: ProductionUpdateDto,
   ): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     if (txData.currentState !== WorkflowState.PRODUCTION_PROCESSING) {
       throw new BadRequestException(
         `Production status updates allowed only in state PRODUCTION_PROCESSING. Current state: ${txData.currentState}`,
@@ -1228,7 +1313,7 @@ export class BusinessTransactionService {
    * PRODUCTION COMPLETE WORK: Production completes manufacturing (PRODUCTION_PROCESSING -> PRODUCTION_COMPLETED)
    */
   public async productionCompleteWork(id: string, userId: string, remarks?: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.PRODUCTION_COMPLETED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1279,7 +1364,7 @@ export class BusinessTransactionService {
     userId: string,
     dto: CustomerDeliveryDto,
   ): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.CUSTOMER_DELIVERED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1349,7 +1434,7 @@ export class BusinessTransactionService {
     userId: string,
     remarks?: string,
   ): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.ACCOUNTS_COST_VERIFICATION;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1406,7 +1491,7 @@ export class BusinessTransactionService {
    * Transitions to ACTUAL_COST_UPDATED state.
    */
   public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.ACTUAL_COST_UPDATED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1580,7 +1665,7 @@ export class BusinessTransactionService {
     userId: string,
     dto: { costItemId: string; actualRate: number; actualQuantity: number; remarks?: string },
   ): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
 
     if (
       txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
@@ -1667,7 +1752,7 @@ export class BusinessTransactionService {
    * STAGE 4 FINANCIAL CLOSURE: Finalize cost sheet and close financial records (ACTUAL_COST_UPDATED -> ACCOUNTS_FINANCIAL_CLOSURE)
    */
   public async financialClosure(id: string, userId: string, dto: any): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1730,7 +1815,7 @@ export class BusinessTransactionService {
    * STAGE 5 ARCHIVE: System / Admin archives transaction (ACCOUNTS_FINANCIAL_CLOSURE -> ARCHIVED)
    */
   public async archiveTransaction(id: string, userId: string, remarks?: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.ARCHIVED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1783,7 +1868,7 @@ export class BusinessTransactionService {
    * STAGE 5 COMPLETE: Complete Business Transaction across both loops (ARCHIVED -> COMPLETED)
    */
   public async completeTransaction(id: string, userId: string, remarks?: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.COMPLETED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1836,7 +1921,7 @@ export class BusinessTransactionService {
    * Add drawing or document attachment to draft Indent Sheet
    */
   public async addAttachmentToIndent(id: string, dto: any, userId: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     if (txData.currentState !== WorkflowState.DRAFT) {
       throw new BadRequestException(
         `Cannot add attachments in state '${txData.currentState}'. Design fields are locked.`,
@@ -1869,7 +1954,7 @@ export class BusinessTransactionService {
     attachmentId: string,
     userId: string,
   ): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
     if (txData.currentState !== WorkflowState.DRAFT) {
       throw new BadRequestException(
         `Cannot remove attachments in state '${txData.currentState}'. Design fields are locked.`,
@@ -1913,7 +1998,7 @@ export class BusinessTransactionService {
     userId: string,
     remarks?: string,
   ): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -2084,7 +2169,7 @@ export class BusinessTransactionService {
    * Delete attachment (marks isDeleted = true and removes physical file)
    */
   public async deleteAttachment(id: string, attachmentId: string, userId: string): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
 
     const attachment = await this.prisma.indentAttachment.findUnique({
       where: { id: attachmentId },
@@ -2545,7 +2630,7 @@ export class BusinessTransactionService {
     userId: string,
     remarks?: string,
   ): Promise<any> {
-    const txData = await this.findTransactionById(id);
+    const txData = await this.getTransactionContext(id);
 
     const attachment = await this.prisma.indentAttachment.findUnique({
       where: { id: attachmentId },

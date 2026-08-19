@@ -8,10 +8,16 @@ const LOCK_DURATION_MINUTES = 30;
 export class AccountSecurityService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async checkAccountLocked(userId: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
+  async checkAccountLocked(
+    userId: string,
+    existingUser?: {
+      id: string;
+      isDeleted: boolean;
+      status: string;
+      lockedUntil: Date | null;
+    },
+  ): Promise<void> {
+    const user = existingUser ?? (await this.prisma.user.findUnique({ where: { id: userId } }));
 
     if (!user || user.isDeleted) return;
 

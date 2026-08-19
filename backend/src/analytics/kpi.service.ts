@@ -92,65 +92,69 @@ export class KpiService {
     const hasWorkflowAccess = isAdmin || isManager || deptCode === 'DSGN' || deptCode === 'STOR';
 
     // ── General & Manufacturing KPIs ──────────────────────────────
-    const [
-      indentsCurrent,
-      indentsPrev,
-      activeCurrent,
-      activePrev,
-      completedCurrent,
-      completedPrev,
-      inProductionCurrent,
-      inProductionPrev,
-    ] = await Promise.all([
-      this.prisma.indent.count({
-        where: { ...currentFilter, createdAt: { gte: currentFrom, lte: currentTo } },
-      }),
-      this.prisma.indent.count({
-        where: { ...prevFilter, createdAt: { gte: prevFrom, lte: prevTo } },
-      }),
-      this.prisma.indent.count({
-        where: {
-          ...currentFilter,
-          status: { in: ACTIVE_STATUSES },
-          createdAt: { gte: currentFrom, lte: currentTo },
-        },
-      }),
-      this.prisma.indent.count({
-        where: {
-          ...prevFilter,
-          status: { in: ACTIVE_STATUSES },
-          createdAt: { gte: prevFrom, lte: prevTo },
-        },
-      }),
-      this.prisma.indent.count({
-        where: {
-          ...currentFilter,
-          status: IndentStatus.COMPLETED,
-          updatedAt: { gte: currentFrom, lte: currentTo },
-        },
-      }),
-      this.prisma.indent.count({
-        where: {
-          ...prevFilter,
-          status: IndentStatus.COMPLETED,
-          updatedAt: { gte: prevFrom, lte: prevTo },
-        },
-      }),
-      this.prisma.indent.count({
-        where: {
-          ...currentFilter,
-          status: IndentStatus.IN_PRODUCTION,
-          createdAt: { gte: currentFrom, lte: currentTo },
-        },
-      }),
-      this.prisma.indent.count({
-        where: {
-          ...prevFilter,
-          status: IndentStatus.IN_PRODUCTION,
-          createdAt: { gte: prevFrom, lte: prevTo },
-        },
-      }),
-    ]);
+    // SQL-side aggregation: fetch per-status counts once and derive every
+    // stage/active/total KPI from the maps (replacing the previous
+    // 20 individual count() queries without changing any value).
+    // Note: the original active/completed/in-production counts overrode the
+    // status filter (they counted across ALL statuses), whereas
+    // total-indents and the workflow-stage KPIs honoured it. We reproduce
+    // that exactly by grouping WITHOUT the status filter and reading the
+    // relevant status(es) from the full per-status map.
+    const currentCountFilter = { ...currentFilter };
+    delete currentCountFilter.status;
+    const prevCountFilter = { ...prevFilter };
+    delete prevCountFilter.status;
+    const [currentByStatus, prevByStatus, completedCurrentByUpdated, completedPrevByUpdated] =
+      await Promise.all([
+        this.prisma.indent.groupBy({
+          by: ['status'],
+          where: { ...currentCountFilter, createdAt: { gte: currentFrom, lte: currentTo } },
+          _count: { id: true },
+        }),
+        this.prisma.indent.groupBy({
+          by: ['status'],
+          where: { ...prevCountFilter, createdAt: { gte: prevFrom, lte: prevTo } },
+          _count: { id: true },
+        }),
+        this.prisma.indent.groupBy({
+          by: ['status'],
+          where: { ...currentCountFilter, updatedAt: { gte: currentFrom, lte: currentTo } },
+          _count: { id: true },
+        }),
+        this.prisma.indent.groupBy({
+          by: ['status'],
+          where: { ...prevCountFilter, updatedAt: { gte: prevFrom, lte: prevTo } },
+          _count: { id: true },
+        }),
+      ]);
+
+    const toStatusMap = (rows: { status: IndentStatus; _count: { id: number } }[]) => {
+      const map = new Map<string, number>();
+      for (const row of rows) map.set(row.status, row._count.id);
+      return map;
+    };
+    const sumStatuses = (map: Map<string, number>, statuses: IndentStatus[]) =>
+      statuses.reduce((sum, s) => sum + (map.get(s) ?? 0), 0);
+    const totalCount = (map: Map<string, number>) =>
+      Array.from(map.values()).reduce((sum, c) => sum + c, 0);
+
+    const currentStatusCounts = toStatusMap(currentByStatus);
+    const prevStatusCounts = toStatusMap(prevByStatus);
+    const completedCurrentCounts = toStatusMap(completedCurrentByUpdated);
+    const completedPrevCounts = toStatusMap(completedPrevByUpdated);
+
+    // When a status filter is active, the original total-indents count
+    // respected it (only that status); otherwise it summed every status.
+    const indentsCurrent = status
+      ? (currentStatusCounts.get(status) ?? 0)
+      : totalCount(currentStatusCounts);
+    const indentsPrev = status ? (prevStatusCounts.get(status) ?? 0) : totalCount(prevStatusCounts);
+    const activeCurrent = sumStatuses(currentStatusCounts, ACTIVE_STATUSES);
+    const activePrev = sumStatuses(prevStatusCounts, ACTIVE_STATUSES);
+    const completedCurrent = completedCurrentCounts.get(IndentStatus.COMPLETED) ?? 0;
+    const completedPrev = completedPrevCounts.get(IndentStatus.COMPLETED) ?? 0;
+    const inProductionCurrent = currentStatusCounts.get(IndentStatus.IN_PRODUCTION) ?? 0;
+    const inProductionPrev = prevStatusCounts.get(IndentStatus.IN_PRODUCTION) ?? 0;
 
     kpis.push(
       this.buildKpi('total-indents', 'Total Indents', indentsCurrent, indentsPrev, 'count', true),
@@ -324,106 +328,22 @@ export class KpiService {
     }
 
     // ── Workflow Stage Distribution KPIs ──────────────────────────
+    // Reuses the per-status maps already fetched via SQL groupBy above
+    // (same filters/date windows), avoiding 12 additional count() queries.
     if (hasWorkflowAccess) {
-      const [
-        draftCountCurrent,
-        draftCountPrev,
-        designCountCurrent,
-        designCountPrev,
-        storesCountCurrent,
-        storesCountPrev,
-        productionCountCurrent,
-        productionCountPrev,
-        accountsCountCurrent,
-        accountsCountPrev,
-        archivedCountCurrent,
-        archivedCountPrev,
-      ] = await Promise.all([
-        this.prisma.indent.count({
-          where: {
-            ...currentFilter,
-            status: IndentStatus.DRAFT,
-            createdAt: { gte: currentFrom, lte: currentTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...prevFilter,
-            status: IndentStatus.DRAFT,
-            createdAt: { gte: prevFrom, lte: prevTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...currentFilter,
-            status: IndentStatus.SUBMITTED,
-            createdAt: { gte: currentFrom, lte: currentTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...prevFilter,
-            status: IndentStatus.SUBMITTED,
-            createdAt: { gte: prevFrom, lte: prevTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...currentFilter,
-            status: IndentStatus.PENDING_STORES,
-            createdAt: { gte: currentFrom, lte: currentTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...prevFilter,
-            status: IndentStatus.PENDING_STORES,
-            createdAt: { gte: prevFrom, lte: prevTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...currentFilter,
-            status: IndentStatus.IN_PRODUCTION,
-            createdAt: { gte: currentFrom, lte: currentTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...prevFilter,
-            status: IndentStatus.IN_PRODUCTION,
-            createdAt: { gte: prevFrom, lte: prevTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...currentFilter,
-            status: IndentStatus.PENDING_ACCOUNTS,
-            createdAt: { gte: currentFrom, lte: currentTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...prevFilter,
-            status: IndentStatus.PENDING_ACCOUNTS,
-            createdAt: { gte: prevFrom, lte: prevTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...currentFilter,
-            status: IndentStatus.PENDING_GENERAL_MANAGER,
-            createdAt: { gte: currentFrom, lte: currentTo },
-          },
-        }),
-        this.prisma.indent.count({
-          where: {
-            ...prevFilter,
-            status: IndentStatus.PENDING_GENERAL_MANAGER,
-            createdAt: { gte: prevFrom, lte: prevTo },
-          },
-        }),
-      ]);
+      const draftCountCurrent = currentStatusCounts.get(IndentStatus.DRAFT) ?? 0;
+      const draftCountPrev = prevStatusCounts.get(IndentStatus.DRAFT) ?? 0;
+      const designCountCurrent = currentStatusCounts.get(IndentStatus.SUBMITTED) ?? 0;
+      const designCountPrev = prevStatusCounts.get(IndentStatus.SUBMITTED) ?? 0;
+      const storesCountCurrent = currentStatusCounts.get(IndentStatus.PENDING_STORES) ?? 0;
+      const storesCountPrev = prevStatusCounts.get(IndentStatus.PENDING_STORES) ?? 0;
+      const productionCountCurrent = currentStatusCounts.get(IndentStatus.IN_PRODUCTION) ?? 0;
+      const productionCountPrev = prevStatusCounts.get(IndentStatus.IN_PRODUCTION) ?? 0;
+      const accountsCountCurrent = currentStatusCounts.get(IndentStatus.PENDING_ACCOUNTS) ?? 0;
+      const accountsCountPrev = prevStatusCounts.get(IndentStatus.PENDING_ACCOUNTS) ?? 0;
+      const archivedCountCurrent =
+        currentStatusCounts.get(IndentStatus.PENDING_GENERAL_MANAGER) ?? 0;
+      const archivedCountPrev = prevStatusCounts.get(IndentStatus.PENDING_GENERAL_MANAGER) ?? 0;
 
       kpis.push(
         this.buildKpi(
@@ -484,10 +404,13 @@ export class KpiService {
           isDeleted: false,
           createdAt: { gte: currentFrom, lte: currentTo },
         },
-        include: {
+        select: {
+          status: true,
+          createdAt: true,
           workflowHistory: {
             where: { isDeleted: false },
             orderBy: { movedAt: 'asc' },
+            select: { movedAt: true },
           },
         },
       });

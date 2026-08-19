@@ -616,8 +616,8 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     name: 'indent.items',
   });
 
-  const { data: unitsData } = useUnits({ page: 1, limit: 200 });
-  const { data: processesData } = useProcesses({ page: 1, limit: 200 });
+  const { data: unitsData } = useUnits({ page: 1, limit: 100 });
+  const { data: processesData } = useProcesses({ page: 1, limit: 100 });
 
   const units = unitsData?.items ?? [];
   const processes = processesData?.items ?? [];
