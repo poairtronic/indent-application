@@ -79,22 +79,10 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
     loop: WorkflowLoop.MANUFACTURING_LOOP,
     owningDepartmentCode: 'PRODUCTION',
     requiredPermissionCode: 'production.update',
-    allowedNextStates: [WorkflowState.CUSTOMER_DELIVERED],
-    isLoopBoundary: false,
-    isTerminalState: false,
-    description: 'Manufacturing completed and ready for customer delivery.',
-  },
-
-  [WorkflowState.CUSTOMER_DELIVERED]: {
-    state: WorkflowState.CUSTOMER_DELIVERED,
-    sequence: 7,
-    loop: WorkflowLoop.MANUFACTURING_LOOP,
-    owningDepartmentCode: 'PRODUCTION',
-    requiredPermissionCode: 'production.deliver',
     allowedNextStates: [WorkflowState.ACCOUNTS_COST_VERIFICATION],
-    isLoopBoundary: true, // Closes Loop 1 (Manufacturing)
+    isLoopBoundary: true,
     isTerminalState: false,
-    description: 'Finished product delivered to customer. Loop 1 (Manufacturing) closed.',
+    description: 'Manufacturing completed. Loop 1 (Manufacturing) closed.',
   },
 
   [WorkflowState.ACCOUNTS_COST_VERIFICATION]: {

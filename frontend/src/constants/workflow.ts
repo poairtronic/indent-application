@@ -11,7 +11,6 @@ export type WorkflowState =
   | 'MATERIALS_ISSUED'
   | 'PRODUCTION_PROCESSING'
   | 'PRODUCTION_COMPLETED'
-  | 'CUSTOMER_DELIVERED'
   | 'ACCOUNTS_COST_VERIFICATION'
   | 'ACTUAL_COST_UPDATED'
   | 'ACCOUNTS_FINANCIAL_CLOSURE'
@@ -106,26 +105,14 @@ export const WORKFLOW_STAGES: Record<WorkflowState, StageDefinition> = {
     loop: 'MANUFACTURING_LOOP',
     owningDepartmentCode: 'PRODUCTION',
     requiredPermissionCode: 'production.update',
-    allowedNextStates: ['CUSTOMER_DELIVERED'],
-    isLoopBoundary: false,
-    isTerminalState: false,
-    description: 'Manufacturing completed and ready for customer delivery.',
-    label: 'Production Completed',
-    shortLabel: 'Prod. Done',
-  },
-  CUSTOMER_DELIVERED: {
-    state: 'CUSTOMER_DELIVERED',
-    sequence: 7,
-    loop: 'MANUFACTURING_LOOP',
-    owningDepartmentCode: 'PRODUCTION',
-    requiredPermissionCode: 'production.deliver',
     allowedNextStates: ['ACCOUNTS_COST_VERIFICATION'],
     isLoopBoundary: true,
     isTerminalState: false,
-    description: 'Finished product delivered to customer. Loop 1 (Manufacturing) closed.',
-    label: 'Customer Delivered',
-    shortLabel: 'Delivered',
+    description: 'Manufacturing completed. Loop 1 (Manufacturing) closed.',
+    label: 'Production Completed',
+    shortLabel: 'Prod. Done',
   },
+
   ACCOUNTS_COST_VERIFICATION: {
     state: 'ACCOUNTS_COST_VERIFICATION',
     sequence: 8,
@@ -243,7 +230,6 @@ export function getWorkflowStateTone(
     MATERIALS_ISSUED: 'yellow',
     PRODUCTION_PROCESSING: 'yellow',
     PRODUCTION_COMPLETED: 'yellow',
-    CUSTOMER_DELIVERED: 'blue',
     ACCOUNTS_COST_VERIFICATION: 'yellow',
     ACTUAL_COST_UPDATED: 'yellow',
     ACCOUNTS_FINANCIAL_CLOSURE: 'blue',

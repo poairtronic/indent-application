@@ -26,7 +26,6 @@ const statusTone: Record<string, 'green' | 'yellow' | 'red' | 'blue' | 'gray'> =
   MATERIALS_ISSUED: 'yellow',
   PRODUCTION_PROCESSING: 'yellow',
   PRODUCTION_COMPLETED: 'yellow',
-  CUSTOMER_DELIVERED: 'blue',
   ACCOUNTS_COST_VERIFICATION: 'yellow',
   ACTUAL_COST_UPDATED: 'yellow',
   ACCOUNTS_FINANCIAL_CLOSURE: 'blue',
@@ -70,6 +69,11 @@ export const IndentList: React.FC<IndentListProps> = ({
           </div>
           <Badge tone={statusTone[item.currentState] ?? 'gray'}>
             {formatStatus(item.currentState)}
+            {item.currentState === 'STORES_PROCESSING' &&
+            item.totalItemsCount &&
+            item.totalItemsCount > 0
+              ? ` (${item.issuedItemsCount || 0}/${item.totalItemsCount} ISSUED)`
+              : ''}
           </Badge>
         </div>
         <div className="text-xs text-text-secondary mt-2 space-y-1">
@@ -195,6 +199,11 @@ export const IndentList: React.FC<IndentListProps> = ({
                         <td className="py-3.5 px-4">
                           <Badge tone={statusTone[item.currentState] ?? 'gray'}>
                             {formatStatus(item.currentState)}
+                            {item.currentState === 'STORES_PROCESSING' &&
+                            item.totalItemsCount &&
+                            item.totalItemsCount > 0
+                              ? ` (${item.issuedItemsCount || 0}/${item.totalItemsCount} ISSUED)`
+                              : ''}
                           </Badge>
                         </td>
                         <td className="py-3.5 px-4 text-text-secondary">

@@ -105,7 +105,6 @@ export const IndentDashboardPage: React.FC = () => {
                 { label: 'Materials Issued', value: 'MATERIALS_ISSUED' },
                 { label: 'Production Processing', value: 'PRODUCTION_PROCESSING' },
                 { label: 'Production Completed', value: 'PRODUCTION_COMPLETED' },
-                { label: 'Customer Delivered', value: 'CUSTOMER_DELIVERED' },
                 { label: 'Accounts Verification', value: 'ACCOUNTS_COST_VERIFICATION' },
                 { label: 'Actual Cost Updated', value: 'ACTUAL_COST_UPDATED' },
                 { label: 'Financial Closure', value: 'ACCOUNTS_FINANCIAL_CLOSURE' },

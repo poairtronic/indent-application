@@ -24,7 +24,8 @@ export class IndentProcessDto {
 
   @IsNumber()
   @Min(0)
-  estimatedHours: number;
+  @IsOptional()
+  estimatedHours?: number;
 }
 
 export class IndentItemDto {

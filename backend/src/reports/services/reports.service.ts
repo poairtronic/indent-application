@@ -1205,9 +1205,10 @@ export class ReportsService {
 
     // SQL-side: use window functions to compute transition durations per stage
     // This replaces the unpaginated findMany + all-JS forEach/for/reduce pattern
-    const dateFilter = dateFrom || dateTo
-      ? Prisma.sql`AND i."createdAt" >= ${dateFrom ? new Date(dateFrom) : new Date('1970-01-01')} AND i."createdAt" <= ${dateTo ? new Date(dateTo) : new Date()}`
-      : Prisma.empty;
+    const dateFilter =
+      dateFrom || dateTo
+        ? Prisma.sql`AND i."createdAt" >= ${dateFrom ? new Date(dateFrom) : new Date('1970-01-01')} AND i."createdAt" <= ${dateTo ? new Date(dateTo) : new Date()}`
+        : Prisma.empty;
     const searchFilter = search
       ? Prisma.sql`AND i."indentNumber" ILIKE ${`%${search}%`}`
       : Prisma.empty;
@@ -1219,7 +1220,12 @@ export class ReportsService {
       }),
       // Window function: LEAD computes next movedAt per indent, then GROUP BY stageId
       this.prisma.$queryRaw<
-        { stageId: string; passedCount: number; averageDurationHours: number; maxDurationHours: number }[]
+        {
+          stageId: string;
+          passedCount: number;
+          averageDurationHours: number;
+          maxDurationHours: number;
+        }[]
       >`
         SELECT
           wh_inner."stageId",
@@ -1247,9 +1253,7 @@ export class ReportsService {
         GROUP BY wh_inner."stageId"
       `,
       // Active indent counts per current stage (separate lightweight query)
-      this.prisma.$queryRaw<
-        { stageId: string; activeCount: number }[]
-      >`
+      this.prisma.$queryRaw<{ stageId: string; activeCount: number }[]>`
         SELECT "currentStageId" AS "stageId", COUNT(*)::int AS "activeCount"
         FROM "indents"
         WHERE "isDeleted" = false AND "currentStageId" IS NOT NULL ${dateFilter} ${searchFilter}

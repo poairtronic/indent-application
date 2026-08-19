@@ -26,6 +26,8 @@ export interface IndentData {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  issuedItemsCount?: number;
+  totalItemsCount?: number;
   // Detail relations
   items?: IndentItemData[];
   attachments?: IndentAttachmentData[];
@@ -98,7 +100,7 @@ export interface ProcessCostData {
   processId: string;
   process?: { id: string; processName: string };
   predictedCost: number;
-  estimatedHours: number;
+  estimatedHours?: number;
   actualCost?: number;
   actualHours?: number;
   variance?: number;
@@ -129,7 +131,7 @@ export interface CreateIndentPayload {
       processes?: Array<{
         processId: string;
         sequence: number;
-        estimatedHours: number;
+        estimatedHours?: number;
       }>;
     }>;
     attachments?: Array<{
@@ -151,7 +153,7 @@ export interface CreateIndentPayload {
     processCosts: Array<{
       processId: string;
       predictedCost: number;
-      estimatedHours: number;
+      estimatedHours?: number;
       vendorType?: string;
       vendorId?: string;
     }>;
@@ -173,7 +175,7 @@ export interface UpdateIndentPayload {
       processes?: Array<{
         processId: string;
         sequence: number;
-        estimatedHours: number;
+        estimatedHours?: number;
       }>;
     }>;
   };
@@ -190,7 +192,7 @@ export interface UpdateIndentPayload {
     processCosts?: Array<{
       processId: string;
       predictedCost: number;
-      estimatedHours: number;
+      estimatedHours?: number;
       vendorType?: string;
       vendorId?: string;
     }>;

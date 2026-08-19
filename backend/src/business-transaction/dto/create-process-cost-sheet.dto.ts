@@ -61,7 +61,8 @@ export class ProcessCostDto {
 
   @IsNumber()
   @Min(0)
-  estimatedHours: number;
+  @IsOptional()
+  estimatedHours?: number;
 
   @IsNumber()
   @IsOptional()

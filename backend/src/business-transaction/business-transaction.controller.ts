@@ -23,7 +23,7 @@ import {
   UpdateBusinessTransactionDto,
 } from './dto/create-business-transaction.dto';
 import { StoresIssueDto } from './dto/stores-issue.dto';
-import { ProductionUpdateDto, CustomerDeliveryDto } from './dto/production-update.dto';
+import { ProductionUpdateDto } from './dto/production-update.dto';
 import { ActualCostEntryDto, FinancialClosureDto } from './dto/actual-cost-entry.dto';
 import { QueryBusinessTransactionDto } from './dto/query-business-transaction.dto';
 import { CostSheetVisibilityInterceptor } from './interceptors/cost-sheet-visibility.interceptor';
@@ -179,26 +179,6 @@ export class BusinessTransactionController {
     @Request() req: any,
   ) {
     return this.businessTransactionService.productionCompleteWork(id, req.user.id, remarks);
-  }
-
-  @Post(':id/delivery')
-  @Permissions('production.deliver')
-  async customerDelivery(
-    @Param('id') id: string,
-    @Body() dto: CustomerDeliveryDto,
-    @Request() req: any,
-  ) {
-    return this.businessTransactionService.deliverToCustomer(id, req.user.id, dto);
-  }
-
-  @Post(':id/deliver-customer')
-  @Permissions('production.deliver')
-  async deliverCustomer(
-    @Param('id') id: string,
-    @Body() dto: CustomerDeliveryDto,
-    @Request() req: any,
-  ) {
-    return this.businessTransactionService.deliverToCustomer(id, req.user.id, dto);
   }
 
   // =========================================================================

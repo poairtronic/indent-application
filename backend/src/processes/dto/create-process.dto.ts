@@ -58,11 +58,12 @@ export class CreateProcessDto {
   @Min(PROCESS_SEQUENCE_MIN)
   sequence: number;
 
-  @ApiProperty({ example: 4.5, description: 'Estimated hours for the process' })
+  @ApiPropertyOptional({ example: 4.5, description: 'Estimated hours for the process' })
+  @IsOptional()
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: PROCESS_ESTIMATED_HOURS_DECIMALS })
   @Max(PROCESS_ESTIMATED_HOURS_MAX)
-  estimatedHours: number;
+  estimatedHours?: number;
 
   @ApiPropertyOptional({
     enum: ProcessStatus,

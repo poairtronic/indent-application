@@ -141,7 +141,11 @@ const indentSchema = z
                 z.object({
                   processId: z.string().uuid('Please select an existing process'),
                   predictedCost: z.number().min(0, 'Cost must be >= 0'),
-                  estimatedHours: z.number().min(0, 'Hours must be >= 0'),
+                  estimatedHours: z.coerce
+                    .number()
+                    .min(0, 'Hours must be >= 0')
+                    .optional()
+                    .or(z.nan()),
                   actualCost: z.number().min(0).optional(),
                   actualHours: z.number().min(0).optional(),
                   vendorType: z.string().optional(),
@@ -498,53 +502,60 @@ export const IndentForm: React.FC<IndentFormProps> = ({
               : parsedIndentRemarks.userRemarks || initialData.remarks || '',
             items: (() => {
               const availableProcessCosts = [...(initialData.costSheet?.processCosts || [])];
-              return initialData.items?.map((item) => {
-                const parsed = parseItemRemarks(item.remarks);
+              return (
+                initialData.items?.map((item) => {
+                  const parsed = parseItemRemarks(item.remarks);
 
-                return {
-                  product: parsed.product ?? '',
-                  materialName: item.material?.materialName ?? '',
-                  size: parsed.size ?? '',
-                  weight: parsed.weight ?? '',
-                  quantity: Number(item.quantity),
-                  unitId: item.unitId,
-                  source: parsed.source ?? '',
-                  productionSource: parsed.productionSource ?? '',
-                  remarks: parsed.userRemarks ?? '',
-                  processes:
-                    item.indentProcesses?.map((ip: any, pIdx: number) => {
-                      const pId = ip.processId || ip.process?.id;
-                      
-                      let savedCost = 0;
-                      let savedActualCost = ip.actualCost ? Number(ip.actualCost) : undefined;
-                      let savedActualHours = ip.actualHours ? Number(ip.actualHours) : undefined;
-                      
-                      const costIndex = availableProcessCosts.findIndex(pc => pc.processId === pId);
-                      if (costIndex !== -1) {
-                        const matchedPc = availableProcessCosts[costIndex];
-                        savedCost = Number(matchedPc.predictedCost) || 0;
-                        if (matchedPc.actualCost !== undefined && matchedPc.actualCost !== null) {
-                           savedActualCost = Number(matchedPc.actualCost);
-                        }
-                        if (matchedPc.actualHours !== undefined && matchedPc.actualHours !== null) {
-                           savedActualHours = Number(matchedPc.actualHours);
-                        }
-                        availableProcessCosts.splice(costIndex, 1);
-                      }
+                  return {
+                    product: parsed.product ?? '',
+                    materialName: item.material?.materialName ?? '',
+                    size: parsed.size ?? '',
+                    weight: parsed.weight ?? '',
+                    quantity: Number(item.quantity),
+                    unitId: item.unitId,
+                    source: parsed.source ?? '',
+                    productionSource: parsed.productionSource ?? '',
+                    remarks: parsed.userRemarks ?? '',
+                    processes:
+                      item.indentProcesses?.map((ip: any, pIdx: number) => {
+                        const pId = ip.processId || ip.process?.id;
 
-                      return {
-                        processId: pId,
-                        processName: ip.process?.processName || '',
-                        estimatedHours: Number(ip.estimatedHours || 0),
-                        predictedCost: savedCost,
-                        actualCost: savedActualCost,
-                        actualHours: savedActualHours,
-                        vendorType: parsed.processSources?.[pIdx] || '',
-                        productionSource: parsed.processProductionSources?.[pIdx] || '',
-                      };
-                    }) || [],
-                };
-              }) || [];
+                        let savedCost = 0;
+                        let savedActualCost = ip.actualCost ? Number(ip.actualCost) : undefined;
+                        let savedActualHours = ip.actualHours ? Number(ip.actualHours) : undefined;
+
+                        const costIndex = availableProcessCosts.findIndex(
+                          (pc) => pc.processId === pId,
+                        );
+                        if (costIndex !== -1) {
+                          const matchedPc = availableProcessCosts[costIndex];
+                          savedCost = Number(matchedPc.predictedCost) || 0;
+                          if (matchedPc.actualCost !== undefined && matchedPc.actualCost !== null) {
+                            savedActualCost = Number(matchedPc.actualCost);
+                          }
+                          if (
+                            matchedPc.actualHours !== undefined &&
+                            matchedPc.actualHours !== null
+                          ) {
+                            savedActualHours = Number(matchedPc.actualHours);
+                          }
+                          availableProcessCosts.splice(costIndex, 1);
+                        }
+
+                        return {
+                          processId: pId,
+                          processName: ip.process?.processName || '',
+                          estimatedHours: Number(ip.estimatedHours || 0),
+                          predictedCost: savedCost,
+                          actualCost: savedActualCost,
+                          actualHours: savedActualHours,
+                          vendorType: parsed.processSources?.[pIdx] || '',
+                          productionSource: parsed.processProductionSources?.[pIdx] || '',
+                        };
+                      }) || [],
+                  };
+                }) || []
+              );
             })(),
           },
           costSheet: {
@@ -766,7 +777,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       const backendProcesses = item.processes?.map((p, idx) => {
         allProcessCosts.push({
           processId: p.processId,
-          estimatedHours: p.estimatedHours,
+          estimatedHours: Number.isNaN(p.estimatedHours) ? undefined : p.estimatedHours,
           predictedCost: p.predictedCost,
           actualHours: p.actualHours,
           actualCost: p.actualCost,
@@ -774,7 +785,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
         return {
           processId: p.processId,
           sequence: idx + 1,
-          estimatedHours: p.estimatedHours,
+          estimatedHours: Number.isNaN(p.estimatedHours) ? undefined : p.estimatedHours,
         };
       });
 

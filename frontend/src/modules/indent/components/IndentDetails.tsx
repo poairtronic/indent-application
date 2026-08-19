@@ -24,7 +24,6 @@ const statusTone: Record<string, 'green' | 'yellow' | 'red' | 'blue' | 'gray'> =
   MATERIALS_ISSUED: 'yellow',
   PRODUCTION_PROCESSING: 'yellow',
   PRODUCTION_COMPLETED: 'yellow',
-  CUSTOMER_DELIVERED: 'blue',
   ACCOUNTS_COST_VERIFICATION: 'yellow',
   ACTUAL_COST_UPDATED: 'yellow',
   ACCOUNTS_FINANCIAL_CLOSURE: 'blue',

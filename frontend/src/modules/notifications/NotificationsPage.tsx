@@ -108,7 +108,6 @@ export const NotificationsPage: React.FC = () => {
         'MATERIAL_ISSUED',
         'PRODUCTION_STARTED',
         'PRODUCTION_COMPLETED',
-        'CUSTOMER_DELIVERED',
         'ACCOUNTS_COST_VERIFICATION',
         'FINANCIAL_CLOSURE',
         'TRANSACTION_ARCHIVED',

@@ -58,17 +58,7 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
     executiveBroadcast: true,
     templateTitle: 'Production Manufacturing Completed',
     templateMessage:
-      'Production department has completed manufacturing for Indent #{indentNumber}. Ready for delivery.',
-  },
-
-  [WorkflowState.CUSTOMER_DELIVERED]: {
-    eventType: CommunicationEventType.CUSTOMER_DELIVERED,
-    triggerState: WorkflowState.CUSTOMER_DELIVERED,
-    targetDepartmentCode: 'ACCOUNTS',
-    executiveBroadcast: true,
-    templateTitle: 'Product Delivered to Customer',
-    templateMessage:
-      'Finished product for Indent #{indentNumber} delivered to customer. Loop 1 closed. Accounts cost verification required.',
+      'Production department has completed manufacturing for Indent #{indentNumber}. Ready for Accounts cost verification.',
   },
 
   [WorkflowState.ACCOUNTS_COST_VERIFICATION]: {

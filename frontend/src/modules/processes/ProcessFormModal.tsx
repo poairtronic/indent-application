@@ -23,10 +23,11 @@ const requiredString = (label: string, max: number) =>
 
 const estimatedHoursField = z.coerce
   .number()
-  .refine((value) => !Number.isNaN(value), 'Estimated hours is required')
-  .min(0.01, 'Estimated hours must be greater than 0')
+  .min(0, 'Estimated hours cannot be negative')
   .max(999999.99, 'Estimated hours is too large')
-  .refine((value) => Math.round(value * 100) / 100 === value, 'Maximum 2 decimal places');
+  .refine((value) => Math.round(value * 100) / 100 === value, 'Maximum 2 decimal places')
+  .optional()
+  .or(z.nan());
 
 const createSchema = z.object({
   productId: z.uuid('Enter a valid product UUID'),
@@ -72,7 +73,7 @@ interface ProcessFormValues {
   processName: string;
   description: string;
   sequence: number;
-  estimatedHours: number;
+  estimatedHours?: number;
   status: ProcessStatus;
 }
 
@@ -136,7 +137,7 @@ export const ProcessFormModal: React.FC<ProcessFormModalProps> = ({
         processName: values.processName.trim(),
         description: values.description.trim() || undefined,
         sequence: values.sequence,
-        estimatedHours: values.estimatedHours,
+        estimatedHours: Number.isNaN(values.estimatedHours) ? undefined : values.estimatedHours,
         status: values.status || 'ACTIVE',
       };
       onSubmit(payload);
@@ -149,7 +150,7 @@ export const ProcessFormModal: React.FC<ProcessFormModalProps> = ({
       processName: values.processName.trim(),
       description: values.description.trim(),
       sequence: values.sequence,
-      estimatedHours: values.estimatedHours,
+      estimatedHours: Number.isNaN(values.estimatedHours) ? undefined : values.estimatedHours,
       status: values.status,
     };
     onSubmit(payload);
@@ -238,13 +239,12 @@ export const ProcessFormModal: React.FC<ProcessFormModalProps> = ({
         <FormField
           label="Estimated Hours"
           htmlFor="estimatedHours"
-          required
           error={errors.estimatedHours?.message}
         >
           <input
             id="estimatedHours"
             type="number"
-            min={0.01}
+            min={0}
             step={0.01}
             className={inputClasses}
             placeholder="4.5"

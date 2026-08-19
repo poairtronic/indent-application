@@ -66,7 +66,6 @@ export const ProductionDashboardPage: React.FC = () => {
     'MATERIALS_ISSUED',
     'PRODUCTION_PROCESSING',
     'PRODUCTION_COMPLETED',
-    'CUSTOMER_DELIVERED',
   ];
 
   const displayItems = filters.status
@@ -102,7 +101,6 @@ export const ProductionDashboardPage: React.FC = () => {
                 { label: 'Materials Issued', value: 'MATERIALS_ISSUED' },
                 { label: 'Production Processing', value: 'PRODUCTION_PROCESSING' },
                 { label: 'Production Completed', value: 'PRODUCTION_COMPLETED' },
-                { label: 'Customer Delivered', value: 'CUSTOMER_DELIVERED' },
               ]}
               value={filters.status || ''}
               onChange={(e) => handleStatusChange(e.target.value)}

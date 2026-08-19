@@ -118,7 +118,7 @@ export class ProcessesService {
         processName: dto.processName,
         description: dto.description,
         sequence: dto.sequence,
-        estimatedHours: dto.estimatedHours,
+        estimatedHours: dto.estimatedHours ?? 0,
         status: dto.status,
         createdBy: performingUserId,
       },

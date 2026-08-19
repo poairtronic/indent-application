@@ -5,7 +5,6 @@ import {
   Package,
   Truck,
   Play,
-  TruckIcon,
   Calculator,
   DollarSign,
   Archive,
@@ -22,7 +21,6 @@ import {
   useReceiveProduction,
   useStartProduction,
   useCompleteProduction,
-  useDeliverCustomer,
   useVerifyAccounts,
   useFinancialClose,
   useArchiveIndent,
@@ -79,7 +77,7 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   const { mutateAsync: receiveProduction, isPending: isReceiving } = useReceiveProduction();
   const { mutateAsync: startProduction, isPending: isStarting } = useStartProduction();
   const { mutateAsync: completeProduction, isPending: isCompletingProd } = useCompleteProduction();
-  const { mutateAsync: deliverCustomer, isPending: isDelivering } = useDeliverCustomer();
+
   const { mutateAsync: verifyAccounts, isPending: isVerifyingAccounts } = useVerifyAccounts();
   const { mutateAsync: financialClose, isPending: isClosing } = useFinancialClose();
   const { mutateAsync: archive, isPending: isArchiving } = useArchiveIndent();
@@ -212,33 +210,6 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
         break;
 
       case 'PRODUCTION_COMPLETED':
-        if (hasPermission(AppPermission.PRODUCTION_DELIVER)) {
-          actions.push({
-            label: 'Deliver to Customer',
-            icon: <TruckIcon size={16} />,
-            variant: 'primary',
-            permission: AppPermission.PRODUCTION_DELIVER,
-            confirmTitle: `Deliver to Customer: ${indentNumber}`,
-            confirmMessage:
-              'Confirm the finished product has been delivered to the customer. This closes Loop 1 (Manufacturing).',
-            requiresInput: true,
-            inputLabel: 'Delivery Notes (optional)',
-            action: async (r) => {
-              await deliverCustomer({
-                id: indentId,
-                data: {
-                  deliveryDate: new Date().toISOString(),
-                  deliveryNotes: r || 'Customer delivery confirmed',
-                },
-              });
-              onSuccess?.();
-            },
-            isPending: isDelivering,
-          });
-        }
-        break;
-
-      case 'CUSTOMER_DELIVERED':
         if (hasPermission(AppPermission.ACCOUNTS_VERIFY)) {
           actions.push({
             label: 'Start Cost Verification',

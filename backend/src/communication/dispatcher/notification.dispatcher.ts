@@ -197,23 +197,9 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
 
         case CommunicationEventType.PRODUCTION_COMPLETED:
           await this.communicationService.sendEmail({
-            to: { roleName: ['Senior Manager', 'General Manager'] }, // notify managers to view shipping details
+            to: { departmentCode: 'ACCOUNTS', roleName: ['Senior Manager', 'General Manager'] }, // notify accounts and managers
             subject: `Production Completed: #${payload.indentNumber}`,
             templateName: 'production_completed',
-            templateContext: {
-              indentNumber: payload.indentNumber,
-              productName: payload.productName,
-              transactionUrl: payload.transactionUrl,
-            },
-            correlationId: payload.correlationId,
-          });
-          break;
-
-        case CommunicationEventType.CUSTOMER_DELIVERED:
-          await this.communicationService.sendEmail({
-            to: { departmentCode: 'ACCOUNTS', roleName: ['Senior Manager', 'General Manager'] }, // notify accounts and managers
-            subject: `Delivered to Customer: #${payload.indentNumber}`,
-            templateName: 'customer_delivered',
             templateContext: {
               indentNumber: payload.indentNumber,
               productName: payload.productName,

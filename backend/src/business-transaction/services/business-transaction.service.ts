@@ -20,7 +20,7 @@ import {
   UpdateBusinessTransactionDto,
 } from '../dto/create-business-transaction.dto';
 import { StoresIssueDto } from '../dto/stores-issue.dto';
-import { ProductionUpdateDto, CustomerDeliveryDto } from '../dto/production-update.dto';
+import { ProductionUpdateDto } from '../dto/production-update.dto';
 import { RedisCacheService } from '../../redis-cache/redis-cache.service';
 import { validateFileSignature } from '../../common/utils/file-validator.util';
 import {
@@ -264,7 +264,7 @@ export class BusinessTransactionService {
                 indentItemId: createdItem.id,
                 processId: proc.processId,
                 sequence: proc.sequence,
-                estimatedHours: proc.estimatedHours,
+                estimatedHours: proc.estimatedHours ?? 0,
               })),
             });
           }
@@ -296,7 +296,7 @@ export class BusinessTransactionService {
               create: dto.costSheet.processCosts.map((pc) => ({
                 processId: pc.processId,
                 predictedCost: roundTo4Decimals(pc.predictedCost),
-                estimatedHours: pc.estimatedHours,
+                estimatedHours: pc.estimatedHours ?? 0,
               })),
             },
           },
@@ -674,6 +674,7 @@ export class BusinessTransactionService {
           department: { select: { departmentName: true, departmentCode: true } },
           creator: { select: { firstName: true, lastName: true } },
           costSheet: { select: { predictedTotal: true, costNumber: true } },
+          indentItems: { select: { status: true } },
         },
       }),
     ]);
@@ -698,6 +699,8 @@ export class BusinessTransactionService {
           : 'N/A',
         createdAt: indent.createdAt,
         requiredDate: indent.requiredDate,
+        issuedItemsCount: indent.indentItems?.filter((i) => i.status === 'ISSUED').length || 0,
+        totalItemsCount: indent.indentItems?.length || 0,
       };
     });
 
@@ -851,7 +854,7 @@ export class BusinessTransactionService {
                     indentItemId: createdItem.id,
                     processId: proc.processId,
                     sequence: idx + 1,
-                    estimatedHours: proc.estimatedHours,
+                    estimatedHours: proc.estimatedHours ?? 0,
                   })),
                 });
               }
@@ -910,7 +913,7 @@ export class BusinessTransactionService {
                 costSheetId: existingCostSheet.id,
                 processId: pc.processId,
                 predictedCost: roundTo4Decimals(pc.predictedCost),
-                estimatedHours: pc.estimatedHours,
+                estimatedHours: pc.estimatedHours ?? 0,
               })),
             });
           }
@@ -1266,6 +1269,17 @@ export class BusinessTransactionService {
           },
         });
       }
+
+      // Dispatch in-app notification for partial issue
+      const issuedCount = allItems.filter((i) => i.status === 'ISSUED').length;
+      await this.eventService.dispatchPartialIssueNotification(
+        id,
+        txData.indentNumber,
+        item.material?.materialName || 'Material',
+        issuedCount,
+        allItems.length,
+        userId,
+      );
     }
 
     await this.invalidateWorkflowCache();
@@ -1463,79 +1477,12 @@ export class BusinessTransactionService {
     return this.findTransactionForResponse(id);
   }
 
-  /**
-   * CUSTOMER DELIVERY: Confirms product delivery to customer (PRODUCTION_COMPLETED -> CUSTOMER_DELIVERED)
-   * Completes Loop 1 (Manufacturing Workflow)!
-   */
-  public async deliverToCustomer(
-    id: string,
-    userId: string,
-    dto: CustomerDeliveryDto,
-  ): Promise<any> {
-    const txData = await this.getTransactionContext(id);
-    const targetState = WorkflowState.CUSTOMER_DELIVERED;
-
-    const transitionValidation = this.workflowStateMachine.validateTransition(
-      txData.currentState,
-      targetState,
-      'PRODUCTION',
-    );
-    if (!transitionValidation.isValid) {
-      throw new BadRequestException(transitionValidation.errors.join(', '));
-    }
-
-    const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
-
-    const accountsDept = await this.prisma.department.findFirst({
-      where: { departmentCode: { in: ['ACCOUNTS', 'ACCT'] }, isDeleted: false },
-    });
-
-    await this.prisma.$transaction(async (tx) => {
-      await this.assertCurrentStateAndUpdate(
-        id,
-        txData.currentState,
-        {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          requiredDeliveryDate: new Date(dto.deliveryDate),
-          updatedBy: userId,
-          remarks: `${txData.remarks || ''}\nCustomer Delivery Notes: ${dto.deliveryNotes || 'Delivered'} (Ref: ${dto.customerReceiptReference || 'N/A'})`,
-        },
-        tx,
-      );
-      await tx.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: accountsDept ? accountsDept.id : txData.departmentId,
-          movedBy: userId,
-          remarks: `Finished goods delivered to customer on ${dto.deliveryDate}. Manufacturing Loop 1 complete.`,
-        },
-      });
-    });
-
-    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
-    await this.eventService.logAudit(
-      AuditEventType.DELIVER_CUSTOMER,
-      id,
-      userId,
-      { state: txData.currentState },
-      {
-        state: targetState,
-        deliveryDate: dto.deliveryDate,
-        reference: dto.customerReceiptReference,
-      },
-    );
-
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
-  }
-
   // =========================================================================
   // LOOP 2: FINANCIAL WORKFLOW & ARCHIVAL METHODS
   // =========================================================================
 
   /**
-   * STAGE 4 ACCOUNTS START: Start Accounts cost verification (CUSTOMER_DELIVERED -> ACCOUNTS_COST_VERIFICATION)
+   * STAGE 4 ACCOUNTS START: Start Accounts cost verification (PRODUCTION_COMPLETED -> ACCOUNTS_COST_VERIFICATION)
    */
   public async startAccountsVerification(
     id: string,

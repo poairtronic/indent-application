@@ -415,10 +415,14 @@ export class AnalyticsService {
       productCode: r.productCode,
       productName: r.productName,
       indentCount: r.indentCount,
-      averagePlannedCost: r.averagePlannedCost !== null ? Math.round(r.averagePlannedCost * 100) / 100 : 0,
-      averageActualCost: r.averageActualCost !== null ? Math.round(r.averageActualCost * 100) / 100 : null,
-      highestPlannedCost: r.highestPlannedCost !== null ? Math.round(r.highestPlannedCost * 100) / 100 : 0,
-      lowestPlannedCost: r.lowestPlannedCost !== null ? Math.round(r.lowestPlannedCost * 100) / 100 : 0,
+      averagePlannedCost:
+        r.averagePlannedCost !== null ? Math.round(r.averagePlannedCost * 100) / 100 : 0,
+      averageActualCost:
+        r.averageActualCost !== null ? Math.round(r.averageActualCost * 100) / 100 : null,
+      highestPlannedCost:
+        r.highestPlannedCost !== null ? Math.round(r.highestPlannedCost * 100) / 100 : 0,
+      lowestPlannedCost:
+        r.lowestPlannedCost !== null ? Math.round(r.lowestPlannedCost * 100) / 100 : 0,
     }));
 
     const mostProduced = products[0]?.productName ?? null;

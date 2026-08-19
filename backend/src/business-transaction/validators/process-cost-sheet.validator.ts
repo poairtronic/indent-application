@@ -39,7 +39,7 @@ export class ProcessCostSheetValidator {
             `Manufacturing Process Cost #${index + 1}: Predicted cost cannot be negative.`,
           );
         }
-        if (process.estimatedHours < 0) {
+        if (process.estimatedHours !== undefined && process.estimatedHours < 0) {
           errors.push(
             `Manufacturing Process Cost #${index + 1}: Estimated hours cannot be negative.`,
           );

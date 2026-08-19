@@ -198,9 +198,7 @@ export class RolesService {
         where: { roleId: id, isDeleted: false },
         select: { id: true },
       });
-      await Promise.all(
-        usersWithRole.map((u) => this.cacheService.del(`user:session:${u.id}`)),
-      );
+      await Promise.all(usersWithRole.map((u) => this.cacheService.del(`user:session:${u.id}`)));
     } catch {
       // Best-effort cache invalidation; stale entries expire in ≤5 min
     }

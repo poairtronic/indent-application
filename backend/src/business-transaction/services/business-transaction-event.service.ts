@@ -69,7 +69,6 @@ export class BusinessTransactionEventService {
           targetDepts.push('PRODUCTION', 'PROD');
           break;
         case WorkflowState.PRODUCTION_COMPLETED:
-        case WorkflowState.CUSTOMER_DELIVERED:
         case WorkflowState.ACCOUNTS_COST_VERIFICATION:
           targetDepts.push('ACCOUNTS', 'ACCT');
           break;
@@ -233,9 +232,6 @@ export class BusinessTransactionEventService {
         case WorkflowState.PRODUCTION_COMPLETED:
           commType = CommunicationEventType.PRODUCTION_COMPLETED;
           break;
-        case WorkflowState.CUSTOMER_DELIVERED:
-          commType = CommunicationEventType.CUSTOMER_DELIVERED;
-          break;
         case WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE: {
           commType = CommunicationEventType.FINANCIAL_CLOSURE;
           const costSheet = await this.prisma.costSheet.findFirst({ where: { indentId } });
@@ -275,6 +271,106 @@ export class BusinessTransactionEventService {
     } catch (error) {
       this.logger.error(
         `Failed to dispatch notification for Indent #${indentNumber} to state ${toState}: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * Dispatches an in-app notification ONLY (no email) for partial material issues.
+   */
+  public async dispatchPartialIssueNotification(
+    indentId: string,
+    indentNumber: string,
+    materialName: string,
+    issuedCount: number,
+    totalCount: number,
+    triggeredByUserId: string,
+  ): Promise<void> {
+    try {
+      // Find recipient users (STORES, PRODUCTION, Senior/General Managers)
+      const recipientUsers = await this.prisma.user.findMany({
+        where: {
+          isDeleted: false,
+          status: 'ACTIVE',
+          OR: [
+            {
+              role: {
+                roleName: {
+                  in: ['ADMIN', 'System Administrator', 'Senior Manager', 'General Manager'],
+                },
+              },
+            },
+            {
+              department: {
+                departmentCode: {
+                  in: ['STORES', 'STOR', 'PRODUCTION', 'PROD'],
+                },
+              },
+            },
+          ],
+        },
+        select: { id: true },
+      });
+
+      const uniqueUserIds = Array.from(new Set(recipientUsers.map((u) => u.id)));
+      if (uniqueUserIds.length === 0) {
+        return;
+      }
+
+      const formattedTitle = `Partial Material Issue: Indent #${indentNumber}`;
+      const formattedMessage = `Material "${materialName}" has been issued. Progress: ${issuedCount}/${totalCount} components issued.`;
+
+      const notification = await this.prisma.notification.create({
+        data: {
+          title: formattedTitle,
+          message: formattedMessage,
+          eventType: 'STORES_PENDING', // Reusing an appropriate event type
+          type: 'INFO',
+          priority: 'LOW',
+          referenceId: indentId,
+          referenceModule: 'Indent',
+          createdBy: triggeredByUserId,
+          recipients: {
+            create: uniqueUserIds.map((userId) => ({
+              userId,
+              isRead: false,
+              deliveryStatus: 'DELIVERED',
+            })),
+          },
+        },
+      });
+
+      // Log: Notification created
+      await this.prisma.auditLog.create({
+        data: {
+          module: 'NOTIFICATIONS',
+          recordId: notification.id,
+          action: 'CREATE',
+          newValue: { title: notification.title },
+          performedBy: triggeredByUserId || 'SYSTEM',
+        },
+      });
+
+      // Log: Notification delivered for each recipient (bulk asynchronous insert)
+      if (uniqueUserIds.length > 0) {
+        const auditLogData = uniqueUserIds.map((recId) => ({
+          module: 'NOTIFICATIONS',
+          recordId: notification.id,
+          action: 'DELIVER',
+          newValue: { recipientUserId: recId } as any,
+          performedBy: triggeredByUserId || 'SYSTEM',
+          ipAddress: '127.0.0.1',
+        }));
+        await this.prisma.auditLog.createMany({ data: auditLogData });
+      }
+
+      this.logger.log(
+        `Dispatched Partial Issue Notification (ID: ${notification.id}) to ${uniqueUserIds.length} recipients for Indent #${indentNumber}.`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to dispatch partial issue notification for Indent #${indentNumber}: ${error.message}`,
         error.stack,
       );
     }

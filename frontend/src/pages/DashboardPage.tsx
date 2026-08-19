@@ -345,7 +345,7 @@ export const DashboardPage: React.FC = () => {
   // Chart Data for Monthly Cost Trends -> adapted to Planned vs Actual
   const costTrendChartData = useMemo(() => {
     if (!costsData) return [];
-    
+
     // For visual charts, we compare apples to apples using finalized planned cost
     // against actual cost so that the variance aligns visually with the chart bars.
     const planned = costsData.totalFinalizedPlannedCost ?? costsData.totalPlannedCost ?? 0;

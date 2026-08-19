@@ -100,7 +100,6 @@ const workflowStatusMap: Record<string, { tone: BadgeTone; label: string }> = {
   DESIGN_COMPLETED: { tone: 'blue', label: 'Design Completed' },
   STORES_PROCESSING: { tone: 'yellow', label: 'Stores Processing' },
   PRODUCTION_PROCESSING: { tone: 'blue', label: 'Production' },
-  CUSTOMER_DELIVERED: { tone: 'green', label: 'Customer Delivered' },
   ACCOUNTS_COST_VERIFICATION: { tone: 'info', label: 'Cost Verification' },
   ACCOUNTS_FINANCIAL_CLOSURE: { tone: 'green', label: 'Financial Closure' },
   ARCHIVED: { tone: 'red', label: 'Archived' },

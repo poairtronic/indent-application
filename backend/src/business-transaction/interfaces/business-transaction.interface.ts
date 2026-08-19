@@ -14,7 +14,7 @@ export interface IIndentProcess {
   indentItemId?: string;
   processId: string;
   sequence: number;
-  estimatedHours: number;
+  estimatedHours?: number;
   actualHours?: number;
 }
 
@@ -76,7 +76,7 @@ export interface IProcessCost {
   predictedCost: number;
   actualCost?: number;
   variance?: number;
-  estimatedHours: number;
+  estimatedHours?: number;
   actualHours?: number;
   vendorType?: VendorProcessType;
   vendorId?: string;
@@ -93,7 +93,7 @@ export interface IManufacturingProcessStructure {
   processCode: string;
   processName: string;
   sequence: number;
-  estimatedHours: number;
+  estimatedHours?: number;
   vendorType: VendorProcessType;
   vendorId?: string;
   plannedCost: number;

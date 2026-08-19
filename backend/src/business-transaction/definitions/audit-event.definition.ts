@@ -36,13 +36,6 @@ export const AUDIT_EVENT_DEFINITIONS: Record<AuditEventType, AuditEventDefinitio
     description: 'Updated manufacturing execution status.',
   },
 
-  [AuditEventType.DELIVER_CUSTOMER]: {
-    eventType: AuditEventType.DELIVER_CUSTOMER,
-    actionCode: 'PRODUCTION_DELIVER_CUSTOMER',
-    moduleName: 'PRODUCTION',
-    description: 'Finished goods delivered to customer. Manufacturing loop closed.',
-  },
-
   [AuditEventType.VERIFY_COSTS]: {
     eventType: AuditEventType.VERIFY_COSTS,
     actionCode: 'ACCOUNTS_COST_VERIFICATION',

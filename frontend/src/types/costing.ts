@@ -24,7 +24,7 @@ export interface ProcessCost {
   processId: string;
   process?: { id: string; processName: string };
   predictedCost: number;
-  estimatedHours: number;
+  estimatedHours?: number;
   vendorType: VendorProcessType;
   vendorId?: string;
   actualCost?: number;

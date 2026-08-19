@@ -163,10 +163,7 @@ describe('AnalyticsService', () => {
 
     it('should return null averageCycleDays when no completed indents exist', async () => {
       mockPrisma.indent.groupBy.mockResolvedValue([]);
-      mockPrisma.indent.findMany
-        .mockReset()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([]);
+      mockPrisma.indent.findMany.mockReset().mockResolvedValueOnce([]).mockResolvedValueOnce([]);
       mockPrisma.indent.count.mockResolvedValue(0);
       const result = await service.getWorkflowAnalytics();
       expect(result.averageCycleDays).toBeNull();
@@ -242,9 +239,7 @@ describe('AnalyticsService', () => {
           { status: 'FINALIZED', _count: { id: 1 } },
           { status: 'DRAFT', _count: { id: 1 } },
         ])
-        .mockResolvedValueOnce([
-          { status: 'FINALIZED', _count: { id: 1 } },
-        ]);
+        .mockResolvedValueOnce([{ status: 'FINALIZED', _count: { id: 1 } }]);
     });
 
     it('should aggregate planned costs correctly', async () => {

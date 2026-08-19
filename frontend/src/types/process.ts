@@ -36,7 +36,7 @@ export interface CreateProcessPayload {
   processName: string;
   description?: string;
   sequence: number;
-  estimatedHours: number;
+  estimatedHours?: number;
   status?: ProcessStatus;
 }
 

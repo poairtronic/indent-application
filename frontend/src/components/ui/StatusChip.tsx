@@ -27,11 +27,6 @@ const statusColorMap: Record<string, { bg: string; text: string; label: string }
     text: 'text-accent-primary',
     label: 'Production',
   },
-  CUSTOMER_DELIVERED: {
-    bg: 'bg-status-success/12',
-    text: 'text-status-success',
-    label: 'Customer Delivered',
-  },
 
   // Loop 2 Finance Workflow
   ACCOUNTS_COST_VERIFICATION: {
