@@ -21,22 +21,24 @@ const loginSchema = z.object({
 type LoginFields = z.infer<typeof loginSchema>;
 
 function getLoginErrorMessage(error: unknown): string {
-  const err = error as {
-    response?: { data?: { message?: string }; status?: number };
-    code?: string;
-    message?: string;
-  };
+  const err = error as any;
 
+  // Raw axios error fallback
   if (err.response?.data?.message && typeof err.response.data.message === 'string') {
     return err.response.data.message;
   }
 
-  if (err.code === 'ERR_NETWORK') {
-    return 'Unable to reach the server. Make sure the backend is running and try again.';
+  // ApiError format (from interceptors)
+  if (err.message && err.status) {
+    if (err.status === 401) return err.message;
+    if (err.status === 400) return err.message;
+    if (err.status === 403) return 'Access denied. You do not have permission.';
+    if (err.status >= 500)
+      return 'The server encountered an error while signing you in. Please try again.';
   }
 
-  if (err.response?.status && err.response.status >= 500) {
-    return 'The server encountered an error while signing you in. Please try again.';
+  if (err.code === 'NETWORK_ERROR' || err.code === 'ERR_NETWORK') {
+    return 'Unable to reach the server. Make sure the backend is running and try again.';
   }
 
   return 'Login failed. Please check your credentials and try again.';

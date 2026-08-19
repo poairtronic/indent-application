@@ -139,6 +139,8 @@ Access is denied with 403 Forbidden if the user lacks the required permission.
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
+  app.enableShutdownHooks();
+
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();

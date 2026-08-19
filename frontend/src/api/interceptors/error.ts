@@ -105,7 +105,17 @@ export function createErrorInterceptor(
 
     // 4. Do not refresh for auth/login or auth/refresh endpoints
     if (isRefreshEndpoint(originalRequest.url)) {
-      throw createApiError(401, error.message);
+      const data = error.response?.data as ApiErrorResponse | any;
+      let finalMessage = data?.message ?? error.message;
+      if (Array.isArray(finalMessage)) {
+        finalMessage = finalMessage.join(', ');
+      }
+      throw createApiError(
+        error.response?.status ?? 401,
+        finalMessage,
+        data?.errors,
+        originalRequest.url,
+      );
     }
 
     // 5. Multi-Tab Optimization: Check if another tab refreshed the token while request was in-flight
