@@ -48,13 +48,14 @@ export class MaterialsController {
   @Post()
   @Permissions('materials.create')
   async create(@Body() createMaterialDto: CreateMaterialDto) {
-    const minStock = createMaterialDto.minStock ? createMaterialDto.minStock.toString() : '0';
-    const maxStock = createMaterialDto.maxStock ? createMaterialDto.maxStock.toString() : '0';
+    const { minStock, maxStock, ...rest } = createMaterialDto;
+    const minimumStock = minStock ? minStock.toString() : '0';
+    const maximumStock = maxStock ? maxStock.toString() : '0';
     return this.prisma.material.create({
       data: {
-        ...createMaterialDto,
-        minimumStock: minStock,
-        maximumStock: maxStock,
+        ...rest,
+        minimumStock,
+        maximumStock,
         currentStock: '0',
         category: createMaterialDto.category || 'UNCATEGORIZED',
         status: createMaterialDto.status || 'ACTIVE',
