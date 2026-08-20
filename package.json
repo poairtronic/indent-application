@@ -12,8 +12,10 @@
     "scan:frontend": "ts-node tools/api-verifier/frontend-scanner/src/index.ts -p frontend/tsconfig.app.json -o tools/api-verifier/reports"
   },
   "dependencies": {
+    "@playwright/test": "^1.62.1",
     "@prisma/client": "^6.19.3",
-    "bcrypt": "^6.0.0"
+    "bcrypt": "^6.0.0",
+    "playwright": "^1.62.1"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.5.0",
