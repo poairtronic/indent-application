@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../hooks/query-keys';
 import { settingsService } from './service';
-import type { SettingResponse, UpdateSettingPayload } from '../../../types/settings';
+import type { UpdateSettingPayload } from '../../../types/settings';
 
 export function useSettings(category?: string) {
   return useQuery({
@@ -23,7 +23,7 @@ export function useUpdateSetting() {
   return useMutation({
     mutationFn: ({ key, payload }: { key: string; payload: UpdateSettingPayload }) =>
       settingsService.updateSetting(key, payload),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.list('settings') });
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail('settings', variables.key) });
     },
