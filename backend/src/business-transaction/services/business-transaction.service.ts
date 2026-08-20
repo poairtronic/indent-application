@@ -1117,6 +1117,12 @@ export class BusinessTransactionService {
           const currentStock = Number(material.currentStock);
           const requiredQty = Number(item.quantity);
 
+          if (requiredQty <= 0) {
+            throw new BadRequestException(
+              `Invalid quantity for material '${material.materialName}'. Quantity must be greater than zero.`,
+            );
+          }
+
           if (currentStock < requiredQty) {
             throw new BadRequestException(
               `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Required: ${requiredQty}`,
@@ -1211,6 +1217,12 @@ export class BusinessTransactionService {
 
       const currentStock = Number(material.currentStock);
       const requiredQty = Number(item.quantity);
+
+      if (requiredQty <= 0) {
+        throw new BadRequestException(
+          `Invalid quantity for material '${material.materialName}'. Quantity must be greater than zero.`,
+        );
+      }
 
       if (currentStock < requiredQty) {
         throw new BadRequestException(

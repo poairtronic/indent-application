@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import {
   safeMultiply,
   safeAdd,
@@ -87,6 +88,25 @@ describe('Financial Math Precision (BUG-FIN-001)', () => {
       expect(roundTo4Decimals(123.456789)).toBe(123.4568);
       expect(roundTo4Decimals(100)).toBe(100);
       expect(roundTo4Decimals(null)).toBe(0);
+    });
+  });
+  describe('Prisma.Decimal Support', () => {
+    it('should safely process Prisma.Decimal instances', () => {
+      const dec1 = new Prisma.Decimal('10.5');
+      const dec2 = new Prisma.Decimal('2.5');
+
+      expect(safeAdd([dec1, dec2])).toBe(13.0);
+      expect(safeMultiply(dec1, dec2)).toBe(26.25);
+      expect(safeSubtract(dec1, dec2)).toBe(8.0);
+    });
+
+    it('should handle Prisma.Decimal boundary conditions', () => {
+      const decZero = new Prisma.Decimal('0');
+      const decNegative = new Prisma.Decimal('-50.25');
+
+      expect(safeMultiply(decZero, 100)).toBe(0);
+      expect(safeAdd([decNegative, 100])).toBe(49.75);
+      expect(safeSubtract(0, decNegative)).toBe(50.25);
     });
   });
 });

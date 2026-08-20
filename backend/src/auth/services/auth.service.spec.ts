@@ -185,6 +185,28 @@ describe('AuthService', () => {
         failureReason: 'Invalid password',
       });
     });
+
+    it('should throw UnauthorizedException if user is deleted', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...mockUser,
+        isDeleted: true,
+      });
+
+      await expect(
+        service.login({ email: 'test@example.com', password: 'password123' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException if account is locked', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockAccountSecurityService.checkAccountLocked.mockRejectedValue(
+        new UnauthorizedException('Account locked'),
+      );
+
+      await expect(
+        service.login({ email: 'test@example.com', password: 'password123' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
   });
 
   describe('refresh', () => {
@@ -219,6 +241,28 @@ describe('AuthService', () => {
       );
       expect(mockSessionService.revokeAllSessions).not.toHaveBeenCalled();
       expect(mockSessionService.createSession).toHaveBeenCalled();
+    });
+
+    it('should reject refresh if token verification fails (expired or invalid)', async () => {
+      mockTokenService.verifyRefreshToken.mockRejectedValue(
+        new UnauthorizedException('Token expired'),
+      );
+
+      await expect(service.refresh('user_id', 'expired_token')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should reject refresh if token is marked as revoked in DB', async () => {
+      mockTokenService.verifyRefreshToken.mockResolvedValue({ sub: 'user_id' });
+      mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+      mockSessionService.revokeSessionByToken.mockRejectedValue(
+        new UnauthorizedException('Token revoked'),
+      );
+
+      await expect(service.refresh('user_id', 'revoked_token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });
