@@ -11,9 +11,9 @@ jobs:
     name: Dependency Security Gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '20.x'
       - name: Install Dependencies
@@ -27,9 +27,9 @@ jobs:
     name: Static Analysis Gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '20.x'
           cache: 'npm'
@@ -44,9 +44,9 @@ jobs:
     name: T1 Unit Gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '20.x'
           cache: 'npm'
@@ -59,7 +59,7 @@ jobs:
       - name: Frontend Unit Tests
         run: cd frontend && npm run test:run
       - name: Upload Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         if: always()
         with:
           name: coverage-report
@@ -87,9 +87,9 @@ jobs:
       REDIS_URL: redis://localhost:6380
       JWT_SECRET: ci-test-secret
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '20.x'
           cache: 'npm'
@@ -122,9 +122,9 @@ jobs:
       REDIS_URL: redis://localhost:6380
       JWT_SECRET: ci-test-secret
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
           node-version: '20.x'
           cache: 'npm'
@@ -149,7 +149,7 @@ jobs:
       - name: Run E2E Tests
         run: cd frontend && npx playwright test
       - name: Upload Traces
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: playwright-traces
@@ -161,7 +161,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [api-integration]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Install k6
         run: |
           sudo gpg -k
