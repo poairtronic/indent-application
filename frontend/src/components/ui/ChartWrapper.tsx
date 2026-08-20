@@ -25,19 +25,20 @@ export const ChartWrapper: React.FC<ChartProps> = ({
 
       <div className="w-full h-40 flex items-center justify-center relative select-none">
         {type === 'bar' && (
-          <div className="w-full h-full flex items-end gap-3 px-2 pt-4">
+          <div className="w-full h-full flex items-end gap-3 px-2 pt-4 pb-6">
             {data.map((d, idx) => {
               const heightPct = (d.value / maxVal) * 100;
               return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1 group relative">
-                  <div className="absolute bottom-full mb-1 bg-surface-elevated border border-border-default px-1 py-0.5 rounded text-[8px] font-bold text-text-primary hidden group-hover:block whitespace-nowrap z-10">
-                    {d.value}
-                  </div>
+                <div key={idx} className="flex-1 h-full relative group">
                   <div
-                    className="w-full bg-accent-primary hover:opacity-85 rounded-t transition-all duration-300"
+                    className="absolute bottom-0 left-0 w-full bg-accent-primary hover:opacity-85 rounded-t transition-all duration-300"
                     style={{ height: `${heightPct}%`, minHeight: '4px' }}
-                  />
-                  <span className="text-[9px] text-text-muted mt-1 truncate max-w-full">
+                  >
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-surface-elevated border border-border-default px-1 py-0.5 rounded text-[8px] font-bold text-text-primary hidden group-hover:block whitespace-nowrap z-10">
+                      {d.value}
+                    </div>
+                  </div>
+                  <span className="absolute top-full left-1/2 -translate-x-1/2 mt-2 text-[9px] text-text-muted truncate max-w-full text-center w-full">
                     {d.label}
                   </span>
                 </div>
