@@ -16,6 +16,7 @@ export default tseslint.config(
       'eslint.config.js',
       'prettier.config.cjs',
       'dist',
+      'performance',
       'node_modules',
       'create-test-user.js',
       'inspect-history.js',
