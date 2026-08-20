@@ -27,13 +27,17 @@ import { ReportsModule } from './reports/reports.module';
 import { RedisCacheModule } from './redis-cache/redis-cache.module';
 import { HttpCacheInterceptor } from './redis-cache/interceptors/http-cache.interceptor';
 import { StorageModule } from './storage/storage.module';
+import { SettingsModule } from './settings/settings.module';
 
 import { ObservabilityModule } from './observability/observability.module';
 import { CorrelationIdMiddleware } from './observability/correlation-id.middleware';
 import { ApiMonitoringMiddleware } from './observability/api-monitoring.middleware';
 
+import { ScheduleModule } from '@nestjs/schedule';
+
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     RolesModule,
@@ -51,6 +55,7 @@ import { ApiMonitoringMiddleware } from './observability/api-monitoring.middlewa
     ReportsModule,
     RedisCacheModule,
     StorageModule,
+    SettingsModule,
     ObservabilityModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({

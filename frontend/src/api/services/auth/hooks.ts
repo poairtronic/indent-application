@@ -15,6 +15,15 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (payload: LoginPayload) => authService.login(payload),
+    retry: (failureCount, error: any) => {
+      // Don't retry client errors (like 401 Unauthorized)
+      const status = error?.status || error?.response?.status;
+      if (status && status >= 400 && status < 500) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     onSuccess: (data) => {
       loginStore(data.accessToken, data.refreshToken, data.user);
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -53,13 +54,12 @@ export class MaterialsController {
   @Post()
   @Permissions('materials.create')
   async create(@Body() createMaterialDto: CreateMaterialDto) {
-    const { minStock, maxStock, ...rest } = createMaterialDto;
-    const minimumStock = minStock ? minStock.toString() : '0';
+    const { maxStock, densityKgPerDm3, ...rest } = createMaterialDto;
     const maximumStock = maxStock ? maxStock.toString() : '0';
     const material = await this.prisma.material.create({
       data: {
         ...rest,
-        minimumStock,
+        densityKgPerDm3: densityKgPerDm3 !== undefined ? densityKgPerDm3.toString() : null,
         maximumStock,
         currentStock: '0',
         category: createMaterialDto.category || 'UNCATEGORIZED',
@@ -73,10 +73,19 @@ export class MaterialsController {
   @Put(':id')
   @Permissions('materials.update')
   async update(@Param('id') id: string, @Body() updateMaterialDto: UpdateMaterialDto) {
+    return this.performUpdate(id, updateMaterialDto);
+  }
+
+  @Patch(':id')
+  @Permissions('materials.update')
+  async partialUpdate(@Param('id') id: string, @Body() updateMaterialDto: UpdateMaterialDto) {
+    return this.performUpdate(id, updateMaterialDto);
+  }
+
+  private async performUpdate(id: string, updateMaterialDto: UpdateMaterialDto) {
     const data: any = { ...updateMaterialDto };
-    if (data.minStock !== undefined) {
-      data.minimumStock = data.minStock.toString();
-      delete data.minStock;
+    if (data.densityKgPerDm3 !== undefined) {
+      data.densityKgPerDm3 = data.densityKgPerDm3 !== null ? data.densityKgPerDm3.toString() : null;
     }
     if (data.maxStock !== undefined) {
       data.maximumStock = data.maxStock.toString();

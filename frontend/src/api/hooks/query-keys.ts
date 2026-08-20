@@ -47,6 +47,7 @@ export const queryKeys = {
   analytics: createKeyFactory('analytics'),
   reports: createKeyFactory('reports'),
   uploads: createKeyFactory('uploads'),
+  settings: createKeyFactory('settings'),
 } as const;
 
 export function invalidateModule(

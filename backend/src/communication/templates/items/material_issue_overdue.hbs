@@ -1,0 +1,47 @@
+{{> header}}
+
+<div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+    <h3 style="color: #856404; margin-top: 0;">OVERDUE MATERIAL ISSUE ALERT</h3>
+    <p style="color: #856404; margin-bottom: 0;">The following materials have not been fully issued within the 48-hour threshold.</p>
+</div>
+
+<p><strong>Indent:</strong> {{indentNumber}}</p>
+<p><strong>Product:</strong> {{productName}}</p>
+<p><strong>Stores Processing Started:</strong> {{storesProcessingStartedAt}}</p>
+<p><strong>Overdue Since:</strong> {{overdueSince}}</p>
+
+<h4>Outstanding Materials:</h4>
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    <thead>
+        <tr>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f8f9fa;">Material</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f8f9fa;">Required</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f8f9fa;">Issued</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center; background-color: #f8f9fa; color: #d9534f;">Remaining</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each outstandingMaterials}}
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{materialName}}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{requiredQty}}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{issuedQty}}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold; color: #d9534f;">{{remainingQty}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold;">Total Outstanding:</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold; color: #d9534f;">{{totalRemaining}} units</td>
+        </tr>
+    </tfoot>
+</table>
+
+<p>Please review the Stores material issue status.</p>
+
+<p style="margin-top: 25px;">
+    <a href="{{transactionUrl}}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: bold;">Open Transaction</a>
+</p>
+
+{{> footer}}

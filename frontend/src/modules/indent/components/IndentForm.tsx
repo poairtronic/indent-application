@@ -6,12 +6,14 @@ import { z } from 'zod';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
-import { Priority } from '../../../types/indent';
+import { Priority, MaterialShape } from '../../../types/indent';
 import { useUnits } from '../../../api/services/units/hooks';
 import { useProcesses } from '../../../api/services/processes/hooks';
 import type { IndentData } from '../../../api/services/indents/service';
 import { useAuthStore } from '../../../store/authStore';
 import { getWorkflowAccess } from '../../../constants/workflow';
+import { calculateMaterialWeight } from '../../../utils/materialWeight';
+import { useMaterials } from '../../../api/services/materials/hooks';
 
 export interface ParsedRemarks {
   product?: string;
@@ -129,9 +131,12 @@ const indentSchema = z
           z.object({
             product: z.string().trim().min(1, 'Part Name / Product is required'),
             materialName: z.string().trim().min(1, 'Material is required'),
-            size: z.string().trim().optional(),
-            weight: z.string().trim().optional(),
-            quantity: z.number().min(0.01, 'Quantity must be greater than 0'),
+            shape: z.nativeEnum(MaterialShape).optional(),
+            diameterMm: z.coerce.number().optional().or(z.literal('')),
+            lengthMm: z.coerce.number().optional().or(z.literal('')),
+            widthMm: z.coerce.number().optional().or(z.literal('')),
+            heightMm: z.coerce.number().optional().or(z.literal('')),
+            quantity: z.coerce.number().min(0.01, 'Quantity must be greater than 0'),
             unitId: z.string().uuid('Please select a valid unit'),
             source: z.string().trim().optional(),
             productionSource: z.string().trim().optional(),
@@ -509,8 +514,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   return {
                     product: parsed.product ?? '',
                     materialName: item.material?.materialName ?? '',
-                    size: parsed.size ?? '',
-                    weight: parsed.weight ?? '',
+                    shape: (item as any).shape ?? undefined,
+                    diameterMm: (item as any).diameterMm ?? '',
+                    lengthMm: (item as any).lengthMm ?? '',
+                    widthMm: (item as any).widthMm ?? '',
+                    heightMm: (item as any).heightMm ?? '',
                     quantity: Number(item.quantity),
                     unitId: item.unitId,
                     source: parsed.source ?? '',
@@ -610,7 +618,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
               {
                 product: '',
                 materialName: '',
-                size: '',
+                shape: undefined,
+                diameterMm: '',
+                lengthMm: '',
+                widthMm: '',
+                heightMm: '',
                 quantity: 1,
                 unitId: '',
                 source: '',
@@ -646,9 +658,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
 
   const { data: unitsData } = useUnits({ page: 1, limit: 100 });
   const { data: processesData } = useProcesses({ page: 1, limit: 100 });
+  const { data: materialsRes } = useMaterials({ page: 1, limit: 1000 });
 
   const units = unitsData?.items ?? [];
   const processes = processesData?.items ?? [];
+  const materialsList = materialsRes?.items ?? [];
 
   const watchedItems = useWatch({ control, name: 'indent.items' });
   const watchedCostItems = useWatch({ control, name: 'costSheet.costItems' });
@@ -793,10 +807,13 @@ export const IndentForm: React.FC<IndentFormProps> = ({
         materialName: item.materialName,
         quantity: item.quantity,
         unitId: item.unitId,
+        shape: item.shape,
+        diameterMm: item.diameterMm === '' ? undefined : Number(item.diameterMm),
+        lengthMm: item.lengthMm === '' ? undefined : Number(item.lengthMm),
+        widthMm: item.widthMm === '' ? undefined : Number(item.widthMm),
+        heightMm: item.heightMm === '' ? undefined : Number(item.heightMm),
         remarks: JSON.stringify({
           product: item.product,
-          size: item.size,
-          weight: item.weight || '',
           source: item.source,
           productionSource: item.productionSource,
           userRemarks: item.remarks || '',
@@ -923,7 +940,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 appendItem({
                   product: '',
                   materialName: '',
-                  size: '',
+                  shape: undefined,
+                  diameterMm: '',
+                  lengthMm: '',
+                  widthMm: '',
+                  heightMm: '',
                   quantity: 1,
                   unitId: '',
                   source: '',
@@ -956,7 +977,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 <div className="md:col-span-1 text-xs font-bold text-text-muted pb-2">
                   #{index + 1}
                 </div>
-                <div className={isReadOnly ? 'md:col-span-3' : 'md:col-span-2'}>
+                <div className="md:col-span-3">
                   <Input
                     label="Part Name / Product"
                     placeholder="e.g. Base plate"
@@ -965,31 +986,48 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     error={errors.indent?.items?.[index]?.product?.message}
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <Input
-                    label="Material"
-                    placeholder="e.g. MS"
-                    disabled={isReadOnly || isProductionMode || isAccountsMode}
-                    {...register(`indent.items.${index}.materialName`)}
-                    error={errors.indent?.items?.[index]?.materialName?.message}
+                <div className="md:col-span-3">
+                  <Controller
+                    control={control}
+                    name={`indent.items.${index}.materialName`}
+                    render={({ field }) => (
+                      <div className="w-full">
+                        <Input
+                          label="Material"
+                          placeholder="Type material name"
+                          list={`materials-list-${index}`}
+                          disabled={isReadOnly || isProductionMode || isAccountsMode}
+                          {...field}
+                          error={errors.indent?.items?.[index]?.materialName?.message}
+                        />
+                        <datalist id={`materials-list-${index}`}>
+                          {materialsList.map((m) => (
+                            <option key={m.id} value={m.materialName} />
+                          ))}
+                        </datalist>
+                      </div>
+                    )}
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Input
-                    label="Size"
-                    placeholder="e.g. 250*250*25"
-                    disabled={isReadOnly || isProductionMode || isAccountsMode}
-                    {...register(`indent.items.${index}.size`)}
-                    error={errors.indent?.items?.[index]?.size?.message}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Input
-                    label="Weight (kgs)"
-                    placeholder="e.g. 15.5"
-                    disabled={isReadOnly || isProductionMode || isAccountsMode}
-                    {...register(`indent.items.${index}.weight`)}
-                    error={errors.indent?.items?.[index]?.weight?.message}
+                  <Controller
+                    control={control}
+                    name={`indent.items.${index}.shape`}
+                    render={({ field }) => (
+                      <Select
+                        label="Shape"
+                        disabled={isReadOnly || isProductionMode || isAccountsMode}
+                        options={[
+                          { label: 'Select Shape', value: '' },
+                          { label: 'Rectangle', value: 'RECTANGLE' },
+                          { label: 'Square', value: 'SQUARE' },
+                          { label: 'Plate', value: 'PLATE' },
+                          { label: 'Round', value: 'ROUND' },
+                          { label: 'Circle', value: 'CIRCLE' },
+                        ]}
+                        {...field}
+                      />
+                    )}
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1013,6 +1051,86 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     </Button>
                   </div>
                 )}
+                {(() => {
+                  const shape = watchedItems?.[index]?.shape;
+                  const material = materialsList.find(
+                    (m) => m.materialName === watchedItems?.[index]?.materialName,
+                  );
+                  const density = material?.densityKgPerDm3 || 0;
+                  const diameter = watchedItems?.[index]?.diameterMm;
+                  const length = watchedItems?.[index]?.lengthMm;
+                  const width = watchedItems?.[index]?.widthMm;
+                  const height = watchedItems?.[index]?.heightMm;
+                  const unitWeight = calculateMaterialWeight({
+                    shape: shape as any,
+                    densityKgPerDm3: density,
+                    diameterMm: Number(diameter),
+                    lengthMm: Number(length),
+                    widthMm: Number(width),
+                    heightMm: Number(height),
+                  });
+                  const isRoundOrCircle = shape === 'ROUND' || shape === 'CIRCLE';
+                  const isPrismatic = shape === 'RECTANGLE' || shape === 'SQUARE' || shape === 'PLATE';
+
+                  if (!isRoundOrCircle && !isPrismatic) return null;
+
+                  return (
+                    <div className="col-span-1 md:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-3 mt-2 mb-2 p-3 bg-surface-base rounded-md border border-border-default/50">
+                      {isRoundOrCircle ? (
+                        <div className="md:col-span-3">
+                          <Input
+                            label="Diameter (mm)"
+                            type="number"
+                            step="0.1"
+                            disabled={isReadOnly}
+                            {...register(`indent.items.${index}.diameterMm`)}
+                          />
+                        </div>
+                      ) : null}
+                      {isRoundOrCircle || isPrismatic ? (
+                        <div className="md:col-span-3">
+                          <Input
+                            label="Length (mm)"
+                            type="number"
+                            step="0.1"
+                            disabled={isReadOnly}
+                            {...register(`indent.items.${index}.lengthMm`)}
+                          />
+                        </div>
+                      ) : null}
+                      {isPrismatic ? (
+                        <div className="md:col-span-3">
+                          <Input
+                            label="Width (mm)"
+                            type="number"
+                            step="0.1"
+                            disabled={isReadOnly}
+                            {...register(`indent.items.${index}.widthMm`)}
+                          />
+                        </div>
+                      ) : null}
+                      {isPrismatic ? (
+                        <div className="md:col-span-3">
+                          <Input
+                            label="Height/Thick (mm)"
+                            type="number"
+                            step="0.1"
+                            disabled={isReadOnly}
+                            {...register(`indent.items.${index}.heightMm`)}
+                          />
+                        </div>
+                      ) : null}
+                      <div className={isRoundOrCircle ? 'md:col-span-6 flex items-end' : 'md:col-span-3 flex items-end'}>
+                        <div className="w-full text-right p-2 rounded bg-background-primary border border-border-default">
+                          <span className="text-xs text-text-muted mr-2">Live Unit Weight:</span>
+                          <span className="font-bold text-accent-primary">
+                            {unitWeight > 0 ? unitWeight.toFixed(4) + ' kg' : '---'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Row 2: Qty, Unit, Est. Rate, Amount */}

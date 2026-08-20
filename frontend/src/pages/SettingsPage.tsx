@@ -23,6 +23,7 @@ import type {
 } from '../store/settingsStore';
 import { useToasts, ToastViewport } from '../components/ui/toast';
 import { getTimezoneLabel } from '../utils/currencyFormatter';
+import { useSetting, useUpdateSetting } from '../api/services/settings';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,28 @@ export const SettingsPage: React.FC = () => {
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   const { dirty, markDirty, reset } = useUnsavedChanges(settings);
+
+  // Backend settings
+  const overdueAlertsSettingKey = 'MATERIAL_ISSUE_OVERDUE_ALERTS_ENABLED';
+  const { data: overdueAlertsData, isLoading: overdueAlertsLoading } = useSetting(overdueAlertsSettingKey);
+  const { mutate: updateSetting, isPending: isUpdatingSetting } = useUpdateSetting();
+
+  // We default to true as per requirements if it hasn't been set yet
+  const overdueAlertsEnabled = overdueAlertsData?.value === 'false' ? false : true;
+
+  const handleOverdueAlertsToggle = (checked: boolean) => {
+    updateSetting(
+      { key: overdueAlertsSettingKey, payload: { value: checked ? 'true' : 'false', category: 'Notification', description: 'Alert SM, GM, and Admin when required materials remain unissued for 48 hours.' } },
+      {
+        onSuccess: () => {
+          show('success', 'Material issue overdue alerts setting updated');
+        },
+        onError: () => {
+          show('error', 'Failed to update setting');
+        },
+      }
+    );
+  };
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -248,6 +271,22 @@ export const SettingsPage: React.FC = () => {
                 description="Alert when a cost sheet exceeds predicted budget by > 10%"
                 checked={settings.costDeviationWarnings}
                 onChange={(e) => handleToggle('costDeviationWarnings', e.target.checked)}
+              />
+            </div>
+
+            {/* Material Issue Overdue Alerts */}
+            <div
+              className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                overdueAlertsEnabled
+                  ? 'border-border-default bg-surface-card'
+                  : 'border-yellow-500/20 bg-yellow-500/5'
+              } ${isUpdatingSetting || overdueAlertsLoading ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              <Switch
+                label="Material Issue Overdue Alerts"
+                description="Alert SM, GM, and Admin when required materials remain unissued for 48 hours."
+                checked={overdueAlertsEnabled}
+                onChange={(e) => handleOverdueAlertsToggle(e.target.checked)}
               />
             </div>
           </div>

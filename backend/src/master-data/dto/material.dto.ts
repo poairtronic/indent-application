@@ -25,7 +25,7 @@ export class CreateMaterialDto {
 
   @IsNumber()
   @IsOptional()
-  minStock?: number;
+  densityKgPerDm3?: number;
 
   @IsNumber()
   @IsOptional()
@@ -59,7 +59,7 @@ export class UpdateMaterialDto {
 
   @IsNumber()
   @IsOptional()
-  minStock?: number;
+  densityKgPerDm3?: number;
 
   @IsNumber()
   @IsOptional()

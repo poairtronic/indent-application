@@ -23,6 +23,7 @@ export enum CommunicationEventType {
   DOCUMENT_DELETED = 'DOCUMENT_DELETED',
   DOCUMENT_REPLACED = 'DOCUMENT_REPLACED',
   SYSTEM_ALERT = 'SYSTEM_ALERT',
+  MATERIAL_ISSUE_OVERDUE = 'MATERIAL_ISSUE_OVERDUE',
 }
 
 export interface ICommunicationEvent<T = any> {

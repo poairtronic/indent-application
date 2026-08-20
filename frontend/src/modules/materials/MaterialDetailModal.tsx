@@ -60,10 +60,12 @@ export const MaterialDetailModal: React.FC<MaterialDetailModalProps> = ({
 
           <div className="p-3 bg-background-primary/50 border border-border-default rounded-xl space-y-1">
             <span className="text-text-muted flex items-center gap-1 font-semibold text-[11px]">
-              <AlertCircle size={12} className="text-status-warning" /> Reorder Point:
+              <AlertCircle size={12} className="text-accent-primary" /> Density:
             </span>
-            <span className="font-bold text-status-warning block text-xs">
-              {material.reorderPoint} {material.unitOfMeasure}
+            <span className="font-bold text-accent-primary block text-xs">
+              {material.densityKgPerDm3 !== undefined
+                ? `${material.densityKgPerDm3} kg/dm³`
+                : 'Not configured'}
             </span>
           </div>
         </div>

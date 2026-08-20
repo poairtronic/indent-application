@@ -43,6 +43,34 @@ export class IndentItemDto {
 
   @IsString()
   @IsOptional()
+  shape?: string;
+
+  @IsNumber()
+  @IsOptional()
+  diameterMm?: number;
+
+  @IsNumber()
+  @IsOptional()
+  lengthMm?: number;
+
+  @IsNumber()
+  @IsOptional()
+  widthMm?: number;
+
+  @IsNumber()
+  @IsOptional()
+  heightMm?: number;
+
+  @IsNumber()
+  @IsOptional()
+  unitWeightKg?: number;
+
+  @IsNumber()
+  @IsOptional()
+  totalWeightKg?: number;
+
+  @IsString()
+  @IsOptional()
   remarks?: string;
 
   @IsArray()

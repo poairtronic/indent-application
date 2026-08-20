@@ -358,9 +358,10 @@ model Material {
   unitId       String         @db.Uuid
   minimumStock Decimal        @default(0) @db.Decimal(18, 4)
   maximumStock Decimal        @default(0) @db.Decimal(18, 4)
-  currentStock Decimal        @default(0) @db.Decimal(18, 4)
-  category     String         @db.VarChar(100)
-  status       MaterialStatus @default(ACTIVE)
+  currentStock    Decimal        @default(0) @db.Decimal(18, 4)
+  category        String         @db.VarChar(100)
+  densityKgPerDm3 Decimal?       @db.Decimal(18, 4)
+  status          MaterialStatus @default(ACTIVE)
 
   // Audit Fields
   createdAt DateTime  @default(now()) @db.Timestamptz(6)
@@ -557,11 +558,19 @@ model Indent {
 model IndentItem {
   id         String  @id @default(uuid()) @db.Uuid
   indentId   String  @db.Uuid
-  materialId String  @db.Uuid
-  quantity   Decimal @db.Decimal(18, 4)
-  unitId     String  @db.Uuid
-  remarks    String? @db.Text
-  status     String? @db.VarChar(50) // e.g., AVAILABLE, TO_BE_PURCHASED
+  materialId    String   @db.Uuid
+  quantity      Decimal  @db.Decimal(18, 4)
+  issuedQuantity Decimal @default(0) @db.Decimal(18, 4)
+  unitId        String   @db.Uuid
+  shape         String?  @db.VarChar(50)
+  diameterMm    Decimal? @db.Decimal(18, 4)
+  lengthMm      Decimal? @db.Decimal(18, 4)
+  widthMm       Decimal? @db.Decimal(18, 4)
+  heightMm      Decimal? @db.Decimal(18, 4)
+  unitWeightKg  Decimal? @db.Decimal(18, 4)
+  totalWeightKg Decimal? @db.Decimal(18, 4)
+  remarks       String?  @db.Text
+  status        String?  @db.VarChar(50) // e.g., AVAILABLE, TO_BE_PURCHASED
 
   // Audit Fields
   createdAt DateTime  @default(now()) @db.Timestamptz(6)

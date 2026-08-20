@@ -109,4 +109,16 @@ export const NOTIFICATION_EVENT_RULES: Record<WorkflowState, NotificationEventRu
     templateMessage:
       'Indent #{indentNumber} has been successfully closed across both Manufacturing and Financial loops.',
   },
+
+  // Note: This is an artificial state for overdue alerts, handled by the scheduler.
+  // It maps to STORES_PROCESSING conceptually but is triggered after 48h.
+  [(WorkflowState.STORES_PROCESSING + '_OVERDUE') as any]: {
+    eventType: CommunicationEventType.MATERIAL_ISSUE_OVERDUE,
+    triggerState: WorkflowState.STORES_PROCESSING,
+    targetDepartmentCode: 'STORES',
+    executiveBroadcast: true,
+    templateTitle: 'Material Issue Overdue',
+    templateMessage:
+      'Indent {indentNumber} has {totalRemaining} material items/quantities still pending after 48 hours in Stores processing.',
+  },
 };

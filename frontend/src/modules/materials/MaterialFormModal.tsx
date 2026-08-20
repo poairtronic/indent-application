@@ -10,7 +10,7 @@ export interface MaterialData {
   category: string;
   unitOfMeasure: string;
   unitOfMeasureLabel?: string;
-  reorderPoint: number;
+  densityKgPerDm3?: number;
   isActive: boolean;
 }
 
@@ -43,7 +43,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
   const [materialName, setMaterialName] = useState('');
   const [category, setCategory] = useState('METALS');
   const [unitOfMeasure, setUnitOfMeasure] = useState(units[0]?.id ?? '');
-  const [reorderPoint, setReorderPoint] = useState<number>(100);
+  const [densityKgPerDm3, setDensityKgPerDm3] = useState<number | ''>('');
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,14 +54,14 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
       setMaterialName(initialData.materialName);
       setCategory(initialData.category);
       setUnitOfMeasure(initialData.unitOfMeasure);
-      setReorderPoint(initialData.reorderPoint);
+      setDensityKgPerDm3(initialData.densityKgPerDm3 ?? '');
       setIsActive(initialData.isActive);
     } else {
       setMaterialCode('');
       setMaterialName('');
       setCategory('METALS');
       setUnitOfMeasure(units[0]?.id ?? '');
-      setReorderPoint(100);
+      setDensityKgPerDm3('');
       setIsActive(true);
     }
     setError(null);
@@ -87,7 +87,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
         materialName: materialName.trim(),
         category,
         unitOfMeasure,
-        reorderPoint: Number(reorderPoint) || 0,
+        densityKgPerDm3: densityKgPerDm3 === '' ? undefined : Number(densityKgPerDm3),
         isActive,
       });
       onClose();
@@ -104,7 +104,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
       open={open}
       onClose={onClose}
       title={initialData ? 'Edit Raw Material' : 'Create New Material Master'}
-      description="Define raw material item, category classification, and reorder threshold"
+      description="Define raw material item, category classification, and density for shape-based weight calculation"
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 font-sans text-xs">
@@ -175,12 +175,13 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
           </div>
 
           <Input
-            id="reorderPoint"
-            label="Reorder Threshold"
+            id="densityKgPerDm3"
+            label="Density (kg/dm³)"
             type="number"
-            value={reorderPoint}
-            onChange={(e) => setReorderPoint(Number(e.target.value))}
-            placeholder="e.g. 50"
+            step="0.0001"
+            value={densityKgPerDm3}
+            onChange={(e) => setDensityKgPerDm3(e.target.value ? Number(e.target.value) : '')}
+            placeholder="e.g. 7.8500"
           />
         </div>
 

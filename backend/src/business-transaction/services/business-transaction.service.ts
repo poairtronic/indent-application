@@ -30,6 +30,7 @@ import {
   safeVariancePercentage,
   roundTo4Decimals,
 } from '../utils/financial-math.util';
+import { calculateMaterialWeight } from '../../common/utils/material-weight.util';
 
 @Injectable()
 export class BusinessTransactionService {
@@ -207,6 +208,7 @@ export class BusinessTransactionService {
           }));
 
         const resolvedMaterialIds: string[] = [];
+        const resolvedMaterials: any[] = [];
         for (let i = 0; i < dto.indent.items.length; i++) {
           const item = dto.indent.items[i];
           const material = await this.resolveMaterial(
@@ -217,6 +219,7 @@ export class BusinessTransactionService {
             i,
           );
           resolvedMaterialIds.push(material.id);
+          resolvedMaterials.push(material);
         }
 
         // 1. Create Indent record
@@ -240,13 +243,33 @@ export class BusinessTransactionService {
             version: 1,
             isLocked: false,
             indentItems: {
-              create: dto.indent.items.map((item, index) => ({
-                materialId: resolvedMaterialIds[index],
-                quantity: roundTo4Decimals(item.quantity),
-                unitId: item.unitId,
-                remarks: item.remarks || null,
-                status: 'DRAFT',
-              })),
+              create: dto.indent.items.map((item, index) => {
+                const material = resolvedMaterials[index];
+                const unitWeightKg = calculateMaterialWeight({
+                  shape: item.shape || '',
+                  densityKgPerDm3: Number(material.densityKgPerDm3 || 0),
+                  diameterMm: item.diameterMm,
+                  lengthMm: item.lengthMm,
+                  widthMm: item.widthMm,
+                  heightMm: item.heightMm,
+                });
+                const totalWeightKg = safeMultiply(unitWeightKg, item.quantity);
+
+                return {
+                  materialId: material.id,
+                  quantity: roundTo4Decimals(item.quantity),
+                  unitId: item.unitId,
+                  shape: item.shape || null,
+                  diameterMm: item.diameterMm || null,
+                  lengthMm: item.lengthMm || null,
+                  widthMm: item.widthMm || null,
+                  heightMm: item.heightMm || null,
+                  unitWeightKg,
+                  totalWeightKg,
+                  remarks: item.remarks || null,
+                  status: 'DRAFT',
+                };
+              }),
             },
           },
           include: {
@@ -785,6 +808,7 @@ export class BusinessTransactionService {
         });
 
         const resolvedMaterialIds: string[] = [];
+        const resolvedMaterials: any[] = [];
         // 2. Resolve materials and recreate items if provided
         if (dto.indent?.items) {
           if (existing.currentState === WorkflowState.PRODUCTION_PROCESSING) {
@@ -825,18 +849,37 @@ export class BusinessTransactionService {
                 i,
               );
               resolvedMaterialIds.push(material.id);
+              resolvedMaterials.push(material);
             }
 
             // Recreate items
             const createdItems = [];
             for (let i = 0; i < dto.indent.items.length; i++) {
               const item = dto.indent.items[i];
+              const material = resolvedMaterials[i];
+              const unitWeightKg = calculateMaterialWeight({
+                shape: item.shape || '',
+                densityKgPerDm3: Number(material.densityKgPerDm3 || 0),
+                diameterMm: item.diameterMm,
+                lengthMm: item.lengthMm,
+                widthMm: item.widthMm,
+                heightMm: item.heightMm,
+              });
+              const totalWeightKg = safeMultiply(unitWeightKg, item.quantity);
+
               const createdItem = await tx.indentItem.create({
                 data: {
                   indentId: id,
-                  materialId: resolvedMaterialIds[i],
+                  materialId: material.id,
                   quantity: item.quantity,
                   unitId: item.unitId,
+                  shape: item.shape || null,
+                  diameterMm: item.diameterMm || null,
+                  lengthMm: item.lengthMm || null,
+                  widthMm: item.widthMm || null,
+                  heightMm: item.heightMm || null,
+                  unitWeightKg,
+                  totalWeightKg,
                   remarks: item.remarks || null,
                   status: 'DRAFT',
                 },
@@ -1094,8 +1137,9 @@ export class BusinessTransactionService {
     const productionDept = await this.prisma.department.findFirst({
       where: { departmentCode: { in: ['PRODUCTION', 'PROD'] }, isDeleted: false },
     });
-
     const updatedRemarks = `${txData.remarks || ''}\n[MATERIALS_ISSUED] Materials issued from Stores. ${dto.remarks ? `Remarks: ${dto.remarks}` : ''}`;
+    let isFullyIssued = false;
+
     await this.prisma.$transaction(async (prisma) => {
       // 1. Fetch active indent items with Material
       const itemsToIssue = await prisma.indentItem.findMany({
@@ -1103,86 +1147,126 @@ export class BusinessTransactionService {
         include: { material: true },
       });
 
+      let allItemsComplete = true;
+      const issues = dto.issueItems || [];
+
       // 2. Verify stock availability and decrement atomically for non-issued items
       for (const item of itemsToIssue) {
-        if (item.status !== 'ISSUED') {
-          const material = await prisma.material.findUnique({
-            where: { id: item.materialId },
-          });
+        if (item.status === 'ISSUED') {
+          continue;
+        }
 
-          if (!material) {
-            throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
+        let issueQty = 0;
+        if (issues.length > 0) {
+          const issueInput = issues.find((i) => i.materialId === item.materialId);
+          if (issueInput) {
+            issueQty = Number(issueInput.issuedQuantity);
           }
+        } else {
+          issueQty = Number(item.quantity) - Number(item.issuedQuantity);
+        }
 
-          const currentStock = Number(material.currentStock);
-          const requiredQty = Number(item.quantity);
-
-          if (requiredQty <= 0) {
-            throw new BadRequestException(
-              `Invalid quantity for material '${material.materialName}'. Quantity must be greater than zero.`,
-            );
+        if (issueQty <= 0) {
+          const totalIssuedSoFar = Number(item.issuedQuantity);
+          if (totalIssuedSoFar < Number(item.quantity)) {
+            allItemsComplete = false;
           }
+          continue;
+        }
 
-          if (currentStock < requiredQty) {
-            throw new BadRequestException(
-              `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Required: ${requiredQty}`,
-            );
-          }
+        const material = await prisma.material.findUnique({
+          where: { id: item.materialId },
+        });
 
-          const updatedMaterial = await prisma.material.update({
-            where: { id: material.id },
-            data: {
-              currentStock: { decrement: item.quantity },
-              updatedBy: userId,
-            },
-          });
+        if (!material) {
+          throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
+        }
 
-          if (Number(updatedMaterial.currentStock) < 0) {
-            throw new BadRequestException(
-              `Stock cannot be negative for material '${material.materialName}'.`,
-            );
-          }
+        const currentStock = Number(material.currentStock);
+
+        if (currentStock < issueQty) {
+          throw new BadRequestException(
+            `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Trying to issue: ${issueQty}`,
+          );
+        }
+
+        const updatedMaterial = await prisma.material.update({
+          where: { id: material.id },
+          data: {
+            currentStock: { decrement: issueQty },
+            updatedBy: userId,
+          },
+        });
+
+        if (Number(updatedMaterial.currentStock) < 0) {
+          throw new BadRequestException(
+            `Stock cannot be negative for material '${material.materialName}'.`,
+          );
+        }
+
+        const newIssuedQuantity = Number(item.issuedQuantity) + issueQty;
+        const isNowFullyIssued = newIssuedQuantity >= Number(item.quantity);
+
+        await prisma.indentItem.update({
+          where: { id: item.id },
+          data: {
+            issuedQuantity: newIssuedQuantity,
+            status: isNowFullyIssued ? 'ISSUED' : item.status,
+          },
+        });
+
+        if (!isNowFullyIssued) {
+          allItemsComplete = false;
         }
       }
 
-      // 3. State transition with optimistic lock protection
-      await this.assertCurrentStateAndUpdate(
-        id,
-        txData.currentState,
-        {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          remarks: updatedRemarks,
-          updatedBy: userId,
-        },
-        prisma,
-      );
+      isFullyIssued = allItemsComplete;
 
-      // 4. Mark all items as ISSUED
-      await prisma.indentItem.updateMany({
-        where: { indentId: id },
-        data: { status: 'ISSUED' },
-      });
+      if (isFullyIssued) {
+        // 3. State transition with optimistic lock protection
+        await this.assertCurrentStateAndUpdate(
+          id,
+          txData.currentState,
+          {
+            status: prismaTargetStatus,
+            currentState: targetState,
+            remarks: updatedRemarks,
+            updatedBy: userId,
+          },
+          prisma,
+        );
 
-      // 5. Create workflow history record
-      await prisma.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: productionDept ? productionDept.id : txData.departmentId,
-          movedBy: userId,
-          remarks: dto.remarks || 'Stores issued raw materials and dispatched to Production.',
-        },
-      });
+        // 5. Create workflow history record
+        await prisma.workflowHistory.create({
+          data: {
+            indentId: id,
+            toDepartmentId: productionDept ? productionDept.id : txData.departmentId,
+            movedBy: userId,
+            remarks: dto.remarks || 'Stores issued raw materials and dispatched to Production.',
+          },
+        });
+      }
     });
 
-    await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
-    await this.eventService.logAudit(
-      AuditEventType.STORES_ISSUE,
-      id,
-      userId,
-      { state: txData.currentState },
-      { state: targetState, issueRemarks: dto.remarks },
-    );
+    if (isFullyIssued) {
+      await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
+      await this.eventService.logAudit(
+        AuditEventType.STORES_ISSUE,
+        id,
+        userId,
+        { state: txData.currentState },
+        { state: targetState },
+      );
+    } else {
+      // Partial issue audit log
+      await this.eventService.logAudit(
+        AuditEventType.STORES_ISSUE,
+        id,
+        userId,
+        { state: txData.currentState },
+        { state: txData.currentState, partial: true },
+      );
+    }
 
     await this.invalidateWorkflowCache();
     return this.findTransactionForResponse(id);

@@ -1,5 +1,17 @@
 import type { CostSheet } from './costing';
 
+export enum MaterialShape {
+  ROUND = 'ROUND',
+  RECTANGULAR = 'RECTANGULAR',
+  RECTANGLE = 'RECTANGLE',
+  SQUARE = 'SQUARE',
+  PLATE = 'PLATE',
+  CIRCLE = 'CIRCLE',
+  TUBULAR = 'TUBULAR',
+  HEXAGONAL = 'HEXAGONAL',
+  OTHER = 'OTHER',
+}
+
 export enum IndentStatus {
   DRAFT = 'DRAFT',
   SUBMITTED = 'SUBMITTED',
@@ -33,6 +45,13 @@ export interface IndentItem {
   materialId: string;
   quantity: number;
   unitId: string;
+  shape?: MaterialShape;
+  diameterMm?: number;
+  lengthMm?: number;
+  widthMm?: number;
+  heightMm?: number;
+  unitWeightKg?: number;
+  totalWeightKg?: number;
   remarks?: string;
   status?: string;
   createdAt: string;

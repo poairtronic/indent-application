@@ -39,7 +39,7 @@ function toMaterialData(res: MaterialResponse): MaterialData {
     category: res.category ?? '',
     unitOfMeasure: res.unitId,
     unitOfMeasureLabel: res.unitName ?? res.unitId,
-    reorderPoint: res.minStock ?? 0,
+    densityKgPerDm3: res.densityKgPerDm3 ?? undefined,
     isActive: res.status === 'ACTIVE',
   };
 }
@@ -114,7 +114,7 @@ export const MaterialsPage: React.FC = () => {
           materialName: matData.materialName,
           category: matData.category,
           unitId: matData.unitOfMeasure,
-          minStock: matData.reorderPoint,
+          densityKgPerDm3: matData.densityKgPerDm3,
           status: matData.isActive ? 'ACTIVE' : 'INACTIVE',
         };
         return new Promise<void>((resolve, reject) => {
@@ -141,7 +141,7 @@ export const MaterialsPage: React.FC = () => {
         materialName: matData.materialName,
         category: matData.category,
         unitId: matData.unitOfMeasure,
-        minStock: matData.reorderPoint,
+        densityKgPerDm3: matData.densityKgPerDm3,
         status: matData.isActive ? 'ACTIVE' : 'INACTIVE',
       };
       return new Promise<void>((resolve, reject) => {
@@ -206,7 +206,7 @@ export const MaterialsPage: React.FC = () => {
       'Material Name',
       'Category',
       'UOM',
-      'Reorder Point',
+      'Density (kg/dm³)',
       'Status',
     ];
     const rows = filteredMaterials.map((m) => [
@@ -214,7 +214,7 @@ export const MaterialsPage: React.FC = () => {
       `"${m.materialName.replace(/"/g, '""')}"`,
       m.category,
       m.unitOfMeasureLabel,
-      m.reorderPoint.toString(),
+      m.densityKgPerDm3 ? m.densityKgPerDm3.toString() : 'N/A',
       m.isActive ? 'ACTIVE' : 'INACTIVE',
     ]);
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -382,9 +382,11 @@ export const MaterialsPage: React.FC = () => {
                       <span className="font-semibold text-text-primary">{mat.category}</span>
                     </div>
                     <div className="flex justify-between items-center text-text-muted">
-                      <span>Reorder Threshold:</span>
-                      <span className="font-bold text-status-warning">
-                        {mat.reorderPoint} {mat.unitOfMeasureLabel}
+                      <span>Density:</span>
+                      <span className="font-bold text-accent-primary">
+                        {mat.densityKgPerDm3 !== undefined
+                          ? `${mat.densityKgPerDm3} kg/dm³`
+                          : 'Not configured'}
                       </span>
                     </div>
                   </div>

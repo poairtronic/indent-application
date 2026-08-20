@@ -9,6 +9,7 @@ export interface MaterialResponse {
   minStock?: number | null;
   maxStock?: number | null;
   status: 'ACTIVE' | 'INACTIVE';
+  densityKgPerDm3?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +23,7 @@ export interface CreateMaterialPayload {
   minStock?: number;
   maxStock?: number;
   status?: 'ACTIVE' | 'INACTIVE';
+  densityKgPerDm3?: number;
 }
 
 export interface UpdateMaterialPayload {
@@ -33,6 +35,7 @@ export interface UpdateMaterialPayload {
   minStock?: number;
   maxStock?: number;
   status?: 'ACTIVE' | 'INACTIVE';
+  densityKgPerDm3?: number;
 }
 
 export interface MaterialQueryParams {
