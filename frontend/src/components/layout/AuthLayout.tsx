@@ -1,12 +1,15 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
 export const AuthLayout: React.FC = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [searchParams] = useSearchParams();
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    const returnUrl = searchParams.get('returnUrl');
+    const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
+    return <Navigate to={targetPath} replace />;
   }
 
   return (

@@ -79,22 +79,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
     try {
       const payload = {
         indent: {
-          items: data.indent.items.map((item: any, index: number) => ({
-            materialId: indent.items![index].materialId,
-            quantity: item.quantity,
-            unitId: item.unitId,
-            remarks: JSON.stringify({
-              product: item.product,
-              size: item.size,
-              weight: item.weight || '',
-              source: item.source,
-              productionSource: item.productionSource || '',
-              userRemarks: item.remarks || '',
-              processSources: item.processes?.map((p: any) => p.vendorType || '') || [],
-              processProductionSources:
-                item.processes?.map((p: any) => p.productionSource || '') || [],
-            }),
-          })),
+          items: data.indent.items,
         },
       };
       await updateIndent({ id: indent.id, payload: payload as any });

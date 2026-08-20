@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useLogin } from '../../api/services/auth';
-import { useAuthStore } from '../../store/authStore';
 import { useCapsLock } from '../../hooks/useCapsLock';
 import { LogIn, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -46,10 +45,6 @@ function getLoginErrorMessage(error: unknown): string {
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl');
-
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { isCapsLockOn, checkCapsLock, handleBlur } = useCapsLock();
   const loginMutation = useLogin();
 
@@ -71,13 +66,6 @@ export const LoginPage: React.FC = () => {
     },
   });
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
-      navigate(targetPath, { replace: true });
-    }
-  }, [isAuthenticated, navigate, returnUrl]);
-
   const onSubmit = (data: LoginFields) => {
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -93,10 +81,6 @@ export const LoginPage: React.FC = () => {
       {
         onSuccess: () => {
           setSuccessMsg('Login Successful! Redirecting...');
-          setTimeout(() => {
-            const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
-            navigate(targetPath, { replace: true });
-          }, 1000);
         },
         onError: (error: unknown) => {
           const message = getLoginErrorMessage(error);
