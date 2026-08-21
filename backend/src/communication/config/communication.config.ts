@@ -29,7 +29,7 @@ export class CommunicationConfig {
     const host = process.env.SMTP_HOST || 'localhost';
     const port = parseInt(process.env.SMTP_PORT || '587', 10);
     const user = process.env.SMTP_USER || '';
-    const pass = process.env.SMTP_PASSWORD || '';
+    const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '';
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
     const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'adminairtronic@gmail.com';
     const fromName = process.env.SMTP_FROM_NAME || process.env.EMAIL_FROM_NAME || 'MERC';
