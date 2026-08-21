@@ -532,6 +532,8 @@ model Indent {
   productionReceipt  ProductionReceipt?
   history            IndentHistory[]
 
+  @@index([isDeleted, currentState, createdAt])
+  @@index([isDeleted, createdAt])
   @@index([indentNumber])
   @@index([customerName])
   @@index([layoutNumber])

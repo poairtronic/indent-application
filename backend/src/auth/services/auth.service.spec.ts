@@ -29,6 +29,17 @@ describe('AuthService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    userSession: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    activityLog: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+    },
     $transaction: jest.fn((promises) => Promise.all(promises)),
   };
 
@@ -138,17 +149,7 @@ describe('AuthService', () => {
         mockUser,
       );
       expect(mockAccountSecurityService.resetFailedAttempts).toHaveBeenCalledWith(mockUser.id);
-      expect(mockSessionService.createSession).toHaveBeenCalledWith({
-        userId: mockUser.id,
-        sessionToken: 'hashed_refresh_token',
-        refreshToken: 'hashed_refresh_token',
-        ...deviceInfo,
-      });
-      expect(mockLoginHistoryService.recordLogin).toHaveBeenCalledWith({
-        userId: mockUser.id,
-        ...deviceInfo,
-        success: true,
-      });
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if user not found', async () => {

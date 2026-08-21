@@ -104,29 +104,55 @@ export class AuthService {
     const refreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);
 
     const hashedToken = this.tokenService.hashToken(refreshToken);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
-    await Promise.all([
-      this.tokenService.saveRefreshToken(user.id, refreshToken),
-      this.sessionService.createSession({
-        userId: user.id,
-        sessionToken: hashedToken,
-        refreshToken: hashedToken,
-        ipAddress: deviceInfo?.ipAddress || 'unknown',
-        browser: deviceInfo?.browser || 'unknown',
-        operatingSystem: deviceInfo?.operatingSystem || 'unknown',
-        device: deviceInfo?.device || 'unknown',
+    const description = JSON.stringify({
+      ipAddress: deviceInfo?.ipAddress || 'unknown',
+      browser: deviceInfo?.browser || 'unknown',
+      operatingSystem: deviceInfo?.operatingSystem || 'unknown',
+      device: deviceInfo?.device || 'unknown',
+      success: true,
+    });
+
+    // Safely consolidate independent post-login database operations in a single atomic transaction
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.create({
+        data: {
+          userId: user.id,
+          token: hashedToken,
+          expiresAt,
+        },
+      }),
+      this.prisma.userSession.create({
+        data: {
+          userId: user.id,
+          sessionToken: hashedToken,
+          refreshToken: hashedToken,
+          ipAddress: deviceInfo?.ipAddress || 'unknown',
+          browser: deviceInfo?.browser || 'unknown',
+          operatingSystem: deviceInfo?.operatingSystem || 'unknown',
+          device: deviceInfo?.device || 'unknown',
+          status: 'ACTIVE',
+          expiresAt,
+        },
       }),
       this.prisma.user.update({
         where: { id: user.id },
-        data: { lastLogin: new Date() },
+        data: {
+          failedLoginAttempts: 0,
+          lockedAt: null,
+          lockedUntil: null,
+          lastLogin: new Date(),
+        },
       }),
-      this.loginHistoryService.recordLogin({
-        userId: user.id,
-        ipAddress: deviceInfo?.ipAddress || 'unknown',
-        browser: deviceInfo?.browser || 'unknown',
-        operatingSystem: deviceInfo?.operatingSystem || 'unknown',
-        device: deviceInfo?.device || 'unknown',
-        success: true,
+      this.prisma.activityLog.create({
+        data: {
+          userId: user.id,
+          activity: 'LOGIN_SUCCESS',
+          module: 'AUTH',
+          description,
+        },
       }),
     ]);
 
