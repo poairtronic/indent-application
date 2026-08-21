@@ -2,7 +2,6 @@ import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationService } from './communication.service';
-import { CommunicationEventBus, CommunicationEventType } from './events/communication-event.bus';
 import { CommunicationConfig } from './config/communication.config';
 import { QueueService } from './queue/queue.service';
 import { NodemailerProvider } from './providers/nodemailer.provider';

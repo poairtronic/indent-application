@@ -52,7 +52,7 @@ export class QueueProcessor {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(
-        `Error processing job ${payload.jobId}: ${error?.message || error}`,
+        `Error processing job ${payload.jobId} after ${duration}ms: ${error?.message || error}`,
         error?.stack,
       );
 
