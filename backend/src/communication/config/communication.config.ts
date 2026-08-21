@@ -33,7 +33,7 @@ export class CommunicationConfig {
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
     const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'adminairtronic@gmail.com';
     const fromName = process.env.SMTP_FROM_NAME || process.env.EMAIL_FROM_NAME || 'MERC';
-    const timeout = parseInt(process.env.SMTP_TIMEOUT || '5000', 10);
+    const timeout = parseInt(process.env.SMTP_TIMEOUT || '30000', 10);
     const pool = process.env.SMTP_POOL === 'true';
     const maxConnections = parseInt(process.env.SMTP_MAX_CONNECTIONS || '5', 10);
     const maxMessages = parseInt(process.env.SMTP_MAX_MESSAGES || '100', 10);
