@@ -44,7 +44,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.USER_REGISTERED:
           await this.communicationService.sendEmail({
             to: payload.email,
-            subject: 'Welcome to IMCMS ERP Portal',
+            subject: 'Welcome to MERC',
             templateName: 'welcome',
             templateContext: {
               name: `${payload.firstName} ${payload.lastName}`,
@@ -59,7 +59,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.EMAIL_VERIFICATION:
           await this.communicationService.sendEmail({
             to: payload.email,
-            subject: 'Verify Your Email Address',
+            subject: 'Verify Your Email Address - MERC',
             templateName: 'verify_email',
             templateContext: {
               name: payload.name,
@@ -71,7 +71,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.PASSWORD_RESET:
           await this.communicationService.sendEmail({
             to: payload.email,
-            subject: 'Reset Password Request',
+            subject: 'Reset Password Request - MERC',
             templateName: 'password_reset',
             templateContext: {
               name: payload.name,
@@ -83,7 +83,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.PASSWORD_CHANGED:
           await this.communicationService.sendEmail({
             to: payload.email,
-            subject: 'Password Changed Successfully',
+            subject: 'Password Changed Successfully - MERC',
             templateName: 'password_changed',
             templateContext: {
               name: payload.name,
@@ -96,7 +96,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.ACCOUNT_ACTIVATED:
           await this.communicationService.sendEmail({
             to: payload.email,
-            subject: 'Your Account Has Been Activated',
+            subject: 'Your Account Has Been Activated - MERC',
             templateName: 'account_activated',
             templateContext: {
               name: payload.name,
@@ -109,7 +109,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.ACCOUNT_DISABLED:
           await this.communicationService.sendEmail({
             to: payload.email,
-            subject: 'Your Account Has Been Suspended',
+            subject: 'Your Account Has Been Suspended - MERC',
             templateName: 'account_disabled',
             templateContext: {
               name: payload.name,
@@ -124,7 +124,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.INDENT_SUBMITTED:
           await this.communicationService.sendEmail({
             to: { departmentCode: 'DESIGN', roleName: ['Senior Manager', 'General Manager'] }, // resolve designers and managers
-            subject: `Indent Submitted: #${payload.indentNumber}`,
+            subject: `Indent Submitted: #${payload.indentNumber} - MERC`,
             templateName: 'indent_submitted',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -140,7 +140,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.DESIGN_COMPLETED:
           await this.communicationService.sendEmail({
             to: { departmentCode: 'STORES', roleName: ['Senior Manager', 'General Manager'] }, // resolve stores and managers
-            subject: `Design Specs Completed: #${payload.indentNumber}`,
+            subject: `Design Specs Completed: #${payload.indentNumber} - MERC`,
             templateName: 'design_completed',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -155,7 +155,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.STORES_PENDING:
           await this.communicationService.sendEmail({
             to: { departmentCode: 'STORES', roleName: ['Senior Manager', 'General Manager'] },
-            subject: `Stock Check Pending: #${payload.indentNumber}`,
+            subject: `Stock Check Pending: #${payload.indentNumber} - MERC`,
             templateName: 'stores_pending',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -169,7 +169,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.MATERIAL_ISSUED:
           await this.communicationService.sendEmail({
             to: { departmentCode: 'PRODUCTION', roleName: ['Senior Manager', 'General Manager'] }, // notify production and managers
-            subject: `Materials Issued for Indent: #${payload.indentNumber}`,
+            subject: `Materials Issued for Indent: #${payload.indentNumber} - MERC`,
             templateName: 'material_issued',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -184,7 +184,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.PRODUCTION_STARTED:
           await this.communicationService.sendEmail({
             to: { indentId: payload.indentId, roleName: ['Senior Manager', 'General Manager'] }, // notify creator and managers
-            subject: `Production Started: #${payload.indentNumber}`,
+            subject: `Production Started: #${payload.indentNumber} - MERC`,
             templateName: 'production_started',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -198,7 +198,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.PRODUCTION_COMPLETED:
           await this.communicationService.sendEmail({
             to: { departmentCode: 'ACCOUNTS', roleName: ['Senior Manager', 'General Manager'] }, // notify accounts and managers
-            subject: `Production Completed: #${payload.indentNumber}`,
+            subject: `Production Completed: #${payload.indentNumber} - MERC`,
             templateName: 'production_completed',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -215,7 +215,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.FINANCIAL_CLOSURE:
           await this.communicationService.sendEmail({
             to: { roleName: ['Senior Manager', 'General Manager'] }, // notify executives of closure
-            subject: `Financial Closure Completed: #${payload.indentNumber}`,
+            subject: `Financial Closure Completed: #${payload.indentNumber} - MERC`,
             templateName: 'financial_closure',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -232,7 +232,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.ACCOUNTS_COST_VERIFICATION:
           await this.communicationService.sendEmail({
             to: { departmentCode: 'ACCOUNTS', roleName: ['Senior Manager', 'General Manager'] },
-            subject: `Accounts Cost Verification Underway: #${payload.indentNumber}`,
+            subject: `Accounts Cost Verification Underway: #${payload.indentNumber} - MERC`,
             templateName: 'cost_verification',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -247,7 +247,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.ACTUAL_COST_UPDATED:
           await this.communicationService.sendEmail({
             to: { departmentCode: 'ACCOUNTS', roleName: ['Senior Manager', 'General Manager'] },
-            subject: `Actual Cost Updated: #${payload.indentNumber}`,
+            subject: `Actual Cost Updated: #${payload.indentNumber} - MERC`,
             templateName: 'actual_cost_updated',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -265,7 +265,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.TRANSACTION_ARCHIVED:
           await this.communicationService.sendEmail({
             to: { roleName: ['Senior Manager', 'General Manager'] },
-            subject: `Business Transaction Archived: #${payload.indentNumber}`,
+            subject: `Business Transaction Archived: #${payload.indentNumber} - MERC`,
             templateName: 'transaction_archived',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -279,7 +279,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.TRANSACTION_COMPLETED:
           await this.communicationService.sendEmail({
             to: { roleName: ['Senior Manager', 'General Manager'] },
-            subject: `Business Transaction Completed: #${payload.indentNumber}`,
+            subject: `Business Transaction Completed: #${payload.indentNumber} - MERC`,
             templateName: 'transaction_completed',
             templateContext: {
               indentNumber: payload.indentNumber,
@@ -296,7 +296,7 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
         case CommunicationEventType.SYSTEM_ALERT:
           await this.communicationService.sendEmail({
             to: payload.to,
-            subject: `[SYSTEM ALERT] ${payload.alertTitle}`,
+            subject: `[SYSTEM ALERT] ${payload.alertTitle} - MERC`,
             templateName: payload.alertType, // smtp_failure, queue_failure, template_failure
             templateContext: payload.context,
           });

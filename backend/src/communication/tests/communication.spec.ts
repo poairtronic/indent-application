@@ -85,7 +85,7 @@ describe('Enterprise Communication Module', () => {
 
     it('should include the brand name header partial in the layout output', () => {
       const html = engine.render('welcome', { name: 'Sanjay' });
-      expect(html).toContain('IMCMS ERP'); // from header partial file
+      expect(html).toContain('MERC'); // from header partial file
     });
   });
 

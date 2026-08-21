@@ -98,9 +98,11 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
 
     const config = CommunicationConfig.getSmtpConfig();
     const appConfig = CommunicationConfig.getAppMailConfig();
-    const fromString = config.fromName
-      ? `"${config.fromName}" <${payload.meta?.from || config.from}>`
-      : payload.meta?.from || config.from;
+    const fromName = config.fromName || appConfig.appName || 'MERC';
+    const fromEmail = payload.meta?.from || config.from || 'adminairtronic@gmail.com';
+    const fromString = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
+    const replyTo =
+      payload.replyTo || appConfig.replyTo || fromEmail || 'adminairtronic@gmail.com';
 
     const mailOptions: nodemailer.SendMailOptions = {
       from: fromString,
@@ -108,7 +110,7 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
       subject: payload.subject,
       text: payload.body,
       html: payload.html || undefined,
-      replyTo: payload.replyTo || appConfig.replyTo,
+      replyTo,
       cc: payload.cc || undefined,
       bcc: payload.bcc || undefined,
       attachments: payload.attachments?.map((att) => ({

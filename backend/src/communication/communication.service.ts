@@ -60,7 +60,7 @@ export class CommunicationService {
     const correlationId = options.correlationId || crypto.randomUUID();
 
     // 2. Pre-save log records in QUEUED state
-    const bodyText = `IMCMS Notification. Please view in HTML mode.`;
+    const bodyText = `MERC Notification. Please view in HTML mode.`;
     const emailLogIds = await this.saveEmailLogs(jobId, recipients, options, bodyText, 'QUEUED');
     observabilityEventBus.emit('notification.event', { action: 'created', success: true });
 

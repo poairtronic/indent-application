@@ -37,7 +37,7 @@ export class QueueProcessor {
       const mailPayload: any = {
         to: payload.recipients,
         subject: payload.subject,
-        body: `IMCMS Notification. Please view in HTML mode.`,
+        body: `MERC Notification. Please view in HTML mode.`,
         html,
         attachments: payload.attachments,
       };

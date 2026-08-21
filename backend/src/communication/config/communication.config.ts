@@ -31,8 +31,10 @@ export class CommunicationConfig {
     const user = process.env.SMTP_USER || '';
     const pass = process.env.SMTP_PASSWORD || '';
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    const from = process.env.SMTP_FROM || 'noreply@imcms.com';
-    const fromName = process.env.SMTP_FROM_NAME || undefined;
+    const from =
+      process.env.SMTP_FROM || process.env.EMAIL_FROM || 'adminairtronic@gmail.com';
+    const fromName =
+      process.env.SMTP_FROM_NAME || process.env.EMAIL_FROM_NAME || 'MERC';
     const timeout = parseInt(process.env.SMTP_TIMEOUT || '5000', 10);
     const pool = process.env.SMTP_POOL === 'true';
     const maxConnections = parseInt(process.env.SMTP_MAX_CONNECTIONS || '5', 10);
@@ -67,11 +69,20 @@ export class CommunicationConfig {
   }
 
   public static getAppMailConfig(): IAppMailConfig {
+    const from =
+      process.env.SMTP_FROM || process.env.EMAIL_FROM || 'adminairtronic@gmail.com';
     return {
-      appName: process.env.APP_NAME || 'IMCMS ERP',
+      appName: process.env.APP_NAME || 'MERC',
       appUrl: process.env.APP_URL || 'http://localhost:3000',
-      replyTo: process.env.MAIL_REPLY_TO || process.env.SMTP_FROM,
-      supportEmail: process.env.MAIL_SUPPORT || 'support@imcms.com',
+      replyTo:
+        process.env.EMAIL_REPLY_TO ||
+        process.env.MAIL_REPLY_TO ||
+        from ||
+        'adminairtronic@gmail.com',
+      supportEmail:
+        process.env.SUPPORT_EMAIL ||
+        process.env.MAIL_SUPPORT ||
+        'adminairtronic@gmail.com',
     };
   }
 

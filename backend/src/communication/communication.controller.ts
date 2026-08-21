@@ -80,7 +80,7 @@ export class CommunicationController {
   async sendTestEmail(@Body() dto: TestEmailDto) {
     const result = await this.communicationService.sendEmail({
       to: dto.to,
-      subject: dto.subject || 'IMCMS SMTP Integration Test Confirmation',
+      subject: dto.subject || 'MERC SMTP Integration Test Confirmation',
       templateName: 'welcome',
       templateContext: {
         name: 'Test User',

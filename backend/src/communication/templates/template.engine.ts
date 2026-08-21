@@ -32,7 +32,7 @@ const INLINE_LAYOUT = `
 `;
 
 const INLINE_HEADER = `<h2>{{appName}} Notification</h2>`;
-const INLINE_FOOTER = `<p>&copy; {{currentYear}} {{appName}}. Support: {{supportEmail}}</p>`;
+const INLINE_FOOTER = `<p>&copy; {{currentYear}} MERC Enterprise Systems. Support: <a href="mailto:{{supportEmail}}">{{supportEmail}}</a></p>`;
 
 const INLINE_TEMPLATES: Record<string, string> = {
   welcome: `<h2>Welcome, {{name}}!</h2><p>Employee Code: {{employeeCode}}</p><a href="{{loginUrl}}" class="btn">Get Started</a>`,
