@@ -45,19 +45,21 @@ export function calculatePrismaticWeight(
 export function calculateMaterialWeight(params: WeightCalculationParams): number {
   const { shape, densityKgPerDm3, diameterMm, lengthMm, widthMm, heightMm } = params;
 
-  if (!densityKgPerDm3 || densityKgPerDm3 <= 0) {
+  const numDensity = Number(densityKgPerDm3);
+
+  if (!numDensity || numDensity <= 0) {
     return 0;
   }
 
   switch (shape?.toUpperCase()) {
     case MaterialShape.ROUND:
     case 'CIRCLE':
-      return calculateRoundWeight(diameterMm || 0, lengthMm || 0, densityKgPerDm3);
+      return calculateRoundWeight(diameterMm || 0, lengthMm || 0, numDensity);
     case MaterialShape.PLATE:
     case MaterialShape.RECTANGLE:
     case 'RECTANGULAR':
     case MaterialShape.SQUARE:
-      return calculatePrismaticWeight(lengthMm || 0, widthMm || 0, heightMm || 0, densityKgPerDm3);
+      return calculatePrismaticWeight(lengthMm || 0, widthMm || 0, heightMm || 0, numDensity);
     default:
       return 0;
   }

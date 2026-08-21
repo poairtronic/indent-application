@@ -1387,7 +1387,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 {(() => {
                   const shape = watchedItems?.[index]?.shape;
                   const material = materialsList.find(
-                    (m) => m.materialName === watchedItems?.[index]?.materialName,
+                    (m) => m.materialName.toLowerCase() === watchedItems?.[index]?.materialName?.toLowerCase(),
                   );
                   const density = material?.densityKgPerDm3 || 0;
                   const diameter = watchedItems?.[index]?.diameterMm;
