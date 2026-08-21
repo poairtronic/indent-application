@@ -9,11 +9,7 @@ import {
   useUnreadNotificationCount,
 } from '../api/services/notifications/hooks';
 import {
-  useAnalyticsSummary,
-  useWorkflowAnalytics,
-  useDepartmentAnalytics,
-  useCostAnalytics,
-  useProductAnalytics,
+  useDashboardOverview,
 } from '../modules/analytics/hooks/useAnalytics';
 import { useAuditLogs } from '../api/services/audit/hooks';
 import { QuickActionCard } from '../components/ui/Cards';
@@ -74,17 +70,19 @@ export const DashboardPage: React.FC = () => {
     return filterNotificationsForUser(items, user);
   }, [notificationsData?.items, user]);
 
-  // Fetch summary and analytics metrics via React Query
+  // Fetch consolidated dashboard analytics metrics in 1 single HTTP request
   const hasAnalyticsAccess = useAuthStore((s) => s.hasAnyPermission(['analytics.view']));
   const hasAuditAccess = useAuthStore((s) => s.hasAnyPermission(['audit.view']));
   const hasIndentCreate = useAuthStore((s) => s.hasAnyPermission(['indent.create']));
   const hasIndentView = useAuthStore((s) => s.hasAnyPermission(['indent.view']));
 
-  const { data: summary } = useAnalyticsSummary(hasAnalyticsAccess);
-  const { data: workflowData } = useWorkflowAnalytics(hasAnalyticsAccess);
-  const { data: departmentData } = useDepartmentAnalytics(hasAnalyticsAccess);
-  const { data: costsData } = useCostAnalytics(undefined, hasAnalyticsAccess);
-  const { data: productsData } = useProductAnalytics(undefined, hasAnalyticsAccess);
+  const { data: dashboardOverview } = useDashboardOverview(hasAnalyticsAccess);
+
+  const summary = dashboardOverview?.summary;
+  const workflowData = dashboardOverview?.workflow;
+  const departmentData = dashboardOverview?.departments;
+  const costsData = dashboardOverview?.costs;
+  const productsData = dashboardOverview?.products;
 
   const { data: auditData, isLoading: isAuditLoading } = useAuditLogs(
     {

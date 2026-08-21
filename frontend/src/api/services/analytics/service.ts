@@ -71,6 +71,16 @@ class AnalyticsService extends BaseService {
     const query = cleanQueryParams(params);
     return this.getRaw<any>('/analytics/insights', query);
   }
+
+  async getDashboardOverview(): Promise<{
+    summary: AnalyticsSummary;
+    workflow: WorkflowAnalytics;
+    departments: DepartmentAnalytics;
+    costs: CostAnalytics;
+    products: ProductAnalytics;
+  }> {
+    return this.getRaw('/analytics/dashboard-overview');
+  }
 }
 
 export const analyticsService = new AnalyticsService();

@@ -721,4 +721,33 @@ export class AnalyticsService {
       generatedAt: new Date(),
     };
   }
+
+  /**
+   * Consolidated Dashboard Overview
+   * Combines summary, workflow, departments, costs, and products into a single parallel operation.
+   */
+  public async getDashboardOverview(): Promise<{
+    summary: IExecutiveSummary;
+    workflow: IWorkflowAnalytics;
+    departments: IDepartmentAnalytics;
+    costs: ICostAnalytics;
+    products: IProductAnalytics;
+  }> {
+    this.logger.log('Computing consolidated dashboard overview analytics');
+    const [summary, workflow, departments, costs, products] = await Promise.all([
+      this.getExecutiveSummary(),
+      this.getWorkflowAnalytics(),
+      this.getDepartmentAnalytics(),
+      this.getCostAnalytics(),
+      this.getProductAnalytics(50),
+    ]);
+
+    return {
+      summary,
+      workflow,
+      departments,
+      costs,
+      products,
+    };
+  }
 }

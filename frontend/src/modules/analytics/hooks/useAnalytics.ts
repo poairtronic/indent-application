@@ -12,4 +12,5 @@ export {
   useVendorAnalytics,
   useKpis,
   useInsights,
+  useDashboardOverview,
 } from '../../../api/services/analytics/hooks';

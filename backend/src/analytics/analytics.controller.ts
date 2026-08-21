@@ -124,4 +124,16 @@ export class AnalyticsController {
   async getVendorAnalytics(@Query() query: VendorAnalyticsQueryDto) {
     return this.analyticsService.getVendorAnalytics(query.limit ?? 50);
   }
+
+  /**
+   * GET /analytics/dashboard-overview
+   * Consolidated Executive Dashboard Overview.
+   * Single call replacing 5 parallel analytics network round-trips.
+   */
+  @Get('dashboard-overview')
+  @Permissions('analytics.view')
+  @Cache('analytics:dashboard-overview', 60)
+  async getDashboardOverview() {
+    return this.analyticsService.getDashboardOverview();
+  }
 }

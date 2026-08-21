@@ -73,3 +73,12 @@ export function useInsights(params?: any, enabled?: boolean) {
     enabled: enabled !== undefined ? enabled : true,
   });
 }
+
+export function useDashboardOverview(enabled?: boolean) {
+  return useQuery({
+    queryKey: ['analytics', 'dashboard-overview'],
+    queryFn: () => analyticsService.getDashboardOverview(),
+    staleTime: 60 * 1000,
+    enabled: enabled !== undefined ? enabled : true,
+  });
+}
