@@ -8,6 +8,7 @@ export function useNotifications(params?: NotificationQueryParams, enabled?: boo
     queryKey: [...queryKeys.notifications.list('notifications'), params],
     queryFn: () => notificationService.list(params),
     enabled: enabled !== undefined ? enabled : true,
+    staleTime: 30000,
     retry: false,
   });
 }

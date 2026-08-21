@@ -44,12 +44,7 @@ const DEPT_EVENT_MAP: Record<string, string[]> = {
     'PRODUCTION_COMPLETED',
     'DOCUMENT_UPLOADED',
   ],
-  PROD: [
-    'MATERIAL_ISSUED',
-    'PRODUCTION_STARTED',
-    'PRODUCTION_COMPLETED',
-    'DOCUMENT_UPLOADED',
-  ],
+  PROD: ['MATERIAL_ISSUED', 'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED', 'DOCUMENT_UPLOADED'],
   ACCOUNTS: [
     'PRODUCTION_COMPLETED',
     'ACCOUNTS_COST_VERIFICATION',
@@ -204,7 +199,16 @@ export class NotificationsController {
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limitNum,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          message: true,
+          eventType: true,
+          type: true,
+          referenceModule: true,
+          referenceId: true,
+          createdBy: true,
+          createdAt: true,
           recipients: {
             where: { userId, isDeleted: false },
             select: { isRead: true, readAt: true },

@@ -8,5 +8,7 @@ export function useAuditLogs(params?: AuditLogQueryParams, enabled?: boolean) {
     queryKey: [...queryKeys.audit.list('audit'), params],
     queryFn: () => auditService.list(params),
     enabled,
+    staleTime: 30000,
+    retry: false,
   });
 }

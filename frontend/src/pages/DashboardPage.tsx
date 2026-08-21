@@ -8,9 +8,7 @@ import {
   useMarkAllNotificationsRead,
   useUnreadNotificationCount,
 } from '../api/services/notifications/hooks';
-import {
-  useDashboardOverview,
-} from '../modules/analytics/hooks/useAnalytics';
+import { useDashboardOverview } from '../modules/analytics/hooks/useAnalytics';
 import { useAuditLogs } from '../api/services/audit/hooks';
 import { QuickActionCard } from '../components/ui/Cards';
 import { ActivityTimeline, WorkflowTimeline } from '../components/ui/DataTimeline';

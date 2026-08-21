@@ -1,0 +1,1480 @@
+{
+  "timestamp": "2026-08-21T10:16:30.185Z",
+  "loginStats": {
+    "count": 5,
+    "min": 2219.6119,
+    "max": 3843.232899999999,
+    "avg": 3350.87546,
+    "p50": 3548.1422000000002,
+    "p75": 3708.9867999999997,
+    "p90": 3843.232899999999,
+    "p95": 3843.232899999999,
+    "p99": 3843.232899999999,
+    "avgSize": 0
+  },
+  "coldDashboard": {
+    "total": 2785.2655000000013,
+    "endpoints": [
+      {
+        "name": "Analytics Summary",
+        "path": "/analytics/summary",
+        "duration": 1107.4798999999985,
+        "status": 200,
+        "size": 572
+      },
+      {
+        "name": "Workflow Analytics",
+        "path": "/analytics/workflow",
+        "duration": 1544.207699999999,
+        "status": 200,
+        "size": 818
+      },
+      {
+        "name": "Department Analytics",
+        "path": "/analytics/departments",
+        "duration": 1364.1532000000007,
+        "status": 200,
+        "size": 1578
+      },
+      {
+        "name": "Cost Analytics",
+        "path": "/analytics/costs",
+        "duration": 1834.910200000002,
+        "status": 200,
+        "size": 434
+      },
+      {
+        "name": "Product Analytics",
+        "path": "/analytics/products?limit=50",
+        "duration": 1807.3521,
+        "status": 200,
+        "size": 3580
+      },
+      {
+        "name": "Notifications List",
+        "path": "/notifications?page=1&limit=5",
+        "duration": 1911.260199999997,
+        "status": 200,
+        "size": 2849
+      },
+      {
+        "name": "Unread Notification Count",
+        "path": "/notifications/unread-count",
+        "duration": 2045.3176999999996,
+        "status": 200,
+        "size": 138
+      },
+      {
+        "name": "Audit Logs",
+        "path": "/audit-logs?page=1&limit=5&sortBy=createdAt&sortOrder=desc",
+        "duration": 2780.6168,
+        "status": 200,
+        "size": 2540
+      }
+    ]
+  },
+  "warmDashboard": {
+    "total": {
+      "count": 5,
+      "min": 1869.9727999999996,
+      "max": 2594.4353999999985,
+      "avg": 2026.1601200000005,
+      "p50": 1872.3085000000028,
+      "p75": 1923.5202000000027,
+      "p90": 2594.4353999999985,
+      "p95": 2594.4353999999985,
+      "p99": 2594.4353999999985,
+      "avgSize": 0
+    },
+    "endpointStats": {
+      "/analytics/summary": {
+        "durations": [
+          613.5707000000002,
+          614.6157999999996,
+          614.5517999999975,
+          615.9363000000012,
+          850.461299999999
+        ],
+        "sizes": [
+          572,
+          572,
+          572,
+          572,
+          572
+        ]
+      },
+      "/analytics/workflow": {
+        "durations": [
+          613.8604000000014,
+          614.6335999999974,
+          615.3068999999996,
+          615.8693999999996,
+          850.5023000000001
+        ],
+        "sizes": [
+          818,
+          818,
+          818,
+          818,
+          818
+        ]
+      },
+      "/analytics/departments": {
+        "durations": [
+          637.2530000000006,
+          639.3858999999975,
+          641.4788000000008,
+          640.0008000000016,
+          852.3376000000026
+        ],
+        "sizes": [
+          1578,
+          1578,
+          1578,
+          1578,
+          1578
+        ]
+      },
+      "/analytics/costs": {
+        "durations": [
+          635.0995999999977,
+          637.9480000000003,
+          639.0452000000005,
+          638.4293999999973,
+          850.7766999999985
+        ],
+        "sizes": [
+          434,
+          434,
+          434,
+          434,
+          434
+        ]
+      },
+      "/analytics/products?limit=50": {
+        "durations": [
+          636.7178999999996,
+          638.758600000001,
+          641.2929000000004,
+          639.9101999999984,
+          852.1072999999997
+        ],
+        "sizes": [
+          3580,
+          3580,
+          3580,
+          3580,
+          3580
+        ]
+      },
+      "/notifications?page=1&limit=5": {
+        "durations": [
+          2592.7598999999973,
+          1921.145700000001,
+          1869.7006000000001,
+          1871.2991000000002,
+          1868.9770000000026
+        ],
+        "sizes": [
+          2849,
+          2849,
+          2849,
+          2849,
+          2849
+        ]
+      },
+      "/notifications/unread-count": {
+        "durations": [
+          828.2109999999993,
+          830.530999999999,
+          831.277399999999,
+          830.7692000000025,
+          850.5557000000008
+        ],
+        "sizes": [
+          138,
+          138,
+          138,
+          138,
+          138
+        ]
+      },
+      "/audit-logs?page=1&limit=5&sortBy=createdAt&sortOrder=desc": {
+        "durations": [
+          1850.9030999999995,
+          1870.056199999999,
+          1856.2387000000017,
+          1859.1797000000006,
+          1854.3040999999976
+        ],
+        "sizes": [
+          2540,
+          2540,
+          2540,
+          2540,
+          2540
+        ]
+      }
+    }
+  },
+  "fullApiResults": [
+    {
+      "method": "GET",
+      "path": "/analytics/summary",
+      "status": 200,
+      "count": 4,
+      "min": 436.5563000000002,
+      "max": 439.2641999999978,
+      "avg": 437.7641249999997,
+      "p50": 438.47190000000046,
+      "p75": 439.2641999999978,
+      "p90": 439.2641999999978,
+      "p95": 439.2641999999978,
+      "p99": 439.2641999999978,
+      "avgSize": 572
+    },
+    {
+      "method": "GET",
+      "path": "/analytics/workflow",
+      "status": 200,
+      "count": 4,
+      "min": 436.77769999999873,
+      "max": 440.0529999999999,
+      "avg": 437.82824999999957,
+      "p50": 437.4480000000003,
+      "p75": 440.0529999999999,
+      "p90": 440.0529999999999,
+      "p95": 440.0529999999999,
+      "p99": 440.0529999999999,
+      "avgSize": 818
+    },
+    {
+      "method": "GET",
+      "path": "/analytics/departments",
+      "status": 200,
+      "count": 4,
+      "min": 437.06900000000314,
+      "max": 438.32820000000356,
+      "avg": 437.90962500000205,
+      "p50": 438.19550000000163,
+      "p75": 438.32820000000356,
+      "p90": 438.32820000000356,
+      "p95": 438.32820000000356,
+      "p99": 438.32820000000356,
+      "avgSize": 1578
+    },
+    {
+      "method": "GET",
+      "path": "/analytics/costs",
+      "status": 200,
+      "count": 4,
+      "min": 437.8987999999954,
+      "max": 442.2734000000055,
+      "avg": 439.3724250000014,
+      "p50": 438.89270000000397,
+      "p75": 442.2734000000055,
+      "p90": 442.2734000000055,
+      "p95": 442.2734000000055,
+      "p99": 442.2734000000055,
+      "avgSize": 434
+    },
+    {
+      "method": "GET",
+      "path": "/analytics/products?limit=50",
+      "status": 200,
+      "count": 4,
+      "min": 439.84769999999844,
+      "max": 444.28919999999925,
+      "avg": 441.8525499999996,
+      "p50": 442.5216999999975,
+      "p75": 444.28919999999925,
+      "p90": 444.28919999999925,
+      "p95": 444.28919999999925,
+      "p99": 444.28919999999925,
+      "avgSize": 3580
+    },
+    {
+      "method": "GET",
+      "path": "/analytics/vendors?limit=50",
+      "status": 200,
+      "count": 4,
+      "min": 439.1006999999954,
+      "max": 1171.7911999999997,
+      "avg": 623.6776250000003,
+      "p50": 443.6542000000045,
+      "p75": 1171.7911999999997,
+      "p90": 1171.7911999999997,
+      "p95": 1171.7911999999997,
+      "p99": 1171.7911999999997,
+      "avgSize": 246
+    },
+    {
+      "method": "GET",
+      "path": "/analytics/kpis",
+      "status": 200,
+      "count": 4,
+      "min": 437.23189999999886,
+      "max": 2891.4570999999996,
+      "avg": 1055.0882499999989,
+      "p50": 450.3245999999999,
+      "p75": 2891.4570999999996,
+      "p90": 2891.4570999999996,
+      "p95": 2891.4570999999996,
+      "p99": 2891.4570999999996,
+      "avgSize": 3815
+    },
+    {
+      "method": "GET",
+      "path": "/analytics/insights",
+      "status": 200,
+      "count": 4,
+      "min": 436.8304999999964,
+      "max": 3424.5799000000043,
+      "avg": 1186.506075000003,
+      "p50": 445.62190000000555,
+      "p75": 3424.5799000000043,
+      "p90": 3424.5799000000043,
+      "p95": 3424.5799000000043,
+      "p99": 3424.5799000000043,
+      "avgSize": 2303
+    },
+    {
+      "method": "GET",
+      "path": "/indents?page=1&limit=10",
+      "status": 404,
+      "count": 4,
+      "min": 1.3726999999998952,
+      "max": 4.3752000000022235,
+      "avg": 2.8258500000010827,
+      "p50": 3.8205999999991036,
+      "p75": 4.3752000000022235,
+      "p90": 4.3752000000022235,
+      "p95": 4.3752000000022235,
+      "p99": 4.3752000000022235,
+      "avgSize": 199
+    },
+    {
+      "method": "GET",
+      "path": "/cost-sheets?page=1&limit=10",
+      "status": 404,
+      "count": 4,
+      "min": 1.7615000000005239,
+      "max": 3.0324000000036904,
+      "avg": 2.35372500000085,
+      "p50": 2.4408000000039465,
+      "p75": 3.0324000000036904,
+      "p90": 3.0324000000036904,
+      "p95": 3.0324000000036904,
+      "p99": 3.0324000000036904,
+      "avgSize": 211
+    },
+    {
+      "method": "GET",
+      "path": "/workflow/indents",
+      "status": 404,
+      "count": 4,
+      "min": 1.902299999994284,
+      "max": 3.143900000002759,
+      "avg": 2.379449999998542,
+      "p50": 2.525500000003376,
+      "p75": 3.143900000002759,
+      "p90": 3.143900000002759,
+      "p95": 3.143900000002759,
+      "p99": 3.143900000002759,
+      "avgSize": 178
+    },
+    {
+      "method": "GET",
+      "path": "/workflow/stages",
+      "status": 404,
+      "count": 4,
+      "min": 1.8989999999976135,
+      "max": 2.7518999999956577,
+      "avg": 2.462649999999485,
+      "p50": 2.657100000003993,
+      "p75": 2.7518999999956577,
+      "p90": 2.7518999999956577,
+      "p95": 2.7518999999956577,
+      "p99": 2.7518999999956577,
+      "avgSize": 175
+    },
+    {
+      "method": "GET",
+      "path": "/production/queue",
+      "status": 404,
+      "count": 4,
+      "min": 1.9645999999993364,
+      "max": 2.4941000000035274,
+      "avg": 2.2507000000005064,
+      "p50": 2.3998999999967054,
+      "p75": 2.4941000000035274,
+      "p90": 2.4941000000035274,
+      "p95": 2.4941000000035274,
+      "p99": 2.4941000000035274,
+      "avgSize": 178
+    },
+    {
+      "method": "GET",
+      "path": "/production/receipts",
+      "status": 404,
+      "count": 4,
+      "min": 1.7422000000005937,
+      "max": 3.5273999999990338,
+      "avg": 2.3786999999992986,
+      "p50": 2.1252999999996973,
+      "p75": 3.5273999999990338,
+      "p90": 3.5273999999990338,
+      "p95": 3.5273999999990338,
+      "p99": 3.5273999999990338,
+      "avgSize": 187
+    },
+    {
+      "method": "GET",
+      "path": "/materials?page=1&limit=10",
+      "status": 200,
+      "count": 4,
+      "min": 441.46919999999955,
+      "max": 2425.921300000002,
+      "avg": 941.6403250000003,
+      "p50": 456.1316000000006,
+      "p75": 2425.921300000002,
+      "p90": 2425.921300000002,
+      "p95": 2425.921300000002,
+      "p99": 2425.921300000002,
+      "avgSize": 8221
+    },
+    {
+      "method": "GET",
+      "path": "/products?page=1&limit=10",
+      "status": 200,
+      "count": 4,
+      "min": 437.1405999999988,
+      "max": 441.2992000000013,
+      "avg": 438.577299999999,
+      "p50": 438.2379000000001,
+      "p75": 441.2992000000013,
+      "p90": 441.2992000000013,
+      "p95": 441.2992000000013,
+      "p99": 441.2992000000013,
+      "avgSize": 3976
+    },
+    {
+      "method": "GET",
+      "path": "/manufacturing-processes?page=1&limit=10",
+      "status": 200,
+      "count": 4,
+      "min": 436.64949999999953,
+      "max": 447.87539999999717,
+      "avg": 443.75722499999756,
+      "p50": 447.475099999996,
+      "p75": 447.87539999999717,
+      "p90": 447.87539999999717,
+      "p95": 447.87539999999717,
+      "p99": 447.87539999999717,
+      "avgSize": 1320
+    },
+    {
+      "method": "GET",
+      "path": "/units?page=1&limit=10",
+      "status": 200,
+      "count": 4,
+      "min": 437.3294999999998,
+      "max": 1182.019100000005,
+      "avg": 624.3026499999996,
+      "p50": 440.2114999999976,
+      "p75": 1182.019100000005,
+      "p90": 1182.019100000005,
+      "p95": 1182.019100000005,
+      "p99": 1182.019100000005,
+      "avgSize": 718
+    },
+    {
+      "method": "GET",
+      "path": "/vendors?page=1&limit=10",
+      "status": 200,
+      "count": 4,
+      "min": 437.8649000000005,
+      "max": 941.7031999999963,
+      "avg": 564.270349999997,
+      "p50": 439.2259999999951,
+      "p75": 941.7031999999963,
+      "p90": 941.7031999999963,
+      "p95": 941.7031999999963,
+      "p99": 941.7031999999963,
+      "avgSize": 595
+    },
+    {
+      "method": "GET",
+      "path": "/reports?page=1&limit=10",
+      "status": 404,
+      "count": 4,
+      "min": 1.5311999999976251,
+      "max": 2.26589999999851,
+      "avg": 1.8082999999969616,
+      "p50": 1.7199999999938882,
+      "p75": 2.26589999999851,
+      "p90": 2.26589999999851,
+      "p95": 2.26589999999851,
+      "p99": 2.26589999999851,
+      "avgSize": 199
+    },
+    {
+      "method": "GET",
+      "path": "/reports/statistics",
+      "status": 404,
+      "count": 4,
+      "min": 1.9007999999957974,
+      "max": 2.100399999995716,
+      "avg": 1.9728749999958382,
+      "p50": 1.967399999994086,
+      "p75": 2.100399999995716,
+      "p90": 2.100399999995716,
+      "p95": 2.100399999995716,
+      "p99": 2.100399999995716,
+      "avgSize": 184
+    },
+    {
+      "method": "GET",
+      "path": "/notifications?page=1&limit=20",
+      "status": 200,
+      "count": 4,
+      "min": 1693.4940999999963,
+      "max": 2824.3571999999986,
+      "avg": 1977.337375000001,
+      "p50": 1695.823900000003,
+      "p75": 2824.3571999999986,
+      "p90": 2824.3571999999986,
+      "p95": 2824.3571999999986,
+      "p99": 2824.3571999999986,
+      "avgSize": 10920
+    },
+    {
+      "method": "GET",
+      "path": "/notifications/unread-count",
+      "status": 200,
+      "count": 4,
+      "min": 437.0987000000023,
+      "max": 452.29580000000715,
+      "avg": 445.28185000000303,
+      "p50": 446.8081999999995,
+      "p75": 452.29580000000715,
+      "p90": 452.29580000000715,
+      "p95": 452.29580000000715,
+      "p99": 452.29580000000715,
+      "avgSize": 138
+    },
+    {
+      "method": "GET",
+      "path": "/users?page=1&limit=10",
+      "status": 200,
+      "count": 4,
+      "min": 967.7131999999983,
+      "max": 2018.335699999996,
+      "avg": 1417.829600000001,
+      "p50": 1714.119000000006,
+      "p75": 2018.335699999996,
+      "p90": 2018.335699999996,
+      "p95": 2018.335699999996,
+      "p99": 2018.335699999996,
+      "avgSize": 4895
+    },
+    {
+      "method": "GET",
+      "path": "/roles",
+      "status": 200,
+      "count": 4,
+      "min": 966.2356999999902,
+      "max": 1471.2044999999925,
+      "avg": 1093.5336749999915,
+      "p50": 969.313599999994,
+      "p75": 1471.2044999999925,
+      "p90": 1471.2044999999925,
+      "p95": 1471.2044999999925,
+      "p99": 1471.2044999999925,
+      "avgSize": 41075
+    },
+    {
+      "method": "GET",
+      "path": "/permissions",
+      "status": 200,
+      "count": 4,
+      "min": 437.7817000000068,
+      "max": 941.8106999999873,
+      "avg": 565.3119749999969,
+      "p50": 441.09649999999965,
+      "p75": 941.8106999999873,
+      "p90": 941.8106999999873,
+      "p95": 941.8106999999873,
+      "p99": 941.8106999999873,
+      "avgSize": 20370
+    },
+    {
+      "method": "GET",
+      "path": "/departments",
+      "status": 200,
+      "count": 4,
+      "min": 446.76149999999325,
+      "max": 458.8851999999897,
+      "avg": 450.2117749999925,
+      "p50": 448.1670999999915,
+      "p75": 458.8851999999897,
+      "p90": 458.8851999999897,
+      "p95": 458.8851999999897,
+      "p99": 458.8851999999897,
+      "avgSize": 2674
+    },
+    {
+      "method": "GET",
+      "path": "/audit-logs?page=1&limit=20",
+      "status": 200,
+      "count": 4,
+      "min": 1431.7853999999934,
+      "max": 2188.6884999999893,
+      "avg": 1686.8924749999933,
+      "p50": 1682.1630000000005,
+      "p75": 2188.6884999999893,
+      "p90": 2188.6884999999893,
+      "p95": 2188.6884999999893,
+      "p99": 2188.6884999999893,
+      "avgSize": 10899
+    },
+    {
+      "method": "GET",
+      "path": "/auth/sessions",
+      "status": 200,
+      "count": 4,
+      "min": 470.4915000000037,
+      "max": 716.863400000002,
+      "avg": 537.9482750000025,
+      "p50": 493.85080000000016,
+      "p75": 716.863400000002,
+      "p90": 716.863400000002,
+      "p95": 716.863400000002,
+      "p99": 716.863400000002,
+      "avgSize": 7495
+    },
+    {
+      "method": "GET",
+      "path": "/auth/login-history",
+      "status": 200,
+      "count": 4,
+      "min": 469.88270000000193,
+      "max": 718.6177000000025,
+      "avg": 535.4926000000014,
+      "p50": 478.5933999999979,
+      "p75": 718.6177000000025,
+      "p90": 718.6177000000025,
+      "p95": 718.6177000000025,
+      "p99": 718.6177000000025,
+      "avgSize": 12004
+    },
+    {
+      "method": "GET",
+      "path": "/observability/metrics",
+      "status": 200,
+      "count": 4,
+      "min": 221.7774999999965,
+      "max": 259.7259000000049,
+      "avg": 233.2143249999972,
+      "p50": 228.36449999999604,
+      "p75": 259.7259000000049,
+      "p90": 259.7259000000049,
+      "p95": 259.7259000000049,
+      "p99": 259.7259000000049,
+      "avgSize": 11586
+    }
+  ],
+  "concurrencyResults": [
+    {
+      "concurrency": 1,
+      "totalRequests": 4,
+      "rps": 1.9819129632021708,
+      "errors": 0,
+      "count": 4,
+      "min": 436.1677000000054,
+      "max": 698.3139000000083,
+      "avg": 504.5107500000049,
+      "p50": 445.4426999999996,
+      "p75": 698.3139000000083,
+      "p90": 698.3139000000083,
+      "p95": 698.3139000000083,
+      "p99": 698.3139000000083,
+      "avgSize": 0
+    },
+    {
+      "concurrency": 5,
+      "totalRequests": 20,
+      "rps": 10.060351545906325,
+      "errors": 4,
+      "count": 20,
+      "min": 2.625800000008894,
+      "max": 646.6530000000057,
+      "avg": 390.45778500000085,
+      "p50": 452.5411999999924,
+      "p75": 472.75040000000445,
+      "p90": 642.3585000000021,
+      "p95": 646.6530000000057,
+      "p99": 646.6530000000057,
+      "avgSize": 0
+    },
+    {
+      "concurrency": 10,
+      "totalRequests": 40,
+      "rps": 611.941737027266,
+      "errors": 40,
+      "count": 40,
+      "min": 2.519800000009127,
+      "max": 17.125800000008894,
+      "avg": 9.752677500002028,
+      "p50": 10.136599999997998,
+      "p75": 13.873200000001816,
+      "p90": 15.991200000004028,
+      "p95": 16.78979999999865,
+      "p99": 17.125800000008894,
+      "avgSize": 0
+    },
+    {
+      "concurrency": 25,
+      "totalRequests": 100,
+      "rps": 960.2716416420118,
+      "errors": 100,
+      "count": 100,
+      "min": 3.860899999999674,
+      "max": 31.642699999996694,
+      "avg": 14.128494999999676,
+      "p50": 12.688399999999092,
+      "p75": 16.615099999995437,
+      "p90": 29.600300000005518,
+      "p95": 31.485100000005332,
+      "p99": 31.642699999996694,
+      "avgSize": 0
+    }
+  ],
+  "observability": {
+    "systemHealth": {
+      "app": "UP",
+      "database": "UP",
+      "redis": "UP"
+    },
+    "apiMetrics": {
+      "totalRequests": 618,
+      "successRequests": 425,
+      "errorRequests": 193,
+      "errorRate": 31.23,
+      "averageLatencyMs": 967,
+      "p95Ms": 3849,
+      "p99Ms": 6735,
+      "statusCodes": {
+        "200": 425,
+        "401": 1,
+        "403": 5,
+        "404": 32,
+        "429": 155
+      },
+      "slowRequestsHistory": [
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1444,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:16:20.563Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1681,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:16:19.118Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1429,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:16:17.435Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 2187,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:16:16.004Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/roles",
+          "duration": 1469,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:16:06.849Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/users",
+          "duration": 2017,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:16:03.440Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/users",
+          "duration": 1711,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:16:01.421Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1692,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:57.926Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1695,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:56.233Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1694,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:54.537Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 2822,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:52.840Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/units",
+          "duration": 1180,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:46.429Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/materials",
+          "duration": 2424,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:40.377Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/analytics/insights",
+          "duration": 3423,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:36.570Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/analytics/kpis",
+          "duration": 2890,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:31.816Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/analytics/vendors",
+          "duration": 1170,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:27.602Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1865,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:17.650Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1850,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:17.636Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1865,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:15.780Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1853,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:15.769Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1865,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:13.907Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1853,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:13.895Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1915,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:12.037Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1863,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:11.987Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 2587,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:10.112Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1847,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:09.372Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 2767,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:07.519Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications/unread-count",
+          "duration": 2034,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:06.784Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1899,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:06.648Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/analytics/costs",
+          "duration": 1825,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:06.571Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/analytics/products",
+          "duration": 1796,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:06.544Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/analytics/workflow",
+          "duration": 1535,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:06.279Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/analytics/departments",
+          "duration": 1354,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:06.099Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/analytics/summary",
+          "duration": 1105,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:05.841Z"
+        },
+        {
+          "method": "POST",
+          "url": "/api/auth/login",
+          "duration": 3545,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:04.732Z"
+        },
+        {
+          "method": "POST",
+          "url": "/api/auth/login",
+          "duration": 3840,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:15:01.184Z"
+        },
+        {
+          "method": "POST",
+          "url": "/api/auth/login",
+          "duration": 2217,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:57.341Z"
+        },
+        {
+          "method": "POST",
+          "url": "/api/auth/login",
+          "duration": 3691,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:55.121Z"
+        },
+        {
+          "method": "POST",
+          "url": "/api/auth/login",
+          "duration": 3258,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:51.297Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1905,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:11.258Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1846,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:11.200Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1910,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:09.345Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1840,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:09.277Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1900,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:07.429Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 1814,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:07.349Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 2947,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:05.499Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 2848,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:05.402Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/audit-logs",
+          "duration": 2092,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:02.534Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1896,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:02.333Z"
+        },
+        {
+          "method": "GET",
+          "url": "/api/notifications",
+          "duration": 1892,
+          "statusCode": 200,
+          "timestamp": "2026-08-21T10:14:00.431Z"
+        }
+      ]
+    },
+    "databaseMetrics": {
+      "totalQueries": 465,
+      "successQueries": 465,
+      "failedQueries": 0,
+      "slowQueriesCount": 465,
+      "averageLatencyMs": 1349,
+      "p95Ms": 2843,
+      "p99Ms": 4275,
+      "failuresHistory": [],
+      "slowQueriesHistory": [
+        {
+          "model": "Indent",
+          "action": "groupBy",
+          "duration": 247,
+          "timestamp": "2026-08-21T10:16:26.488Z"
+        },
+        {
+          "model": "ActivityLog",
+          "action": "findMany",
+          "duration": 242,
+          "timestamp": "2026-08-21T10:16:24.855Z"
+        },
+        {
+          "model": "ActivityLog",
+          "action": "findMany",
+          "duration": 243,
+          "timestamp": "2026-08-21T10:16:24.381Z"
+        },
+        {
+          "model": "ActivityLog",
+          "action": "findMany",
+          "duration": 248,
+          "timestamp": "2026-08-21T10:16:23.902Z"
+        },
+        {
+          "model": "ActivityLog",
+          "action": "findMany",
+          "duration": 496,
+          "timestamp": "2026-08-21T10:16:23.431Z"
+        },
+        {
+          "model": "UserSession",
+          "action": "findMany",
+          "duration": 268,
+          "timestamp": "2026-08-21T10:16:22.714Z"
+        },
+        {
+          "model": "UserSession",
+          "action": "findMany",
+          "duration": 246,
+          "timestamp": "2026-08-21T10:16:22.219Z"
+        },
+        {
+          "model": "UserSession",
+          "action": "findMany",
+          "duration": 240,
+          "timestamp": "2026-08-21T10:16:21.749Z"
+        },
+        {
+          "model": "UserSession",
+          "action": "findMany",
+          "duration": 495,
+          "timestamp": "2026-08-21T10:16:21.279Z"
+        },
+        {
+          "model": "AuditLog",
+          "action": "count",
+          "duration": 1222,
+          "timestamp": "2026-08-21T10:16:20.561Z"
+        },
+        {
+          "model": "AuditLog",
+          "action": "findMany",
+          "duration": 1222,
+          "timestamp": "2026-08-21T10:16:20.561Z"
+        },
+        {
+          "model": "AuditLog",
+          "action": "count",
+          "duration": 1461,
+          "timestamp": "2026-08-21T10:16:19.117Z"
+        },
+        {
+          "model": "AuditLog",
+          "action": "findMany",
+          "duration": 1461,
+          "timestamp": "2026-08-21T10:16:19.117Z"
+        },
+        {
+          "model": "AuditLog",
+          "action": "count",
+          "duration": 1207,
+          "timestamp": "2026-08-21T10:16:17.434Z"
+        },
+        {
+          "model": "AuditLog",
+          "action": "findMany",
+          "duration": 1207,
+          "timestamp": "2026-08-21T10:16:17.434Z"
+        },
+        {
+          "model": "AuditLog",
+          "action": "count",
+          "duration": 1962,
+          "timestamp": "2026-08-21T10:16:16.002Z"
+        },
+        {
+          "model": "AuditLog",
+          "action": "findMany",
+          "duration": 1962,
+          "timestamp": "2026-08-21T10:16:16.002Z"
+        },
+        {
+          "model": "Permission",
+          "action": "findMany",
+          "duration": 496,
+          "timestamp": "2026-08-21T10:16:10.693Z"
+        },
+        {
+          "model": "Role",
+          "action": "findMany",
+          "duration": 739,
+          "timestamp": "2026-08-21T10:16:09.750Z"
+        },
+        {
+          "model": "Role",
+          "action": "findMany",
+          "duration": 728,
+          "timestamp": "2026-08-21T10:16:08.784Z"
+        },
+        {
+          "model": "Role",
+          "action": "findMany",
+          "duration": 747,
+          "timestamp": "2026-08-21T10:16:07.816Z"
+        },
+        {
+          "model": "Role",
+          "action": "findMany",
+          "duration": 1245,
+          "timestamp": "2026-08-21T10:16:06.847Z"
+        },
+        {
+          "model": "User",
+          "action": "findMany",
+          "duration": 743,
+          "timestamp": "2026-08-21T10:16:05.378Z"
+        },
+        {
+          "model": "User",
+          "action": "count",
+          "duration": 248,
+          "timestamp": "2026-08-21T10:16:04.883Z"
+        },
+        {
+          "model": "User",
+          "action": "findMany",
+          "duration": 741,
+          "timestamp": "2026-08-21T10:16:04.410Z"
+        },
+        {
+          "model": "User",
+          "action": "count",
+          "duration": 247,
+          "timestamp": "2026-08-21T10:16:03.916Z"
+        },
+        {
+          "model": "User",
+          "action": "findMany",
+          "duration": 1795,
+          "timestamp": "2026-08-21T10:16:03.438Z"
+        },
+        {
+          "model": "User",
+          "action": "count",
+          "duration": 770,
+          "timestamp": "2026-08-21T10:16:02.413Z"
+        },
+        {
+          "model": "User",
+          "action": "findMany",
+          "duration": 1489,
+          "timestamp": "2026-08-21T10:16:01.421Z"
+        },
+        {
+          "model": "User",
+          "action": "count",
+          "duration": 483,
+          "timestamp": "2026-08-21T10:16:00.415Z"
+        },
+        {
+          "model": "Notification",
+          "action": "count",
+          "duration": 1460,
+          "timestamp": "2026-08-21T10:15:57.925Z"
+        },
+        {
+          "model": "Notification",
+          "action": "findMany",
+          "duration": 1460,
+          "timestamp": "2026-08-21T10:15:57.925Z"
+        },
+        {
+          "model": "Notification",
+          "action": "count",
+          "duration": 1465,
+          "timestamp": "2026-08-21T10:15:56.232Z"
+        },
+        {
+          "model": "Notification",
+          "action": "findMany",
+          "duration": 1464,
+          "timestamp": "2026-08-21T10:15:56.232Z"
+        },
+        {
+          "model": "Notification",
+          "action": "count",
+          "duration": 1473,
+          "timestamp": "2026-08-21T10:15:54.536Z"
+        },
+        {
+          "model": "Notification",
+          "action": "findMany",
+          "duration": 1473,
+          "timestamp": "2026-08-21T10:15:54.536Z"
+        },
+        {
+          "model": "Notification",
+          "action": "count",
+          "duration": 2602,
+          "timestamp": "2026-08-21T10:15:52.839Z"
+        },
+        {
+          "model": "Notification",
+          "action": "findMany",
+          "duration": 2602,
+          "timestamp": "2026-08-21T10:15:52.839Z"
+        },
+        {
+          "model": "Vendor",
+          "action": "findMany",
+          "duration": 502,
+          "timestamp": "2026-08-21T10:15:48.686Z"
+        },
+        {
+          "model": "Vendor",
+          "action": "count",
+          "duration": 502,
+          "timestamp": "2026-08-21T10:15:48.686Z"
+        },
+        {
+          "model": "Unit",
+          "action": "findMany",
+          "duration": 741,
+          "timestamp": "2026-08-21T10:15:46.429Z"
+        },
+        {
+          "model": "Unit",
+          "action": "count",
+          "duration": 741,
+          "timestamp": "2026-08-21T10:15:46.429Z"
+        },
+        {
+          "model": "Material",
+          "action": "count",
+          "duration": 1980,
+          "timestamp": "2026-08-21T10:15:40.375Z"
+        },
+        {
+          "model": "Material",
+          "action": "findMany",
+          "duration": 1980,
+          "timestamp": "2026-08-21T10:15:40.375Z"
+        },
+        {
+          "model": "Department",
+          "action": "findMany",
+          "duration": 500,
+          "timestamp": "2026-08-21T10:15:36.569Z"
+        },
+        {
+          "model": "Indent",
+          "action": "groupBy",
+          "duration": 491,
+          "timestamp": "2026-08-21T10:15:36.560Z"
+        },
+        {
+          "model": "Indent",
+          "action": "findMany",
+          "duration": 488,
+          "timestamp": "2026-08-21T10:15:36.068Z"
+        },
+        {
+          "model": "Indent",
+          "action": "groupBy",
+          "duration": 480,
+          "timestamp": "2026-08-21T10:15:36.060Z"
+        },
+        {
+          "model": "Indent",
+          "action": "findMany",
+          "duration": 480,
+          "timestamp": "2026-08-21T10:15:36.060Z"
+        },
+        {
+          "model": "Indent",
+          "action": "count",
+          "duration": 241,
+          "timestamp": "2026-08-21T10:15:35.821Z"
+        }
+      ]
+    },
+    "redisMetrics": {
+      "connected": true,
+      "cacheHits": 652,
+      "cacheMisses": 96,
+      "hitRatePercentage": 87.17,
+      "totalOps": 844,
+      "successOps": 844,
+      "errorOps": 0,
+      "averageLatencyMs": 274,
+      "p95Ms": 467,
+      "errorsHistory": []
+    },
+    "workflowMetrics": {
+      "totalTransitions": 0,
+      "successTransitions": 0,
+      "failedTransitions": 0,
+      "invalidTransitions": 0,
+      "averageDurationMs": 0,
+      "history": []
+    },
+    "authMetrics": {
+      "loginSuccess": 12,
+      "loginFailure": 0,
+      "refreshSuccess": 1,
+      "refreshFailure": 0,
+      "logout": 0,
+      "sessionRevocations": 1
+    },
+    "notificationMetrics": {
+      "created": 0,
+      "delivered": 0,
+      "failed": 0,
+      "retried": 0,
+      "queueFailures": 0,
+      "unreadErrors": 0
+    },
+    "frontendErrors": {
+      "totalErrors": 0,
+      "history": []
+    }
+  }
+}

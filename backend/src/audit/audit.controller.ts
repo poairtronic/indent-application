@@ -54,7 +54,19 @@ export class AuditController {
         orderBy,
         skip: offset,
         take: limitNum,
-        include: {
+        select: {
+          id: true,
+          module: true,
+          recordId: true,
+          action: true,
+          oldValue: true,
+          newValue: true,
+          performedBy: true,
+          ipAddress: true,
+          browser: true,
+          operatingSystem: true,
+          device: true,
+          createdAt: true,
           user: {
             select: {
               firstName: true,
