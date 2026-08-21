@@ -40,8 +40,8 @@ export class ProcessesController {
     description: 'Manufacturing process created.',
     type: ProcessResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Invalid product or process data.' })
-  @ApiResponse({ status: 409, description: 'Process code or sequence conflict.' })
+  @ApiResponse({ status: 400, description: 'Invalid process data.' })
+  @ApiResponse({ status: 409, description: 'Process name conflict.' })
   async createProcess(
     @Body() dto: CreateProcessDto,
     @CurrentUser() user: any,
@@ -84,7 +84,7 @@ export class ProcessesController {
     type: ProcessResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Manufacturing process not found.' })
-  @ApiResponse({ status: 409, description: 'Process code or sequence conflict.' })
+  @ApiResponse({ status: 409, description: 'Process name conflict.' })
   async updateProcess(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProcessDto,

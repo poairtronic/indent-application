@@ -13,7 +13,6 @@ import { useDeletedRecords } from '../../hooks/useDeletedRecords';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { getApiErrorMessage } from '../../utils/error';
 import { formatDateTime } from '../../utils/date';
-import { formatNumber } from '../../utils/format';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { TableSkeleton } from '../../components/ui/Skeleton';
@@ -42,7 +41,6 @@ export const ProcessesPage: React.FC = () => {
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 400);
-  const [productIdFilter, setProductIdFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
 
@@ -57,10 +55,9 @@ export const ProcessesPage: React.FC = () => {
       page,
       limit: PAGE_SIZE,
       search: search.trim() || undefined,
-      productId: productIdFilter.trim() || undefined,
       status: (statusFilter || undefined) as ProcessResponse['status'] | undefined,
     }),
-    [page, search, productIdFilter, statusFilter],
+    [page, search, statusFilter],
   );
 
   const processesQuery = useProcesses(query);
@@ -74,13 +71,12 @@ export const ProcessesPage: React.FC = () => {
   const canDelete = hasPermission(AppPermission.PROCESSES_DELETE);
   const canRestore = hasPermission(AppPermission.PROCESSES_RESTORE);
 
-  const hasActiveFilters = Boolean(search || productIdFilter || statusFilter);
+  const hasActiveFilters = Boolean(search || statusFilter);
 
   const resetPage = () => setPage(1);
 
   const clearFilters = () => {
     setSearchInput('');
-    setProductIdFilter('');
     setStatusFilter('');
     resetPage();
   };
@@ -132,7 +128,7 @@ export const ProcessesPage: React.FC = () => {
       onSuccess: () => {
         addDeleted({
           id: deleteTarget.id,
-          summary: `${deleteTarget.processCode} Â· ${deleteTarget.processName}`,
+          summary: deleteTarget.processName,
           deletedAt: new Date().toISOString(),
         });
         show('success', `Process "${deleteTarget.processName}" deleted.`);
@@ -172,7 +168,7 @@ export const ProcessesPage: React.FC = () => {
               Manufacturing Processes
             </h1>
             <p className="text-text-muted mt-1">
-              Manage process masters, sequences, and estimated hours
+              Manage enterprise process catalogue for product indents and costing
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -203,16 +199,16 @@ export const ProcessesPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="relative">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted z-10"
             />
             <input
               type="text"
               className={`${inputClasses} pl-9`}
-              placeholder="Search by code or name..."
+              placeholder="Search by process name..."
               value={searchInput}
               onChange={(event) => {
                 setSearchInput(event.target.value);
@@ -220,17 +216,6 @@ export const ProcessesPage: React.FC = () => {
               }}
             />
           </div>
-
-          <input
-            type="text"
-            className={inputClasses}
-            placeholder="Filter by product UUID"
-            value={productIdFilter}
-            onChange={(event) => {
-              setProductIdFilter(event.target.value);
-              resetPage();
-            }}
-          />
 
           <select
             className={inputClasses}
@@ -266,7 +251,7 @@ export const ProcessesPage: React.FC = () => {
             onRetry={() => refetch()}
           />
         ) : isLoading && !data ? (
-          <TableSkeleton rows={5} columns={6} />
+          <TableSkeleton rows={5} columns={4} />
         ) : items.length === 0 ? (
           <EmptyState
             title="No processes found"
@@ -294,16 +279,10 @@ export const ProcessesPage: React.FC = () => {
                 <thead className="bg-background-secondary">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
-                      Process
+                      Process Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
-                      Product
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
-                      Sequence
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
-                      Est. Hours
+                      Description
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-text-muted">
                       Status
@@ -324,19 +303,12 @@ export const ProcessesPage: React.FC = () => {
                       onClick={() => setDetailProcess(process)}
                     >
                       <td className="px-6 py-3.5">
-                        <div className="text-sm font-medium text-text-primary">
+                        <div className="text-sm font-semibold text-text-primary">
                           {process.processName}
                         </div>
-                        <div className="text-xs text-text-muted">{process.processCode}</div>
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-text-secondary">
-                        {process.productCode ?? process.productId}
-                      </td>
-                      <td className="px-6 py-3.5 text-sm text-text-secondary">
-                        {process.sequence}
-                      </td>
-                      <td className="px-6 py-3.5 text-sm text-text-secondary">
-                        {formatNumber(process.estimatedHours)} hrs
+                      <td className="px-6 py-3.5 text-sm text-text-secondary max-w-md truncate">
+                        {process.description || '-'}
                       </td>
                       <td className="px-6 py-3.5">
                         <Badge tone={processStatusTone[process.status]}>
@@ -429,11 +401,9 @@ export const ProcessesPage: React.FC = () => {
           deleteTarget && (
             <>
               Are you sure you want to delete{' '}
-              <span className="font-medium">
-                {deleteTarget.processCode} Â· {deleteTarget.processName}
-              </span>
-              ? Processes already used in indents or cost sheets cannot be deleted. Deleted records
-              can be restored later.
+              <span className="font-medium">{deleteTarget.processName}</span>? Processes already
+              used in indents or cost sheets cannot be deleted. Deleted records can be restored
+              later.
             </>
           )
         }

@@ -1,10 +1,9 @@
 import React from 'react';
-import { Pencil, Trash2, Package } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { Badge, type BadgeTone } from '../../components/ui/Badge';
 import { formatDateTime } from '../../utils/date';
-import { formatNumber } from '../../utils/format';
 import type { ProcessResponse, ProcessStatus } from '../../types/process';
 
 export const processStatusTone: Record<ProcessStatus, BadgeTone> = {
@@ -70,36 +69,22 @@ export const ProcessDetailModal: React.FC<ProcessDetailModalProps> = ({
       }
     >
       <div className="flex items-center gap-4 pb-4 border-b border-border-default">
-        <div className="w-14 h-14 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary font-semibold text-lg ring-1 ring-border-default">
-          {process.processCode.charAt(0)}
+        <div className="w-12 h-12 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary font-bold text-lg ring-1 ring-border-default">
+          {process.processName.charAt(0).toUpperCase()}
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-base font-semibold text-text-primary">{process.processName}</span>
+            <span className="text-base font-bold text-text-primary">{process.processName}</span>
             <Badge tone={processStatusTone[process.status]}>
               {processStatusLabel[process.status]}
             </Badge>
           </div>
-          <div className="text-sm text-text-muted">{process.processCode}</div>
+          <div className="text-xs text-text-muted mt-0.5">Master Manufacturing Process</div>
         </div>
       </div>
 
       <div className="mt-3">
-        <DetailRow
-          label="Product"
-          value={
-            process.productCode ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Package size={13} className="text-text-muted" /> {process.productCode}
-              </span>
-            ) : (
-              process.productId
-            )
-          }
-        />
-        <DetailRow label="Product ID" value={process.productId} />
-        <DetailRow label="Sequence" value={process.sequence} />
-        <DetailRow label="Estimated Hours" value={`${formatNumber(process.estimatedHours)} hrs`} />
+        <DetailRow label="Process ID" value={process.id} />
         <DetailRow label="Description" value={process.description || '-'} />
         <DetailRow label="Created" value={formatDateTime(process.createdAt)} />
         <DetailRow label="Last Updated" value={formatDateTime(process.updatedAt)} />

@@ -209,7 +209,9 @@ export const CommunicationPage: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px]">
                   <span className="text-text-muted">Active:</span>
-                  <span className="font-bold text-text-primary">{queue?.mailQueue?.active ?? 0}</span>
+                  <span className="font-bold text-text-primary">
+                    {queue?.mailQueue?.active ?? 0}
+                  </span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-text-muted">Waiting:</span>
@@ -219,7 +221,9 @@ export const CommunicationPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-text-muted">Failed:</span>
-                  <span className="font-bold text-status-error">{queue?.mailQueue?.failed ?? 0}</span>
+                  <span className="font-bold text-status-error">
+                    {queue?.mailQueue?.failed ?? 0}
+                  </span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-text-muted">Dead Letter:</span>

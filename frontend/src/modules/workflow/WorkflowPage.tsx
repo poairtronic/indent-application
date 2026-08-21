@@ -193,7 +193,7 @@ export const WorkflowPage: React.FC = () => {
             </h3>
             <Badge tone="blue">Loop Boundary: Customer Delivered</Badge>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3.5 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5 pt-1">
             {MANUFACTURING_LOOP_STATES.map((state, idx) => {
               const def = WORKFLOW_STAGES[state];
               const count = stageCounts[state] ?? 0;

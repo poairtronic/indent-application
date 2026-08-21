@@ -70,7 +70,16 @@ export class KpiService {
     }
     if (processCode) {
       const processSubQuery = {
-        product: { manufacturingProcesses: { some: { processCode, isDeleted: false } } },
+        items: {
+          some: {
+            indentProcesses: {
+              some: {
+                process: { processName: { contains: processCode, mode: 'insensitive' } },
+                isDeleted: false,
+              },
+            },
+          },
+        },
       };
       Object.assign(currentFilter, processSubQuery);
       Object.assign(prevFilter, processSubQuery);

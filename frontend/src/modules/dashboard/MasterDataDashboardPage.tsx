@@ -258,11 +258,11 @@ export const MasterDataDashboardPage: React.FC = () => {
               <div className="p-2 rounded-lg bg-accent-primary/10 text-accent-primary">
                 <Package size={18} />
               </div>
-              <Badge tone="blue">{stats.products.active} SKUs</Badge>
+              <Badge tone="blue">{stats.products.active} Products</Badge>
             </div>
             <span className="font-bold text-xs text-text-primary block">Products Master</span>
             <p className="text-[11px] text-text-muted line-clamp-1">
-              Manufactured SKUs & estimation costs
+              Manufactured products catalog & estimations
             </p>
           </div>
 

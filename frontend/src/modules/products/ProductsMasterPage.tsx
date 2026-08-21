@@ -65,6 +65,10 @@ export const ProductsMasterPage: React.FC = () => {
 
   const canCreate = hasPermission(AppPermission.PRODUCTS_CREATE);
   const canUpdate = hasPermission(AppPermission.PRODUCTS_UPDATE);
+  const canDelete =
+    hasPermission(AppPermission.PRODUCTS_DELETE) ||
+    hasPermission(AppPermission.PRODUCTS_UPDATE) ||
+    hasPermission(AppPermission.SETTINGS_MANAGE);
   const canExport = hasPermission(AppPermission.REPORTS_EXPORT);
 
   const queryParams = useMemo(
@@ -114,9 +118,13 @@ export const ProductsMasterPage: React.FC = () => {
 
   const handleDeleteConfirm = useCallback(async () => {
     if (deleteTarget?.id) {
-      await deleteProduct.mutateAsync(deleteTarget.id);
-      show('success', `Product "${deleteTarget.productName}" deleted.`);
-      setDeleteTarget(null);
+      try {
+        await deleteProduct.mutateAsync(deleteTarget.id);
+        show('success', `Product "${deleteTarget.productName}" deleted successfully.`);
+        setDeleteTarget(null);
+      } catch (err: any) {
+        show('error', err?.response?.data?.message || err.message || 'Failed to delete product');
+      }
     }
   }, [deleteTarget, deleteProduct, show]);
 
@@ -138,14 +146,12 @@ export const ProductsMasterPage: React.FC = () => {
 
   const handleExportCSV = useCallback(() => {
     const headers = ['Product Code', 'Product Name', 'Description', 'Status'];
-    const rows = products.map((p) => [
-      p.productCode,
-      `"${p.productName.replace(/"/g, '""')}"`,
-      `"${(p.description ?? '').replace(/"/g, '""')}"`,
-      p.status,
-    ]);
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    downloadFile(csvContent, 'products_master.csv', 'text/csv');
+    const rows = products.map((p) => [p.productCode, p.productName, p.description || '', p.status]);
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((r) => r.map((c) => `"${c}"`).join(',')),
+    ].join('\n');
+    downloadFile(csvContent, 'products_catalog.csv', 'text/csv');
   }, [products]);
 
   const activeCount = useMemo(
@@ -166,7 +172,7 @@ export const ProductsMasterPage: React.FC = () => {
               Products Master Catalog
             </h1>
             <p className="text-xs text-text-muted">
-              Manage manufactured products, SKUs, cost estimations, and CAD technical parameters
+              Manage manufactured products catalog, cost estimations, and CAD technical parameters
             </p>
           </div>
         </div>
@@ -193,7 +199,7 @@ export const ProductsMasterPage: React.FC = () => {
             Products Master Catalog
           </h1>
           <p className="text-xs text-text-muted">
-            Manage manufactured products, SKUs, cost estimations, and CAD technical parameters
+            Manage manufactured products catalog, cost estimations, and CAD technical parameters
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -225,7 +231,7 @@ export const ProductsMasterPage: React.FC = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KPICard
-          title="Total SKUs Catalog"
+          title="Total Products Catalog"
           value={total}
           trend="Master Items"
           icon={<Package size={18} />}
@@ -239,7 +245,7 @@ export const ProductsMasterPage: React.FC = () => {
           accent="success"
         />
         <KPICard
-          title="Archived SKUs"
+          title="Archived Products"
           value={archivedCount}
           trend="Legacy Items"
           icon={<Archive size={18} />}
@@ -259,7 +265,7 @@ export const ProductsMasterPage: React.FC = () => {
               setSearchInput(e.target.value);
               resetPage();
             }}
-            placeholder="Search product code or SKU description..."
+            placeholder="Search by product code or name..."
             className="pl-9"
           />
         </div>
@@ -310,7 +316,7 @@ export const ProductsMasterPage: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-background-secondary/60 border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-4">SKU / Code</th>
+                  <th className="py-3 px-4">Product Code</th>
                   <th className="py-3 px-4">Product Name</th>
                   <th className="py-3 px-4">Description</th>
                   <th className="py-3 px-4">Status</th>
@@ -370,13 +376,15 @@ export const ProductsMasterPage: React.FC = () => {
                               <Pencil size={15} />
                             </button>
                           )}
-                          <button
-                            onClick={() => setDeleteTarget(responseToProductData(p))}
-                            className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10"
-                            title="Delete Product"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                          {canDelete && (
+                            <button
+                              onClick={() => setDeleteTarget(responseToProductData(p))}
+                              className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10"
+                              title="Delete Product"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -415,10 +423,20 @@ export const ProductsMasterPage: React.FC = () => {
         open={Boolean(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
-        title={`Delete Product: ${deleteTarget?.productName}`}
-        message="Are you sure you want to remove this product SKU from the master catalog?"
+        title={deleteTarget ? `Delete Product: ${deleteTarget.productName}` : 'Delete Product'}
+        message={
+          deleteTarget ? (
+            <>
+              Are you sure you want to delete{' '}
+              <span className="font-medium">{deleteTarget.productName}</span> from the master
+              catalog?
+            </>
+          ) : (
+            'Are you sure you want to delete this product?'
+          )
+        }
         tone="danger"
-        confirmLabel="Delete SKU"
+        confirmLabel="Delete Product"
         loading={deleteProduct.isPending}
       />
     </div>

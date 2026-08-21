@@ -25,7 +25,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       open={open}
       onClose={onClose}
       title={`Product Specification: ${product.productName}`}
-      description="Manufacturing SKU metadata and technical parameters"
+      description="Manufacturing product metadata and technical parameters"
       size="md"
     >
       <div className="space-y-4 font-sans text-xs">
@@ -40,7 +40,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   {product.productName}
                 </span>
                 <span className="text-[10px] font-mono text-text-muted">
-                  SKU: {product.productCode}
+                  Product Code: {product.productCode}
                 </span>
               </div>
             </div>

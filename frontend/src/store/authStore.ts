@@ -118,12 +118,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setLoading: (isLoading) => set({ isLoading }),
 
   hasPermission: (permission) => {
-    const { permissions } = get();
+    const { user, permissions } = get();
+    const roleName = (user?.role?.roleName || '').toUpperCase();
+    const deptCode = (user?.department?.departmentCode || '').toUpperCase();
+    const isSystemAdmin =
+      roleName === 'ADMIN' ||
+      roleName === 'SYSTEM ADMINISTRATOR' ||
+      (user?.role as any)?.isSystem === true ||
+      deptCode === 'ADMIN' ||
+      deptCode === 'ADMINISTRATION' ||
+      deptCode === 'ADM';
+
+    if (isSystemAdmin) {
+      return true;
+    }
     return permissions.some((p) => p.toLowerCase() === permission.toLowerCase());
   },
 
   hasAnyPermission: (perms) => {
-    const { permissions } = get();
+    const { user, permissions } = get();
+    const roleName = (user?.role?.roleName || '').toUpperCase();
+    const deptCode = (user?.department?.departmentCode || '').toUpperCase();
+    const isSystemAdmin =
+      roleName === 'ADMIN' ||
+      roleName === 'SYSTEM ADMINISTRATOR' ||
+      (user?.role as any)?.isSystem === true ||
+      deptCode === 'ADMIN' ||
+      deptCode === 'ADMINISTRATION' ||
+      deptCode === 'ADM';
+
+    if (isSystemAdmin) {
+      return true;
+    }
     return perms.some((p) => permissions.some((up) => up.toLowerCase() === p.toLowerCase()));
   },
 }));

@@ -78,6 +78,8 @@ async function main() {
     { module: 'products', action: PermissionAction.CREATE, code: 'products.create', description: 'Create products' },
     { module: 'products', action: PermissionAction.READ, code: 'products.view', description: 'View products' },
     { module: 'products', action: PermissionAction.UPDATE, code: 'products.update', description: 'Update products' },
+    { module: 'products', action: PermissionAction.DELETE, code: 'products.delete', description: 'Delete products' },
+    { module: 'products', action: PermissionAction.UPDATE, code: 'products.restore', description: 'Restore products' },
 
     { module: 'materials', action: PermissionAction.CREATE, code: 'materials.create', description: 'Create materials' },
     { module: 'materials', action: PermissionAction.READ, code: 'materials.view', description: 'View materials' },
@@ -213,6 +215,9 @@ async function main() {
       permMap['costsheet.view'],
       permMap['costsheet.update'],
       permMap['products.view'],
+      permMap['products.create'],
+      permMap['products.update'],
+      permMap['products.delete'],
       permMap['materials.view'],
       permMap['vendors.view'],
       permMap['manufacturing-processes.view'],
@@ -340,16 +345,16 @@ async function main() {
   });
 
   const defaultProcesses = [
-    { processCode: 'TURN', processName: 'Turning', sequence: 1, estimatedHours: 2.5, productId: defaultProduct.id, createdBy: adminId },
-    { processCode: 'MILL', processName: 'Milling', sequence: 2, estimatedHours: 4.0, productId: defaultProduct.id, createdBy: adminId },
-    { processCode: 'GRND', processName: 'Grinding', sequence: 3, estimatedHours: 1.5, productId: defaultProduct.id, createdBy: adminId },
-    { processCode: 'HEAT', processName: 'Heat Treatment', sequence: 4, estimatedHours: 3.0, productId: defaultProduct.id, createdBy: adminId },
-    { processCode: 'ASSY', processName: 'Assembly', sequence: 5, estimatedHours: 2.0, productId: defaultProduct.id, createdBy: adminId },
+    { processName: 'Turning', createdBy: adminId },
+    { processName: 'Milling', createdBy: adminId },
+    { processName: 'Grinding', createdBy: adminId },
+    { processName: 'Heat Treatment', createdBy: adminId },
+    { processName: 'Assembly', createdBy: adminId },
   ];
 
   for (const p of defaultProcesses) {
     await prisma.manufacturingProcess.upsert({
-      where: { productId_processCode: { productId: p.productId, processCode: p.processCode } },
+      where: { processName: p.processName },
       update: {},
       create: p,
     });

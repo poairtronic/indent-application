@@ -19,12 +19,37 @@ import { NotificationQueryDto } from '../common/dto/pagination-query.dto';
 // DEPARTMENT / ROLE → ALLOWED EVENT TYPES (eventType-based)
 // ──────────────────────────────────────────────────────────────
 const DEPT_EVENT_MAP: Record<string, string[]> = {
-  DESIGN: ['ACTUAL_COST_UPDATED', 'DOCUMENT_UPLOADED', 'DOCUMENT_DELETED', 'DOCUMENT_REPLACED'],
-  DSGN: ['ACTUAL_COST_UPDATED', 'DOCUMENT_UPLOADED', 'DOCUMENT_DELETED', 'DOCUMENT_REPLACED'],
-  STORES: ['DESIGN_COMPLETED', 'STORES_PENDING'],
-  STOR: ['DESIGN_COMPLETED', 'STORES_PENDING'],
-  PRODUCTION: ['MATERIAL_ISSUED', 'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED'],
-  PROD: ['MATERIAL_ISSUED', 'PRODUCTION_STARTED', 'PRODUCTION_COMPLETED'],
+  DESIGN: [
+    'INDENT_SUBMITTED',
+    'DESIGN_COMPLETED',
+    'ACTUAL_COST_UPDATED',
+    'DOCUMENT_UPLOADED',
+    'DOCUMENT_DELETED',
+    'DOCUMENT_REPLACED',
+  ],
+  DSGN: [
+    'INDENT_SUBMITTED',
+    'DESIGN_COMPLETED',
+    'ACTUAL_COST_UPDATED',
+    'DOCUMENT_UPLOADED',
+    'DOCUMENT_DELETED',
+    'DOCUMENT_REPLACED',
+  ],
+  STORES: ['DESIGN_COMPLETED', 'STORES_PENDING', 'MATERIAL_ISSUED', 'DOCUMENT_UPLOADED'],
+  STOR: ['DESIGN_COMPLETED', 'STORES_PENDING', 'MATERIAL_ISSUED', 'DOCUMENT_UPLOADED'],
+  STRS: ['DESIGN_COMPLETED', 'STORES_PENDING', 'MATERIAL_ISSUED', 'DOCUMENT_UPLOADED'],
+  PRODUCTION: [
+    'MATERIAL_ISSUED',
+    'PRODUCTION_STARTED',
+    'PRODUCTION_COMPLETED',
+    'DOCUMENT_UPLOADED',
+  ],
+  PROD: [
+    'MATERIAL_ISSUED',
+    'PRODUCTION_STARTED',
+    'PRODUCTION_COMPLETED',
+    'DOCUMENT_UPLOADED',
+  ],
   ACCOUNTS: [
     'PRODUCTION_COMPLETED',
     'ACCOUNTS_COST_VERIFICATION',
@@ -39,6 +64,10 @@ const DEPT_EVENT_MAP: Record<string, string[]> = {
     'FINANCIAL_CLOSURE',
     'DOCUMENT_UPLOADED',
   ],
+  PURCHASE: ['STORES_PENDING', 'MATERIAL_ISSUED', 'DOCUMENT_UPLOADED'],
+  PURC: ['STORES_PENDING', 'MATERIAL_ISSUED', 'DOCUMENT_UPLOADED'],
+  QUALITY: ['PRODUCTION_COMPLETED', 'DOCUMENT_UPLOADED'],
+  QC: ['PRODUCTION_COMPLETED', 'DOCUMENT_UPLOADED'],
 };
 
 const MANAGER_EVENT_TYPES = [
@@ -66,15 +95,28 @@ function resolveAllowedEventTypes(
   roleName: string | undefined,
   deptCode: string | undefined,
 ): string[] | null {
-  const isAdmin = roleName?.toUpperCase() === 'ADMIN' || roleName === 'System Administrator';
+  const upperRole = roleName?.toUpperCase() || '';
+  const upperDept = deptCode?.toUpperCase() || '';
+  const isAdmin =
+    upperRole === 'ADMIN' ||
+    upperRole === 'SYSTEM ADMINISTRATOR' ||
+    upperDept === 'ADMIN' ||
+    upperDept === 'ADMINISTRATION' ||
+    upperDept === 'ADM';
   if (isAdmin) return null; // Admin: unrestricted
 
-  if (roleName === 'Senior Manager' || roleName === 'General Manager') {
+  if (
+    upperRole === 'SENIOR MANAGER' ||
+    upperRole === 'GENERAL MANAGER' ||
+    upperRole === 'MANAGEMENT' ||
+    upperDept === 'SMGR' ||
+    upperDept === 'GMGR' ||
+    upperDept === 'MGMT'
+  ) {
     return MANAGER_EVENT_TYPES;
   }
 
-  const upperDept = deptCode?.toUpperCase() ?? '';
-  return DEPT_EVENT_MAP[upperDept] || [];
+  return DEPT_EVENT_MAP[upperDept] || null;
 }
 
 @ApiTags('Notifications')

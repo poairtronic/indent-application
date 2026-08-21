@@ -92,7 +92,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       open={open}
       onClose={onClose}
       title={initialData ? 'Edit Product Specification' : 'Create New Product Master'}
-      description="Define manufacturing catalog item, SKU, category, and base estimation"
+      description="Define manufacturing catalog item, product code, category, and base estimation"
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 font-sans text-xs">
@@ -105,7 +105,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             id="productCode"
-            label="Product SKU / Code"
+            label="Product Code"
             value={productCode}
             onChange={(e) => setProductCode(e.target.value)}
             placeholder="e.g. AGIPL-PRD-001 (Auto-generated if blank)"

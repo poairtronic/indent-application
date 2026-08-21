@@ -87,7 +87,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @Permissions('products.delete')
+  @Permissions('products.delete', 'products.update')
   async remove(@Param('id') id: string) {
     try {
       const product = await this.prisma.product.update({

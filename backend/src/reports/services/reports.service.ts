@@ -459,7 +459,7 @@ export class ReportsService {
     const where: Prisma.IndentProcessWhereInput = { isDeleted: false };
 
     if (processCode) {
-      where.process = { processCode: { contains: processCode, mode: 'insensitive' } };
+      where.process = { processName: { contains: processCode, mode: 'insensitive' } };
     }
 
     const indentWhere: Prisma.IndentWhereInput = {};
@@ -487,8 +487,9 @@ export class ReportsService {
           process: true,
           indentItem: {
             include: {
-              indent: { include: { product: true } },
-              material: true,
+              indent: {
+                include: { product: true },
+              },
             },
           },
         },
@@ -497,30 +498,23 @@ export class ReportsService {
       this.prisma.indentProcess.count({ where }),
     ]);
 
-    const data: ProcessYieldReportItem[] = items.map((item: any) => {
-      const input = Number(item.inputQuantity || 0);
-      const output = Number(item.outputQuantity || 0);
-      const scrap = Number(item.scrapQuantity || 0);
-
-      let efficiencyPercentage = null;
-      if (input > 0) {
-        efficiencyPercentage = Number(((output / input) * 100).toFixed(2));
-      }
+    const data: ProcessYieldReportItem[] = items.map((ip) => {
+      const indent = ip.indentItem?.indent;
+      const product = indent?.product;
 
       return {
-        indentProcessId: item.id,
-        indentNumber: item.indentItem.indent.indentNumber,
-        productCode: item.indentItem.indent.product.productCode,
-        productName: item.indentItem.indent.product.productName,
-        processCode: item.process.processCode,
-        processName: item.process.processName,
-        sequence: item.sequence,
-        estimatedHours: Number(item.estimatedHours),
-        actualHours: item.actualHours !== null ? Number(item.actualHours) : null,
-        varianceHours:
-          item.actualHours !== null ? Number(item.actualHours) - Number(item.estimatedHours) : null,
-        efficiencyPercentage,
-        scrapFactor: scrap > 0 && input > 0 ? Number(((scrap / input) * 100).toFixed(2)) : 0,
+        indentProcessId: ip.id,
+        indentNumber: indent?.indentNumber || 'UNKNOWN',
+        productCode: product?.productCode || 'UNKNOWN',
+        productName: product?.productName || 'UNKNOWN',
+        processCode: ip.process?.processName || 'UNKNOWN',
+        processName: ip.process?.processName || 'Unknown Process',
+        sequence: 1,
+        estimatedHours: 0,
+        actualHours: null,
+        varianceHours: null,
+        efficiencyPercentage: null,
+        scrapFactor: 0,
       };
     });
 
@@ -537,7 +531,6 @@ export class ReportsService {
 
   /**
    * 3. Machine Utilization Report
-   * (Aggregates process-level execution hours as a proxy since no Machine entity exists)
    */
   async getMachineUtilization(
     user: any,
@@ -547,18 +540,15 @@ export class ReportsService {
     const { page = 1, limit = 10, search, dateFrom, dateTo } = query;
 
     const where: Prisma.MachineLogWhereInput = { isDeleted: false };
-
     if (search) {
       where.machine = { machineName: { contains: search, mode: 'insensitive' } };
     }
-
     if (dateFrom || dateTo) {
       where.createdAt = {};
       if (dateFrom) where.createdAt.gte = new Date(dateFrom);
       if (dateTo) where.createdAt.lte = new Date(dateTo);
     }
 
-    // Group logs by processId
     const groupedLogs = await this.prisma.machineLog.groupBy({
       by: ['processId'],
       where,
@@ -588,10 +578,10 @@ export class ReportsService {
       const process = processMap.get(group.processId);
       const totalOp = Number(group._sum.operatingHours || 0);
       return {
-        processCode: process?.processCode || 'UNKNOWN',
+        processCode: process?.processName || 'UNKNOWN',
         processName: process?.processName || 'Unknown Process',
         totalIndentCount: group._count.id,
-        totalEstimatedHours: Number(process?.estimatedHours || 0) * group._count.id,
+        totalEstimatedHours: totalOp,
         totalActualHours: totalOp,
         averageActualHours:
           group._count.id > 0 ? Number((totalOp / group._count.id).toFixed(2)) : null,
@@ -1101,7 +1091,6 @@ export class ReportsService {
           take: limit,
           include: {
             productMaterials: { where: { isDeleted: false } },
-            manufacturingProcesses: { where: { isDeleted: false } },
             indents: {
               where: {
                 isDeleted: false,
@@ -1124,7 +1113,7 @@ export class ReportsService {
         revision: p.revision,
         status: p.status,
         materialCount: p.productMaterials.length,
-        processCount: p.manufacturingProcesses.length,
+        processCount: 0,
         activeIndentCount: p.indents.length,
         createdAt: p.createdAt,
       }));
@@ -1146,7 +1135,6 @@ export class ReportsService {
           _count: {
             select: {
               productMaterials: { where: { isDeleted: false } },
-              manufacturingProcesses: { where: { isDeleted: false } },
               indents: {
                 where: {
                   isDeleted: false,
@@ -1166,7 +1154,7 @@ export class ReportsService {
         revision: p.revision,
         status: p.status,
         materialCount: p._count.productMaterials,
-        processCount: p._count.manufacturingProcesses,
+        processCount: 0,
         activeIndentCount: p._count.indents,
         createdAt: p.createdAt,
       }));

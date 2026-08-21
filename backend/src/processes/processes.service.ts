@@ -10,8 +10,7 @@ import { UpdateProcessDto } from './dto/update-process.dto';
 import { ProcessQueryDto } from './dto/process-query.dto';
 import { ProcessResponseDto } from './dto/process-response.dto';
 import { PROCESS_MESSAGES } from './constants/process-messages.constants';
-import { Prisma, ProductStatus } from '@prisma/client';
-
+import { Prisma } from '@prisma/client';
 import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 @Injectable()
@@ -24,13 +23,8 @@ export class ProcessesService {
   private mapToProcessResponse(process: any): ProcessResponseDto {
     return {
       id: process.id,
-      productId: process.productId,
-      productCode: process.product?.productCode ?? undefined,
-      processCode: process.processCode,
       processName: process.processName,
       description: process.description ?? null,
-      sequence: process.sequence,
-      estimatedHours: Number(process.estimatedHours),
       status: process.status,
       createdAt: process.createdAt,
       updatedAt: process.updatedAt,
@@ -60,46 +54,16 @@ export class ProcessesService {
     }
   }
 
-  private async validateProduct(productId: string): Promise<void> {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
-    if (!product || product.isDeleted || product.status !== ProductStatus.ACTIVE) {
-      throw new BadRequestException(PROCESS_MESSAGES.INVALID_PRODUCT);
-    }
-  }
-
-  private async assertCodeAvailable(
-    productId: string,
-    processCode: string,
-    excludeId?: string,
-  ): Promise<void> {
+  private async assertNameAvailable(processName: string, excludeId?: string): Promise<void> {
     const existing = await this.prisma.manufacturingProcess.findFirst({
       where: {
-        productId,
-        processCode,
+        processName: { equals: processName.trim(), mode: 'insensitive' },
         isDeleted: false,
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
     if (existing) {
-      throw new ConflictException(PROCESS_MESSAGES.DUPLICATE_CODE);
-    }
-  }
-
-  private async assertSequenceAvailable(
-    productId: string,
-    sequence: number,
-    excludeId?: string,
-  ): Promise<void> {
-    const existing = await this.prisma.manufacturingProcess.findFirst({
-      where: {
-        productId,
-        sequence,
-        isDeleted: false,
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-      },
-    });
-    if (existing) {
-      throw new ConflictException(PROCESS_MESSAGES.SEQUENCE_CONFLICT);
+      throw new ConflictException(PROCESS_MESSAGES.DUPLICATE_NAME);
     }
   }
 
@@ -107,28 +71,20 @@ export class ProcessesService {
     dto: CreateProcessDto,
     performingUserId?: string,
   ): Promise<ProcessResponseDto> {
-    await this.validateProduct(dto.productId);
-    await this.assertCodeAvailable(dto.productId, dto.processCode);
-    await this.assertSequenceAvailable(dto.productId, dto.sequence);
+    await this.assertNameAvailable(dto.processName);
 
     const newProcess = await this.prisma.manufacturingProcess.create({
       data: {
-        productId: dto.productId,
-        processCode: dto.processCode,
-        processName: dto.processName,
-        description: dto.description,
-        sequence: dto.sequence,
-        estimatedHours: dto.estimatedHours ?? 0,
+        processName: dto.processName.trim(),
+        description: dto.description?.trim() || null,
         status: dto.status,
         createdBy: performingUserId,
       },
-      include: { product: true },
     });
 
     const response = this.mapToProcessResponse(newProcess);
     await this.createAuditLog('CREATE', newProcess.id, null, response, performingUserId);
     await this.cacheService.invalidateByPattern('master:processes:*');
-    await this.cacheService.invalidateByPattern('reports:master-data:products:*');
 
     return response;
   }
@@ -148,20 +104,13 @@ export class ProcessesService {
       isDeleted: false,
     };
 
-    if (query.productId) {
-      where.productId = query.productId;
-    }
-
     if (query.status) {
       where.status = query.status;
     }
 
     if (query.search) {
       const searchTerm = query.search.trim();
-      where.OR = [
-        { processCode: { contains: searchTerm, mode: 'insensitive' } },
-        { processName: { contains: searchTerm, mode: 'insensitive' } },
-      ];
+      where.processName = { contains: searchTerm, mode: 'insensitive' };
     }
 
     const [processes, total] = await Promise.all([
@@ -169,8 +118,7 @@ export class ProcessesService {
         where,
         skip,
         take: limit,
-        orderBy: [{ sequence: 'asc' }, { createdAt: 'desc' }],
-        include: { product: true },
+        orderBy: [{ processName: 'asc' }],
       }),
       this.prisma.manufacturingProcess.count({ where }),
     ]);
@@ -190,7 +138,6 @@ export class ProcessesService {
   async findProcessById(id: string): Promise<ProcessResponseDto> {
     const process = await this.prisma.manufacturingProcess.findFirst({
       where: { id, isDeleted: false },
-      include: { product: true },
     });
 
     if (!process) {
@@ -207,54 +154,30 @@ export class ProcessesService {
   ): Promise<ProcessResponseDto> {
     const currentProcess = await this.prisma.manufacturingProcess.findFirst({
       where: { id, isDeleted: false },
-      include: { product: true },
     });
 
     if (!currentProcess) {
       throw new NotFoundException(PROCESS_MESSAGES.NOT_FOUND);
     }
 
-    if (dto.productId && dto.productId !== currentProcess.productId) {
-      await this.validateProduct(dto.productId);
-      await this.assertCodeAvailable(
-        dto.productId,
-        dto.processCode ?? currentProcess.processCode,
-        id,
-      );
-      await this.assertSequenceAvailable(
-        dto.productId,
-        dto.sequence ?? currentProcess.sequence,
-        id,
-      );
-    } else {
-      if (dto.processCode && dto.processCode !== currentProcess.processCode) {
-        await this.assertCodeAvailable(currentProcess.productId, dto.processCode, id);
-      }
-      if (dto.sequence !== undefined && dto.sequence !== currentProcess.sequence) {
-        await this.assertSequenceAvailable(currentProcess.productId, dto.sequence, id);
-      }
+    if (dto.processName && dto.processName.trim() !== currentProcess.processName) {
+      await this.assertNameAvailable(dto.processName, id);
     }
 
     const updatedProcess = await this.prisma.manufacturingProcess.update({
       where: { id },
       data: {
-        ...(dto.productId && { productId: dto.productId }),
-        ...(dto.processCode && { processCode: dto.processCode }),
-        ...(dto.processName && { processName: dto.processName }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.sequence !== undefined && { sequence: dto.sequence }),
-        ...(dto.estimatedHours !== undefined && { estimatedHours: dto.estimatedHours }),
+        ...(dto.processName && { processName: dto.processName.trim() }),
+        ...(dto.description !== undefined && { description: dto.description?.trim() || null }),
         ...(dto.status && { status: dto.status }),
         updatedBy: performingUserId,
       },
-      include: { product: true },
     });
 
     const oldResponse = this.mapToProcessResponse(currentProcess);
     const newResponse = this.mapToProcessResponse(updatedProcess);
     await this.createAuditLog('UPDATE', id, oldResponse, newResponse, performingUserId);
     await this.cacheService.invalidateByPattern('master:processes:*');
-    await this.cacheService.invalidateByPattern('reports:master-data:products:*');
 
     return newResponse;
   }
@@ -294,7 +217,6 @@ export class ProcessesService {
       performingUserId,
     );
     await this.cacheService.invalidateByPattern('master:processes:*');
-    await this.cacheService.invalidateByPattern('reports:master-data:products:*');
 
     return { message: PROCESS_MESSAGES.DELETED_SUCCESS };
   }
@@ -302,12 +224,13 @@ export class ProcessesService {
   async restoreProcess(id: string, performingUserId?: string): Promise<ProcessResponseDto> {
     const currentProcess = await this.prisma.manufacturingProcess.findFirst({
       where: { id, isDeleted: true },
-      include: { product: true },
     });
 
     if (!currentProcess) {
       throw new NotFoundException(PROCESS_MESSAGES.NOT_FOUND);
     }
+
+    await this.assertNameAvailable(currentProcess.processName, id);
 
     const restoredProcess = await this.prisma.manufacturingProcess.update({
       where: { id },
@@ -316,13 +239,11 @@ export class ProcessesService {
         deletedAt: null,
         updatedBy: performingUserId,
       },
-      include: { product: true },
     });
 
     const response = this.mapToProcessResponse(restoredProcess);
     await this.createAuditLog('RESTORE', id, null, response, performingUserId);
     await this.cacheService.invalidateByPattern('master:processes:*');
-    await this.cacheService.invalidateByPattern('reports:master-data:products:*');
 
     return response;
   }

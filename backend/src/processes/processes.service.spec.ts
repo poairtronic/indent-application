@@ -11,24 +11,16 @@ describe('ProcessesService', () => {
 
   const mockProcess = {
     id: 'process-uuid-1',
-    productId: 'product-uuid-1',
-    processCode: 'MLG-001',
     processName: 'Milling',
     description: null,
-    sequence: 1,
-    estimatedHours: 4.5,
     status: ProcessStatus.ACTIVE,
     isDeleted: false,
     createdAt: new Date(),
     updatedAt: new Date(),
-    product: { productCode: 'PRD-001' },
   };
 
   beforeEach(async () => {
     prismaMock = {
-      product: {
-        findUnique: jest.fn(),
-      },
       manufacturingProcess: {
         findFirst: jest.fn(),
         findMany: jest.fn(),
@@ -69,58 +61,23 @@ describe('ProcessesService', () => {
 
   describe('createProcess', () => {
     const createDto = {
-      productId: 'product-uuid-1',
-      processCode: 'MLG-001',
       processName: 'Milling',
-      sequence: 1,
-      estimatedHours: 4.5,
+      description: 'Milling description',
     };
 
     it('should successfully create a manufacturing process', async () => {
-      prismaMock.product.findUnique.mockResolvedValue({
-        id: 'product-uuid-1',
-        isDeleted: false,
-        status: 'ACTIVE',
-      });
       prismaMock.manufacturingProcess.findFirst.mockResolvedValue(null);
       prismaMock.manufacturingProcess.create.mockResolvedValue(mockProcess);
 
       const result = await service.createProcess(createDto, 'performer-id');
 
-      expect(result.processCode).toEqual('MLG-001');
-      expect(result.estimatedHours).toEqual(4.5);
+      expect(result.processName).toEqual('Milling');
       expect(prismaMock.manufacturingProcess.create).toHaveBeenCalled();
       expect(prismaMock.auditLog.create).toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException if product is invalid or inactive', async () => {
-      prismaMock.product.findUnique.mockResolvedValue(null);
-
-      await expect(service.createProcess(createDto)).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw ConflictException if process code already exists for product', async () => {
-      prismaMock.product.findUnique.mockResolvedValue({
-        id: 'product-uuid-1',
-        isDeleted: false,
-        status: 'ACTIVE',
-      });
-      prismaMock.manufacturingProcess.findFirst
-        .mockResolvedValueOnce(mockProcess)
-        .mockResolvedValueOnce(null);
-
-      await expect(service.createProcess(createDto)).rejects.toThrow(ConflictException);
-    });
-
-    it('should throw ConflictException if sequence conflicts', async () => {
-      prismaMock.product.findUnique.mockResolvedValue({
-        id: 'product-uuid-1',
-        isDeleted: false,
-        status: 'ACTIVE',
-      });
-      prismaMock.manufacturingProcess.findFirst
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(mockProcess);
+    it('should throw ConflictException if process name already exists', async () => {
+      prismaMock.manufacturingProcess.findFirst.mockResolvedValue(mockProcess);
 
       await expect(service.createProcess(createDto)).rejects.toThrow(ConflictException);
     });
@@ -148,7 +105,7 @@ describe('ProcessesService', () => {
       expect(result.id).toEqual('process-uuid-1');
     });
 
-    it('should throw NotFoundException if process not found for soft delete', async () => {
+    it('should throw NotFoundException if process not found', async () => {
       prismaMock.manufacturingProcess.findFirst.mockResolvedValue(null);
 
       await expect(service.findProcessById('invalid-id')).rejects.toThrow(NotFoundException);
@@ -157,7 +114,9 @@ describe('ProcessesService', () => {
 
   describe('updateProcess', () => {
     it('should update process when found', async () => {
-      prismaMock.manufacturingProcess.findFirst.mockResolvedValue(mockProcess);
+      prismaMock.manufacturingProcess.findFirst
+        .mockResolvedValueOnce(mockProcess)
+        .mockResolvedValueOnce(null);
       prismaMock.manufacturingProcess.update.mockResolvedValue({
         ...mockProcess,
         processName: 'CNC Milling',
@@ -219,10 +178,12 @@ describe('ProcessesService', () => {
 
   describe('restoreProcess', () => {
     it('should restore a soft-deleted process', async () => {
-      prismaMock.manufacturingProcess.findFirst.mockResolvedValue({
-        ...mockProcess,
-        isDeleted: true,
-      });
+      prismaMock.manufacturingProcess.findFirst
+        .mockResolvedValueOnce({
+          ...mockProcess,
+          isDeleted: true,
+        })
+        .mockResolvedValueOnce(null);
       prismaMock.manufacturingProcess.update.mockResolvedValue(mockProcess);
       const result = await service.restoreProcess('process-uuid-1', 'performer-id');
 
@@ -237,3 +198,4 @@ describe('ProcessesService', () => {
     });
   });
 });
+

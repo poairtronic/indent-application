@@ -31,6 +31,20 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Access denied. No authenticated user found.');
     }
 
+    const roleName = (user.role?.roleName || user.role || '').toUpperCase();
+    const deptCode = (user.department?.departmentCode || '').toUpperCase();
+    const isSystemAdmin =
+      roleName === 'ADMIN' ||
+      roleName === 'SYSTEM ADMINISTRATOR' ||
+      user.role?.isSystem === true ||
+      deptCode === 'ADMIN' ||
+      deptCode === 'ADMINISTRATION' ||
+      deptCode === 'ADM';
+
+    if (isSystemAdmin) {
+      return true;
+    }
+
     const hasRole = requiredRoles.some(
       (role) => user.role?.roleName?.toUpperCase() === role.toUpperCase(),
     );

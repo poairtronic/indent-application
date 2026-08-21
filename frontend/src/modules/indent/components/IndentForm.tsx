@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
-import type { Control } from 'react-hook-form';
+import type { Control, UseFormSetValue } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '../../../components/ui/Button';
@@ -9,6 +9,8 @@ import { Select } from '../../../components/ui/Select';
 import { Priority, MaterialShape } from '../../../types/indent';
 import { useUnits } from '../../../api/services/units/hooks';
 import { useProcesses } from '../../../api/services/processes/hooks';
+import { useProducts } from '../../../api/services/products/hooks';
+import { useVendors } from '../../../api/services/vendors/hooks';
 import type { IndentData } from '../../../api/services/indents/service';
 import { useAuthStore } from '../../../store/authStore';
 import { getWorkflowAccess } from '../../../constants/workflow';
@@ -211,22 +213,26 @@ interface IndentFormProps {
 const NestedProcessArray: React.FC<{
   control: Control<IndentFormData>;
   register: any;
+  setValue: UseFormSetValue<IndentFormData>;
   itemIndex: number;
   errors: any;
   isReadOnly: boolean;
   isAccountsMode?: boolean;
   isProductionMode?: boolean;
   processesList: any[];
+  vendorsList: any[];
   itemTotal: { predicted: number; actual: number };
 }> = ({
   control,
   register,
+  setValue,
   itemIndex,
   errors,
   isReadOnly,
   isAccountsMode,
   isProductionMode,
   processesList,
+  vendorsList,
   itemTotal,
 }) => {
   const user = useAuthStore((s) => s.user);
@@ -238,6 +244,12 @@ const NestedProcessArray: React.FC<{
     control,
     name: `indent.items.${itemIndex}.processes`,
   });
+
+  const watchedProcesses =
+    useWatch({
+      control,
+      name: `indent.items.${itemIndex}.processes`,
+    }) || [];
 
   return (
     <div className="mt-4 p-4 bg-surface-base rounded border border-border-default">
@@ -253,12 +265,12 @@ const NestedProcessArray: React.FC<{
                 processId: '',
                 predictedCost: 0,
                 estimatedHours: 0,
-                vendorType: '',
+                vendorType: 'In-house',
                 productionSource: '',
               })
             }
           >
-            Add Process
+            + Add Process
           </Button>
         )}
       </div>
@@ -272,7 +284,6 @@ const NestedProcessArray: React.FC<{
       )}
       <div className="space-y-3">
         {fields.map((field, pIndex) => {
-          const canViewCostSheet = true;
           const showActual =
             isAccountsMode ||
             fields.some(
@@ -285,12 +296,14 @@ const NestedProcessArray: React.FC<{
           let hoursCol = 'md:col-span-1';
           let plannedCol = 'md:col-span-2';
           let actualCol = 'md:col-span-2';
+          let remCol = 'md:col-span-2 flex justify-end';
 
           if (!canViewCostSheet) {
             processCol = 'md:col-span-4';
             sourceCol = 'md:col-span-3';
             prodSourceCol = 'md:col-span-3';
-            hoursCol = 'md:col-span-2';
+            hoursCol = 'md:col-span-1';
+            remCol = 'md:col-span-1 flex justify-end';
           } else if (showActual) {
             processCol = 'md:col-span-2';
             sourceCol = 'md:col-span-2';
@@ -298,126 +311,322 @@ const NestedProcessArray: React.FC<{
             hoursCol = 'md:col-span-1';
             plannedCol = 'md:col-span-2';
             actualCol = 'md:col-span-2';
-          } else if (isReadOnly) {
-            processCol = 'md:col-span-3';
-            sourceCol = 'md:col-span-2';
-            prodSourceCol = 'md:col-span-3';
-            hoursCol = 'md:col-span-2';
-            plannedCol = 'md:col-span-2';
+            remCol = 'md:col-span-1 flex justify-end';
           }
 
+          const currentVendorType =
+            (watchedProcesses?.[pIndex] as any)?.vendorType || (field as any).vendorType || '';
+          const isSourceVendor =
+            currentVendorType.startsWith('Vendor') ||
+            (currentVendorType !== '' &&
+              currentVendorType !== 'In-house' &&
+              vendorsList.some(
+                (v) =>
+                  v.vendorName === currentVendorType || currentVendorType.includes(v.vendorName),
+              ));
+          const selectedSourceVendor = isSourceVendor
+            ? currentVendorType.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '')
+            : '';
+
+          const currentProdSource =
+            (watchedProcesses?.[pIndex] as any)?.productionSource ||
+            (field as any).productionSource ||
+            '';
+          const isProdVendor =
+            currentProdSource.startsWith('Vendor') ||
+            (currentProdSource !== '' &&
+              currentProdSource !== 'In-house' &&
+              vendorsList.some(
+                (v) =>
+                  v.vendorName === currentProdSource || currentProdSource.includes(v.vendorName),
+              ));
+          const selectedProdVendor = isProdVendor
+            ? currentProdSource.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '')
+            : '';
+
           return (
-            <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-              <div className={processCol}>
-                <Controller
-                  control={control}
-                  name={`indent.items.${itemIndex}.processes.${pIndex}.processId`}
-                  render={({ field }) => {
-                    const selectedProcess = processesList.find((p) => p.id === field.value);
-                    const fallbackName =
-                      (field as any).processName || (fields[pIndex] as any).processName;
-                    const inputValue = selectedProcess
-                      ? selectedProcess.processName
-                      : fallbackName || field.value || '';
-                    return (
-                      <div className="w-full font-sans">
-                        <Input
-                          label="Process"
-                          placeholder="Type or select process"
-                          value={inputValue}
-                          list={`processes-datalist-${itemIndex}-${pIndex}`}
+            <div
+              key={field.id}
+              className="p-3 bg-surface-base/40 rounded-lg border border-border-default/60 space-y-2.5"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <div className={processCol}>
+                  <Controller
+                    control={control}
+                    name={`indent.items.${itemIndex}.processes.${pIndex}.processId`}
+                    render={({ field: procField }) => {
+                      const selectedProcess = processesList.find((p) => p.id === procField.value);
+                      const fallbackName =
+                        (procField as any).processName || (fields[pIndex] as any).processName;
+                      const inputValue = selectedProcess
+                        ? selectedProcess.processName
+                        : fallbackName || procField.value || '';
+                      return (
+                        <div className="w-full font-sans">
+                          <Input
+                            label="Process"
+                            placeholder="Type or select process"
+                            value={inputValue}
+                            list={`processes-datalist-${itemIndex}-${pIndex}`}
+                            disabled={isReadOnly || isProductionMode || isAccountsMode}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const matched = processesList.find(
+                                (p) => p.processName.toLowerCase() === val.toLowerCase(),
+                              );
+                              procField.onChange(matched ? matched.id : val);
+                            }}
+                            error={
+                              errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.processId
+                                ?.message
+                                ? 'Please select an existing process from the list'
+                                : undefined
+                            }
+                          />
+                          <datalist id={`processes-datalist-${itemIndex}-${pIndex}`}>
+                            {processesList.map((p) => (
+                              <option key={p.id} value={p.processName} />
+                            ))}
+                          </datalist>
+                        </div>
+                      );
+                    }}
+                  />
+                </div>
+                <div className={sourceCol}>
+                  <Controller
+                    control={control}
+                    name={`indent.items.${itemIndex}.processes.${pIndex}.vendorType`}
+                    render={({ field: vField }) => {
+                      const val = vField.value || '';
+                      const isV =
+                        val.startsWith('Vendor') ||
+                        (val !== '' &&
+                          val !== 'In-house' &&
+                          vendorsList.some(
+                            (v) => v.vendorName === val || val.includes(v.vendorName),
+                          ));
+                      const sType = isV
+                        ? 'Vendor'
+                        : val === 'In-house'
+                          ? 'In-house'
+                          : val
+                            ? 'In-house'
+                            : '';
+
+                      return (
+                        <Select
+                          label="Source"
                           disabled={isReadOnly || isProductionMode || isAccountsMode}
+                          value={sType}
                           onChange={(e) => {
-                            const val = e.target.value;
-                            const matched = processesList.find(
-                              (p) => p.processName.toLowerCase() === val.toLowerCase(),
-                            );
-                            field.onChange(matched ? matched.id : val);
+                            const selectedType = e.target.value;
+                            if (selectedType === 'In-house') {
+                              vField.onChange('In-house');
+                            } else if (selectedType === 'Vendor') {
+                              const defaultVendor = vendorsList[0]?.vendorName || '';
+                              vField.onChange(
+                                defaultVendor ? `Vendor: ${defaultVendor}` : 'Vendor',
+                              );
+                            } else {
+                              vField.onChange('');
+                            }
                           }}
+                          options={[
+                            { label: 'Select Source', value: '' },
+                            { label: 'In-house', value: 'In-house' },
+                            { label: 'Vendor', value: 'Vendor' },
+                          ]}
                           error={
-                            errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.processId
+                            errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.vendorType
                               ?.message
-                              ? 'Please select an existing process from the list'
-                              : undefined
                           }
                         />
-                        <datalist id={`processes-datalist-${itemIndex}-${pIndex}`}>
-                          {processesList.map((p) => (
-                            <option key={p.id} value={p.processName} />
-                          ))}
-                        </datalist>
-                      </div>
-                    );
-                  }}
-                />
-              </div>
-              <div className={sourceCol}>
-                <Input
-                  label="Source"
-                  placeholder="e.g. In-house"
-                  disabled={isReadOnly || isProductionMode || isAccountsMode}
-                  {...register(`indent.items.${itemIndex}.processes.${pIndex}.vendorType`)}
-                  error={
-                    errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.vendorType?.message
-                  }
-                />
-              </div>
-              <div className={prodSourceCol}>
-                <Input
-                  label="Prod. Source"
-                  placeholder="e.g. Supplier XYZ"
-                  disabled={!isProductionMode}
-                  {...register(`indent.items.${itemIndex}.processes.${pIndex}.productionSource`)}
-                />
-              </div>
-              <div className={hoursCol}>
-                <Input
-                  label="Est. Hours"
-                  type="number"
-                  step="0.5"
-                  disabled={isReadOnly || isProductionMode || isAccountsMode}
-                  {...register(`indent.items.${itemIndex}.processes.${pIndex}.estimatedHours`, {
-                    valueAsNumber: true,
-                  })}
-                  error={
-                    errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.estimatedHours?.message
-                  }
-                />
-              </div>
-              {canViewCostSheet && (
-                <div className={plannedCol}>
+                      );
+                    }}
+                  />
+                </div>
+                <div className={prodSourceCol}>
+                  <Controller
+                    control={control}
+                    name={`indent.items.${itemIndex}.processes.${pIndex}.productionSource`}
+                    render={({ field: psField }) => {
+                      const val = psField.value || '';
+                      const isV =
+                        val.startsWith('Vendor') ||
+                        (val !== '' &&
+                          val !== 'In-house' &&
+                          vendorsList.some(
+                            (v) => v.vendorName === val || val.includes(v.vendorName),
+                          ));
+                      const psType = isV
+                        ? 'Vendor'
+                        : val === 'In-house'
+                          ? 'In-house'
+                          : val
+                            ? 'In-house'
+                            : '';
+
+                      return (
+                        <Select
+                          label="Prod. Source"
+                          disabled={!isProductionMode}
+                          value={psType}
+                          onChange={(e) => {
+                            const selectedType = e.target.value;
+                            if (selectedType === 'In-house') {
+                              psField.onChange('In-house');
+                            } else if (selectedType === 'Vendor') {
+                              const defaultVendor = vendorsList[0]?.vendorName || '';
+                              psField.onChange(
+                                defaultVendor ? `Vendor: ${defaultVendor}` : 'Vendor',
+                              );
+                            } else {
+                              psField.onChange('');
+                            }
+                          }}
+                          options={[
+                            { label: 'Select (Optional)', value: '' },
+                            { label: 'In-house', value: 'In-house' },
+                            { label: 'Vendor', value: 'Vendor' },
+                          ]}
+                        />
+                      );
+                    }}
+                  />
+                </div>
+                <div className={hoursCol}>
                   <Input
-                    label="Planned Cost (₹)"
+                    label="Est. Hours"
                     type="number"
-                    step="0.01"
+                    step="0.5"
                     disabled={isReadOnly || isProductionMode || isAccountsMode}
-                    {...register(`indent.items.${itemIndex}.processes.${pIndex}.predictedCost`, {
+                    {...register(`indent.items.${itemIndex}.processes.${pIndex}.estimatedHours`, {
                       valueAsNumber: true,
                     })}
                     error={
-                      errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.predictedCost?.message
+                      errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.estimatedHours
+                        ?.message
                     }
                   />
                 </div>
-              )}
-              {canViewCostSheet && showActual && (
-                <div className={actualCol}>
-                  <Input
-                    label="Actual Cost (₹)"
-                    type="number"
-                    step="0.01"
-                    disabled={!isAccountsMode}
-                    {...register(`indent.items.${itemIndex}.processes.${pIndex}.actualCost`, {
-                      valueAsNumber: true,
-                    })}
-                  />
+                {canViewCostSheet && (
+                  <div className={plannedCol}>
+                    <Input
+                      label="Planned Cost (₹)"
+                      type="number"
+                      step="0.01"
+                      disabled={isReadOnly || isProductionMode || isAccountsMode}
+                      {...register(`indent.items.${itemIndex}.processes.${pIndex}.predictedCost`, {
+                        valueAsNumber: true,
+                      })}
+                      error={
+                        errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.predictedCost
+                          ?.message
+                      }
+                    />
+                  </div>
+                )}
+                {canViewCostSheet && showActual && (
+                  <div className={actualCol}>
+                    <Input
+                      label="Actual Cost (₹)"
+                      type="number"
+                      step="0.01"
+                      disabled={!isAccountsMode}
+                      {...register(`indent.items.${itemIndex}.processes.${pIndex}.actualCost`, {
+                        valueAsNumber: true,
+                      })}
+                    />
+                  </div>
+                )}
+                {!isReadOnly && !isAccountsMode && !isProductionMode && (
+                  <div className={remCol}>
+                    <Button type="button" variant="danger" size="sm" onClick={() => remove(pIndex)}>
+                      Rem
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Conditional Process Vendor Selector */}
+              {isSourceVendor && (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-accent-primary/5 p-2 rounded-md border border-accent-primary/20">
+                  <div className="md:col-span-2 text-xs font-semibold text-accent-primary">
+                    Process Vendor:
+                  </div>
+                  <div className="md:col-span-6">
+                    <Input
+                      placeholder="Type or select process vendor..."
+                      list={`vendors-list-proc-source-${itemIndex}-${pIndex}`}
+                      disabled={isReadOnly || isProductionMode || isAccountsMode}
+                      value={selectedSourceVendor}
+                      onChange={(e) => {
+                        const vName = e.target.value;
+                        setValue(
+                          `indent.items.${itemIndex}.processes.${pIndex}.vendorType`,
+                          vName ? `Vendor: ${vName}` : 'Vendor',
+                        );
+                      }}
+                    />
+                    <datalist id={`vendors-list-proc-source-${itemIndex}-${pIndex}`}>
+                      {vendorsList.map((v) => (
+                        <option key={v.id} value={v.vendorName}>
+                          {v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+                  <div className="md:col-span-4 text-xs text-text-secondary">
+                    {selectedSourceVendor ? (
+                      <span>
+                        Vendor:{' '}
+                        <strong className="text-text-primary">{selectedSourceVendor}</strong>
+                      </span>
+                    ) : (
+                      <span className="italic text-text-muted">Select vendor from list</span>
+                    )}
+                  </div>
                 </div>
               )}
-              {!isReadOnly && !isAccountsMode && !isProductionMode && (
-                <div className="md:col-span-1 flex justify-end">
-                  <Button type="button" variant="danger" size="sm" onClick={() => remove(pIndex)}>
-                    Rem
-                  </Button>
+
+              {/* Conditional Production Vendor Selector */}
+              {isProdVendor && (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-amber-500/10 p-2 rounded-md border border-amber-500/20">
+                  <div className="md:col-span-2 text-xs font-semibold text-amber-500">
+                    Prod. Vendor:
+                  </div>
+                  <div className="md:col-span-6">
+                    <Input
+                      placeholder="Type or select production vendor..."
+                      list={`vendors-list-proc-prod-${itemIndex}-${pIndex}`}
+                      disabled={!isProductionMode}
+                      value={selectedProdVendor}
+                      onChange={(e) => {
+                        const vName = e.target.value;
+                        setValue(
+                          `indent.items.${itemIndex}.processes.${pIndex}.productionSource`,
+                          vName ? `Vendor: ${vName}` : 'Vendor',
+                        );
+                      }}
+                    />
+                    <datalist id={`vendors-list-proc-prod-${itemIndex}-${pIndex}`}>
+                      {vendorsList.map((v) => (
+                        <option key={v.id} value={v.vendorName}>
+                          {v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+                  <div className="md:col-span-4 text-xs text-text-secondary">
+                    {selectedProdVendor ? (
+                      <span>
+                        Vendor: <strong className="text-text-primary">{selectedProdVendor}</strong>
+                      </span>
+                    ) : (
+                      <span className="italic text-text-muted">Production vendor optional</span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -659,10 +868,14 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const { data: unitsData } = useUnits({ page: 1, limit: 100 });
   const { data: processesData } = useProcesses({ page: 1, limit: 100 });
   const { data: materialsRes } = useMaterials({ page: 1, limit: 1000 });
+  const { data: productsRes } = useProducts({ page: 1, limit: 1000 });
+  const { data: vendorsRes } = useVendors({ page: 1, limit: 1000 });
 
   const units = unitsData?.items ?? [];
   const processes = processesData?.items ?? [];
   const materialsList = materialsRes?.items ?? [];
+  const productsList = productsRes?.items ?? [];
+  const vendorsList = vendorsRes?.items ?? [];
 
   const watchedItems = useWatch({ control, name: 'indent.items' });
   const watchedCostItems = useWatch({ control, name: 'costSheet.costItems' });
@@ -869,7 +1082,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8 max-w-5xl">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 w-full">
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
         <h3 className="text-sm font-bold text-text-primary mb-4">Basic Information (Indent)</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -947,7 +1160,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   heightMm: '',
                   quantity: 1,
                   unitId: '',
-                  source: '',
+                  source: 'In-house',
                   productionSource: '',
                   remarks: '',
                   processes: [],
@@ -967,90 +1180,210 @@ export const IndentForm: React.FC<IndentFormProps> = ({
         )}
 
         <div className="space-y-4">
-          {itemFields.map((field, index) => (
-            <div
-              key={field.id}
-              className="border border-border-default rounded-lg p-4 bg-background-primary space-y-3"
-            >
-              {/* Row 1: Product, Material, Size, Source, Rem */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <div className="md:col-span-1 text-xs font-bold text-text-muted pb-2">
-                  #{index + 1}
-                </div>
-                <div className="md:col-span-3">
-                  <Input
-                    label="Part Name / Product"
-                    placeholder="e.g. Base plate"
-                    disabled={isReadOnly || isProductionMode || isAccountsMode}
-                    {...register(`indent.items.${index}.product`)}
-                    error={errors.indent?.items?.[index]?.product?.message}
-                  />
-                </div>
-                <div className="md:col-span-3">
-                  <Controller
-                    control={control}
-                    name={`indent.items.${index}.materialName`}
-                    render={({ field }) => (
-                      <div className="w-full">
-                        <Input
-                          label="Material"
-                          placeholder="Type material name"
-                          list={`materials-list-${index}`}
+          {itemFields.map((field, index) => {
+            const currentSource = watchedItems?.[index]?.source || '';
+            const isVendor =
+              currentSource.startsWith('Vendor') ||
+              (currentSource !== '' &&
+                currentSource !== 'In-house' &&
+                vendorsList.some(
+                  (v) => v.vendorName === currentSource || currentSource.includes(v.vendorName),
+                ));
+            const sourceType = isVendor
+              ? 'Vendor'
+              : currentSource === 'In-house'
+                ? 'In-house'
+                : currentSource
+                  ? 'In-house'
+                  : 'In-house';
+            const selectedVendorName = isVendor
+              ? currentSource.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '')
+              : '';
+
+            return (
+              <div
+                key={field.id}
+                className="border border-border-default rounded-xl p-4 bg-background-primary/80 space-y-4 shadow-sm"
+              >
+                {/* Row 1: Product, Material, Shape, Source, Remove */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                  <div className="md:col-span-1 flex items-center gap-1.5 pb-2 text-xs font-bold text-accent-primary">
+                    <span className="p-1 px-2 rounded-md bg-accent-primary/10 font-mono">
+                      #{index + 1}
+                    </span>
+                  </div>
+                  <div className="md:col-span-3">
+                    <Controller
+                      control={control}
+                      name={`indent.items.${index}.product`}
+                      render={({ field: pField }) => (
+                        <div className="w-full">
+                          <Input
+                            label="Part Name / Product"
+                            placeholder="Select product or type part"
+                            list={`products-list-${index}`}
+                            disabled={isReadOnly || isProductionMode || isAccountsMode}
+                            {...pField}
+                            error={errors.indent?.items?.[index]?.product?.message}
+                          />
+                          <datalist id={`products-list-${index}`}>
+                            {productsList.map((p) => (
+                              <option key={p.id} value={p.productName}>
+                                {p.productCode
+                                  ? `${p.productName} (${p.productCode})`
+                                  : p.productName}
+                              </option>
+                            ))}
+                          </datalist>
+                        </div>
+                      )}
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <Controller
+                      control={control}
+                      name={`indent.items.${index}.materialName`}
+                      render={({ field: mField }) => (
+                        <div className="w-full">
+                          <Input
+                            label="Material"
+                            placeholder="Select material or type name"
+                            list={`materials-list-${index}`}
+                            disabled={isReadOnly || isProductionMode || isAccountsMode}
+                            {...mField}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              mField.onChange(val);
+                              const matched = materialsList.find(
+                                (m) => m.materialName.toLowerCase() === val.trim().toLowerCase(),
+                              );
+                              if (matched?.unitId) {
+                                setValue(`indent.items.${index}.unitId`, matched.unitId);
+                              }
+                            }}
+                            error={errors.indent?.items?.[index]?.materialName?.message}
+                          />
+                          <datalist id={`materials-list-${index}`}>
+                            {materialsList.map((m) => (
+                              <option key={m.id} value={m.materialName}>
+                                {m.materialCode
+                                  ? `${m.materialName} (${m.materialCode})`
+                                  : m.materialName}
+                              </option>
+                            ))}
+                          </datalist>
+                        </div>
+                      )}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Controller
+                      control={control}
+                      name={`indent.items.${index}.shape`}
+                      render={({ field: sField }) => (
+                        <Select
+                          label="Shape"
                           disabled={isReadOnly || isProductionMode || isAccountsMode}
-                          {...field}
-                          error={errors.indent?.items?.[index]?.materialName?.message}
+                          options={[
+                            { label: 'Select Shape', value: '' },
+                            { label: 'Rectangle', value: 'RECTANGLE' },
+                            { label: 'Square', value: 'SQUARE' },
+                            { label: 'Plate', value: 'PLATE' },
+                            { label: 'Round', value: 'ROUND' },
+                            { label: 'Circle', value: 'CIRCLE' },
+                          ]}
+                          {...sField}
                         />
-                        <datalist id={`materials-list-${index}`}>
-                          {materialsList.map((m) => (
-                            <option key={m.id} value={m.materialName} />
-                          ))}
-                        </datalist>
-                      </div>
-                    )}
-                  />
+                      )}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Select
+                      label="Source"
+                      disabled={isReadOnly || isProductionMode || isAccountsMode}
+                      value={sourceType}
+                      onChange={(e) => {
+                        const selectedType = e.target.value;
+                        if (selectedType === 'In-house') {
+                          setValue(`indent.items.${index}.source`, 'In-house');
+                        } else if (selectedType === 'Vendor') {
+                          const defaultVendor = vendorsList[0]?.vendorName || '';
+                          setValue(
+                            `indent.items.${index}.source`,
+                            defaultVendor ? `Vendor: ${defaultVendor}` : 'Vendor',
+                          );
+                        } else {
+                          setValue(`indent.items.${index}.source`, '');
+                        }
+                      }}
+                      options={[
+                        { label: 'In-house', value: 'In-house' },
+                        { label: 'Vendor', value: 'Vendor' },
+                      ]}
+                      error={errors.indent?.items?.[index]?.source?.message}
+                    />
+                  </div>
+                  {!isReadOnly && !isProductionMode && !isAccountsMode && (
+                    <div className="md:col-span-1 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => removeItem(index)}
+                      >
+                        Rem
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <div className="md:col-span-2">
-                  <Controller
-                    control={control}
-                    name={`indent.items.${index}.shape`}
-                    render={({ field }) => (
-                      <Select
-                        label="Shape"
+
+                {/* Conditional Inline Vendor Selector when Source === Vendor */}
+                {sourceType === 'Vendor' && (
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-surface-base/80 p-3 rounded-lg border border-accent-primary/20">
+                    <div className="md:col-span-1 text-center font-bold text-[11px] text-accent-primary uppercase tracking-wider">
+                      Vendor
+                    </div>
+                    <div className="md:col-span-6">
+                      <Input
+                        label="Select Vendor (Created in Admin Portal)"
+                        placeholder="Type or select vendor from master..."
+                        list={`vendors-list-item-source-${index}`}
                         disabled={isReadOnly || isProductionMode || isAccountsMode}
-                        options={[
-                          { label: 'Select Shape', value: '' },
-                          { label: 'Rectangle', value: 'RECTANGLE' },
-                          { label: 'Square', value: 'SQUARE' },
-                          { label: 'Plate', value: 'PLATE' },
-                          { label: 'Round', value: 'ROUND' },
-                          { label: 'Circle', value: 'CIRCLE' },
-                        ]}
-                        {...field}
+                        value={selectedVendorName}
+                        onChange={(e) => {
+                          const vName = e.target.value;
+                          setValue(
+                            `indent.items.${index}.source`,
+                            vName ? `Vendor: ${vName}` : 'Vendor',
+                          );
+                        }}
                       />
-                    )}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Input
-                    label="Source"
-                    placeholder="e.g. In-house"
-                    disabled={isReadOnly || isProductionMode || isAccountsMode}
-                    {...register(`indent.items.${index}.source`)}
-                    error={errors.indent?.items?.[index]?.source?.message}
-                  />
-                </div>
-                {!isReadOnly && !isProductionMode && !isAccountsMode && (
-                  <div className="md:col-span-1 flex justify-end">
-                    <Button
-                      type="button"
-                      variant="danger"
-                      size="sm"
-                      onClick={() => removeItem(index)}
-                    >
-                      Rem
-                    </Button>
+                      <datalist id={`vendors-list-item-source-${index}`}>
+                        {vendorsList.map((v) => (
+                          <option key={v.id} value={v.vendorName}>
+                            {v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName}
+                          </option>
+                        ))}
+                      </datalist>
+                    </div>
+                    <div className="md:col-span-5 text-xs text-text-secondary pt-4">
+                      {selectedVendorName ? (
+                        <span>
+                          Assigned Vendor:{' '}
+                          <strong className="text-text-primary font-semibold">
+                            {selectedVendorName}
+                          </strong>
+                        </span>
+                      ) : (
+                        <span className="italic text-text-muted">
+                          Choose a vendor from the master vendor catalog.
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
+
+                {/* Live Dimensions Row */}
                 {(() => {
                   const shape = watchedItems?.[index]?.shape;
                   const material = materialsList.find(
@@ -1076,7 +1409,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   if (!isRoundOrCircle && !isPrismatic) return null;
 
                   return (
-                    <div className="col-span-1 md:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-3 mt-2 mb-2 p-3 bg-surface-base rounded-md border border-border-default/50">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 bg-surface-base rounded-md border border-border-default/50 items-end">
                       {isRoundOrCircle ? (
                         <div className="md:col-span-3">
                           <Input
@@ -1128,7 +1461,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                             : 'md:col-span-3 flex items-end'
                         }
                       >
-                        <div className="w-full text-right p-2 rounded bg-background-primary border border-border-default">
+                        <div className="w-full text-right p-2.5 rounded bg-background-primary border border-border-default">
                           <span className="text-xs text-text-muted mr-2">Live Unit Weight:</span>
                           <span className="font-bold text-accent-primary">
                             {unitWeight > 0 ? unitWeight.toFixed(4) + ' kg' : '---'}
@@ -1138,131 +1471,234 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     </div>
                   );
                 })()}
-              </div>
 
-              {/* Row 2: Qty, Unit, Est. Rate, Amount */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border-t border-border-default/50 pt-3">
-                <div className="md:col-span-1" />
-                <div className={canViewCostSheet ? 'md:col-span-2' : 'md:col-span-3'}>
-                  <Input
-                    label="Quantity"
-                    type="number"
-                    step="0.01"
-                    disabled={isReadOnly || isProductionMode || isAccountsMode}
-                    {...register(`indent.items.${index}.quantity`, {
-                      valueAsNumber: true,
-                      onChange: (e) => {
-                        const qty = parseFloat(e.target.value) || 0;
-                        const rate = watchedCostItems?.[index]?.predictedRate || 0;
-                        setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
-                      },
-                    })}
-                    error={errors.indent?.items?.[index]?.quantity?.message}
-                  />
-                </div>
-                <div className={canViewCostSheet ? 'md:col-span-2' : 'md:col-span-3'}>
-                  <Controller
-                    control={control}
-                    name={`indent.items.${index}.unitId`}
-                    render={({ field }) => (
-                      <Select
-                        label="Unit"
-                        disabled={isReadOnly || isProductionMode || isAccountsMode}
-                        options={[
-                          { label: 'Select Unit', value: '' },
-                          ...units.map((u) => ({
-                            label: `${u.symbol || u.unitName}`,
-                            value: u.id,
-                          })),
-                        ]}
-                        error={errors.indent?.items?.[index]?.unitId?.message}
-                        {...field}
-                      />
-                    )}
-                  />
-                </div>
-                <div className={canViewCostSheet ? 'md:col-span-3' : 'md:col-span-4'}>
-                  <Input
-                    label="Prod. Source"
-                    placeholder="e.g. Supplier XYZ"
-                    disabled={!isProductionMode}
-                    {...register(`indent.items.${index}.productionSource`)}
-                  />
-                </div>
-                {canViewCostSheet && (
-                  <>
-                    <div className={isAccountsMode ? 'md:col-span-2' : 'md:col-span-3'}>
-                      <Input
-                        label="Est. Rate (₹)"
-                        type="number"
-                        step="0.01"
-                        disabled={isReadOnly || isProductionMode || isAccountsMode}
-                        {...register(`costSheet.costItems.${index}.predictedRate`, {
-                          valueAsNumber: true,
-                          onChange: (e) => {
-                            const rate = parseFloat(e.target.value) || 0;
-                            const qty = watchedItems?.[index]?.quantity || 0;
-                            setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
-                          },
-                        })}
-                        error={errors.costSheet?.costItems?.[index]?.predictedRate?.message}
-                      />
-                    </div>
-                    <div className={isAccountsMode ? 'md:col-span-2' : 'md:col-span-3'}>
-                      <Input
-                        label="Material Cost (₹)"
-                        type="number"
-                        disabled={true}
-                        {...register(`costSheet.costItems.${index}.predictedAmount`)}
-                      />
-                    </div>
-                    {(isAccountsMode || watchedCostItems?.[index]?.actualRate !== undefined) && (
+                {/* Row 2: Quantity, Unit, Prod. Source, Est. Rate, Mat. Cost (Clean 12-column single-line layout) */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border-t border-border-default/50 pt-3">
+                  <div className="md:col-span-1" />
+                  <div className="md:col-span-2">
+                    <Input
+                      label="Quantity"
+                      type="number"
+                      step="0.01"
+                      disabled={isReadOnly || isProductionMode || isAccountsMode}
+                      {...register(`indent.items.${index}.quantity`, {
+                        valueAsNumber: true,
+                        onChange: (e) => {
+                          const qty = parseFloat(e.target.value) || 0;
+                          const rate = watchedCostItems?.[index]?.predictedRate || 0;
+                          setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
+                        },
+                      })}
+                      error={errors.indent?.items?.[index]?.quantity?.message}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Controller
+                      control={control}
+                      name={`indent.items.${index}.unitId`}
+                      render={({ field: uField }) => (
+                        <Select
+                          label="Unit"
+                          disabled={isReadOnly || isProductionMode || isAccountsMode}
+                          options={[
+                            { label: 'Select Unit', value: '' },
+                            ...units.map((u) => ({
+                              label: `${u.symbol || u.unitName}`,
+                              value: u.id,
+                            })),
+                          ]}
+                          error={errors.indent?.items?.[index]?.unitId?.message}
+                          {...uField}
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Controller
+                      control={control}
+                      name={`indent.items.${index}.productionSource`}
+                      render={({ field: psField }) => {
+                        const currentVal = psField.value || '';
+                        const isVendor =
+                          currentVal.startsWith('Vendor') ||
+                          (currentVal !== '' &&
+                            currentVal !== 'In-house' &&
+                            vendorsList.some(
+                              (v) =>
+                                v.vendorName === currentVal || currentVal.includes(v.vendorName),
+                            ));
+                        const prodSourceType = isVendor
+                          ? 'Vendor'
+                          : currentVal === 'In-house'
+                            ? 'In-house'
+                            : currentVal
+                              ? 'In-house'
+                              : '';
+
+                        return (
+                          <Select
+                            label="Prod. Source"
+                            disabled={!isProductionMode}
+                            value={prodSourceType}
+                            onChange={(e) => {
+                              const selectedType = e.target.value;
+                              if (selectedType === 'In-house') {
+                                psField.onChange('In-house');
+                              } else if (selectedType === 'Vendor') {
+                                const defaultVendor = vendorsList[0]?.vendorName || '';
+                                psField.onChange(
+                                  defaultVendor ? `Vendor: ${defaultVendor}` : 'Vendor',
+                                );
+                              } else {
+                                psField.onChange('');
+                              }
+                            }}
+                            options={[
+                              { label: 'Select (Optional)', value: '' },
+                              { label: 'In-house', value: 'In-house' },
+                              { label: 'Vendor', value: 'Vendor' },
+                            ]}
+                          />
+                        );
+                      }}
+                    />
+                  </div>
+                  {canViewCostSheet && (
+                    <>
                       <div className="md:col-span-2">
                         <Input
-                          label="Actual Rate (₹)"
+                          label="Est. Rate (₹)"
                           type="number"
                           step="0.01"
-                          disabled={!isAccountsMode}
-                          {...register(`costSheet.costItems.${index}.actualRate`, {
+                          disabled={isReadOnly || isProductionMode || isAccountsMode}
+                          {...register(`costSheet.costItems.${index}.predictedRate`, {
                             valueAsNumber: true,
                             onChange: (e) => {
                               const rate = parseFloat(e.target.value) || 0;
-                              const qty = Number(watchedItems?.[index]?.quantity) || 0;
-                              setValue(`costSheet.costItems.${index}.actualAmount`, rate * qty);
+                              const qty = watchedItems?.[index]?.quantity || 0;
+                              setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
                             },
                           })}
+                          error={errors.costSheet?.costItems?.[index]?.predictedRate?.message}
                         />
                       </div>
-                    )}
-                    {(isAccountsMode || watchedCostItems?.[index]?.actualAmount !== undefined) && (
-                      <div className="md:col-span-2">
+                      <div className={isAccountsMode ? 'md:col-span-3' : 'md:col-span-3'}>
                         <Input
-                          label="Actual Mat. Cost (₹)"
+                          label="Material Cost (₹)"
                           type="number"
-                          disabled
-                          {...register(`costSheet.costItems.${index}.actualAmount`)}
+                          disabled={true}
+                          {...register(`costSheet.costItems.${index}.predictedAmount`)}
                         />
                       </div>
-                    )}
-                  </>
-                )}
-                <div className="md:col-span-1" />
-              </div>
+                      {isAccountsMode && (
+                        <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                          <Input
+                            label="Actual Rate (₹)"
+                            type="number"
+                            step="0.01"
+                            disabled={!isAccountsMode}
+                            {...register(`costSheet.costItems.${index}.actualRate`, {
+                              valueAsNumber: true,
+                              onChange: (e) => {
+                                const rate = parseFloat(e.target.value) || 0;
+                                const qty = Number(watchedItems?.[index]?.quantity) || 0;
+                                setValue(`costSheet.costItems.${index}.actualAmount`, rate * qty);
+                              },
+                            })}
+                          />
+                          <Input
+                            label="Actual Mat. Cost (₹)"
+                            type="number"
+                            disabled
+                            {...register(`costSheet.costItems.${index}.actualAmount`)}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
-              {/* Nested Process Array for this item */}
-              <NestedProcessArray
-                control={control}
-                register={register}
-                itemIndex={index}
-                errors={errors}
-                isReadOnly={isReadOnly}
-                isAccountsMode={isAccountsMode}
-                isProductionMode={isProductionMode}
-                processesList={processes}
-                itemTotal={itemTotals[index]}
-              />
-            </div>
-          ))}
+                {/* Conditional Inline Production Vendor Selector when Prod. Source === Vendor */}
+                {(() => {
+                  const currentProdSource = watchedItems?.[index]?.productionSource || '';
+                  const isVendor =
+                    currentProdSource.startsWith('Vendor') ||
+                    (currentProdSource !== '' &&
+                      currentProdSource !== 'In-house' &&
+                      vendorsList.some(
+                        (v) =>
+                          v.vendorName === currentProdSource ||
+                          currentProdSource.includes(v.vendorName),
+                      ));
+                  const selectedProdVendorName = isVendor
+                    ? currentProdSource.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '')
+                    : '';
+
+                  if (!isVendor) return null;
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
+                      <div className="md:col-span-1 text-center font-bold text-[11px] text-amber-500 uppercase tracking-wider">
+                        Prod. Vendor
+                      </div>
+                      <div className="md:col-span-6">
+                        <Input
+                          label="Select Production Vendor"
+                          placeholder="Type or select production vendor..."
+                          list={`vendors-list-item-prod-${index}`}
+                          disabled={!isProductionMode}
+                          value={selectedProdVendorName}
+                          onChange={(e) => {
+                            const vName = e.target.value;
+                            setValue(
+                              `indent.items.${index}.productionSource`,
+                              vName ? `Vendor: ${vName}` : 'Vendor',
+                            );
+                          }}
+                        />
+                        <datalist id={`vendors-list-item-prod-${index}`}>
+                          {vendorsList.map((v) => (
+                            <option key={v.id} value={v.vendorName}>
+                              {v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName}
+                            </option>
+                          ))}
+                        </datalist>
+                      </div>
+                      <div className="md:col-span-5 text-xs text-text-secondary pt-4">
+                        {selectedProdVendorName ? (
+                          <span>
+                            Production Vendor:{' '}
+                            <strong className="text-text-primary font-semibold">
+                              {selectedProdVendorName}
+                            </strong>
+                          </span>
+                        ) : (
+                          <span className="italic text-text-muted">
+                            Production can assign a vendor from the catalog or leave as is.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Nested Process Array for this item */}
+                <NestedProcessArray
+                  control={control}
+                  register={register}
+                  setValue={setValue}
+                  itemIndex={index}
+                  errors={errors}
+                  isReadOnly={isReadOnly}
+                  isAccountsMode={isAccountsMode}
+                  isProductionMode={isProductionMode}
+                  processesList={processes}
+                  vendorsList={vendorsList}
+                  itemTotal={itemTotals[index]}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

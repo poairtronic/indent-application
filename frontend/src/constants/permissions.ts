@@ -20,6 +20,8 @@ export enum AppPermission {
   PRODUCTS_VIEW = 'products.view',
   PRODUCTS_CREATE = 'products.create',
   PRODUCTS_UPDATE = 'products.update',
+  PRODUCTS_DELETE = 'products.delete',
+  PRODUCTS_RESTORE = 'products.restore',
   MATERIALS_VIEW = 'materials.view',
   MATERIALS_CREATE = 'materials.create',
   MATERIALS_UPDATE = 'materials.update',

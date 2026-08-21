@@ -11,11 +11,8 @@ describe('ProcessesController', () => {
 
   const mockProcessResponse = {
     id: 'process-uuid-1',
-    productId: 'product-uuid-1',
-    processCode: 'MLG-001',
     processName: 'Milling',
-    sequence: 1,
-    estimatedHours: 4.5,
+    description: null,
     status: ProcessStatus.ACTIVE,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -64,7 +61,7 @@ describe('ProcessesController', () => {
   });
 
   it('should call createProcess in service', async () => {
-    const dto: any = { productId: 'product-uuid-1', processCode: 'MLG-001' };
+    const dto: any = { processName: 'Milling' };
     const result = await controller.createProcess(dto, { id: 'admin-id' });
     expect(serviceMock.createProcess).toHaveBeenCalledWith(dto, 'admin-id');
     expect(result).toEqual(mockProcessResponse);
@@ -102,3 +99,4 @@ describe('ProcessesController', () => {
     expect(result).toEqual(mockProcessResponse);
   });
 });
+
