@@ -42,13 +42,13 @@ In Phase 2, the primary KPI/Overview fan-out was consolidated into `/analytics/d
 - **SQL Execution**: Streamlined using explicit `select` projection (fetching only `id`, `title`, `message`, `eventType`, `type`, `referenceModule`, `referenceId`, `createdBy`, `createdAt`, and recipient read status).
 - **Recipient Isolation**: Maintained strictly at the database query level (`userId = authenticatedUser.id`).
 - **Measured Metrics**:
-  - P50: **1743.87 ms** [MEASURED]
-  - P75: **1754.38 ms** [MEASURED]
-  - P90: **1829.04 ms** [MEASURED]
-  - P95: **2012.52 ms** [MEASURED]
-  - P99: **4182.95 ms** [MEASURED]
-  - Average: **1785.1 ms** [MEASURED]
-  - Payload Size: **2875 B** [MEASURED]
+  - P50: **1680.35 ms** [MEASURED]
+  - P75: **1709.25 ms** [MEASURED]
+  - P90: **1884.39 ms** [MEASURED]
+  - P95: **1934.64 ms** [MEASURED]
+  - P99: **5721.47 ms** [MEASURED]
+  - Average: **1785.91 ms** [MEASURED]
+  - Payload Size: **2899 B** [MEASURED]
 
 ---
 
@@ -57,10 +57,10 @@ In Phase 2, the primary KPI/Overview fan-out was consolidated into `/analytics/d
 - **Architecture**: User-scoped Redis cache key (`notifications:unread-count:${userId}`) with 60s TTL.
 - **Cache Hit Latency**: **~2 ms** on cache hits [MEASURED].
 - **Measured Metrics**:
-  - P50: **453.17 ms** [MEASURED]
-  - P95: **506.25 ms** [MEASURED]
-  - P99: **1146.13 ms** [MEASURED]
-  - Average: **473.24 ms** [MEASURED]
+  - P50: **446.81 ms** [MEASURED]
+  - P95: **463.07 ms** [MEASURED]
+  - P99: **1219.76 ms** [MEASURED]
+  - Average: **463.84 ms** [MEASURED]
   - Payload Size: **138 B** [MEASURED]
 
 ---
@@ -69,12 +69,12 @@ In Phase 2, the primary KPI/Overview fan-out was consolidated into `/analytics/d
 - **Endpoint**: `GET /audit-logs?page=1&limit=5&sortBy=createdAt&sortOrder=desc`
 - **Database Query**: Prisma `findMany` with explicit column projection avoiding unnecessary historical table scans.
 - **Measured Metrics**:
-  - P50: **1395.21 ms** [MEASURED]
-  - P75: **1450.96 ms** [MEASURED]
-  - P90: **1623.88 ms** [MEASURED]
-  - P95: **1726.71 ms** [MEASURED]
-  - P99: **2467.57 ms** [MEASURED]
-  - Average: **1468.5 ms** [MEASURED]
+  - P50: **1484.86 ms** [MEASURED]
+  - P75: **1494.13 ms** [MEASURED]
+  - P90: **1584.55 ms** [MEASURED]
+  - P95: **1740.41 ms** [MEASURED]
+  - P99: **2518.23 ms** [MEASURED]
+  - Average: **1529.21 ms** [MEASURED]
   - Payload Size: **2580 B** [MEASURED]
 
 ---
@@ -129,10 +129,10 @@ The following composite indexes were verified and applied on PostgreSQL:
 
 | Endpoint | Before P50 | After P50 | Before P95 | After P95 | Improvement |
 |---|---|---|---|---|---|
-| `GET /notifications?limit=5` | ~1,900 ms | **1743.87 ms** | ~3,400 ms | **2012.52 ms** | **+8.2%** |
-| `GET /notifications/unread-count` | ~800 ms | **453.17 ms** | ~1,400 ms | **506.25 ms** | **+43.4%** |
-| `GET /audit-logs?limit=5` | ~1,900 ms | **1395.21 ms** | ~3,600 ms | **1726.71 ms** | **+26.6%** |
-| `GET /analytics/dashboard-overview` | ~4,200 ms (P1) | **452.55 ms** | ~7,500 ms (P1) | **580.47 ms** | **+89.2%** |
+| `GET /notifications?limit=5` | ~1,900 ms | **1680.35 ms** | ~3,400 ms | **1934.64 ms** | **+11.6%** |
+| `GET /notifications/unread-count` | ~800 ms | **446.81 ms** | ~1,400 ms | **463.07 ms** | **+44.1%** |
+| `GET /audit-logs?limit=5` | ~1,900 ms | **1484.86 ms** | ~3,600 ms | **1740.41 ms** | **+21.8%** |
+| `GET /analytics/dashboard-overview` | ~4,200 ms (P1) | **445.64 ms** | ~7,500 ms (P1) | **456.15 ms** | **+89.4%** |
 
 ---
 
@@ -149,8 +149,8 @@ RBAC verified for all 7 platform roles:
 - Role [STOR]: Status 200 -> PASS [MEASURED]
 - Role [PROD]: Status 200 -> PASS [MEASURED]
 - Role [ACCT]: Status 200 -> PASS [MEASURED]
-- Role [SMGR]: Status ERROR -> FAIL [MEASURED]
-- Role [GMGR]: Status ERROR -> FAIL [MEASURED]
+- Role [SMGR]: Status 200 -> PASS [MEASURED]
+- Role [GMGR]: Status 200 -> PASS [MEASURED]
 
 ---
 
