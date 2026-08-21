@@ -323,7 +323,7 @@ export const AppRouter: React.FC = () => {
           <Route
             path=":id/edit"
             element={
-              <ProtectedRoute permissions={['indent.edit']}>
+              <ProtectedRoute permissions={['indent.edit', 'accounts.verify', 'costsheet.update']}>
                 {suspended(IndentFormPage)}
               </ProtectedRoute>
             }

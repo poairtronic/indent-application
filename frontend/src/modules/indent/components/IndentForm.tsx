@@ -255,7 +255,7 @@ const NestedProcessArray: React.FC<{
     <div className="mt-4 p-4 bg-surface-base rounded border border-border-default">
       <div className="flex justify-between items-center mb-3">
         <h4 className="text-xs font-bold text-text-secondary uppercase">Manufacturing Processes</h4>
-        {!isReadOnly && !isProductionMode && (
+        {!isReadOnly && !isProductionMode && !isAccountsMode && (
           <Button
             type="button"
             variant="outline"
