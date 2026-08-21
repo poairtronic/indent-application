@@ -16,7 +16,7 @@ import {
   getWorkflowProgress,
   getWorkflowAccess,
 } from '../../constants/workflow';
-import { ArrowLeft, Edit, Printer, Copy, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Edit, Printer, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import type { WorkflowState } from '../../constants/workflow';
 import { AppPermission } from '../../constants/permissions';
 
@@ -113,10 +113,6 @@ export const IndentDetailsPage: React.FC = () => {
     refetch();
   };
 
-  const handleDuplicate = () => {
-    navigate('/indents/create', { state: { duplicateFrom: indent } });
-  };
-
   return (
     <div className="space-y-6">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
@@ -146,15 +142,6 @@ export const IndentDetailsPage: React.FC = () => {
           >
             <Printer size={16} />
             Print
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDuplicate}
-            className="flex items-center gap-2"
-          >
-            <Copy size={16} />
-            Duplicate
           </Button>
           {isEditable && (
             <Button
