@@ -337,8 +337,8 @@ export class BusinessTransactionService {
 
     // Log Audit
     await this.eventService.logAudit(AuditEventType.CREATE_DRAFT, result.indent.id, userId, null, {
-      indentNumber,
-      costNumber,
+      indentNumber: result.indent.indentNumber,
+      costNumber: result.costSheet.costNumber,
       status: WorkflowState.DRAFT,
     });
 
