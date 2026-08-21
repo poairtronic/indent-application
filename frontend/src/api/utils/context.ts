@@ -11,7 +11,7 @@ export function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 }
 
-export const APP_NAME = 'IMCMS';
+export const APP_NAME = 'MERC';
 export const CLIENT_VERSION = '20.0.0';
 
 export function getClientTimezone(): string {

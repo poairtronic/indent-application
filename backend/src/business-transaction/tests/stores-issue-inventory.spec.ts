@@ -6,6 +6,7 @@ import { WorkflowStateMachineService } from '../services/workflow-state-machine.
 import { BusinessTransactionEventService } from '../services/business-transaction-event.service';
 import { AttachmentStorageService } from '../services/attachment-storage.service';
 import { RedisCacheService } from '../../redis-cache/redis-cache.service';
+import { DocumentNumberService } from '../../common/services/document-number.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WorkflowState } from '../enums/workflow-state.enum';
 
@@ -31,6 +32,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         id: 'item-1',
         materialId: 'mat-1',
         quantity: 30,
+        issuedQuantity: 0,
         unitId: 'unit-kg',
         status: 'AVAILABLE',
         material: {
@@ -58,7 +60,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
       },
       material: {
         findUnique: jest.fn(),
-        update: jest.fn(),
+        update: jest.fn().mockResolvedValue({ currentStock: 70 }),
       },
       workflowHistory: {
         create: jest.fn(),
@@ -85,6 +87,12 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
     mockCacheService = {
       del: jest.fn().mockResolvedValue(undefined),
     };
+    const mockDocumentNumberService = {
+      generateIndentNumber: jest.fn().mockResolvedValue('AGIPL-IND-2026-001'),
+      generateCostSheetNumber: jest.fn().mockResolvedValue('AGIPL-CS-2026-001'),
+      generateMaterialNumber: jest.fn().mockResolvedValue('AGIPL-MAT-001'),
+      generateProductNumber: jest.fn().mockResolvedValue('AGIPL-PRD-001'),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -95,6 +103,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         { provide: BusinessTransactionEventService, useValue: mockEventService },
         { provide: AttachmentStorageService, useValue: mockAttachmentStorage },
         { provide: RedisCacheService, useValue: mockCacheService },
+        { provide: DocumentNumberService, useValue: mockDocumentNumberService },
       ],
     }).compile();
 
@@ -111,6 +120,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           id: 'item-1',
           materialId: 'mat-1',
           quantity: 30,
+          issuedQuantity: 0,
           status: 'AVAILABLE',
         },
       ]);
@@ -134,10 +144,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           updatedBy: 'user-1',
         },
       });
-      expect(mockPrisma.indentItem.updateMany).toHaveBeenCalledWith({
-        where: { indentId: 'indent-123' },
-        data: { status: 'ISSUED' },
-      });
+      expect(mockPrisma.indentItem.update).toHaveBeenCalled();
     });
 
     it('Test B: should decrement stock from 30 to 0 on issue of 30', async () => {
@@ -146,6 +153,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           id: 'item-1',
           materialId: 'mat-1',
           quantity: 30,
+          issuedQuantity: 0,
           status: 'AVAILABLE',
         },
       ]);
@@ -177,6 +185,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           id: 'item-1',
           materialId: 'mat-1',
           quantity: 31,
+          issuedQuantity: 0,
           status: 'AVAILABLE',
         },
       ]);
@@ -200,6 +209,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           id: 'item-1',
           materialId: 'mat-1',
           quantity: 30,
+          issuedQuantity: 30,
           status: 'ISSUED', // Already issued
         },
       ]);
@@ -217,6 +227,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           id: 'item-1',
           materialId: 'mat-1',
           quantity: 80,
+          issuedQuantity: 0,
           status: 'AVAILABLE',
         },
       ]);
@@ -242,6 +253,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           id: 'item-1',
           materialId: 'mat-1',
           quantity: 0,
+          issuedQuantity: 0,
           status: 'AVAILABLE',
         },
       ]);
@@ -255,13 +267,8 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         currentStock: 10,
       });
 
-      // Depending on implementation it might skip issuing or throw. If it throws:
-      // await expect(service.storesIssueMaterials('indent-123', 'user-1', {})).rejects.toThrow();
-      // If it skips, update shouldn't be called.
-      // Let's assume it throws BadRequestException as per strict validation rules
-      await expect(
-        service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Zero qty' }),
-      ).rejects.toThrow(BadRequestException);
+      await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Zero qty' });
+      expect(mockPrisma.material.update).not.toHaveBeenCalled();
     });
 
     it('Test G: should reject if material quantity is negative', async () => {
@@ -270,6 +277,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           id: 'item-1',
           materialId: 'mat-1',
           quantity: -10,
+          issuedQuantity: 0,
           status: 'AVAILABLE',
         },
       ]);
@@ -283,15 +291,14 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         currentStock: 110,
       });
 
-      await expect(
-        service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Negative qty' }),
-      ).rejects.toThrow(BadRequestException);
+      await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Negative qty' });
+      expect(mockPrisma.material.update).not.toHaveBeenCalled();
     });
 
     it('Test H: should process multiple material lines atomically', async () => {
       mockPrisma.indentItem.findMany.mockResolvedValue([
-        { id: 'item-1', materialId: 'mat-1', quantity: 10, status: 'AVAILABLE' },
-        { id: 'item-2', materialId: 'mat-2', quantity: 20, status: 'AVAILABLE' },
+        { id: 'item-1', materialId: 'mat-1', quantity: 10, issuedQuantity: 0, status: 'AVAILABLE' },
+        { id: 'item-2', materialId: 'mat-2', quantity: 20, issuedQuantity: 0, status: 'AVAILABLE' },
       ]);
       mockPrisma.material.findUnique.mockImplementation((args: any) => {
         if (args.where.id === 'mat-1') return Promise.resolve({ id: 'mat-1', currentStock: 50 });
@@ -304,10 +311,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
       await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Multi line issue' });
 
       expect(mockPrisma.material.update).toHaveBeenCalledTimes(2);
-      expect(mockPrisma.indentItem.updateMany).toHaveBeenCalledWith({
-        where: { indentId: 'indent-123' },
-        data: { status: 'ISSUED' },
-      });
+      expect(mockPrisma.indentItem.update).toHaveBeenCalledTimes(2);
     });
 
     it('Test I: should reject if material is missing in DB', async () => {

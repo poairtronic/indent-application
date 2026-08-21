@@ -89,8 +89,8 @@ export const CommunicationPage: React.FC = () => {
       key: 'sentAt',
       header: 'Sent At',
       render: (row) => (
-        <span className="text-xs text-text-secondary flex items-center gap-1 whitespace-nowrap">
-          <Clock size={10} className="text-text-muted" />
+        <span className="text-xs text-text-secondary flex items-center gap-1.5 whitespace-nowrap">
+          <Clock size={12} className="text-text-muted shrink-0" />
           {formatTimestamp(row.sentAt)}
         </span>
       ),
@@ -98,14 +98,21 @@ export const CommunicationPage: React.FC = () => {
     {
       key: 'to',
       header: 'Recipient',
-      render: (row) => <span className="text-xs text-text-primary">{row.to}</span>,
+      render: (row) => (
+        <span
+          className="text-xs font-medium text-text-primary truncate max-w-[160px] sm:max-w-[220px] block"
+          title={row.to}
+        >
+          {row.to}
+        </span>
+      ),
     },
     {
       key: 'subject',
       header: 'Subject',
       render: (row) => (
         <span
-          className="text-xs text-text-secondary truncate max-w-[200px] block"
+          className="text-xs text-text-secondary truncate max-w-[180px] sm:max-w-[260px] block"
           title={row.subject}
         >
           {row.subject}
@@ -121,7 +128,7 @@ export const CommunicationPage: React.FC = () => {
       key: 'retryCount',
       header: 'Retries',
       render: (row) => (
-        <span className="text-[10px] font-mono text-text-muted">{row.retryCount ?? 0}</span>
+        <span className="text-xs font-mono text-text-muted">{row.retryCount ?? 0}</span>
       ),
     },
     {
@@ -129,7 +136,7 @@ export const CommunicationPage: React.FC = () => {
       header: 'Error',
       render: (row) => (
         <span
-          className="text-[10px] text-status-error truncate max-w-[150px] block"
+          className="text-xs text-status-error truncate max-w-[120px] sm:max-w-[180px] block"
           title={row.errorMessage || ''}
         >
           {row.errorMessage || '-'}
@@ -139,157 +146,160 @@ export const CommunicationPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
-            <Mail className="text-accent-primary" size={20} />
-            Communication & Email Monitoring
-          </h2>
-          <p className="text-text-secondary text-sm">
-            Email delivery logs, queue status, and SMTP health monitoring.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefreshAll}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw size={14} />
-          Refresh All
-        </Button>
-      </div>
-
-      {/* Health & Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-surface-card border border-border-default rounded-xl p-4 shadow-card">
-          <div className="flex items-center gap-2 mb-2">
-            <Wifi
-              size={14}
-              className={health?.status === 'UP' ? 'text-status-success' : 'text-status-warning'}
-            />
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-              System Health
-            </span>
+    <div className="space-y-6 animate-fade-in w-full min-w-0">
+      {/* Box 1: Monitoring Header & Health KPI Cards */}
+      <div className="bg-surface-card/70 border border-border-default rounded-xl p-4 sm:p-5 shadow-card w-full min-w-0 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border-default/50">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-text-primary flex items-center gap-2">
+              <Mail className="text-accent-primary shrink-0" size={20} />
+              <span>Communication & Email Monitoring</span>
+            </h2>
+            <p className="text-text-secondary text-xs sm:text-sm mt-0.5">
+              Email delivery logs, queue status, and SMTP health monitoring.
+            </p>
           </div>
-          {isHealthLoading ? (
-            <div className="h-6 bg-background-secondary rounded animate-pulse" />
-          ) : (
-            <div className="flex items-baseline gap-2">
-              <span
-                className={`text-lg font-bold ${health?.status === 'UP' ? 'text-status-success' : 'text-status-warning'}`}
-              >
-                {health?.status || 'UNKNOWN'}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefreshAll}
+            className="flex items-center gap-2 self-start sm:self-auto shrink-0"
+          >
+            <RefreshCw size={14} />
+            <span>Refresh All</span>
+          </Button>
+        </div>
+
+        {/* Health & Metrics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3.5 w-full min-w-0">
+          <div className="bg-background-secondary/70 border border-border-default rounded-lg p-3.5 shadow-sm transition-colors hover:border-accent-primary/40">
+            <div className="flex items-center gap-2 mb-2">
+              <Wifi
+                size={14}
+                className={health?.status === 'UP' ? 'text-status-success' : 'text-status-warning'}
+              />
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                System Health
               </span>
-              <span className="text-[10px] text-text-muted">Redis: {health?.redis || '-'}</span>
             </div>
-          )}
-        </div>
-
-        <div className="bg-surface-card border border-border-default rounded-xl p-4 shadow-card">
-          <div className="flex items-center gap-2 mb-2">
-            <Database size={14} className="text-info" />
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-              Queue Status
-            </span>
+            {isHealthLoading ? (
+              <div className="h-6 bg-background-primary/80 rounded animate-pulse" />
+            ) : (
+              <div className="flex items-baseline gap-2">
+                <span
+                  className={`text-lg font-bold ${health?.status === 'UP' ? 'text-status-success' : 'text-status-warning'}`}
+                >
+                  {health?.status || 'UNKNOWN'}
+                </span>
+                <span className="text-[10px] text-text-muted">Redis: {health?.redis || '-'}</span>
+              </div>
+            )}
           </div>
-          {isQueueLoading ? (
-            <div className="h-6 bg-background-secondary rounded animate-pulse" />
-          ) : (
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px]">
-                <span className="text-text-muted">Active:</span>
-                <span className="font-bold text-text-primary">{queue?.mailQueue?.active ?? 0}</span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-text-muted">Waiting:</span>
-                <span className="font-bold text-text-primary">
-                  {queue?.mailQueue?.waiting ?? 0}
-                </span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-text-muted">Failed:</span>
-                <span className="font-bold text-status-error">{queue?.mailQueue?.failed ?? 0}</span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-text-muted">Dead Letter:</span>
-                <span className="font-bold text-status-warning">
-                  {queue?.deadQueue?.total ?? 0}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
 
-        <div className="bg-surface-card border border-border-default rounded-xl p-4 shadow-card">
-          <div className="flex items-center gap-2 mb-2">
-            <Activity size={14} className="text-accent-primary" />
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-              Throughput
-            </span>
-          </div>
-          {isMetricsLoading ? (
-            <div className="h-6 bg-background-secondary rounded animate-pulse" />
-          ) : (
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px]">
-                <span className="text-text-muted">Processed:</span>
-                <span className="font-bold text-text-primary">
-                  {metrics?.throughput?.totalProcessed ?? 0}
-                </span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-text-muted">Completed:</span>
-                <span className="font-bold text-status-success">
-                  {metrics?.throughput?.completed ?? 0}
-                </span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-text-muted">Failed:</span>
-                <span className="font-bold text-status-error">
-                  {metrics?.throughput?.failed ?? 0}
-                </span>
-              </div>
-              <div className="flex justify-between text-[10px]">
-                <span className="text-text-muted">Success Rate:</span>
-                <span className="font-bold text-status-success">
-                  {metrics?.throughput?.successRatePercentage ?? 100}%
-                </span>
-              </div>
+          <div className="bg-background-secondary/70 border border-border-default rounded-lg p-3.5 shadow-sm transition-colors hover:border-accent-primary/40">
+            <div className="flex items-center gap-2 mb-2">
+              <Database size={14} className="text-info" />
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                Queue Status
+              </span>
             </div>
-          )}
-        </div>
+            {isQueueLoading ? (
+              <div className="h-6 bg-background-primary/80 rounded animate-pulse" />
+            ) : (
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-text-muted">Active:</span>
+                  <span className="font-bold text-text-primary">{queue?.mailQueue?.active ?? 0}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-text-muted">Waiting:</span>
+                  <span className="font-bold text-text-primary">
+                    {queue?.mailQueue?.waiting ?? 0}
+                  </span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-text-muted">Failed:</span>
+                  <span className="font-bold text-status-error">{queue?.mailQueue?.failed ?? 0}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-text-muted">Dead Letter:</span>
+                  <span className="font-bold text-status-warning">
+                    {queue?.deadQueue?.total ?? 0}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
 
-        <div className="bg-surface-card border border-border-default rounded-xl p-4 shadow-card">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 size={14} className="text-status-success" />
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
-              Total Emails
-            </span>
-          </div>
-          {isLogsLoading ? (
-            <div className="h-6 bg-background-secondary rounded animate-pulse" />
-          ) : (
-            <div>
-              <span className="text-lg font-bold text-text-primary">{total}</span>
-              <span className="text-[10px] text-text-muted ml-2">logged</span>
+          <div className="bg-background-secondary/70 border border-border-default rounded-lg p-3.5 shadow-sm transition-colors hover:border-accent-primary/40">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity size={14} className="text-accent-primary" />
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                Throughput
+              </span>
             </div>
-          )}
+            {isMetricsLoading ? (
+              <div className="h-6 bg-background-primary/80 rounded animate-pulse" />
+            ) : (
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-text-muted">Processed:</span>
+                  <span className="font-bold text-text-primary">
+                    {metrics?.throughput?.totalProcessed ?? 0}
+                  </span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-text-muted">Completed:</span>
+                  <span className="font-bold text-status-success">
+                    {metrics?.throughput?.completed ?? 0}
+                  </span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-text-muted">Failed:</span>
+                  <span className="font-bold text-status-error">
+                    {metrics?.throughput?.failed ?? 0}
+                  </span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-text-muted">Success Rate:</span>
+                  <span className="font-bold text-status-success">
+                    {metrics?.throughput?.successRatePercentage ?? 100}%
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-background-secondary/70 border border-border-default rounded-lg p-3.5 shadow-sm transition-colors hover:border-accent-primary/40">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 size={14} className="text-status-success" />
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                Total Emails
+              </span>
+            </div>
+            {isLogsLoading ? (
+              <div className="h-6 bg-background-primary/80 rounded animate-pulse" />
+            ) : (
+              <div>
+                <span className="text-2xl font-bold text-text-primary">{total}</span>
+                <span className="text-xs text-text-muted ml-2">logged</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Email Logs Table */}
-      <div className="bg-surface-card border border-border-default rounded-xl p-4 flex-1 flex flex-col">
-        <div className="mb-4 flex flex-col sm:flex-row gap-3">
-          <div className="w-full sm:w-48">
+      {/* Box 2: Email Logs Filter & Data Table */}
+      <div className="bg-surface-card/70 border border-border-default rounded-xl p-4 sm:p-5 shadow-card w-full min-w-0 flex flex-col space-y-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="w-full sm:w-56">
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full h-10 px-3 rounded-lg border border-border-default bg-surface-card text-text-primary text-sm"
+              className="w-full h-9 px-3 rounded-lg border border-border-default bg-background-secondary text-text-primary text-xs font-medium focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             >
               <option value="">All Statuses</option>
               <option value="SENT">Sent</option>
@@ -303,10 +313,10 @@ export const CommunicationPage: React.FC = () => {
             size="sm"
             onClick={() => refetchLogs()}
             disabled={isLogsFetching}
-            className="flex items-center gap-2"
+            className="flex items-center justify-center gap-2 self-stretch sm:self-auto shrink-0"
           >
-            <Filter size={14} />
-            {isLogsFetching ? 'Refreshing...' : 'Refresh'}
+            <Filter size={13} />
+            <span>{isLogsFetching ? 'Refreshing...' : 'Filter'}</span>
           </Button>
         </div>
 
@@ -319,7 +329,7 @@ export const CommunicationPage: React.FC = () => {
             onRetry={() => refetchLogs()}
           />
         ) : (
-          <div className="flex-1 overflow-auto rounded-lg border border-border-default">
+          <div className="w-full min-w-0 overflow-x-auto rounded-lg border border-border-default bg-background-primary/30">
             <Table
               data={logs}
               columns={columns}
@@ -332,13 +342,15 @@ export const CommunicationPage: React.FC = () => {
         )}
 
         {total > 25 && (
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            total={total}
-            limit={25}
-            onPageChange={setPage}
-          />
+          <div className="pt-2">
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              limit={25}
+              onPageChange={setPage}
+            />
+          </div>
         )}
       </div>
     </div>

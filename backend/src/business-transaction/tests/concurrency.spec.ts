@@ -6,6 +6,7 @@ import { WorkflowStateMachineService } from '../services/workflow-state-machine.
 import { BusinessTransactionEventService } from '../services/business-transaction-event.service';
 import { AttachmentStorageService } from '../services/attachment-storage.service';
 import { RedisCacheService } from '../../redis-cache/redis-cache.service';
+import { DocumentNumberService } from '../../common/services/document-number.service';
 
 describe('Concurrency & Race Condition Resilience', () => {
   let service: BusinessTransactionService;
@@ -89,6 +90,12 @@ describe('Concurrency & Race Condition Resilience', () => {
   const mockRedisService = {
     invalidatePattern: jest.fn(),
   };
+  const mockDocumentNumberService = {
+    generateIndentNumber: jest.fn().mockResolvedValue('AGIPL-IND-2026-001'),
+    generateCostSheetNumber: jest.fn().mockResolvedValue('AGIPL-CS-2026-001'),
+    generateMaterialNumber: jest.fn().mockResolvedValue('AGIPL-MAT-001'),
+    generateProductNumber: jest.fn().mockResolvedValue('AGIPL-PRD-001'),
+  };
 
   beforeEach(async () => {
     dbRow.currentState = 'DRAFT';
@@ -102,6 +109,7 @@ describe('Concurrency & Race Condition Resilience', () => {
         { provide: BusinessTransactionEventService, useValue: mockEventService },
         { provide: AttachmentStorageService, useValue: mockAttachmentService },
         { provide: RedisCacheService, useValue: mockRedisService },
+        { provide: DocumentNumberService, useValue: mockDocumentNumberService },
       ],
     }).compile();
 

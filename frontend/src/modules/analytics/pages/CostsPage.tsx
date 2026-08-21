@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
 import { FilterPanel } from '../components/AnalyticsFilters';
-import { BarChart } from '../components/AnalyticsCharts';
+import { GroupedCostBarChart } from '../components/AnalyticsCharts';
 import { useCostAnalytics } from '../hooks/useAnalytics';
 import type { IAnalyticsFilters } from '../types/analytics.types';
 import { ErrorState } from '../../../components/ui/ErrorState';
@@ -22,16 +22,17 @@ export const CostsPage: React.FC = () => {
   }, []);
 
   const isOverPlanned = (data?.totalVarianceAmount ?? 0) > 0;
-  const costChartData = useMemo(
-    () =>
-      data
-        ? [
-            { label: 'Planned Cost', value: data.totalPlannedCost },
-            { label: 'Actual Cost', value: data.totalActualCost },
-          ]
-        : [],
-    [data],
-  );
+
+  const costChartData = useMemo(() => {
+    if (!data) return [];
+    return [
+      {
+        label: 'Overall Portfolio',
+        planned: data.totalPlannedCost,
+        actual: data.totalActualCost,
+      },
+    ];
+  }, [data]);
 
   if (error) {
     return (
@@ -44,37 +45,40 @@ export const CostsPage: React.FC = () => {
   return (
     <AnalyticsLayout
       title="Cost Estimation & Actual Variance"
-      subtitle="Detailed overview of planned versus actual project costing metrics and variance tracking"
+      subtitle="Detailed overview of planned versus actual project costing metrics and financial variance tracking in INR (₹)"
     >
       {/* Filter panel */}
       <div className="mb-6">
         <FilterPanel onApply={handleApply} onReset={handleReset} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KpiCard
           title="Total Planned Cost"
           value={formatCurrency(data?.totalPlannedCost)}
           loading={isLoading}
           icon={<span>📋</span>}
+          accent="primary"
         />
         <KpiCard
           title="Total Actual Cost"
           value={formatCurrency(data?.totalActualCost)}
           loading={isLoading}
           icon={<span>💰</span>}
+          accent="info"
         />
         <KpiCard
           title="Total Variance"
           value={formatCurrency(data?.totalVarianceAmount)}
           loading={isLoading}
           icon={<span>📊</span>}
+          accent={isOverPlanned ? 'danger' : 'success'}
           trend={{
             value:
               data?.totalVarianceAmount !== undefined
                 ? formatCurrency(Math.abs(data.totalVarianceAmount))
                 : '₹0',
-            isPositive: !isOverPlanned, // Positive trend if actual is less than planned
+            isPositive: !isOverPlanned,
           }}
           subtitle={isOverPlanned ? 'Over planned estimate' : 'Under planned estimate'}
         />
@@ -87,6 +91,7 @@ export const CostsPage: React.FC = () => {
           }
           loading={isLoading}
           icon={<span>📈</span>}
+          accent={isOverPlanned ? 'warning' : 'success'}
         />
       </div>
 
@@ -94,73 +99,75 @@ export const CostsPage: React.FC = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Chart Card */}
-            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card lg:col-span-2">
-              <h3 className="text-text-primary font-bold text-lg mb-4">
-                Planned vs. Actual Cost Comparison
-              </h3>
+            <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card lg:col-span-2 glass-panel">
+              <div className="border-b border-border-default/60 pb-3 mb-4">
+                <h3 className="text-text-primary font-bold text-base">
+                  Planned vs. Actual Cost Comparison
+                </h3>
+                <p className="text-text-muted text-xs">
+                  Financial variance distribution across active indent cost sheets
+                </p>
+              </div>
               {data && (data.totalPlannedCost > 0 || data.totalActualCost > 0) ? (
-                <BarChart
+                <GroupedCostBarChart
                   data={costChartData}
-                  color="var(--success)"
-                  formatValue={formatCurrency}
+                  formatCurrency={formatCurrency}
+                  height={220}
                 />
               ) : (
-                <div className="h-[220px] flex items-center justify-center">
-                  <span className="text-text-muted text-sm">
-                    No transaction records found for this period.
-                  </span>
+                <div className="h-[200px] flex items-center justify-center">
+                  <span className="text-text-muted text-xs">No costing entries recorded.</span>
                 </div>
               )}
             </div>
 
-            {/* Records Card */}
-            <div className="bg-surface-card border border-border-default p-6 rounded-xl space-y-4 shadow-card">
-              <h3 className="text-text-primary font-bold text-lg border-b border-border-default pb-2">
-                Financial Processing Records
-              </h3>
-              <div className="space-y-4 pt-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-text-muted">Finalized Cost Sheets</span>
-                  <span className="text-text-primary font-extrabold text-lg">
-                    {data?.finalizedCostSheets}
-                  </span>
+            {/* Metrics Breakdown Card */}
+            <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card space-y-4 glass-panel flex flex-col justify-between">
+              <div className="border-b border-border-default/60 pb-3">
+                <h3 className="text-text-primary font-bold text-base">Cost Component Breakdown</h3>
+                <p className="text-text-muted text-xs">Material vs Process expenditures</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-surface-elevated border border-border-default">
+                  <div className="flex justify-between text-xs text-text-muted mb-1">
+                    <span>Finalized Cost Sheets:</span>
+                    <span className="font-bold font-mono text-text-primary">
+                      {data?.finalizedCostSheets ?? 0} Sheets
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-text-muted">
+                    <span>Cost Sheets With Actuals:</span>
+                    <span className="font-bold font-mono text-text-primary">
+                      {data?.costSheetsWithActuals ?? 0} Sheets
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-sm border-t border-border-default pt-3">
-                  <span className="text-text-muted">Draft Cost Sheets</span>
-                  <span className="text-text-primary font-extrabold text-lg">
-                    {data?.draftCostSheets}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm border-t border-border-default pt-3">
-                  <span className="text-text-muted">Total Recorded Cost Sheets</span>
-                  <span className="text-text-primary font-extrabold text-lg">
-                    {(data?.finalizedCostSheets ?? 0) + (data?.draftCostSheets ?? 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm border-t border-border-default pt-3">
-                  <span className="text-text-muted">Cost Sheets with Actual Entry</span>
-                  <span className="text-accent-primary font-extrabold text-lg">
-                    {data?.costSheetsWithActuals}
-                  </span>
+
+                <div className="p-3.5 rounded-xl bg-surface-elevated border border-border-default space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-text-secondary font-medium">Variance Health Status:</span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                        isOverPlanned
+                          ? 'bg-status-error/20 text-status-error'
+                          : 'bg-status-success/20 text-status-success'
+                      }`}
+                    >
+                      {isOverPlanned ? 'BUDGET EXCEEDED' : 'WITHIN BUDGET'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-text-muted leading-relaxed">
+                    {isOverPlanned
+                      ? 'Total actual production expenditures currently exceed estimated initial planning.'
+                      : 'Actual manufacturing expenditures are currently strictly adhering to estimated planned costs.'}
+                  </p>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Variance definition card */}
-          <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card flex flex-col justify-between">
-            <div>
-              <h3 className="text-text-primary font-bold text-lg mb-2">Variance Definition</h3>
-              <p className="text-text-muted text-sm leading-relaxed">
-                Variance represents the margin differences calculated during stage transitions
-                inside Loop 2. Negative variance numbers denote favorable financial conditions
-                (savings over planned estimates), while positive numbers point to budget overflows.
-              </p>
-            </div>
-            <div className="border-t border-border-default pt-4 mt-6 text-xs text-text-disabled font-medium">
-              <span>
-                Date Filtering: {data?.dateRange?.from ? 'Active' : 'Unfiltered (All Time)'}
-              </span>
+              <div className="text-[11px] text-text-muted font-mono text-center pt-2 border-t border-border-default/60">
+                All amounts audited &amp; verified in INR (₹)
+              </div>
             </div>
           </div>
         </div>
@@ -168,3 +175,5 @@ export const CostsPage: React.FC = () => {
     </AnalyticsLayout>
   );
 };
+
+export default CostsPage;

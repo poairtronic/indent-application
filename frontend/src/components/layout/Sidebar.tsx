@@ -87,43 +87,83 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
   return (
     <aside
       className={`bg-background-secondary border-r border-border-default h-screen transition-[width] duration-300 ease-enter flex flex-col ${
-        isOpen ? 'w-64' : 'w-16'
+        isOpen ? 'w-72' : 'w-16'
       } ${isMobileOpen ? 'fixed inset-0 z-50' : 'hidden md:flex'}`}
     >
       {/* Header */}
-      <div className="p-4 border-b border-border-default flex items-center justify-between min-h-[64px]">
-        <div className={`flex items-center gap-3 ${isOpen ? '' : 'justify-center w-full'}`}>
-          <div className="w-8 h-8 rounded-lg bg-accent-primary flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-glow">
-            IE
-          </div>
-          {isOpen && (
-            <div className="min-w-0">
-              <span className="font-bold text-xs tracking-wider text-text-primary uppercase block truncate">
-                IMCMS
-              </span>
-              <span className="text-[9px] text-text-muted uppercase tracking-widest block">
-                Enterprise
-              </span>
+      <div className="p-3.5 sm:p-4 border-b border-border-default flex items-center justify-between min-h-[70px]">
+        {isOpen ? (
+          <>
+            <div
+              onClick={() => handleNavigate('/dashboard')}
+              className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-primary to-[#5030E5] flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-glow transition-transform group-hover:scale-105">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="font-black text-base tracking-wider text-text-primary uppercase block leading-none">
+                  MERC
+                </span>
+                <span className="text-[10px] text-text-muted font-medium tracking-normal block leading-tight mt-1 group-hover:text-text-secondary transition-colors">
+                  Manufacturing Enterprise Resource &amp; Costing
+                </span>
+              </div>
             </div>
-          )}
-        </div>
-        {isOpen && (
-          <button
-            onClick={() => toggleSidebar()}
-            className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-elevated transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
-            title="Collapse Sidebar"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-        )}
-        {!isOpen && (
-          <button
-            onClick={() => toggleSidebar()}
-            className="text-text-muted hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-elevated transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40 absolute right-2 top-4"
-            title="Expand Sidebar"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+            <button
+              onClick={() => toggleSidebar()}
+              className="w-7 h-7 rounded-lg bg-surface-elevated/80 border border-border-default flex items-center justify-center text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:border-accent-primary/50 shadow-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40 shrink-0 ml-1"
+              title="Close Sidebar (<)"
+              aria-label="Collapse Sidebar"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <div className="w-full flex flex-col items-center justify-center gap-2">
+            <button
+              onClick={() => toggleSidebar()}
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-primary to-[#5030E5] flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-glow transition-transform hover:scale-105"
+              title="Click to Open Sidebar"
+              aria-label="Click to Open Sidebar"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+            <button
+              onClick={() => toggleSidebar()}
+              className="w-6 h-6 rounded-md bg-surface-elevated/90 border border-border-default flex items-center justify-center text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:border-accent-primary/50 shadow-xs transition-all focus:outline-none"
+              title="Open Sidebar (>)"
+              aria-label="Expand Sidebar"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -140,14 +180,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
             return (
               <div
                 key={item.path}
-                className={`group relative flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-all duration-200 ease-enter ${
+                className={`group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-medium transition-all duration-200 ease-enter ${
                   isActive
-                    ? 'bg-accent-primary/10 text-accent-primary font-semibold'
-                    : 'text-text-secondary hover:bg-surface-card hover:text-text-primary'
+                    ? 'bg-accent-primary/15 text-accent-primary font-bold shadow-xs border-l-4 border-accent-primary pl-2.5'
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                 }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent-primary rounded-r-full" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-accent-primary rounded-r-full hidden" />
                 )}
                 <button
                   onClick={() => handleNavigate(item.path)}

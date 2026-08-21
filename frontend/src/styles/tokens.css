@@ -1,58 +1,71 @@
 /* ============================================================================
-   IMCMS DESIGN TOKENS — ECR Enterprise Design Language
+   MERC ENTERPRISE DESIGN TOKENS — Manufacturing Enterprise Resource & Costing
    ----------------------------------------------------------------------------
    Single source of truth for all visual decisions. Components consume these
-   tokens (via Tailwind mapping in tailwind.config.js or direct var() usage)
-   so the whole system re-themes by editing this file only.
+   tokens (via Tailwind mapping in tailwind.config.js or direct var() usage).
 
-   Personality: premium dark SaaS (Linear / Vercel / Stripe / Raycast / Notion AI)
-   — deep charcoal canvas, indigo primary, blue highlights, colored semantic
-   accents, soft gradients, glass panels, layered elevation. NOT monochrome.
+   Personality: Premium Industrial SaaS — deep charcoal/black canvas, purple/violet
+   primary accent, blue highlights, glassmorphism surfaces, thin borders, soft shadows.
    ============================================================================ */
 
 :root {
-  /* ── Brand — Indigo primary ─────────────────────────────────────────── */
-  --primary: #5e6ad2;
-  --primary-hover: #4d56b3;
-  --primary-pressed: #3f4695;
-  --primary-light: #7a85e6;
-  --primary-soft: color-mix(in srgb, #5e6ad2 14%, transparent);
-  --primary-softer: color-mix(in srgb, #5e6ad2 8%, transparent);
+  /* ── Brand — Purple / Violet Primary ────────────────────────────────── */
+  --primary: #7c5cfc;
+  --primary-hover: #6b46c1;
+  --primary-pressed: #5b36b1;
+  --primary-light: #9d85ff;
+  --primary-soft: rgba(124, 92, 252, 0.12);
+  --primary-softer: rgba(124, 92, 252, 0.06);
 
-  /* ── Blue highlight / info accent ───────────────────────────────────── */
+  /* ── Secondary Accent — Blue highlight / info ────────────────────────── */
   --info: #38bdf8;
   --info-hover: #0ea5e9;
-  --info-soft: color-mix(in srgb, #38bdf8 14%, transparent);
+  --info-soft: rgba(56, 189, 248, 0.12);
 
-  /* ── Neutral surfaces (light) ───────────────────────────────────────── */
-  --bg-main: #f4f5f8;
-  --bg-secondary: #eceef3;
+  /* ── Neutral surfaces (Light Mode) ─────────────────────────────────── */
+  --bg-main: #f8fafc;
+  --bg-secondary: #f1f5f9;
   --bg-card: #ffffff;
-  --surface-elevated: #f8f9fc;
-  --surface-hover: #f1f3f8;
+  --surface-elevated: #fafafc;
+  --surface-hover: #f1f5f9;
 
-  /* ── Text (muted-first hierarchy) ───────────────────────────────────── */
-  --text-main: #16171d;
-  --text-secondary: #3d424d;
-  --text-muted: #6a7180;
-  --text-disabled: #9aa1af;
+  /* ── Glass Effect Tokens (Light Mode) ───────────────────────────────── */
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-elevated: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-border-strong: rgba(15, 23, 42, 0.14);
+  --glass-blur: 14px;
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 
-  /* ── Borders (soft translucent) ─────────────────────────────────────── */
-  --border-color: rgba(22, 23, 29, 0.09);
-  --border-strong: rgba(22, 23, 29, 0.16);
+  /* ── Text Hierarchy (Light Mode) ─────────────────────────────────────── */
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-disabled: #94a3b8;
 
-  /* ── Semantic status — professional, colorful ───────────────────────── */
-  --success: #28a745;
-  --success-hover: #219139;
-  --success-soft: color-mix(in srgb, #28a745 14%, transparent);
-  --warning: #f1a511;
-  --warning-hover: #d98f0c;
-  --warning-soft: color-mix(in srgb, #f1a511 16%, transparent);
-  --danger: #e24949;
-  --danger-hover: #c73a3a;
-  --danger-soft: color-mix(in srgb, #e24949 14%, transparent);
+  /* ── Borders ────────────────────────────────────────────────────────── */
+  --border-color: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.15);
 
-  /* ── Typography scale ───────────────────────────────────────────────── */
+  /* ── Semantic Status Colors ─────────────────────────────────────────── */
+  --success: #10b981;
+  --success-hover: #059669;
+  --success-soft: rgba(16, 185, 129, 0.12);
+  --warning: #f59e0b;
+  --warning-hover: #d97706;
+  --warning-soft: rgba(245, 158, 11, 0.14);
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-soft: rgba(239, 68, 68, 0.12);
+
+  /* ── Workflow Status Colors ─────────────────────────────────────────── */
+  --status-design: #7c5cfc;
+  --status-stores: #38bdf8;
+  --status-production: #f59e0b;
+  --status-accounts: #10b981;
+  --status-completed: #6b7280;
+
+  /* ── Typography Scale ───────────────────────────────────────────────── */
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -63,7 +76,7 @@
   --text-3xl: 2rem;
   --text-4xl: 2.5rem;
 
-  /* ── Spacing scale (4px grid) ───────────────────────────────────────── */
+  /* ── Spacing Scale ─────────────────────────────────────────────────── */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -74,45 +87,36 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
 
-  /* ── Border radius scale ────────────────────────────────────────────── */
+  /* ── Border Radius ──────────────────────────────────────────────────── */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 18px;
   --radius-pill: 9999px;
 
-  /* ── Shadow levels (layered, soft) ──────────────────────────────────── */
-  --shadow-xs: 0 1px 2px rgba(15, 18, 28, 0.05);
-  --shadow-sm: 0 2px 8px rgba(15, 18, 28, 0.06);
-  --shadow-md: 0 8px 24px rgba(15, 18, 28, 0.08);
-  --shadow-lg: 0 16px 40px rgba(15, 18, 28, 0.12);
+  /* ── Shadows ────────────────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.1);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
-  /* ── Accent glows (indigo / status) ────────────────────────────────── */
-  --glow-primary: 0 4px 24px color-mix(in srgb, #5e6ad2 32%, transparent);
-  --glow-info: 0 4px 24px color-mix(in srgb, #38bdf8 28%, transparent);
-  --glow-success: 0 4px 24px color-mix(in srgb, #28a745 28%, transparent);
-  --glow-warning: 0 4px 24px color-mix(in srgb, #f1a511 28%, transparent);
-  --glow-danger: 0 4px 24px color-mix(in srgb, #e24949 28%, transparent);
+  /* ── Accent Glows ──────────────────────────────────────────────────── */
+  --glow-primary: 0 4px 24px rgba(124, 92, 252, 0.25);
+  --glow-info: 0 4px 24px rgba(56, 189, 248, 0.22);
+  --glow-success: 0 4px 24px rgba(16, 185, 129, 0.22);
+  --glow-warning: 0 4px 24px rgba(245, 158, 11, 0.22);
+  --glow-danger: 0 4px 24px rgba(239, 68, 68, 0.22);
 
-  /* ── Glass effects ──────────────────────────────────────────────────── */
-  --glass-blur: 12px;
-  --glass-bg: linear-gradient(
-    145deg,
-    color-mix(in srgb, #ffffff 72%, transparent),
-    color-mix(in srgb, #ffffff 40%, transparent)
-  );
-  --glass-border: rgba(22, 23, 29, 0.1);
-
-  /* ── Gradients (depth + life, never flat) ───────────────────────────── */
+  /* ── Gradients ──────────────────────────────────────────────────────── */
   --grad-card: linear-gradient(145deg, var(--surface-elevated), var(--bg-card));
-  --grad-primary: linear-gradient(135deg, #5e6ad2, #7a85e6);
+  --grad-primary: linear-gradient(135deg, #7c5cfc, #9d85ff);
   --grad-info: linear-gradient(135deg, #38bdf8, #6366f1);
-  --grad-success: linear-gradient(135deg, #28a745, #4ade80);
-  --grad-warning: linear-gradient(135deg, #f1a511, #fbbf24);
-  --grad-danger: linear-gradient(135deg, #e24949, #f87171);
+  --grad-success: linear-gradient(135deg, #10b981, #34d399);
+  --grad-warning: linear-gradient(135deg, #f59e0b, #fbbf24);
+  --grad-danger: linear-gradient(135deg, #ef4444, #f87171);
 
-  /* ── Animation ──────────────────────────────────────────────────────── */
+  /* ── Transitions ────────────────────────────────────────────────────── */
   --duration-fast: 0.15s;
   --duration-base: 0.25s;
   --duration-slow: 0.45s;
@@ -120,22 +124,22 @@
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --transition: all 0.2s var(--ease-enter);
 
-  /* ── Overlay / Backdrop ────────────────────────────────────────────── */
+  /* ── Overlay ────────────────────────────────────────────────────────── */
   --overlay: rgba(0, 0, 0, 0.65);
   --overlay-light: rgba(0, 0, 0, 0.45);
 
-  /* ── Toast ─────────────────────────────────────────────────────────── */
+  /* ── Toast ──────────────────────────────────────────────────────────── */
   --toast-action-bg: rgba(255, 255, 255, 0.2);
   --toast-action-hover: rgba(255, 255, 255, 0.3);
   --toast-progress-track: rgba(255, 255, 255, 0.25);
   --toast-progress-fill: #ffffff;
   --toast-dismiss: rgba(255, 255, 255, 0.7);
 
-  /* ── Switch ────────────────────────────────────────────────────────── */
+  /* ── Switch ─────────────────────────────────────────────────────────── */
   --switch-knob: #ffffff;
   --switch-knob-inactive: var(--text-muted);
 
-  /* ── Z-index scale ──────────────────────────────────────────────────── */
+  /* ── Z-Index ────────────────────────────────────────────────────────── */
   --z-dropdown: 1000;
   --z-sticky: 1020;
   --z-drawer-backdrop: 1040;
@@ -144,80 +148,87 @@
   --z-modal: 1070;
   --z-toast: 1080;
 
-  /* ── Deprecated aliases kept for legacy inline usage (auth pages) ───── */
+  /* ── Legacy Aliases ─────────────────────────────────────────────────── */
   --accent: var(--primary);
   --secondary: var(--text-secondary);
 }
 
 .dark {
-  /* ── Brand — Indigo primary ─────────────────────────────────────────── */
-  --primary: #5e6ad2;
-  --primary-hover: #4d56b3;
-  --primary-pressed: #3f4695;
-  --primary-light: #7a85e6;
-  --primary-soft: color-mix(in srgb, #5e6ad2 16%, transparent);
-  --primary-softer: color-mix(in srgb, #5e6ad2 9%, transparent);
+  /* ── Brand — Purple / Violet Primary ────────────────────────────────── */
+  --primary: #7c5cfc;
+  --primary-hover: #6b46c1;
+  --primary-pressed: #5b36b1;
+  --primary-light: #9d85ff;
+  --primary-soft: rgba(124, 92, 252, 0.16);
+  --primary-softer: rgba(124, 92, 252, 0.08);
 
-  /* ── Blue highlight / info accent ───────────────────────────────────── */
+  /* ── Secondary Accent — Blue highlight ──────────────────────────────── */
   --info: #38bdf8;
   --info-hover: #7dd3fc;
-  --info-soft: color-mix(in srgb, #38bdf8 15%, transparent);
+  --info-soft: rgba(56, 189, 248, 0.15);
 
-  /* ── Neutral surfaces (ECR deep charcoal) ───────────────────────────── */
-  --bg-main: #0d0f12;
-  --bg-secondary: #101318;
-  --bg-card: #15181e;
-  --surface-elevated: #1c2026;
-  --surface-hover: #232834;
+  /* ── Neutral surfaces (Dark Mode — Deep Charcoal Canvas) ────────────── */
+  --bg-main: #07090b;
+  --bg-secondary: #0d1013;
+  --bg-card: #12161b;
+  --surface-elevated: #171c23;
+  --surface-hover: #1e242e;
 
-  /* ── Text (muted-first hierarchy) ───────────────────────────────────── */
-  --text-main: #ecedef;
-  --text-secondary: #c2c6cd;
-  --text-muted: #8b929e;
-  --text-disabled: #6b7280;
+  /* ── Glass Effect Tokens (Dark Mode) ────────────────────────────────── */
+  --glass-bg: rgba(18, 22, 27, 0.75);
+  --glass-elevated: rgba(23, 28, 35, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-strong: rgba(255, 255, 255, 0.15);
+  --glass-blur: 16px;
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 
-  /* ── Borders (translucent white) ────────────────────────────────────── */
+  /* ── Text Hierarchy (Dark Mode) ─────────────────────────────────────── */
+  --text-main: #f5f7fa;
+  --text-secondary: #a7afba;
+  --text-muted: #6c757d;
+  --text-disabled: #495057;
+
+  /* ── Borders ────────────────────────────────────────────────────────── */
   --border-color: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.15);
+  --border-strong: rgba(255, 255, 255, 0.16);
 
-  /* ── Semantic status — professional, colorful ───────────────────────── */
-  --success: #28a745;
-  --success-hover: #2fc353;
-  --success-soft: color-mix(in srgb, #28a745 16%, transparent);
-  --warning: #f1a511;
-  --warning-hover: #f5b73a;
-  --warning-soft: color-mix(in srgb, #f1a511 18%, transparent);
-  --danger: #e24949;
-  --danger-hover: #e96969;
-  --danger-soft: color-mix(in srgb, #e24949 16%, transparent);
+  /* ── Semantic Status Colors ─────────────────────────────────────────── */
+  --success: #10b981;
+  --success-hover: #34d399;
+  --success-soft: rgba(16, 185, 129, 0.16);
+  --warning: #f59e0b;
+  --warning-hover: #fbbf24;
+  --warning-soft: rgba(245, 158, 11, 0.18);
+  --danger: #ef4444;
+  --danger-hover: #f87171;
+  --danger-soft: rgba(239, 68, 68, 0.16);
 
-  /* ── Shadow levels (deeper ambient on dark) ─────────────────────────── */
+  /* ── Workflow Status Colors ─────────────────────────────────────────── */
+  --status-design: #7c5cfc;
+  --status-stores: #38bdf8;
+  --status-production: #f59e0b;
+  --status-accounts: #10b981;
+  --status-completed: #6b7280;
+
+  /* ── Shadows ────────────────────────────────────────────────────────── */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 
-  /* ── Accent glows (indigo / status) ────────────────────────────────── */
-  --glow-primary: 0 4px 24px color-mix(in srgb, #5e6ad2 36%, transparent);
-  --glow-info: 0 4px 24px color-mix(in srgb, #38bdf8 32%, transparent);
-  --glow-success: 0 4px 24px color-mix(in srgb, #28a745 32%, transparent);
-  --glow-warning: 0 4px 24px color-mix(in srgb, #f1a511 32%, transparent);
-  --glow-danger: 0 4px 24px color-mix(in srgb, #e24949 32%, transparent);
+  /* ── Accent Glows ──────────────────────────────────────────────────── */
+  --glow-primary: 0 4px 24px rgba(124, 92, 252, 0.35);
+  --glow-info: 0 4px 24px rgba(56, 189, 248, 0.3);
+  --glow-success: 0 4px 24px rgba(16, 185, 129, 0.3);
+  --glow-warning: 0 4px 24px rgba(245, 158, 11, 0.3);
+  --glow-danger: 0 4px 24px rgba(239, 68, 68, 0.3);
 
-  /* ── Glass effects ──────────────────────────────────────────────────── */
-  --glass-bg: linear-gradient(
-    145deg,
-    color-mix(in srgb, #1c2026 70%, transparent),
-    color-mix(in srgb, #15181e 45%, transparent)
-  );
-  --glass-border: rgba(255, 255, 255, 0.09);
-
-  /* ── Gradients (depth + life, never flat) ───────────────────────────── */
+  /* ── Gradients ──────────────────────────────────────────────────────── */
   --grad-card: linear-gradient(145deg, var(--surface-elevated), var(--bg-card));
-  --grad-primary: linear-gradient(135deg, #5e6ad2, #7a85e6);
+  --grad-primary: linear-gradient(135deg, #7c5cfc, #9d85ff);
   --grad-info: linear-gradient(135deg, #38bdf8, #6366f1);
-  --grad-success: linear-gradient(135deg, #28a745, #4ade80);
-  --grad-warning: linear-gradient(135deg, #f1a511, #fbbf24);
-  --grad-danger: linear-gradient(135deg, #e24949, #f87171);
+  --grad-success: linear-gradient(135deg, #10b981, #34d399);
+  --grad-warning: linear-gradient(135deg, #f59e0b, #fbbf24);
+  --grad-danger: linear-gradient(135deg, #ef4444, #f87171);
 }

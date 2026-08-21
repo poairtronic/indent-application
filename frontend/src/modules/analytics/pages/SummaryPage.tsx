@@ -1,7 +1,13 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
-import { DonutChart, BarChart, HorizontalBarChart } from '../components/AnalyticsCharts';
+import {
+  DonutChart,
+  BarChart,
+  RankedHorizontalBarChart,
+  GroupedCostBarChart,
+  MERC_WORKFLOW_PALETTE,
+} from '../components/AnalyticsCharts';
 import {
   useAnalyticsSummary,
   useKpis,
@@ -18,6 +24,17 @@ import { Button } from '../../../components/ui/Button';
 import type { IKpiData } from '../types/analytics.types';
 import { useAuthStore } from '../../../store/authStore';
 import { formatWorkflowState } from '../../../constants/workflow';
+import { useCurrencyFormatter } from '../../../utils/currencyFormatter';
+
+const DEPARTMENT_NAMES: Record<string, string> = {
+  STOR: 'Stores Department',
+  SMGR: 'Senior Manager',
+  PROD: 'Production Department',
+  ACCT: 'Accounts & Finance',
+  DSGN: 'Design & Engineering',
+  ADMIN: 'System Administration',
+  GMGR: 'General Manager',
+};
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -88,10 +105,10 @@ const INDENT_STATUSES = [
 
 const GROUP_ORDER = ['general', 'financial', 'workflow', 'performance'];
 const GROUP_LABELS: Record<string, string> = {
-  general: '📈 General & Manufacturing',
-  financial: '💰 Cost & Financial',
-  workflow: '🔀 Workflow Queue',
-  performance: '⏱️ Performance Metrics',
+  general: 'General & Manufacturing Metrics',
+  financial: 'Cost & Financial Analytics',
+  workflow: 'Workflow Queue State',
+  performance: 'Performance & Velocity',
 };
 
 function groupKpis(kpis: IKpiData[]): Record<string, IKpiData[]> {
@@ -139,6 +156,7 @@ export const SummaryPage: React.FC = () => {
   const [filters, setFilters] = useState<KpiFilters>({});
   const [appliedFilters, setAppliedFilters] = useState<KpiFilters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const formatCurrency = useCurrencyFormatter({ maximumFractionDigits: 0 });
 
   const user = useAuthStore((s) => s.user);
   const deptCode = user?.department?.departmentCode;
@@ -240,30 +258,43 @@ export const SummaryPage: React.FC = () => {
     (!!(isAdmin || isManager) && !!productError) ||
     (hasFinancialAccess && !!vendorError);
 
-  const chartData = useMemo(
-    () =>
-      summaryData?.statusBreakdown?.map((item) => ({
-        label: item.status,
+  const chartData = useMemo(() => {
+    if (!summaryData?.statusBreakdown?.length) return [];
+    return summaryData.statusBreakdown.map((item) => {
+      let color = MERC_WORKFLOW_PALETTE.primary;
+      const s = item.status.toLowerCase();
+      if (s.includes('design') || s.includes('submit')) color = MERC_WORKFLOW_PALETTE.design;
+      else if (s.includes('store')) color = MERC_WORKFLOW_PALETTE.stores;
+      else if (s.includes('prod')) color = MERC_WORKFLOW_PALETTE.production;
+      else if (s.includes('account')) color = MERC_WORKFLOW_PALETTE.accounts;
+      else if (s.includes('complete')) color = MERC_WORKFLOW_PALETTE.completed;
+      return {
+        label: formatWorkflowState(item.status as any),
         value: item.count,
-      })) ?? [],
-    [summaryData],
-  );
+        color,
+      };
+    });
+  }, [summaryData]);
 
   const workflowChartData = useMemo(
     () =>
       workflowData?.stageDistribution?.map((item) => ({
         label: formatWorkflowState(item.stageName as any),
         value: item.count,
+        color: MERC_WORKFLOW_PALETTE.primary,
       })) ?? [],
     [workflowData],
   );
 
-  const costChartData = useMemo(
+  const groupedCostChartData = useMemo(
     () =>
       costData
         ? [
-            { label: 'Planned Cost', value: costData.totalPlannedCost },
-            { label: 'Actual Cost', value: costData.totalActualCost },
+            {
+              label: 'Overall Portfolio',
+              planned: costData.totalPlannedCost,
+              actual: costData.totalActualCost,
+            },
           ]
         : [],
     [costData],
@@ -272,8 +303,10 @@ export const SummaryPage: React.FC = () => {
   const deptChartData = useMemo(
     () =>
       deptData?.departments?.map((item) => ({
-        label: item.departmentCode,
+        label: DEPARTMENT_NAMES[item.departmentCode] || item.departmentName,
         value: item.pendingQueue,
+        subValue: `${item.completedCount} Done`,
+        color: '#8B5CF6',
       })) ?? [],
     [deptData],
   );
@@ -281,8 +314,10 @@ export const SummaryPage: React.FC = () => {
   const productChartData = useMemo(
     () =>
       productData?.products?.map((item) => ({
-        label: item.productCode,
+        label: item.productName || item.productCode,
         value: item.indentCount,
+        subValue: `${item.indentCount} Indents`,
+        color: '#38BDF8',
       })) ?? [],
     [productData],
   );
@@ -290,10 +325,12 @@ export const SummaryPage: React.FC = () => {
   const vendorChartData = useMemo(
     () =>
       vendorData?.vendors?.map((item) => ({
-        label: item.vendorCode,
+        label: item.vendorName || item.vendorCode,
         value: item.totalPredictedAmount,
+        subValue: formatCurrency(item.totalPredictedAmount),
+        color: '#10B981',
       })) ?? [],
-    [vendorData],
+    [vendorData, formatCurrency],
   );
 
   const kpis: IKpiData[] = Array.isArray(kpiData) ? kpiData : [];
@@ -309,7 +346,10 @@ export const SummaryPage: React.FC = () => {
       'Error loading analytics data';
 
     return (
-      <AnalyticsLayout title="Enterprise Analytics Dashboard" subtitle="Live KPI Engine">
+      <AnalyticsLayout
+        title="Enterprise Analytics Dashboard"
+        subtitle="Live Operations & Financial KPI Engine"
+      >
         <ErrorState
           message={errorMessage}
           onRetry={() => {
@@ -330,15 +370,15 @@ export const SummaryPage: React.FC = () => {
   return (
     <AnalyticsLayout
       title="Enterprise Analytics Dashboard"
-      subtitle="Aggregated KPI engine — all values sourced from live PostgreSQL database"
+      subtitle="Aggregated manufacturing operations & costing BI engine — live PostgreSQL telemetry"
     >
       {/* ── Filter Bar ─────────────────────────────────────────────── */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <h2 className="text-text-primary font-semibold text-base">KPI Dashboard</h2>
+            <h2 className="text-text-primary font-bold text-base">Executive KPI Dashboard</h2>
             {hasActiveFilters && (
-              <span className="bg-accent-primary/20 text-accent-primary text-xs font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-[#8B5CF6]/20 text-[#8B5CF6] text-xs font-bold px-2.5 py-0.5 rounded-full border border-[#8B5CF6]/30">
                 Filters Active
               </span>
             )}
@@ -349,11 +389,18 @@ export const SummaryPage: React.FC = () => {
               size="sm"
               id="toggle-kpi-filters"
               onClick={() => setShowFilters((v) => !v)}
+              className="text-xs font-bold"
             >
               {showFilters ? 'Hide Filters' : '⚙ Filter KPIs'}
             </Button>
             {hasActiveFilters && (
-              <Button variant="danger" size="sm" id="reset-kpi-filters" onClick={handleReset}>
+              <Button
+                variant="danger"
+                size="sm"
+                id="reset-kpi-filters"
+                onClick={handleReset}
+                className="text-xs font-bold"
+              >
                 Clear Filters
               </Button>
             )}
@@ -361,9 +408,9 @@ export const SummaryPage: React.FC = () => {
         </div>
 
         {showFilters && (
-          <div className="bg-surface-card border border-border-default rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 shadow-card">
+          <div className="bg-surface-card border border-border-default rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 shadow-card glass-panel">
             <div className="flex flex-col gap-1.5">
-              <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
+              <label className="text-text-muted text-xs font-bold uppercase tracking-wider">
                 From Date
               </label>
               <input
@@ -373,11 +420,11 @@ export const SummaryPage: React.FC = () => {
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, dateFrom: e.target.value || undefined }))
                 }
-                className="bg-background-primary border border-border-default rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary transition-colors"
+                className="bg-background-primary border border-border-default rounded-xl px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-[#8B5CF6] transition-colors"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
+              <label className="text-text-muted text-xs font-bold uppercase tracking-wider">
                 To Date
               </label>
               <input
@@ -385,18 +432,18 @@ export const SummaryPage: React.FC = () => {
                 type="date"
                 value={filters.dateTo ?? ''}
                 onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value || undefined }))}
-                className="bg-background-primary border border-border-default rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary transition-colors"
+                className="bg-background-primary border border-border-default rounded-xl px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-[#8B5CF6] transition-colors"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-text-muted text-xs font-semibold uppercase tracking-wider">
+              <label className="text-text-muted text-xs font-bold uppercase tracking-wider">
                 Status
               </label>
               <select
                 id="kpi-filter-status"
                 value={filters.status ?? ''}
                 onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined }))}
-                className="bg-background-primary border border-border-default rounded-lg px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-accent-primary transition-colors"
+                className="bg-background-primary border border-border-default rounded-xl px-3 py-2 text-text-primary text-sm focus:outline-none focus:border-[#8B5CF6] transition-colors"
               >
                 {INDENT_STATUSES.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -405,11 +452,23 @@ export const SummaryPage: React.FC = () => {
                 ))}
               </select>
             </div>
-            <div className="sm:col-span-3 flex justify-end gap-2">
-              <Button variant="secondary" size="sm" id="kpi-filter-reset-btn" onClick={handleReset}>
+            <div className="sm:col-span-3 flex justify-end gap-2 pt-2 border-t border-border-default/60">
+              <Button
+                variant="secondary"
+                size="sm"
+                id="kpi-filter-reset-btn"
+                onClick={handleReset}
+                className="text-xs font-bold"
+              >
                 Reset
               </Button>
-              <Button variant="primary" size="sm" id="kpi-filter-apply-btn" onClick={handleApply}>
+              <Button
+                variant="primary"
+                size="sm"
+                id="kpi-filter-apply-btn"
+                onClick={handleApply}
+                className="text-xs font-bold"
+              >
                 Apply Filters
               </Button>
             </div>
@@ -424,7 +483,8 @@ export const SummaryPage: React.FC = () => {
 
         return (
           <div key={group} className="mb-8">
-            <h3 className="text-text-secondary font-bold text-sm uppercase tracking-widest mb-3">
+            <h3 className="text-text-secondary font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8B5CF6]" />
               {GROUP_LABELS[group]}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -459,43 +519,38 @@ export const SummaryPage: React.FC = () => {
       {/* ── Business Insights Section ────────────────────────────────── */}
       {!isLoading && insightsData && (
         <div className="mb-8 space-y-6">
-          <div className="bg-surface-elevated border-l-4 border-accent-primary p-6 rounded-r-xl shadow-sm">
-            <h3 className="text-text-primary font-bold text-lg mb-2 flex items-center gap-2">
-              <span>💡</span> Deterministic Executive Summary
+          <div className="bg-surface-elevated border-l-4 border-[#8B5CF6] p-6 rounded-r-2xl shadow-card glass-panel">
+            <h3 className="text-text-primary font-bold text-base mb-2 flex items-center gap-2">
+              <span>💡</span> Executive Operations Diagnostic Summary
             </h3>
-            <p className="text-text-secondary text-sm leading-relaxed font-medium">
+            <p className="text-text-secondary text-xs sm:text-sm leading-relaxed font-medium">
               {insightsData.summaryText}
             </p>
           </div>
 
-          <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card glass-panel">
+            <div className="flex justify-between items-center mb-5 border-b border-border-default/60 pb-3">
               <div>
-                <h3 className="text-text-primary font-bold text-lg">
-                  Deterministic Business Insights
+                <h3 className="text-text-primary font-bold text-base">
+                  Deterministic Business &amp; Cost Insights
                 </h3>
-                <p className="text-text-muted text-xs mt-1">
-                  Rule-based variance calculations, trend observations, and queue highlights.
+                <p className="text-text-muted text-xs mt-0.5">
+                  Rule-based variance calculations, trend observations, and queue alerts.
                 </p>
               </div>
-              <span className="text-xs text-text-disabled font-mono">Live Data Feed</span>
+              <span className="text-[10px] text-text-muted font-mono bg-surface-elevated px-2.5 py-1 rounded border border-border-default">
+                Live Monolith Stream
+              </span>
             </div>
 
             {insightsData.insights.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {insightsData.insights.map((insight: any, idx: number) => {
                   const severityStyles: Record<string, string> = {
-                    CRITICAL: 'bg-red-50/20 border-red-500 text-red-700 dark:text-red-400',
-                    WARNING: 'bg-amber-50/20 border-amber-500 text-amber-700 dark:text-amber-400',
-                    SUCCESS: 'bg-green-50/20 border-green-500 text-green-700 dark:text-green-400',
-                    INFO: 'bg-slate-50/10 border-border-default text-text-primary',
-                  };
-
-                  const severityIcons: Record<string, string> = {
-                    CRITICAL: '🚨',
-                    WARNING: '⚠️',
-                    SUCCESS: '✅',
-                    INFO: 'ℹ️',
+                    CRITICAL: 'bg-status-error/10 border-status-error/30 text-status-error',
+                    WARNING: 'bg-status-warning/10 border-status-warning/30 text-status-warning',
+                    SUCCESS: 'bg-status-success/10 border-status-success/30 text-status-success',
+                    INFO: 'bg-surface-elevated border-border-default text-text-primary',
                   };
 
                   const isTrend =
@@ -509,9 +564,8 @@ export const SummaryPage: React.FC = () => {
                         severityStyles[insight.severity] || severityStyles.INFO
                       }`}
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 font-bold text-sm">
-                          <span>{severityIcons[insight.severity] || '📌'}</span>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-xs">
                           <span>{insight.title}</span>
                         </div>
                         <p className="text-xs leading-relaxed text-text-secondary">
@@ -520,16 +574,16 @@ export const SummaryPage: React.FC = () => {
                       </div>
 
                       {isTrend && (
-                        <div className="flex justify-between items-center border-t border-border-default pt-2 mt-auto text-xs font-semibold text-text-muted">
+                        <div className="flex justify-between items-center border-t border-border-default/50 pt-2 mt-auto text-xs font-semibold text-text-muted">
                           <span>Change %</span>
                           <span
-                            className={`flex items-center gap-1 ${
+                            className={`flex items-center gap-1 font-mono font-bold ${
                               insight.severity === 'CRITICAL'
-                                ? 'text-red-600'
+                                ? 'text-status-error'
                                 : insight.severity === 'WARNING'
-                                  ? 'text-amber-600'
+                                  ? 'text-status-warning'
                                   : insight.severity === 'SUCCESS'
-                                    ? 'text-green-600'
+                                    ? 'text-status-success'
                                     : 'text-text-secondary'
                             }`}
                           >
@@ -544,8 +598,8 @@ export const SummaryPage: React.FC = () => {
             ) : (
               <div className="py-8">
                 <EmptyState
-                  title="No Active Alerts"
-                  description="Insufficient historical data or stable parameters across current bounds."
+                  title="No Active Operational Alerts"
+                  description="Insufficient historical variance or stable parameters across current bounds."
                 />
               </div>
             )}
@@ -556,30 +610,30 @@ export const SummaryPage: React.FC = () => {
       {/* ── Visual Analytics Row 1 ──────────────────────────────────── */}
       {!isLoading && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
-            <h3 className="text-text-primary font-bold text-base mb-2">
+          <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card glass-panel">
+            <h3 className="text-text-primary font-bold text-base mb-1">
               Transaction Status Distribution
             </h3>
             <p className="text-text-muted text-xs mb-4">
               Distribution of indents across all statuses in the system.
             </p>
             {chartData.length > 0 ? (
-              <DonutChart data={chartData} />
+              <DonutChart data={chartData} centerTitle="Total Indents" />
             ) : (
               <EmptyState title="No Data" description="No status records found." />
             )}
           </div>
 
           {hasWorkflowAccess && (
-            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
-              <h3 className="text-text-primary font-bold text-base mb-2">
+            <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card glass-panel">
+              <h3 className="text-text-primary font-bold text-base mb-1">
                 Workflow Stage Distribution
               </h3>
               <p className="text-text-muted text-xs mb-4">
                 Total active indent volume tracked across operational workflow stages.
               </p>
               {workflowChartData.length > 0 ? (
-                <BarChart data={workflowChartData} color="var(--primary)" />
+                <BarChart data={workflowChartData} color="#8B5CF6" />
               ) : (
                 <EmptyState title="No Data" description="No workflow records found." />
               )}
@@ -588,23 +642,19 @@ export const SummaryPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Visual Analytics Row 2 ──────────────────────────────────── */}
+      {/* ── Visual Analytics Row 2: Financial Costs & Department Workload ── */}
       {!isLoading && (hasFinancialAccess || isAdmin || isManager) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {hasFinancialAccess && (
-            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
-              <h3 className="text-text-primary font-bold text-base mb-2">
+            <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card glass-panel">
+              <h3 className="text-text-primary font-bold text-base mb-1">
                 Planned vs. Actual Costs (INR)
               </h3>
               <p className="text-text-muted text-xs mb-4">
                 Aggregate planned values vs finalized actual costing entries.
               </p>
               {costData && (costData.totalPlannedCost > 0 || costData.totalActualCost > 0) ? (
-                <BarChart
-                  data={costChartData}
-                  color="var(--success)"
-                  formatValue={(val) => '₹' + val.toLocaleString('en-IN')}
-                />
+                <GroupedCostBarChart data={groupedCostChartData} formatCurrency={formatCurrency} />
               ) : (
                 <EmptyState
                   title="No Data"
@@ -615,15 +665,15 @@ export const SummaryPage: React.FC = () => {
           )}
 
           {(isAdmin || isManager) && (
-            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
-              <h3 className="text-text-primary font-bold text-base mb-2">
+            <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card glass-panel">
+              <h3 className="text-text-primary font-bold text-base mb-1">
                 Department Pending Workload
               </h3>
               <p className="text-text-muted text-xs mb-4">
-                Current volume of pending indents in active queues per department.
+                Current volume of pending indents in active queues per operating department.
               </p>
               {deptChartData.length > 0 ? (
-                <BarChart data={deptChartData} color="var(--warning)" />
+                <RankedHorizontalBarChart data={deptChartData} />
               ) : (
                 <EmptyState title="No Data" description="No pending department items." />
               )}
@@ -632,19 +682,19 @@ export const SummaryPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Visual Analytics Row 3 ──────────────────────────────────── */}
+      {/* ── Visual Analytics Row 3: Products & Vendors ──────────────────── */}
       {!isLoading && (hasFinancialAccess || isAdmin || isManager) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {(isAdmin || isManager) && (
-            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
-              <h3 className="text-text-primary font-bold text-base mb-2">
+            <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card glass-panel">
+              <h3 className="text-text-primary font-bold text-base mb-1">
                 Top Products by Indent Volume
               </h3>
               <p className="text-text-muted text-xs mb-4">
-                Configured products ranked by frequency of indent requests.
+                Configured manufacturing products ranked by frequency of indent requests.
               </p>
               {productChartData.length > 0 ? (
-                <HorizontalBarChart data={productChartData} color="var(--primary)" />
+                <RankedHorizontalBarChart data={productChartData} />
               ) : (
                 <EmptyState title="No Data" description="No product indents recorded." />
               )}
@@ -652,19 +702,15 @@ export const SummaryPage: React.FC = () => {
           )}
 
           {hasFinancialAccess && (
-            <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
-              <h3 className="text-text-primary font-bold text-base mb-2">
+            <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card glass-panel">
+              <h3 className="text-text-primary font-bold text-base mb-1">
                 Vendor Supply Value Allocation (INR)
               </h3>
               <p className="text-text-muted text-xs mb-4">
-                Top-5 vendors ranked by aggregate planned supply value.
+                Top-5 supply vendors ranked by aggregate planned procurement value.
               </p>
               {vendorChartData.length > 0 ? (
-                <HorizontalBarChart
-                  data={vendorChartData}
-                  color="var(--info)"
-                  formatValue={(val) => '₹' + val.toLocaleString('en-IN')}
-                />
+                <RankedHorizontalBarChart data={vendorChartData} />
               ) : (
                 <EmptyState title="No Data" description="No vendor transactions recorded." />
               )}
@@ -673,40 +719,40 @@ export const SummaryPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Two-Loop Architecture info & Refresh Footer ────────────────── */}
+      {/* ── Two-Loop Architecture Passive Monitoring Footer ────────────────── */}
       {!isLoading && (
-        <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mt-6">
+        <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mt-6 glass-panel">
           <div className="space-y-2 max-w-2xl">
-            <h3 className="text-text-primary font-bold text-base">
+            <h3 className="text-text-primary font-bold text-sm sm:text-base">
               Two-Loop Zero-Approval Architecture Passive Monitoring
             </h3>
             <p className="text-text-muted text-xs leading-relaxed">
               Operational and financial flows run autonomously. State transitions trigger
-              email/system notifications to stakeholders. Senior & General Managers passively
+              email/system notifications to stakeholders. Senior &amp; General Managers passively
               monitor progress and analyze performance indicators without blocking active workflows.
             </p>
             <div className="flex flex-wrap gap-4 text-xs font-semibold pt-1">
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-accent-primary" />
+                <span className="h-2 w-2 rounded-full bg-[#8B5CF6]" />
                 <span className="text-text-secondary">
-                  Loop 1 (Manufacturing): Design → Stores → Production → Delivery
+                  Loop 1 (Manufacturing): Design &rarr; Stores &rarr; Production &rarr; Delivery
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-accent-info" />
+                <span className="h-2 w-2 rounded-full bg-[#38BDF8]" />
                 <span className="text-text-secondary">
-                  Loop 2 (Financial): Accounts → Closure → Archive → Complete
+                  Loop 2 (Financial): Accounts &rarr; Closure &rarr; Archive &rarr; Complete
                 </span>
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end text-xs text-text-disabled font-semibold border-t md:border-t-0 border-border-default pt-3 md:pt-0 w-full md:w-auto">
-            <span>Source: PostgreSQL Live Monolithic DB</span>
+          <div className="flex flex-col items-end text-xs text-text-muted font-mono border-t md:border-t-0 border-border-default pt-3 md:pt-0 w-full md:w-auto">
+            <span>Source: PostgreSQL Monolith Live</span>
             <span>
-              Last Aggregated:{' '}
+              Timestamp:{' '}
               {summaryData?.generatedAt
-                ? new Date(summaryData.generatedAt).toLocaleString()
-                : 'N/A'}
+                ? new Date(summaryData.generatedAt).toLocaleTimeString()
+                : 'Live'}
             </span>
           </div>
         </div>
@@ -714,3 +760,5 @@ export const SummaryPage: React.FC = () => {
     </AnalyticsLayout>
   );
 };
+
+export default SummaryPage;

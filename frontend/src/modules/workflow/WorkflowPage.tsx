@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Clock,
   Search,
-  ArrowRight,
   Eye,
   RefreshCw,
   GitBranch,
@@ -186,15 +185,15 @@ export const WorkflowPage: React.FC = () => {
       {/* State Machine Flow Visualizer */}
       <div className="space-y-6">
         {/* Loop 1: Manufacturing */}
-        <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card space-y-4">
-          <div className="flex items-center justify-between border-b border-border-default pb-3">
-            <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent-primary" />
-              Loop 1: Manufacturing Workflow (Product Delivery)
+        <div className="bg-surface-card rounded-xl p-5 sm:p-6 border border-border-default shadow-card space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-default pb-3">
+            <h3 className="text-base sm:text-lg font-bold text-text-primary flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-accent-primary shrink-0" />
+              <span>Loop 1: Manufacturing Workflow (Product Delivery)</span>
             </h3>
             <Badge tone="blue">Loop Boundary: Customer Delivered</Badge>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3.5 pt-1">
             {MANUFACTURING_LOOP_STATES.map((state, idx) => {
               const def = WORKFLOW_STAGES[state];
               const count = stageCounts[state] ?? 0;
@@ -205,50 +204,45 @@ export const WorkflowPage: React.FC = () => {
                 <div
                   key={state}
                   onClick={() => handleStageSelect(state)}
-                  className={`relative flex flex-col justify-between p-3.5 rounded-xl border transition-all cursor-pointer select-none group ${
+                  className={`relative flex flex-col justify-between p-4 rounded-xl border transition-all duration-200 cursor-pointer select-none group min-h-[140px] ${
                     isSelected
                       ? 'bg-background-secondary border-accent-primary ring-2 ring-accent-primary/20 shadow-lg scale-[1.02]'
-                      : 'bg-background-primary/40 border-border-default hover:border-border-default hover:bg-background-primary/80 hover:scale-[1.01]'
+                      : 'bg-background-primary/50 border-border-default hover:border-accent-primary/40 hover:bg-background-secondary/80 hover:shadow-sm'
                   }`}
                 >
-                  {/* Sequence Badge */}
+                  {/* Top: Sequence & Department */}
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] font-bold text-text-muted px-1.5 py-0.5 bg-background-primary rounded">
+                    <span className="text-[10px] font-extrabold text-text-muted px-2 py-0.5 bg-background-secondary rounded-md border border-border-default/60">
                       #{idx + 1}
                     </span>
-                    <Badge tone={tone} className="text-[9px] px-1 py-0 shadow-sm">
+                    <Badge tone={tone} className="text-[10px] font-bold px-1.5 py-0.5">
                       {def.owningDepartmentCode}
                     </Badge>
                   </div>
 
                   {/* Title & Description */}
-                  <div className="space-y-1 my-1">
-                    <p className="text-xs font-bold text-text-primary truncate">{def.label}</p>
-                    <p className="text-[10px] text-text-muted line-clamp-2 leading-snug">
+                  <div className="space-y-1 my-1.5 flex-1">
+                    <p className="text-xs sm:text-sm font-bold text-text-primary leading-snug">
+                      {def.label}
+                    </p>
+                    <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
                       {def.description}
                     </p>
                   </div>
 
                   {/* Active Count */}
-                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-border-default/30">
-                    <span className="text-[10px] text-text-muted">Active Indents</span>
+                  <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-border-default/50">
+                    <span className="text-[11px] font-medium text-text-muted">Active Indents</span>
                     <span
                       className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
                         count > 0
-                          ? 'bg-accent-primary/10 text-accent-primary'
-                          : 'bg-background-primary text-text-muted'
+                          ? 'bg-accent-primary/15 text-accent-primary border border-accent-primary/30'
+                          : 'bg-background-secondary text-text-muted'
                       }`}
                     >
                       {count}
                     </span>
                   </div>
-
-                  {/* Connecting Arrow */}
-                  {idx < MANUFACTURING_LOOP_STATES.length - 1 && (
-                    <div className="hidden lg:block absolute -right-2.5 top-[40%] translate-y-[-50%] z-10 text-text-muted/60 pointer-events-none group-hover:text-text-primary transition-colors">
-                      <ArrowRight size={14} />
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -256,15 +250,15 @@ export const WorkflowPage: React.FC = () => {
         </div>
 
         {/* Loop 2: Financial */}
-        <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card space-y-4">
-          <div className="flex items-center justify-between border-b border-border-default pb-3">
-            <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-status-success" />
-              Loop 2: Financial & Archival Workflow (Closure)
+        <div className="bg-surface-card rounded-xl p-5 sm:p-6 border border-border-default shadow-card space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border-default pb-3">
+            <h3 className="text-base sm:text-lg font-bold text-text-primary flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-status-success shrink-0" />
+              <span>Loop 2: Financial &amp; Archival Workflow (Closure)</span>
             </h3>
             <Badge tone="green">Terminal State: Completed</Badge>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5 pt-1">
             {FINANCIAL_LOOP_STATES.map((state, idx) => {
               const def = WORKFLOW_STAGES[state];
               const count = stageCounts[state] ?? 0;
@@ -275,50 +269,45 @@ export const WorkflowPage: React.FC = () => {
                 <div
                   key={state}
                   onClick={() => handleStageSelect(state)}
-                  className={`relative flex flex-col justify-between p-3.5 rounded-xl border transition-all cursor-pointer select-none group ${
+                  className={`relative flex flex-col justify-between p-4 rounded-xl border transition-all duration-200 cursor-pointer select-none group min-h-[140px] ${
                     isSelected
                       ? 'bg-background-secondary border-accent-primary ring-2 ring-accent-primary/20 shadow-lg scale-[1.02]'
-                      : 'bg-background-primary/40 border-border-default hover:border-border-default hover:bg-background-primary/80 hover:scale-[1.01]'
+                      : 'bg-background-primary/50 border-border-default hover:border-accent-primary/40 hover:bg-background-secondary/80 hover:shadow-sm'
                   }`}
                 >
                   {/* Sequence Badge */}
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] font-bold text-text-muted px-1.5 py-0.5 bg-background-primary rounded">
+                    <span className="text-[10px] font-extrabold text-text-muted px-2 py-0.5 bg-background-secondary rounded-md border border-border-default/60">
                       #{idx + 8}
                     </span>
-                    <Badge tone={tone} className="text-[9px] px-1 py-0 shadow-sm">
+                    <Badge tone={tone} className="text-[10px] font-bold px-1.5 py-0.5">
                       {def.owningDepartmentCode}
                     </Badge>
                   </div>
 
                   {/* Title & Description */}
-                  <div className="space-y-1 my-1">
-                    <p className="text-xs font-bold text-text-primary truncate">{def.label}</p>
-                    <p className="text-[10px] text-text-muted line-clamp-2 leading-snug">
+                  <div className="space-y-1 my-1.5 flex-1">
+                    <p className="text-xs sm:text-sm font-bold text-text-primary leading-snug">
+                      {def.label}
+                    </p>
+                    <p className="text-[11px] text-text-muted line-clamp-2 leading-relaxed">
                       {def.description}
                     </p>
                   </div>
 
                   {/* Active Count */}
-                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-border-default/30">
-                    <span className="text-[10px] text-text-muted">Active Indents</span>
+                  <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-border-default/50">
+                    <span className="text-[11px] font-medium text-text-muted">Active Indents</span>
                     <span
                       className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
                         count > 0
-                          ? 'bg-status-success/10 text-status-success'
-                          : 'bg-background-primary text-text-muted'
+                          ? 'bg-status-success/15 text-status-success border border-status-success/30'
+                          : 'bg-background-secondary text-text-muted'
                       }`}
                     >
                       {count}
                     </span>
                   </div>
-
-                  {/* Connecting Arrow */}
-                  {idx < FINANCIAL_LOOP_STATES.length - 1 && (
-                    <div className="hidden lg:block absolute -right-2.5 top-[40%] translate-y-[-50%] z-10 text-text-muted/60 pointer-events-none group-hover:text-text-primary transition-colors">
-                      <ArrowRight size={14} />
-                    </div>
-                  )}
                 </div>
               );
             })}

@@ -73,13 +73,13 @@ export const MasterDataDashboardPage: React.FC = () => {
     () => [
       {
         id: 'mc-1',
-        title: 'Product SKU #PRD-9005 Updated',
+        title: 'Product SKU #AGIPL-PRD-005 Updated',
         description: 'Design department updated base cost estimation to ₹3,600.',
         timestamp: '15 mins ago',
       },
       {
         id: 'mc-2',
-        title: 'Raw Material MAT-3001 Threshold Adjusted',
+        title: 'Raw Material AGIPL-MAT-001 Threshold Adjusted',
         description: 'Reorder point updated to 250 KG for Stainless Steel Grade 304.',
         timestamp: '1 hour ago',
       },
@@ -150,19 +150,29 @@ export const MasterDataDashboardPage: React.FC = () => {
   const mostUsedProducts = useMemo(
     () => [
       {
-        code: 'PRD-9001',
+        code: 'AGIPL-PRD-001',
         name: 'Industrial Control Panel Box A1',
         volume: '142 Indents',
         cost: '₹14,500',
       },
       {
-        code: 'PRD-9002',
+        code: 'AGIPL-PRD-002',
         name: 'Stainless Steel Flange Assembly',
         volume: '98 Indents',
         cost: '₹8,200',
       },
-      { code: 'PRD-9005', name: 'Modular Cable Harness 12V', volume: '84 Indents', cost: '₹3,600' },
-      { code: 'PRD-9003', name: 'High-Density Polymer Gasket', volume: '62 Indents', cost: '₹450' },
+      {
+        code: 'AGIPL-PRD-005',
+        name: 'Modular Cable Harness 12V',
+        volume: '84 Indents',
+        cost: '₹3,600',
+      },
+      {
+        code: 'AGIPL-PRD-003',
+        name: 'High-Density Polymer Gasket',
+        volume: '62 Indents',
+        cost: '₹450',
+      },
     ],
     [],
   );

@@ -1070,7 +1070,8 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                     heightMm: Number(height),
                   });
                   const isRoundOrCircle = shape === 'ROUND' || shape === 'CIRCLE';
-                  const isPrismatic = shape === 'RECTANGLE' || shape === 'SQUARE' || shape === 'PLATE';
+                  const isPrismatic =
+                    shape === 'RECTANGLE' || shape === 'SQUARE' || shape === 'PLATE';
 
                   if (!isRoundOrCircle && !isPrismatic) return null;
 
@@ -1120,7 +1121,13 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                           />
                         </div>
                       ) : null}
-                      <div className={isRoundOrCircle ? 'md:col-span-6 flex items-end' : 'md:col-span-3 flex items-end'}>
+                      <div
+                        className={
+                          isRoundOrCircle
+                            ? 'md:col-span-6 flex items-end'
+                            : 'md:col-span-3 flex items-end'
+                        }
+                      >
                         <div className="w-full text-right p-2 rounded bg-background-primary border border-border-default">
                           <span className="text-xs text-text-muted mr-2">Live Unit Weight:</span>
                           <span className="font-bold text-accent-primary">

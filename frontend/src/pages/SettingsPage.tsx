@@ -68,7 +68,8 @@ export const SettingsPage: React.FC = () => {
 
   // Backend settings
   const overdueAlertsSettingKey = 'MATERIAL_ISSUE_OVERDUE_ALERTS_ENABLED';
-  const { data: overdueAlertsData, isLoading: overdueAlertsLoading } = useSetting(overdueAlertsSettingKey);
+  const { data: overdueAlertsData, isLoading: overdueAlertsLoading } =
+    useSetting(overdueAlertsSettingKey);
   const { mutate: updateSetting, isPending: isUpdatingSetting } = useUpdateSetting();
 
   // We default to true as per requirements if it hasn't been set yet
@@ -76,7 +77,15 @@ export const SettingsPage: React.FC = () => {
 
   const handleOverdueAlertsToggle = (checked: boolean) => {
     updateSetting(
-      { key: overdueAlertsSettingKey, payload: { value: checked ? 'true' : 'false', category: 'Notification', description: 'Alert SM, GM, and Admin when required materials remain unissued for 48 hours.' } },
+      {
+        key: overdueAlertsSettingKey,
+        payload: {
+          value: checked ? 'true' : 'false',
+          category: 'Notification',
+          description:
+            'Alert SM, GM, and Admin when required materials remain unissued for 48 hours.',
+        },
+      },
       {
         onSuccess: () => {
           show('success', 'Material issue overdue alerts setting updated');
@@ -84,7 +93,7 @@ export const SettingsPage: React.FC = () => {
         onError: () => {
           show('error', 'Failed to update setting');
         },
-      }
+      },
     );
   };
 

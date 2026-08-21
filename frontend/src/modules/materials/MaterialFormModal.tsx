@@ -120,8 +120,7 @@ export const MaterialFormModal: React.FC<MaterialFormModalProps> = ({
             label="Material Code"
             value={materialCode}
             onChange={(e) => setMaterialCode(e.target.value)}
-            placeholder="e.g. MAT-3001"
-            required
+            placeholder="e.g. AGIPL-MAT-001 (Auto-generated if blank)"
           />
 
           <Input

@@ -17,12 +17,14 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CreateMaterialDto, UpdateMaterialDto } from './dto/material.dto';
 
 import { RedisCacheService } from '../redis-cache/redis-cache.service';
+import { DocumentNumberService } from '../common/services/document-number.service';
 
 @Controller('materials')
 export class MaterialsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cacheService: RedisCacheService,
+    private readonly documentNumberService: DocumentNumberService,
   ) {}
 
   @Get()
@@ -54,11 +56,17 @@ export class MaterialsController {
   @Post()
   @Permissions('materials.create')
   async create(@Body() createMaterialDto: CreateMaterialDto) {
-    const { maxStock, densityKgPerDm3, ...rest } = createMaterialDto;
+    const { maxStock, densityKgPerDm3, materialCode, ...rest } = createMaterialDto;
     const maximumStock = maxStock ? maxStock.toString() : '0';
+    const finalMaterialCode =
+      materialCode && materialCode.startsWith('AGIPL-MAT-')
+        ? materialCode
+        : await this.documentNumberService.generateMaterialNumber();
+
     const material = await this.prisma.material.create({
       data: {
         ...rest,
+        materialCode: finalMaterialCode,
         densityKgPerDm3: densityKgPerDm3 !== undefined ? densityKgPerDm3.toString() : null,
         maximumStock,
         currentStock: '0',

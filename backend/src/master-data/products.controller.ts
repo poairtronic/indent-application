@@ -16,12 +16,14 @@ import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 import { RedisCacheService } from '../redis-cache/redis-cache.service';
+import { DocumentNumberService } from '../common/services/document-number.service';
 
 @Controller('products')
 export class ProductsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cacheService: RedisCacheService,
+    private readonly documentNumberService: DocumentNumberService,
   ) {}
 
   @Get()
@@ -52,9 +54,16 @@ export class ProductsController {
   @Post()
   @Permissions('products.create')
   async create(@Body() createProductDto: CreateProductDto) {
+    const { productCode, ...rest } = createProductDto;
+    const finalProductCode =
+      productCode && productCode.startsWith('AGIPL-PRD-')
+        ? productCode
+        : await this.documentNumberService.generateProductNumber();
+
     const product = await this.prisma.product.create({
       data: {
-        ...createProductDto,
+        ...rest,
+        productCode: finalProductCode,
         status: createProductDto.status || 'ACTIVE',
       },
     });

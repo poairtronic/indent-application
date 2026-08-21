@@ -1,21 +1,35 @@
 import React, { useMemo } from 'react';
 import { AnalyticsLayout } from '../components/AnalyticsLayout';
 import { KpiCard } from '../components/AnalyticsCards';
-import { BarChart } from '../components/AnalyticsCharts';
+import { RankedHorizontalBarChart } from '../components/AnalyticsCharts';
 import { useDepartmentAnalytics } from '../hooks/useAnalytics';
 import { ErrorState } from '../../../components/ui/ErrorState';
+
+const DEPARTMENT_NAMES: Record<string, string> = {
+  STOR: 'Stores Department',
+  SMGR: 'Senior Manager',
+  PROD: 'Production Department',
+  ACCT: 'Accounts & Finance',
+  DSGN: 'Design & Engineering',
+  ADMIN: 'System Administration',
+  GMGR: 'General Manager',
+};
 
 export const DepartmentsPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useDepartmentAnalytics();
 
-  const deptChartData = useMemo(
-    () =>
-      data?.departments?.map((dept) => ({
-        label: dept.departmentCode,
+  const rankedDeptData = useMemo(() => {
+    if (!data?.departments?.length) return [];
+    return [...data.departments]
+      .sort((a, b) => b.pendingQueue - a.pendingQueue)
+      .map((dept) => ({
+        label: DEPARTMENT_NAMES[dept.departmentCode] || dept.departmentName,
         value: dept.pendingQueue,
-      })) ?? [],
-    [data?.departments],
-  );
+        subValue: `${dept.completedCount} Completed`,
+        color: dept.pendingQueue > 10 ? '#F59E0B' : '#8B5CF6',
+        statusBadge: dept.pendingQueue > 10 ? 'High Load' : undefined,
+      }));
+  }, [data?.departments]);
 
   const liveQueueVolume = useMemo(
     () => data?.departments?.reduce((sum, d) => sum + d.pendingQueue, 0) ?? 0,
@@ -36,7 +50,7 @@ export const DepartmentsPage: React.FC = () => {
   return (
     <AnalyticsLayout
       title="Department Workload Metrics"
-      subtitle="Pending queues, capacity levels, and transaction counts per department"
+      subtitle="Pending queues, capacity levels, and transaction counts per operating department"
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <KpiCard
@@ -44,97 +58,96 @@ export const DepartmentsPage: React.FC = () => {
           value={data?.departments?.length ?? 0}
           loading={isLoading}
           icon={<span>🏢</span>}
+          accent="primary"
         />
         <KpiCard
           title="Highest Queue Load"
-          value={data?.highestWorkload || 'None'}
+          value={DEPARTMENT_NAMES[data?.highestWorkload || ''] || data?.highestWorkload || 'None'}
           loading={isLoading}
           icon={<span>🔥</span>}
-          subtitle="Department with the most pending indents"
+          subtitle="Department with the highest pending backlog"
+          accent="warning"
         />
         <KpiCard
-          title="Live Queue Volume"
-          value={liveQueueVolume}
+          title="Total Live Queue Volume"
+          value={`${liveQueueVolume} Indents`}
           loading={isLoading}
           icon={<span>⏳</span>}
+          accent="info"
         />
       </div>
 
       {!isLoading && (
         <div className="space-y-6">
           {/* Workload Queue Chart */}
-          <div className="bg-surface-card border border-border-default p-6 rounded-xl shadow-card">
-            <h3 className="text-text-primary font-bold text-lg mb-2">
-              Department Workload Queue Comparison
-            </h3>
-            <p className="text-text-muted text-xs mb-4">
-              Current number of pending indents in operational queue bins per department.
-            </p>
-            {deptChartData.length > 0 ? (
-              <BarChart data={deptChartData} color="var(--warning)" />
+          <div className="bg-surface-card border border-border-default p-6 rounded-2xl shadow-card glass-panel">
+            <div className="border-b border-border-default/60 pb-3 mb-4">
+              <h3 className="text-text-primary font-bold text-base">
+                Department Pending Workload (Ranked)
+              </h3>
+              <p className="text-text-muted text-xs">
+                Sorted queue pressure identifying shop-floor bottlenecks
+              </p>
+            </div>
+            {rankedDeptData.length > 0 ? (
+              <RankedHorizontalBarChart
+                data={rankedDeptData}
+                formatValue={(val) => `${val} Pending`}
+              />
             ) : (
-              <div className="h-[200px] flex items-center justify-center">
-                <span className="text-text-muted text-sm">No active queues recorded.</span>
+              <div className="h-[180px] flex items-center justify-center">
+                <span className="text-text-muted text-xs">No active queues recorded.</span>
               </div>
             )}
           </div>
 
           {/* Department Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {data?.departments?.map((dept) => {
+              const total = dept.totalTransactions || dept.pendingQueue + dept.completedCount;
               const completedPercentage =
-                dept.totalTransactions > 0
-                  ? Math.round((dept.completedCount / dept.totalTransactions) * 100)
-                  : 0;
+                total > 0 ? Math.round((dept.completedCount / total) * 100) : 0;
 
               return (
                 <div
                   key={dept.departmentId}
-                  className="bg-surface-card border border-border-default p-6 rounded-xl space-y-4 hover:border-border-strong transition-all shadow-card"
+                  className="bg-surface-card border border-border-default p-5 rounded-2xl space-y-3 hover:border-[#8B5CF6]/50 transition-all shadow-card glass-panel"
                 >
                   <div className="flex justify-between items-center">
-                    <h3 className="text-text-primary font-bold text-lg">{dept.departmentName}</h3>
-                    <span className="bg-surface-elevated border border-border-default px-3 py-1 rounded text-text-muted text-xs font-semibold uppercase tracking-wider">
+                    <h4 className="text-text-primary font-bold text-sm truncate">
+                      {DEPARTMENT_NAMES[dept.departmentCode] || dept.departmentName}
+                    </h4>
+                    <span className="bg-surface-elevated border border-border-default px-2 py-0.5 rounded text-[10px] font-mono text-text-muted font-bold">
                       {dept.departmentCode}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 py-2">
-                    <div className="text-center">
-                      <p className="text-text-disabled text-[10px] font-semibold uppercase tracking-wider">
-                        Pending Queue
-                      </p>
-                      <p className="text-text-primary font-extrabold text-2xl mt-1">
-                        {dept.pendingQueue}
-                      </p>
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-text-muted">Pending Queue:</span>
+                      <span className="font-bold text-[#8B5CF6] font-mono">
+                        {dept.pendingQueue} Items
+                      </span>
                     </div>
-                    <div className="text-center border-x border-border-default">
-                      <p className="text-text-disabled text-[10px] font-semibold uppercase tracking-wider">
-                        Completed Work
-                      </p>
-                      <p className="text-text-primary font-extrabold text-2xl mt-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-text-muted">Completed:</span>
+                      <span className="font-bold text-status-success font-mono">
                         {dept.completedCount}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-text-disabled text-[10px] font-semibold uppercase tracking-wider">
-                        Total Indents
-                      </p>
-                      <p className="text-text-primary font-extrabold text-2xl mt-1">
-                        {dept.totalTransactions}
-                      </p>
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-text-muted">Completion rate</span>
-                      <span className="text-text-secondary">{completedPercentage}%</span>
+                  <div className="space-y-1 pt-2 border-t border-border-default/60">
+                    <div className="flex justify-between text-[11px] text-text-muted">
+                      <span>Throughput Efficiency</span>
+                      <span className="font-bold font-mono text-text-primary">
+                        {completedPercentage}%
+                      </span>
                     </div>
-                    <div className="w-full bg-surface-elevated h-2 rounded-full overflow-hidden border border-border-default">
+                    <div className="w-full bg-surface-elevated rounded-full h-2 overflow-hidden border border-border-default/50">
                       <div
                         style={{ width: `${completedPercentage}%` }}
-                        className="bg-accent-primary h-full rounded-full transition-all duration-500"
+                        className="h-full rounded-full bg-gradient-to-r from-[#6D4AFF] to-[#10B981]"
                       />
                     </div>
                   </div>
@@ -147,3 +160,5 @@ export const DepartmentsPage: React.FC = () => {
     </AnalyticsLayout>
   );
 };
+
+export default DepartmentsPage;

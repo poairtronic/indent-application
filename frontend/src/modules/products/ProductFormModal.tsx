@@ -108,8 +108,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             label="Product SKU / Code"
             value={productCode}
             onChange={(e) => setProductCode(e.target.value)}
-            placeholder="e.g. PRD-9001"
-            required
+            placeholder="e.g. AGIPL-PRD-001 (Auto-generated if blank)"
           />
 
           <Input

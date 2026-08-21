@@ -20,30 +20,46 @@ const suspended = (Component: React.LazyExoticComponent<React.FC<any>>) => (
 
 // Lazy Loaded Layout Components
 const AuthLayout = lazy(() =>
-  import('../components/layout/AuthLayout').then((m) => ({ default: m.AuthLayout })),
+  import('../components/layout/AuthLayout').then((m: any) => ({
+    default: m.AuthLayout || m.default,
+  })),
 );
 const DashboardLayout = lazy(() =>
-  import('../components/layout/DashboardLayout').then((m) => ({ default: m.DashboardLayout })),
+  import('../components/layout/DashboardLayout').then((m: any) => ({
+    default: m.DashboardLayout || m.default,
+  })),
 );
 const SettingsLayout = lazy(() =>
-  import('../components/layout/SettingsLayout').then((m) => ({ default: m.SettingsLayout })),
+  import('../components/layout/SettingsLayout').then((m: any) => ({
+    default: m.SettingsLayout || m.default,
+  })),
 );
 
 // Lazy Loaded Page Components
 const LoginPage = lazy(() =>
-  import('../pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
+  import('../pages/auth/LoginPage').then((m: any) => ({
+    default: m.LoginPage || m.default,
+  })),
 );
 const ForgotPasswordPage = lazy(() =>
-  import('../pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
+  import('../pages/auth/ForgotPasswordPage').then((m: any) => ({
+    default: m.ForgotPasswordPage || m.default,
+  })),
 );
 const ResetPasswordPage = lazy(() =>
-  import('../pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
+  import('../pages/auth/ResetPasswordPage').then((m: any) => ({
+    default: m.ResetPasswordPage || m.default,
+  })),
 );
 const ChangePasswordPage = lazy(() =>
-  import('../pages/auth/ChangePasswordPage').then((m) => ({ default: m.ChangePasswordPage })),
+  import('../pages/auth/ChangePasswordPage').then((m: any) => ({
+    default: m.ChangePasswordPage || m.default,
+  })),
 );
 const ProfilePage = lazy(() =>
-  import('../pages/auth/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+  import('../pages/auth/ProfilePage').then((m: any) => ({
+    default: m.ProfilePage || m.default,
+  })),
 );
 const DashboardPage = lazy(() =>
   import('../pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),

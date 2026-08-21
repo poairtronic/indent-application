@@ -31,6 +31,7 @@ import {
   roundTo4Decimals,
 } from '../utils/financial-math.util';
 import { calculateMaterialWeight } from '../../common/utils/material-weight.util';
+import { DocumentNumberService } from '../../common/services/document-number.service';
 
 @Injectable()
 export class BusinessTransactionService {
@@ -43,6 +44,7 @@ export class BusinessTransactionService {
     private readonly eventService: BusinessTransactionEventService,
     private readonly attachmentStorage: AttachmentStorageService,
     private readonly cacheService: RedisCacheService,
+    private readonly documentNumberService: DocumentNumberService,
   ) {}
 
   private async invalidateMetadataCache(): Promise<void> {
@@ -126,24 +128,12 @@ export class BusinessTransactionService {
     }
   }
 
-  /**
-   * Helper to generate unique Indent and Cost Sheet numbers
-   */
-  private generateDocumentNumbers(): { indentNumber: string; costNumber: string } {
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return {
-      indentNumber: `IND-${timestamp}-${random}`,
-      costNumber: `PCS-${timestamp}-${random}`,
-    };
-  }
-
   private async resolveMaterial(
-    tx: Pick<PrismaService, 'material'>,
+    tx: any,
     materialName: string,
     unitId: string,
     userId: string,
-    index: number,
+    _index: number,
   ) {
     const normalizedName = materialName.trim();
     const existing = await tx.material.findFirst({
@@ -153,11 +143,11 @@ export class BusinessTransactionService {
       return existing;
     }
 
-    const uniqueSuffix = `${Date.now().toString().slice(-6)}-${index}`;
+    const materialCode = await this.documentNumberService.generateMaterialNumber(tx);
     return tx.material.create({
       data: {
         materialName: normalizedName,
-        materialCode: `MAT-${uniqueSuffix}`,
+        materialCode,
         unitId,
         category: 'General',
         currentStock: 100,
@@ -179,11 +169,13 @@ export class BusinessTransactionService {
       );
     }
 
-    const { indentNumber, costNumber } = this.generateDocumentNumbers();
     const prismaDraftStatus = WorkflowStateMapper.toPrisma(WorkflowState.DRAFT);
 
     const result = await this.prisma.$transaction(
       async (tx) => {
+        const indentNumber = await this.documentNumberService.generateIndentNumber(tx);
+        const costNumber = await this.documentNumberService.generateCostSheetNumber(tx);
+
         const productName = dto.indent.productName.trim();
         const departmentName = dto.indent.departmentName.trim();
         const uniqueSuffix = Date.now().toString().slice(-6);
@@ -193,7 +185,7 @@ export class BusinessTransactionService {
           (await tx.product.create({
             data: {
               productName,
-              productCode: `PRD-${uniqueSuffix}`,
+              productCode: await this.documentNumberService.generateProductNumber(tx),
               createdBy: userId,
             },
           }));

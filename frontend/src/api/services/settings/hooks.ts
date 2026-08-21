@@ -5,7 +5,9 @@ import type { UpdateSettingPayload } from '../../../types/settings';
 
 export function useSettings(category?: string) {
   return useQuery({
-    queryKey: category ? [...queryKeys.settings.list('settings'), category] : queryKeys.settings.list('settings'),
+    queryKey: category
+      ? [...queryKeys.settings.list('settings'), category]
+      : queryKeys.settings.list('settings'),
     queryFn: () => settingsService.list(category),
   });
 }
@@ -25,7 +27,9 @@ export function useUpdateSetting() {
       settingsService.updateSetting(key, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.list('settings') });
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail('settings', variables.key) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.settings.detail('settings', variables.key),
+      });
     },
   });
 }

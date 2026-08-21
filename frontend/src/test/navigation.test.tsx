@@ -30,6 +30,6 @@ describe('Sidebar Component', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('IMCMS')).toBeInTheDocument();
+    expect(screen.getByText('MERC')).toBeInTheDocument();
   });
 });

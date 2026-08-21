@@ -18,11 +18,9 @@ export default defineConfig({
     // maxForks:1 serialises test file execution — tests within each file
     // still run concurrently. isolate:true gives each file a clean module
     // registry, preventing state leaks between test files.
-    // NOTE: poolOptions was removed in Vitest 4; these are now top-level.
     pool: 'forks',
-    maxForks: 1,
-    minForks: 1,
     isolate: true,
+    exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
   },
   resolve: {
     alias: {

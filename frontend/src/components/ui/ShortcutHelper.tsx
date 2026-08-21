@@ -31,7 +31,7 @@ export const ShortcutHelper: React.FC = () => {
       open={isOpen}
       onClose={() => setIsOpen(false)}
       title="System Keyboard Shortcuts"
-      description="Quickly navigate the IMCMS dashboard using keyboard key bindings."
+      description="Quickly navigate the MERC dashboard using keyboard key bindings."
     >
       <div className="font-sans text-xs space-y-3.5">
         {shortcuts.map((sc, idx) => (

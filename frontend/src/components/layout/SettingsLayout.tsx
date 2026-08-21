@@ -155,9 +155,9 @@ export const SettingsLayout: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 font-sans">
+    <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 font-sans w-full min-w-0">
       {/* Settings Sub-Sidebar */}
-      <aside className="w-full lg:w-64 shrink-0 bg-grad-card border border-border-default rounded-xl p-4 self-start shadow-card">
+      <aside className="w-full lg:w-60 xl:w-64 shrink-0 bg-grad-card border border-border-default rounded-xl p-4 self-start shadow-card">
         <h3 className="text-[10px] font-bold text-text-muted px-3 mb-3 uppercase tracking-wider">
           System Settings
         </h3>
@@ -188,7 +188,7 @@ export const SettingsLayout: React.FC = () => {
       </aside>
 
       {/* Settings Content Area */}
-      <main className="flex-1 bg-grad-card border border-border-default rounded-xl p-6 shadow-card">
+      <main className="flex-1 min-w-0 w-full bg-grad-card border border-border-default rounded-xl p-4 sm:p-6 shadow-card overflow-hidden">
         <Outlet />
       </main>
     </div>
