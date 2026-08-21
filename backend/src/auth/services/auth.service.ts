@@ -371,6 +371,7 @@ export class AuthService {
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
       changeDate: new Date().toLocaleString(),
+      loginUrl,
       securityUrl: `${frontendUrl}/security-logs`,
     });
   }
