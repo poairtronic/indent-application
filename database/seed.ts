@@ -358,11 +358,14 @@ async function main() {
   ];
 
   for (const p of defaultProcesses) {
-    await prisma.manufacturingProcess.upsert({
-      where: { processName: p.processName },
-      update: {},
-      create: p,
+    const existing = await prisma.manufacturingProcess.findFirst({
+      where: { processName: p.processName, isDeleted: false },
     });
+    if (!existing) {
+      await (prisma.manufacturingProcess as any).create({
+        data: p,
+      });
+    }
   }
 
   // ==========================================
