@@ -155,13 +155,14 @@ export const ResetPasswordPage: React.FC = () => {
               NEW PASSWORD
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8] dark:text-gray-400">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#64748B] dark:text-gray-400 z-10">
                 <Lock size={16} />
               </div>
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••••••"
+                showPasswordToggle={false}
                 className="pl-10 pr-10 h-[52px] bg-[#F8FAFC] dark:bg-black/40 border-[#D9DEEA] dark:border-white/15 text-[#0B132B] dark:text-white placeholder-[#94A3B8] dark:placeholder-gray-500 focus:border-[#6D4AFF] focus:ring-2 focus:ring-[#6D4AFF]/20 rounded-xl text-sm font-medium transition-all"
                 error={errors.password?.message}
                 onKeyDown={checkCapsLock}
@@ -175,7 +176,7 @@ export const ResetPasswordPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#94A3B8] hover:text-[#6D4AFF] dark:text-gray-400 dark:hover:text-white transition-colors focus:outline-none cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#64748B] hover:text-[#6D4AFF] dark:text-gray-400 dark:hover:text-white transition-colors focus:outline-none z-10 cursor-pointer"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -203,13 +204,14 @@ export const ResetPasswordPage: React.FC = () => {
               CONFIRM PASSWORD
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8] dark:text-gray-400">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#64748B] dark:text-gray-400 z-10">
                 <Lock size={16} />
               </div>
               <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? 'text' : 'password'}
                 placeholder="••••••••••••"
+                showPasswordToggle={false}
                 className="pl-10 pr-10 h-[52px] bg-[#F8FAFC] dark:bg-black/40 border-[#D9DEEA] dark:border-white/15 text-[#0B132B] dark:text-white placeholder-[#94A3B8] dark:placeholder-gray-500 focus:border-[#6D4AFF] focus:ring-2 focus:ring-[#6D4AFF]/20 rounded-xl text-sm font-medium transition-all"
                 error={errors.confirmPassword?.message}
                 {...register('confirmPassword')}
@@ -217,7 +219,7 @@ export const ResetPasswordPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#94A3B8] hover:text-[#6D4AFF] dark:text-gray-400 dark:hover:text-white transition-colors focus:outline-none cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#64748B] hover:text-[#6D4AFF] dark:text-gray-400 dark:hover:text-white transition-colors focus:outline-none z-10 cursor-pointer"
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
                 {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}

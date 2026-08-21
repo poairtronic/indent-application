@@ -1,14 +1,29 @@
 import React, { forwardRef, useState, useId } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   helperText?: string;
+  startIcon?: React.ReactNode;
+  showPasswordToggle?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, type = 'text', className = '', id, ...props }, ref) => {
+  (
+    {
+      label,
+      error,
+      helperText,
+      startIcon,
+      showPasswordToggle = true,
+      type = 'text',
+      className = '',
+      id,
+      ...props
+    },
+    ref,
+  ) => {
     const [showPassword, setShowPassword] = useState(false);
     const generatedId = useId();
     const inputId = id || generatedId;
@@ -30,7 +45,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className="relative flex items-center">
+          {startIcon && (
+            <div className="absolute left-3.5 z-10 flex items-center pointer-events-none text-text-muted dark:text-gray-400">
+              {startIcon}
+            </div>
+          )}
           <input
             ref={ref}
             id={inputId}
@@ -39,18 +59,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={describedBy}
             className={`w-full bg-background-primary border rounded-lg px-3 py-2 text-xs text-text-primary placeholder:text-text-disabled outline-none transition-all duration-150 focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/25 disabled:opacity-50 disabled:cursor-not-allowed ${
               error ? 'border-status-error focus:ring-status-error/25' : 'border-border-default'
-            } ${isPassword ? 'pr-10' : ''} ${className}`}
+            } ${startIcon ? 'pl-10' : ''} ${isPassword && showPasswordToggle ? 'pr-10' : ''} ${className}`}
             {...props}
           />
-          {isPassword && (
+          {isPassword && showPasswordToggle && (
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
               aria-pressed={showPassword}
-              className="absolute right-3 top-2 text-text-muted hover:text-text-primary p-0.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+              className="absolute right-3.5 z-10 text-text-muted hover:text-text-primary dark:text-gray-400 dark:hover:text-white p-0.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary cursor-pointer transition-colors"
             >
-              {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           )}
         </div>

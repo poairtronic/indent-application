@@ -96,7 +96,7 @@ export const ForgotPasswordPage: React.FC = () => {
             EMAIL ADDRESS
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94A3B8] dark:text-gray-400">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#64748B] dark:text-gray-400 z-10">
               <Mail size={16} />
             </div>
             <Input

@@ -249,7 +249,7 @@ export const ProductsMasterPage: React.FC = () => {
 
       <div className="bg-surface-card border border-border-default rounded-xl p-4 shadow-card flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted z-10">
             <Search size={16} />
           </div>
           <Input
