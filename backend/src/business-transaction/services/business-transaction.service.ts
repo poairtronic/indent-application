@@ -1003,9 +1003,9 @@ export class BusinessTransactionService {
 
     await this.prisma.$transaction(async (tx) => {
       await this.assertCurrentStateAndUpdate(
-        id,
-        txData.currentState,
-        {
+              id,
+              currentState,
+              {
           status: prismaTargetStatus,
           currentState: targetState,
           updatedBy: userId,
@@ -1130,10 +1130,10 @@ export class BusinessTransactionService {
     const targetState = WorkflowState.MATERIALS_ISSUED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
-      txData.currentState,
-      targetState,
-      'STORES',
-    );
+            currentState,
+            targetState,
+            'STORES',
+          );
     if (!transitionValidation.isValid) {
       throw new BadRequestException(transitionValidation.errors.join(', '));
     }
@@ -1362,9 +1362,22 @@ export class BusinessTransactionService {
       // All items issued — inline the final transition (avoids redundant storesIssueMaterials delegation)
       const targetState = WorkflowState.MATERIALS_ISSUED;
       if (
-        txData.currentState === WorkflowState.DESIGN_COMPLETED ||
-        txData.currentState === WorkflowState.STORES_PROCESSING
-      ) {
+          txData.currentState === WorkflowState.DESIGN_COMPLETED ||
+          txData.currentState === WorkflowState.STORES_PROCESSING
+        ) {
+          let currentState = txData.currentState;
+          if (currentState === WorkflowState.DESIGN_COMPLETED) {
+            // First transition to STORES_PROCESSING
+            await this.prisma.indent.update({
+              where: { id },
+              data: {
+                status: WorkflowStateMapper.toPrisma(WorkflowState.STORES_PROCESSING),
+                currentState: WorkflowState.STORES_PROCESSING,
+                updatedBy: userId,
+              },
+            });
+            currentState = WorkflowState.STORES_PROCESSING;
+          }
         const transitionValidation = this.workflowStateMachine.validateTransition(
           txData.currentState,
           targetState,
@@ -1776,7 +1789,7 @@ export class BusinessTransactionService {
         for (const pDto of dto.processCosts) {
           const actualCost = roundTo4Decimals(pDto.actualCost ?? 0);
           const actualHours = roundTo4Decimals(pDto.actualHours ?? 0);
-          const actualAmount = roundTo4Decimals(actualCost * actualHours);
+          const actualAmount = actualCost; // The frontend passes the total actual cost as actualCost
 
           const pItem = currentProcessCosts.find(i => i.id === pDto.processCostId);
           if (pItem) {
