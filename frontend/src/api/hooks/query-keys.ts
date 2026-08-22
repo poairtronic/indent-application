@@ -1,10 +1,10 @@
 type QueryKeyFactory = {
-  all: readonly ['api'];
-  lists: () => readonly ['api', 'list'];
+  all: readonly ['api', string];
+  lists: () => readonly ['api', 'list', string];
   list: (module: string) => readonly ['api', 'list', string];
-  details: () => readonly ['api', 'detail'];
+  details: () => readonly ['api', 'detail', string];
   detail: (module: string, id: string) => readonly ['api', 'detail', string, string];
-  searches: () => readonly ['api', 'search'];
+  searches: () => readonly ['api', 'search', string];
   search: (module: string, query: string) => readonly ['api', 'search', string, string];
   infinite: (module: string) => readonly ['api', 'infinite', string];
   infiniteWithParams: (
@@ -15,12 +15,12 @@ type QueryKeyFactory = {
 
 function createKeyFactory(_moduleName: string): QueryKeyFactory {
   return {
-    all: ['api'] as const,
-    lists: () => ['api', 'list'] as const,
+    all: ['api', _moduleName] as const,
+    lists: () => ['api', 'list', _moduleName] as const,
     list: (module: string) => ['api', 'list', module] as const,
-    details: () => ['api', 'detail'] as const,
+    details: () => ['api', 'detail', _moduleName] as const,
     detail: (module: string, id: string) => ['api', 'detail', module, id] as const,
-    searches: () => ['api', 'search'] as const,
+    searches: () => ['api', 'search', _moduleName] as const,
     search: (module: string, query: string) => ['api', 'search', module, query] as const,
     infinite: (module: string) => ['api', 'infinite', module] as const,
     infiniteWithParams: (module: string, params: string) =>

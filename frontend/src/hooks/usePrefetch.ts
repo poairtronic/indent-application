@@ -30,13 +30,12 @@ export function usePrefetch() {
         })
         .catch(() => {});
 
-      // Since it's indents, we can safely prefetch master data for "New Indent"
-      // Phase 2I - Master Data Prefetch
+      // Safe to prefetch master data for "New Indent" using the EXACT same keys the form uses
       import('../api/services/materials/service')
         .then((m) => {
           queryClient.prefetchQuery({
-            queryKey: queryKeys.materials.lists(),
-            queryFn: () => m.materialService.list({ page: 1, limit: 100 }),
+            queryKey: [...queryKeys.materials.list('materials'), { page: 1, limit: 1000 }],
+            queryFn: () => m.materialService.list({ page: 1, limit: 1000 }),
             staleTime: 5 * 60 * 1000,
           });
         })
@@ -45,18 +44,18 @@ export function usePrefetch() {
       import('../api/services/products/service')
         .then((m) => {
           queryClient.prefetchQuery({
-            queryKey: queryKeys.products.lists(),
-            queryFn: () => m.productService.list({ page: 1, limit: 100 }),
+            queryKey: [...queryKeys.products.list('products'), { page: 1, limit: 1000 }],
+            queryFn: () => m.productService.list({ page: 1, limit: 1000 }),
             staleTime: 5 * 60 * 1000,
           });
         })
         .catch(() => {});
 
-      import('../api/services/departments/service')
+      import('../api/services/vendors/service')
         .then((m) => {
           queryClient.prefetchQuery({
-            queryKey: queryKeys.departments.lists(),
-            queryFn: () => m.departmentService.list({ page: 1, limit: 100 }),
+            queryKey: [...queryKeys.vendors.list('vendors'), { page: 1, limit: 1000 }],
+            queryFn: () => m.vendorService.list({ page: 1, limit: 1000 }),
             staleTime: 5 * 60 * 1000,
           });
         })

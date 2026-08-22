@@ -1712,7 +1712,7 @@ export class BusinessTransactionService {
    * Transitions to ACTUAL_COST_UPDATED state.
    */
       public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
-    const txData = await this.getCostContext(id);
+    const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.ACTUAL_COST_UPDATED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1760,14 +1760,13 @@ export class BusinessTransactionService {
                 actualRate,
                 actualQuantity,
                 actualAmount,
-                varianceAmount,
-                variancePercentage,
+                
                 remarks: cDto.remarks,
                 updatedBy: userId,
               },
             });
             // Update in memory for total calculation
-            cItem.actualAmount = actualAmount;
+            cItem.actualAmount = actualAmount as any;
           }
         }
       }
@@ -1781,7 +1780,7 @@ export class BusinessTransactionService {
 
           const pItem = currentProcessCosts.find(i => i.id === pDto.processCostId);
           if (pItem) {
-            const predictedAmount = roundTo4Decimals(pItem.predictedAmount);
+            const predictedAmount = roundTo4Decimals(Number(pItem.predictedCost));
             const varianceAmount = safeSubtract(actualAmount, predictedAmount);
             const variancePercentage = safeVariancePercentage(varianceAmount, predictedAmount);
 
@@ -1789,24 +1788,22 @@ export class BusinessTransactionService {
             await tx.processCost.update({
               where: { id: pDto.processCostId },
               data: {
-                actualCost,
+
                 actualHours,
-                actualAmount,
-                varianceAmount,
-                variancePercentage,
-                remarks: pDto.remarks,
+                actualCost: actualAmount, variance: varianceAmount,
+                
                 updatedBy: userId,
               },
             });
             // Update in memory for total calculation
-            pItem.actualAmount = actualAmount;
+            pItem.actualCost = actualAmount as any;
           }
         }
       }
 
       // Compute totals from memory (including items not updated in this request)
-      const totalMaterialActual = safeAdd(currentCostItems.map(i => i.actualAmount || 0));
-      const totalProcessActual = safeAdd(currentProcessCosts.map(i => i.actualAmount || 0));
+      const totalMaterialActual = safeAdd(currentCostItems.map(i => Number(i.actualAmount) || 0));
+      const totalProcessActual = safeAdd(currentProcessCosts.map(i => Number(i.actualCost) || 0));
 
       // 3. Overall CostSheet updates
       const actualDesignCost =
@@ -1845,7 +1842,7 @@ export class BusinessTransactionService {
           actualTotal,
           varianceAmount,
           variancePercentage,
-          status: 'ACTUAL_COST_UPDATED',
+          
           updatedBy: userId,
         },
       });
@@ -1874,7 +1871,7 @@ export class BusinessTransactionService {
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
-      AuditEventType.ACTUAL_COST_ENTERED,
+      AuditEventType.VERIFY_COSTS,
       id,
       userId,
       { predictedTotal: txData.costSheet.predictedTotal },
