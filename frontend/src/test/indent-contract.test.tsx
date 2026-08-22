@@ -20,15 +20,15 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../modules/indent/components/IndentForm', () => ({
   IndentForm: ({ onSubmit, isLoading }: any) => (
     <div data-testid="mock-indent-form">
-      <button 
-        data-testid="submit-btn" 
+      <button
+        data-testid="submit-btn"
         onClick={() => onSubmit({ indent: {}, costSheet: {} })}
         disabled={isLoading}
       >
         {isLoading ? 'Loading...' : 'Submit'}
       </button>
     </div>
-  )
+  ),
 }));
 
 describe('IndentFormPage - Create Transaction Contract', () => {
@@ -60,7 +60,7 @@ describe('IndentFormPage - Create Transaction Contract', () => {
         <MemoryRouter>
           <IndentFormPage />
         </MemoryRouter>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
   };
 
@@ -68,11 +68,11 @@ describe('IndentFormPage - Create Transaction Contract', () => {
     // Exact response structure from backend
     mock.onPost('/business-transactions').reply(201, {
       id: 'uuid-123',
-      success: true
+      success: true,
     });
 
     renderComponent();
-    
+
     const submitBtn = screen.getByTestId('submit-btn');
     fireEvent.click(submitBtn);
 
@@ -85,8 +85,8 @@ describe('IndentFormPage - Create Transaction Contract', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/indents/uuid-123');
     });
 
-    // Button becomes usable/loading state finishes is verified implicitly by the next render 
-    // or by checking the component is unmounted (in a real app). 
+    // Button becomes usable/loading state finishes is verified implicitly by the next render
+    // or by checking the component is unmounted (in a real app).
     // Here we can check the hook settled.
     await waitFor(() => {
       expect(screen.getByTestId('submit-btn')).not.toBeDisabled();
@@ -99,8 +99,8 @@ describe('IndentFormPage - Create Transaction Contract', () => {
       success: true,
       message: 'Operation successful',
       data: {
-        id: 'uuid-456'
-      }
+        id: 'uuid-456',
+      },
     });
 
     renderComponent();
@@ -115,7 +115,7 @@ describe('IndentFormPage - Create Transaction Contract', () => {
     // 201 response missing ID
     mock.onPost('/business-transactions').reply(201, {
       success: true,
-      data: {}
+      data: {},
     });
 
     renderComponent();

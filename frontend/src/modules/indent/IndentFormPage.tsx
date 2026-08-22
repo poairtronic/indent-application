@@ -25,7 +25,7 @@ export const IndentFormPage: React.FC = () => {
       createIndent(data, {
         onSuccess: (newIndent) => {
           if (!newIndent || !newIndent.id) {
-            throw new Error("Create transaction succeeded but no transaction ID was returned");
+            throw new Error('Create transaction succeeded but no transaction ID was returned');
           }
           navigate(`/indents/${newIndent.id}`);
         },

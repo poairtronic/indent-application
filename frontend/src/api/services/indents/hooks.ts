@@ -38,7 +38,8 @@ export interface CreateTransactionResponse {
 export function useCreateIndent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateIndentPayload) => indentService.create<CreateTransactionResponse>(payload),
+    mutationFn: (payload: CreateIndentPayload) =>
+      indentService.create<CreateTransactionResponse>(payload),
     onSuccess: () => {
       invalidateIndent(queryClient);
     },
