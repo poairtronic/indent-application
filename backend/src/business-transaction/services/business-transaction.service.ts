@@ -1337,25 +1337,67 @@ export class BusinessTransactionService {
       });
     });
 
-    // Fetch updated items
-    const allItems = await this.prisma.indentItem.findMany({
-      where: { indentId: id },
+    // Check completion status using lightweight COUNT queries instead of fetching all items
+    const unissuedCount = await this.prisma.indentItem.count({
+      where: { indentId: id, isDeleted: false, status: { not: 'ISSUED' } },
     });
 
-    const allIssued = allItems.length > 0 && allItems.every((i) => i.status === 'ISSUED');
+    const allIssued = unissuedCount === 0;
 
     if (allIssued) {
-      // If all items are issued, transition state to MATERIALS_ISSUED and trigger full notification flow
+      // All items issued — inline the final transition (avoids redundant storesIssueMaterials delegation)
+      const targetState = WorkflowState.MATERIALS_ISSUED;
       if (
         txData.currentState === WorkflowState.DESIGN_COMPLETED ||
         txData.currentState === WorkflowState.STORES_PROCESSING
       ) {
-        return this.storesIssueMaterials(id, userId, {
-          remarks: 'All material items have been issued individual component-by-component.',
+        const transitionValidation = this.workflowStateMachine.validateTransition(
+          txData.currentState,
+          targetState,
+          'STORES',
+        );
+        if (!transitionValidation.isValid) {
+          throw new BadRequestException(transitionValidation.errors.join(', '));
+        }
+
+        const productionDept = await this.prisma.department.findFirst({
+          where: { departmentCode: { in: ['PRODUCTION', 'PROD'] }, isDeleted: false },
         });
+        const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
+
+        await this.prisma.$transaction(async (tx) => {
+          await this.assertCurrentStateAndUpdate(
+            id,
+            txData.currentState,
+            {
+              status: prismaTargetStatus,
+              currentState: targetState,
+              remarks: `${txData.remarks || ''}\n[MATERIALS_ISSUED] All material items have been issued individual component-by-component.`,
+              updatedBy: userId,
+            },
+            tx,
+          );
+          await tx.workflowHistory.create({
+            data: {
+              indentId: id,
+              toDepartmentId: productionDept ? productionDept.id : txData.departmentId,
+              movedBy: userId,
+              remarks: 'All material items have been issued individual component-by-component.',
+            },
+          });
+        });
+
+        await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
+        await this.eventService.logAudit(
+          AuditEventType.STORES_ISSUE,
+          id,
+          userId,
+          { state: txData.currentState },
+          { state: targetState },
+        );
       }
     } else {
-      // Move to STORES_PROCESSING if currently in DESIGN_COMPLETED
+      // Partial issue — move to STORES_PROCESSING if currently in DESIGN_COMPLETED
       if (txData.currentState === WorkflowState.DESIGN_COMPLETED) {
         const prismaStatus = WorkflowStateMapper.toPrisma(WorkflowState.STORES_PROCESSING);
         await this.prisma.indent.update({
@@ -1368,14 +1410,19 @@ export class BusinessTransactionService {
         });
       }
 
-      // Dispatch in-app notification for partial issue
-      const issuedCount = allItems.filter((i) => i.status === 'ISSUED').length;
+      // Dispatch in-app notification for partial issue using COUNT queries
+      const issuedCount = await this.prisma.indentItem.count({
+        where: { indentId: id, isDeleted: false, status: 'ISSUED' },
+      });
+      const totalCount = await this.prisma.indentItem.count({
+        where: { indentId: id, isDeleted: false },
+      });
       await this.eventService.dispatchPartialIssueNotification(
         id,
         txData.indentNumber,
         item.material?.materialName || 'Material',
         issuedCount,
-        allItems.length,
+        totalCount,
         userId,
       );
     }

@@ -55,6 +55,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
       indentItem: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        count: jest.fn(),
         update: jest.fn(),
         updateMany: jest.fn(),
       },
@@ -353,7 +354,8 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         id: 'mat-1',
         currentStock: 20,
       });
-      mockPrisma.indentItem.findMany.mockResolvedValue([{ id: 'item-1', status: 'ISSUED' }]);
+      // COUNT query: 0 unissued items remaining (all issued)
+      mockPrisma.indentItem.count.mockResolvedValue(0);
 
       await service.issueSingleMaterialItem('indent-123', 'item-1', 'user-1');
 
