@@ -170,7 +170,7 @@ async function run() {
 
     // 8. Actual Cost
     t0 = performance.now();
-    await fetch(`${BASE_URL}/business-transactions/${indentId}/accounts/actual-costs`, {
+    await fetch(`${BASE_URL}/business-transactions/${indentId}/accounts/actual-cost`, {
       method: 'POST', headers: authHeaders, body: JSON.stringify({
         costItems: [{ costItemId, actualRate: 100, actualQuantity: 10, actualAmount: 1000 }],
         processCosts: [{ processCostId: procCostId, actualCost: 500, actualHours: 5 }]
@@ -180,7 +180,7 @@ async function run() {
 
     // 9. Financial Closure
     t0 = performance.now();
-    await fetch(`${BASE_URL}/business-transactions/${indentId}/accounts/close`, {
+    await fetch(`${BASE_URL}/business-transactions/${indentId}/accounts/financial-close`, {
       method: 'POST', headers: authHeaders, body: JSON.stringify({ remarks: 'Bench' })
     });
     metrics.financialClosure.push(performance.now() - t0);

@@ -2,6 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RedisCacheService } from '../redis-cache.service';
 
 // Mock ioredis
+const mockMultiResult = {
+  set: jest.fn().mockReturnThis(),
+  sadd: jest.fn().mockReturnThis(),
+  expire: jest.fn().mockReturnThis(),
+  exec: jest.fn().mockResolvedValue([null, null, null]),
+};
+
 const mockRedisInstance = {
   connect: jest.fn().mockResolvedValue(undefined),
   quit: jest.fn().mockResolvedValue(undefined),
@@ -9,7 +16,8 @@ const mockRedisInstance = {
   get: jest.fn(),
   set: jest.fn(),
   del: jest.fn(),
-  scan: jest.fn(),
+  smembers: jest.fn(),
+  multi: jest.fn().mockReturnValue(mockMultiResult),
   status: 'ready',
 };
 
@@ -21,7 +29,6 @@ describe('RedisCacheService', () => {
   let service: RedisCacheService;
 
   beforeEach(async () => {
-    // Reset mocks
     jest.clearAllMocks();
     mockRedisInstance.status = 'ready';
 
@@ -30,7 +37,6 @@ describe('RedisCacheService', () => {
     }).compile();
 
     service = module.get<RedisCacheService>(RedisCacheService);
-    // Manually trigger connect listener if needed or let onModuleInit run
     service.onModuleInit();
   });
 
@@ -40,7 +46,6 @@ describe('RedisCacheService', () => {
 
   describe('getStatus', () => {
     it('should return true if redis is available and status is ready', () => {
-      // Force internal state
       (service as any).isRedisAvailable = true;
       expect(service.getStatus()).toBe(true);
     });
@@ -78,34 +83,35 @@ describe('RedisCacheService', () => {
   });
 
   describe('set', () => {
-    it('should set value without TTL', async () => {
+    it('should set value without TTL using multi pipeline with SADD tracking', async () => {
       (service as any).isRedisAvailable = true;
-      mockRedisInstance.set.mockResolvedValue('OK');
+      mockMultiResult.exec.mockResolvedValue([null, null]);
 
-      await service.set('test_key', { foo: 'bar' });
-      expect(mockRedisInstance.set).toHaveBeenCalledWith(
-        'test_key',
-        JSON.stringify({ foo: 'bar' }),
-      );
+      await service.set('master:products:123', { foo: 'bar' });
+
+      expect(mockRedisInstance.multi).toHaveBeenCalled();
+      expect(mockMultiResult.set).toHaveBeenCalledWith('master:products:123', JSON.stringify({ foo: 'bar' }));
+      expect(mockMultiResult.sadd).toHaveBeenCalledWith('idx:master:products', 'master:products:123');
+      expect(mockMultiResult.exec).toHaveBeenCalled();
     });
 
-    it('should set value with TTL', async () => {
+    it('should set value with TTL using multi pipeline with SADD tracking', async () => {
       (service as any).isRedisAvailable = true;
-      mockRedisInstance.set.mockResolvedValue('OK');
+      mockMultiResult.exec.mockResolvedValue([null, null, null]);
 
-      await service.set('test_key', { foo: 'bar' }, 60);
-      expect(mockRedisInstance.set).toHaveBeenCalledWith(
-        'test_key',
-        JSON.stringify({ foo: 'bar' }),
-        'EX',
-        60,
-      );
+      await service.set('analytics:summary', { total: 100 }, 60);
+
+      expect(mockRedisInstance.multi).toHaveBeenCalled();
+      expect(mockMultiResult.set).toHaveBeenCalledWith('analytics:summary', JSON.stringify({ total: 100 }), 'EX', 60);
+      expect(mockMultiResult.sadd).toHaveBeenCalledWith('idx:analytics:summary', 'analytics:summary');
+      expect(mockMultiResult.expire).toHaveBeenCalledWith('idx:analytics:summary', 120);
+      expect(mockMultiResult.exec).toHaveBeenCalled();
     });
 
     it('should do nothing if redis is offline', async () => {
       (service as any).isRedisAvailable = false;
       await service.set('test_key', { foo: 'bar' });
-      expect(mockRedisInstance.set).not.toHaveBeenCalled();
+      expect(mockRedisInstance.multi).not.toHaveBeenCalled();
     });
   });
 
@@ -120,19 +126,37 @@ describe('RedisCacheService', () => {
   });
 
   describe('invalidateByPattern', () => {
-    it('should scan and delete matching keys', async () => {
+    it('should use SMEMBERS to retrieve tracked keys and DEL them (SADD-based invalidation)', async () => {
       (service as any).isRedisAvailable = true;
-      mockRedisInstance.scan
-        .mockResolvedValueOnce(['next-cursor', ['key1', 'key2']])
-        .mockResolvedValueOnce(['0', ['key3']]);
+      mockRedisInstance.smembers.mockResolvedValue(['master:products:1', 'master:products:2', 'master:products:3']);
+      mockRedisInstance.del.mockResolvedValue(3);
+
+      await service.invalidateByPattern('master:products:*');
+
+      expect(mockRedisInstance.smembers).toHaveBeenCalledWith('idx:master:products');
+      expect(mockRedisInstance.del).toHaveBeenCalledTimes(2);
+      expect(mockRedisInstance.del).toHaveBeenNthCalledWith(1, 'master:products:1', 'master:products:2', 'master:products:3');
+      expect(mockRedisInstance.del).toHaveBeenNthCalledWith(2, 'idx:master:products');
+    });
+
+    it('should handle exact key pattern without SMEMBERS', async () => {
+      (service as any).isRedisAvailable = true;
+      mockRedisInstance.smembers.mockResolvedValue([]);
       mockRedisInstance.del.mockResolvedValue(1);
 
-      await service.invalidateByPattern('prefix:*');
+      await service.invalidateByPattern('analytics:summary');
 
-      expect(mockRedisInstance.scan).toHaveBeenCalledTimes(2);
-      expect(mockRedisInstance.del).toHaveBeenCalledTimes(2);
-      expect(mockRedisInstance.del).toHaveBeenNthCalledWith(1, 'key1', 'key2');
-      expect(mockRedisInstance.del).toHaveBeenNthCalledWith(2, 'key3');
+      expect(mockRedisInstance.del).toHaveBeenCalledWith('analytics:summary');
+    });
+
+    it('should handle empty tracked keys gracefully', async () => {
+      (service as any).isRedisAvailable = true;
+      mockRedisInstance.smembers.mockResolvedValue([]);
+
+      await service.invalidateByPattern('master:products:*');
+
+      expect(mockRedisInstance.smembers).toHaveBeenCalledWith('idx:master:products');
+      expect(mockRedisInstance.del).not.toHaveBeenCalled();
     });
   });
 });
