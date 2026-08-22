@@ -1004,7 +1004,7 @@ export class BusinessTransactionService {
     await this.prisma.$transaction(async (tx) => {
       await this.assertCurrentStateAndUpdate(
               id,
-              currentState,
+              txData.currentState,
               {
           status: prismaTargetStatus,
           currentState: targetState,
@@ -1130,7 +1130,7 @@ export class BusinessTransactionService {
     const targetState = WorkflowState.MATERIALS_ISSUED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
-            currentState,
+            txData.currentState,
             targetState,
             'STORES',
           );

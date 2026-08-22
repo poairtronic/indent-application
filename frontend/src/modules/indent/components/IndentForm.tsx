@@ -935,10 +935,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     const costItem = watchedCostItems?.[index];
     const actualRate = Number(costItem?.actualRate) || 0;
     const qty = Number(item?.quantity) || 0;
-    const actualAmt =
-      costItem?.actualAmount !== undefined && costItem?.actualAmount !== null
-        ? Number(costItem.actualAmount) || 0
-        : actualRate * qty;
+    const actualAmt = actualRate * qty;
     return sum + (Number(actualAmt) || 0);
   }, 0);
 
@@ -954,11 +951,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     const matCost = Number(watchedCostItems?.[index]?.predictedAmount) || 0;
     const actualMatRate = Number(watchedCostItems?.[index]?.actualRate) || 0;
     const qty = Number(item?.quantity) || 0;
-    const actualMatCost =
-      watchedCostItems?.[index]?.actualAmount !== undefined &&
-      watchedCostItems?.[index]?.actualAmount !== null
-        ? Number(watchedCostItems[index].actualAmount) || 0
-        : actualMatRate * qty;
+    const actualMatCost = actualMatRate * qty;
 
     const procCost = (item?.processes || []).reduce(
       (sum, p) => sum + (Number(p?.predictedCost) || 0),
