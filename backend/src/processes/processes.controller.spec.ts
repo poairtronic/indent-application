@@ -99,4 +99,3 @@ describe('ProcessesController', () => {
     expect(result).toEqual(mockProcessResponse);
   });
 });
-

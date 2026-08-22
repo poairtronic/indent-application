@@ -9,19 +9,21 @@ describe('DocumentNumberService', () => {
     const sequenceStore: Record<string, number> = {};
 
     mockPrisma = {
-      $queryRaw: jest.fn().mockImplementation(async (strings: TemplateStringsArray, ...values: any[]) => {
-        const docType = values[0];
-        const year = values[1];
-        const key = `${docType}_${year}`;
+      $queryRaw: jest
+        .fn()
+        .mockImplementation(async (strings: TemplateStringsArray, ...values: any[]) => {
+          const docType = values[0];
+          const year = values[1];
+          const key = `${docType}_${year}`;
 
-        if (!sequenceStore[key]) {
-          sequenceStore[key] = 1;
-        } else {
-          sequenceStore[key] += 1;
-        }
+          if (!sequenceStore[key]) {
+            sequenceStore[key] = 1;
+          } else {
+            sequenceStore[key] += 1;
+          }
 
-        return [{ reservedNumber: sequenceStore[key] }];
-      }),
+          return [{ reservedNumber: sequenceStore[key] }];
+        }),
     };
 
     service = new DocumentNumberService(mockPrisma);

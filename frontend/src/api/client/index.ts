@@ -48,13 +48,9 @@ function createApiClient(): AxiosInstance {
         resetRefreshState();
         cancelAllRequests();
         useAuthStore.getState().logout();
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
       },
       () => {
         // Prevent global redirect on 403 Forbidden to allow graceful component-level error handling
-        // window.location.href = '/unauthorized';
       },
     ),
   );

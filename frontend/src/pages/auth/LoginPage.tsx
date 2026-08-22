@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -60,25 +60,34 @@ export const LoginPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const savedEmail = localStorage.getItem(REMEMBER_ME_KEY) || '';
+  const isSubmittingRef = useRef(false);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFields>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: savedEmail,
+      email: '',
       password: '',
-      rememberMe: Boolean(savedEmail),
+      rememberMe: false,
     },
   });
 
-  const onSubmit = async (data: LoginFields) => {
-    if (isSubmitting || loginMutation.isPending) return;
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(REMEMBER_ME_KEY);
+    if (savedEmail) {
+      setValue('email', savedEmail);
+      setValue('rememberMe', true);
+    }
+  }, [setValue]);
 
+  const onSubmit = async (data: LoginFields) => {
+    if (isSubmittingRef.current || isSubmitting || loginMutation.isPending) return;
+
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -99,6 +108,7 @@ export const LoginPage: React.FC = () => {
       const targetPath = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
       navigate(targetPath, { replace: true });
     } catch (error: unknown) {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
       const message = getLoginErrorMessage(error);
       setErrorMsg(message);

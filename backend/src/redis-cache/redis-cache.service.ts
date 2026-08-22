@@ -2,17 +2,27 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import Redis from 'ioredis';
 import { observabilityEventBus } from '../observability/observability-event-bus';
 
+interface L1CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
 @Injectable()
 export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisCacheService.name);
   private redisClient: Redis | null = null;
   private isRedisAvailable = false;
 
+  // L1 In-Memory Cache (reduces 225ms Redis latency to 0ms)
+  private readonly l1Cache = new Map<string, L1CacheEntry<any>>();
+  private readonly L1_MAX_KEYS = 1000;
+
   onModuleInit() {
     this.connectRedis();
   }
 
   async onModuleDestroy() {
+    this.l1Cache.clear();
     if (this.redisClient) {
       try {
         await this.redisClient.quit();
@@ -83,6 +93,25 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
 
   async get<T>(key: string): Promise<T | null> {
     const startTime = Date.now();
+
+    // Check L1 cache first
+    const l1Entry = this.l1Cache.get(key);
+    if (l1Entry) {
+      if (l1Entry.expiresAt > Date.now()) {
+        // L1 Hit
+        observabilityEventBus.emit('redis.op', {
+          operation: 'get',
+          success: true,
+          duration: Date.now() - startTime,
+          hitOrMiss: 'hit_l1',
+        });
+        return l1Entry.value as T;
+      } else {
+        // L1 Expired
+        this.l1Cache.delete(key);
+      }
+    }
+
     if (!this.getStatus() || !this.redisClient) {
       observabilityEventBus.emit('redis.op', {
         operation: 'get',
@@ -109,9 +138,16 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
         operation: 'get',
         success: true,
         duration,
-        hitOrMiss: 'hit',
+        hitOrMiss: 'hit_l2',
       });
-      return JSON.parse(val) as T;
+
+      const parsed = JSON.parse(val) as T;
+
+      // Populate L1 (TTL derived from redis? We don't know the exact remaining TTL here,
+      // but we can set a short L1 TTL to be safe, e.g., 30s)
+      this.setL1(key, parsed, 30);
+
+      return parsed;
     } catch (err: any) {
       const duration = Date.now() - startTime;
       this.logger.warn(`Redis get failed for key "${key}": ${err.message}. Falling back to DB.`);
@@ -125,8 +161,28 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private setL1(key: string, value: any, ttlSeconds: number) {
+    if (this.l1Cache.size >= this.L1_MAX_KEYS) {
+      // Very basic eviction (delete first key)
+      const firstKey = this.l1Cache.keys().next().value;
+      if (firstKey) this.l1Cache.delete(firstKey);
+    }
+    this.l1Cache.set(key, {
+      value,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    });
+  }
+
   async set(key: string, value: any, ttlSeconds?: number): Promise<void> {
     const startTime = Date.now();
+
+    // Set L1
+    if (ttlSeconds && ttlSeconds > 0) {
+      this.setL1(key, value, Math.min(ttlSeconds, 60)); // Cap L1 TTL to 60s max to avoid stale data
+    } else {
+      this.setL1(key, value, 60); // Default L1 TTL
+    }
+
     if (!this.getStatus() || !this.redisClient) {
       observabilityEventBus.emit('redis.op', {
         operation: 'set',
@@ -161,6 +217,10 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
 
   async del(key: string): Promise<void> {
     const startTime = Date.now();
+
+    // Delete from L1
+    this.l1Cache.delete(key);
+
     if (!this.getStatus() || !this.redisClient) {
       observabilityEventBus.emit('redis.op', {
         operation: 'del',
@@ -189,6 +249,14 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   async invalidateByPattern(pattern: string): Promise<void> {
+    // Invalidate L1 pattern
+    const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+    for (const key of this.l1Cache.keys()) {
+      if (regexPattern.test(key)) {
+        this.l1Cache.delete(key);
+      }
+    }
+
     if (!this.getStatus() || !this.redisClient) {
       return;
     }

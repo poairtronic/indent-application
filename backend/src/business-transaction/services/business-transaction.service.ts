@@ -47,9 +47,9 @@ export class BusinessTransactionService {
     private readonly documentNumberService: DocumentNumberService,
   ) {}
 
-  private async invalidateMetadataCache(): Promise<void> {
+  private invalidateMetadataCache(): void {
     try {
-      await Promise.all([
+      Promise.all([
         this.cacheService.invalidateByPattern('master:products:*'),
         this.cacheService.invalidateByPattern('master:departments:*'),
         this.cacheService.invalidateByPattern('master:materials:*'),
@@ -57,15 +57,17 @@ export class BusinessTransactionService {
         this.cacheService.invalidateByPattern('analytics:summary'),
         this.cacheService.invalidateByPattern('analytics:kpis:*'),
         this.cacheService.invalidateByPattern('analytics:insights:*'),
-      ]);
+      ]).catch((err) =>
+        this.logger.warn(`Failed to invalidate metadata cache async: ${err.message}`),
+      );
     } catch (err) {
-      this.logger.warn(`Failed to invalidate metadata cache: ${err.message}`);
+      this.logger.warn(`Failed to trigger metadata cache invalidation: ${err.message}`);
     }
   }
 
-  private async invalidateWorkflowCache(): Promise<void> {
+  private invalidateWorkflowCache(): void {
     try {
-      await Promise.all([
+      Promise.all([
         this.cacheService.invalidateByPattern('analytics:summary'),
         this.cacheService.invalidateByPattern('analytics:workflow'),
         this.cacheService.invalidateByPattern('analytics:departments'),
@@ -73,35 +75,37 @@ export class BusinessTransactionService {
         this.cacheService.invalidateByPattern('analytics:insights:*'),
         this.cacheService.invalidateByPattern('reports:production:*'),
         this.cacheService.invalidateByPattern('reports:workflow:*'),
-      ]);
+      ]).catch((err) =>
+        this.logger.warn(`Failed to invalidate workflow cache async: ${err.message}`),
+      );
     } catch (err) {
-      this.logger.warn(`Failed to invalidate workflow cache: ${err.message}`);
+      this.logger.warn(`Failed to trigger workflow cache invalidation: ${err.message}`);
     }
   }
 
-  private async invalidateCostCache(): Promise<void> {
+  private invalidateCostCache(): void {
     try {
-      await Promise.all([
+      Promise.all([
         this.cacheService.invalidateByPattern('analytics:costs:*'),
         this.cacheService.invalidateByPattern('analytics:summary'),
         this.cacheService.invalidateByPattern('analytics:kpis:*'),
         this.cacheService.invalidateByPattern('analytics:insights:*'),
         this.cacheService.invalidateByPattern('reports:cost:*'),
         this.cacheService.invalidateByPattern('reports:production:*'),
-      ]);
+      ]).catch((err) => this.logger.warn(`Failed to invalidate cost cache async: ${err.message}`));
     } catch (err) {
-      this.logger.warn(`Failed to invalidate cost cache: ${err.message}`);
+      this.logger.warn(`Failed to trigger cost cache invalidation: ${err.message}`);
     }
   }
 
-  private async invalidateAllCache(): Promise<void> {
+  private invalidateAllCache(): void {
     try {
-      await Promise.all([
+      Promise.all([
         this.cacheService.invalidateByPattern('reports:*'),
         this.cacheService.invalidateByPattern('analytics:*'),
-      ]);
+      ]).catch((err) => this.logger.warn(`Failed to invalidate all cache async: ${err.message}`));
     } catch (err) {
-      this.logger.warn(`Failed to invalidate all cache: ${err.message}`);
+      this.logger.warn(`Failed to trigger all cache invalidation: ${err.message}`);
     }
   }
 
@@ -342,8 +346,8 @@ export class BusinessTransactionService {
       status: WorkflowState.DRAFT,
     });
 
-    await this.invalidateMetadataCache();
-    return this.findTransactionById(result.indent.id);
+    this.invalidateMetadataCache();
+    return { id: result.indent.id, success: true };
   }
 
   /**
@@ -751,26 +755,27 @@ export class BusinessTransactionService {
   ): Promise<any> {
     this.logger.log('--- updateDraftTransaction DTO received ---');
     this.logger.log(JSON.stringify(dto, null, 2));
-    const existing = await this.getTransactionContext(id);
+    const [existing, user] = await Promise.all([
+      this.getTransactionContext(id),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          role: {
+            include: {
+              rolePermissions: {
+                include: { permission: true },
+                where: { isDeleted: false },
+              },
+            },
+          },
+        },
+      }),
+    ]);
     const allowedStates = [
       WorkflowState.DRAFT,
       WorkflowState.PRODUCTION_PROCESSING,
       WorkflowState.ACCOUNTS_COST_VERIFICATION,
     ];
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        role: {
-          include: {
-            rolePermissions: {
-              include: { permission: true },
-              where: { isDeleted: false },
-            },
-          },
-        },
-      },
-    });
 
     const isSystemAdmin = user?.role?.rolePermissions?.some(
       (rp) => rp.permission.code.toLowerCase() === 'settings.manage',
@@ -811,7 +816,6 @@ export class BusinessTransactionService {
         });
 
         const resolvedMaterialIds: string[] = [];
-        const resolvedMaterials: any[] = [];
         // 2. Resolve materials and recreate items if provided
         if (dto.indent?.items) {
           if (existing.currentState === WorkflowState.PRODUCTION_PROCESSING) {
@@ -842,19 +846,12 @@ export class BusinessTransactionService {
               where: { indentId: id },
             });
 
-            for (let i = 0; i < dto.indent.items.length; i++) {
-              const item = dto.indent.items[i];
-              const material = await this.resolveMaterial(
-                tx,
-                item.materialName,
-                item.unitId,
-                userId,
-                i,
-              );
-              resolvedMaterialIds.push(material.id);
-              resolvedMaterials.push(material);
-            }
-
+            const resolvedMaterials = await Promise.all(
+              dto.indent.items.map((item, i) =>
+                this.resolveMaterial(tx, item.materialName, item.unitId, userId, i),
+              ),
+            );
+            resolvedMaterialIds.push(...resolvedMaterials.map((m) => m.id));
             // Recreate items
             const createdItems = [];
             for (let i = 0; i < dto.indent.items.length; i++) {
@@ -976,15 +973,20 @@ export class BusinessTransactionService {
       { priority: dto.indent?.priority || existing.priority },
     );
 
-    await this.invalidateMetadataCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateMetadataCache();
+    return { id, success: true };
   }
 
   /**
    * STAGE 1 SUBMIT: Design department submits transaction (DRAFT -> DESIGN_COMPLETED)
    */
   public async submitDesign(id: string, userId: string, remarks?: string): Promise<any> {
-    const txData = await this.getTransactionContext(id);
+    const [txData, storesDept] = await Promise.all([
+      this.getTransactionContext(id),
+      this.prisma.department.findFirst({
+        where: { departmentCode: { in: ['STORES', 'STOR'] }, isDeleted: false },
+      }),
+    ]);
     const targetState = WorkflowState.DESIGN_COMPLETED;
 
     // Validate transition
@@ -998,11 +1000,6 @@ export class BusinessTransactionService {
     }
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
-
-    // Get Stores Department ID for workflow history
-    const storesDept = await this.prisma.department.findFirst({
-      where: { departmentCode: { in: ['STORES', 'STOR'] }, isDeleted: false },
-    });
 
     await this.prisma.$transaction(async (tx) => {
       await this.assertCurrentStateAndUpdate(
@@ -1036,8 +1033,8 @@ export class BusinessTransactionService {
       { state: targetState },
     );
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   /**
@@ -1115,15 +1112,20 @@ export class BusinessTransactionService {
       { state: targetState, verificationResults },
     );
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   /**
    * STORES MATERIAL ISSUE: Issues raw materials to Production and subtracts stock (STORES_PROCESSING -> MATERIALS_ISSUED)
    */
   public async storesIssueMaterials(id: string, userId: string, dto: StoresIssueDto): Promise<any> {
-    const txData = await this.getTransactionContext(id);
+    const [txData, productionDept] = await Promise.all([
+      this.getTransactionContext(id),
+      this.prisma.department.findFirst({
+        where: { departmentCode: { in: ['PRODUCTION', 'PROD'] }, isDeleted: false },
+      }),
+    ]);
     const targetState = WorkflowState.MATERIALS_ISSUED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1137,9 +1139,6 @@ export class BusinessTransactionService {
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
-    const productionDept = await this.prisma.department.findFirst({
-      where: { departmentCode: { in: ['PRODUCTION', 'PROD'] }, isDeleted: false },
-    });
     const updatedRemarks = `${txData.remarks || ''}\n[MATERIALS_ISSUED] Materials issued from Stores. ${dto.remarks ? `Remarks: ${dto.remarks}` : ''}`;
     let isFullyIssued = false;
 
@@ -1271,8 +1270,8 @@ export class BusinessTransactionService {
       );
     }
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   /**
@@ -1381,8 +1380,8 @@ export class BusinessTransactionService {
       );
     }
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   /**
@@ -1449,8 +1448,8 @@ export class BusinessTransactionService {
       { state: targetState, action: 'RECEIVE_MATERIALS' },
     );
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   /**
@@ -1492,8 +1491,8 @@ export class BusinessTransactionService {
       { action: 'START_PRODUCTION', remarks },
     );
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   /**
@@ -1526,8 +1525,8 @@ export class BusinessTransactionService {
       remarks: dto.remarks,
     });
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   /**
@@ -1548,19 +1547,21 @@ export class BusinessTransactionService {
 
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
-    await this.assertCurrentStateAndUpdate(id, txData.currentState, {
-      status: prismaTargetStatus,
-      currentState: targetState,
-      remarks: `${txData.remarks || ''}\n[PRODUCTION_COMPLETED] Manufacturing completed. ${remarks ? `Notes: ${remarks}` : ''}`,
-      updatedBy: userId,
-    });
-    await this.prisma.workflowHistory.create({
-      data: {
-        indentId: id,
-        toDepartmentId: txData.departmentId,
-        movedBy: userId,
-        remarks: remarks || 'Production completed manufacturing.',
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await this.assertCurrentStateAndUpdate(id, txData.currentState, {
+        status: prismaTargetStatus,
+        currentState: targetState,
+        remarks: `${txData.remarks || ''}\n[PRODUCTION_COMPLETED] Manufacturing completed. ${remarks ? `Notes: ${remarks}` : ''}`,
+        updatedBy: userId,
+      }, tx);
+      await tx.workflowHistory.create({
+        data: {
+          indentId: id,
+          toDepartmentId: txData.departmentId,
+          movedBy: userId,
+          remarks: remarks || 'Production completed manufacturing.',
+        },
+      });
     });
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
@@ -1572,8 +1573,8 @@ export class BusinessTransactionService {
       { state: targetState, remarks },
     );
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   // =========================================================================
@@ -1635,8 +1636,8 @@ export class BusinessTransactionService {
       { state: targetState },
     );
 
-    await this.invalidateWorkflowCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateWorkflowCache();
+    return { id, success: true };
   }
 
   /**
@@ -1807,8 +1808,8 @@ export class BusinessTransactionService {
       { actualCostEntered: true, costSheetId, state: targetState },
     );
 
-    await this.invalidateCostCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateCostCache();
+    return { id, success: true };
   }
 
   /**
@@ -1898,8 +1899,8 @@ export class BusinessTransactionService {
       { actualRate: dto.actualRate, actualQuantity: dto.actualQuantity },
     );
 
-    await this.invalidateCostCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateCostCache();
+    return { id, success: true };
   }
 
   /**
@@ -1961,8 +1962,8 @@ export class BusinessTransactionService {
       { state: targetState, costSheetStatus: 'FINALIZED' },
     );
 
-    await this.invalidateAllCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateAllCache();
+    return { id, success: true };
   }
 
   /**
@@ -2014,8 +2015,8 @@ export class BusinessTransactionService {
       { state: targetState, isLocked: true },
     );
 
-    await this.invalidateAllCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateAllCache();
+    return { id, success: true };
   }
 
   /**
@@ -2067,8 +2068,8 @@ export class BusinessTransactionService {
       { state: targetState, businessTransactionCompleted: true },
     );
 
-    await this.invalidateAllCache();
-    return this.findTransactionForResponse(id);
+    this.invalidateAllCache();
+    return { id, success: true };
   }
 
   /**
@@ -2097,7 +2098,7 @@ export class BusinessTransactionService {
       addedAttachment: dto.fileName,
     });
 
-    return this.findTransactionForResponse(id);
+    return { id, success: true };
   }
 
   /**
@@ -2140,7 +2141,7 @@ export class BusinessTransactionService {
       null,
     );
 
-    return this.findTransactionForResponse(id);
+    return { id, success: true };
   }
 
   /**
@@ -2152,12 +2153,13 @@ export class BusinessTransactionService {
     userId: string,
     remarks?: string,
   ): Promise<any> {
-    const txData = await this.getTransactionContext(id);
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { department: true },
-    });
+    const [txData, user] = await Promise.all([
+      this.getTransactionContext(id),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { department: true },
+      }),
+    ]);
 
     if (!user || !user.department) {
       throw new ForbiddenException('User department not found.');
@@ -2316,27 +2318,27 @@ export class BusinessTransactionService {
       this.logger.error(`Failed to send attachment upload notification: ${notifErr.message}`);
     }
 
-    return this.findTransactionForResponse(id);
+    return { id, success: true };
   }
 
   /**
    * Delete attachment (marks isDeleted = true and removes physical file)
    */
   public async deleteAttachment(id: string, attachmentId: string, userId: string): Promise<any> {
-    const txData = await this.getTransactionContext(id);
-
-    const attachment = await this.prisma.indentAttachment.findUnique({
-      where: { id: attachmentId },
-    });
+    const [txData, attachment, user] = await Promise.all([
+      this.getTransactionContext(id),
+      this.prisma.indentAttachment.findUnique({
+        where: { id: attachmentId },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { department: true },
+      }),
+    ]);
 
     if (!attachment || attachment.indentId !== id || attachment.isDeleted) {
       throw new NotFoundException(`Attachment with ID '${attachmentId}' not found.`);
     }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { department: true },
-    });
     if (!user || !user.department) {
       throw new ForbiddenException('User department not found.');
     }
@@ -2474,7 +2476,7 @@ export class BusinessTransactionService {
       this.logger.error(`Failed to send document delete notification: ${notifErr.message}`);
     }
 
-    return this.findTransactionForResponse(id);
+    return { id, success: true };
   }
 
   /**
@@ -2950,6 +2952,6 @@ export class BusinessTransactionService {
       this.logger.error(`Failed to send document replace notification: ${notifErr.message}`);
     }
 
-    return this.findTransactionForResponse(id);
+    return { id, success: true };
   }
 }

@@ -12,6 +12,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisCacheService } from '../redis-cache/redis-cache.service';
+import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { Request } from 'express';
 import { NotificationQueryDto } from '../common/dto/pagination-query.dto';
 
@@ -125,6 +126,7 @@ export class NotificationsController {
 
   @Get()
   @Permissions('notifications.view')
+  @Cache('user:notifications', 60)
   @ApiOperation({ summary: 'List notifications for the current user' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -397,6 +399,8 @@ export class NotificationsController {
           ipAddress: req.ip || '127.0.0.1',
         },
       });
+      await this.cacheService.del(`notifications:unread-count:${userId}`);
+      await this.cacheService.invalidateByPattern(`user:notifications:${userId}:*`);
     }
 
     return { success: true };
@@ -424,11 +428,14 @@ export class NotificationsController {
       data: {
         module: 'NOTIFICATIONS',
         recordId: 'all',
-        action: 'MARK_READ_ALL',
+        action: 'MARK_ALL_READ',
         performedBy: userId,
         ipAddress: req.ip || '127.0.0.1',
       },
     });
+
+    await this.cacheService.del(`notifications:unread-count:${userId}`);
+    await this.cacheService.invalidateByPattern(`user:notifications:${userId}:*`);
 
     return { success: true };
   }

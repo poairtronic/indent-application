@@ -31,6 +31,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSidebar } from '../../store/sidebar.store';
 import { useNavigationStore } from '../../store/navigation.store';
 import { menuItems } from '../../config/menuConfig';
+import { usePrefetch } from '../../hooks/usePrefetch';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   LayoutDashboard,
@@ -68,6 +69,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { prefetchPath } = usePrefetch();
   const { isOpen, toggleSidebar } = useSidebar();
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const user = useAuthStore((s) => s.user);
@@ -96,6 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
           <>
             <div
               onClick={() => handleNavigate('/dashboard')}
+              onMouseEnter={() => prefetchPath('/dashboard')}
               className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer group"
             >
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-primary to-[#5030E5] flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-glow transition-transform group-hover:scale-105">
@@ -180,6 +183,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
             return (
               <div
                 key={item.path}
+                onMouseEnter={() => prefetchPath(item.path)}
                 className={`group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-medium transition-all duration-200 ease-enter ${
                   isActive
                     ? 'bg-accent-primary/15 text-accent-primary font-bold shadow-xs border-l-4 border-accent-primary pl-2.5'
@@ -249,6 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
                     <button
                       key={path}
                       onClick={() => handleNavigate(path)}
+                      onMouseEnter={() => prefetchPath(path)}
                       className="w-full flex items-center gap-3 px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-card hover:text-text-primary text-left rounded transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/40"
                     >
                       {renderIcon(item.iconName, 'w-3.5 h-3.5 flex-shrink-0 text-text-muted')}

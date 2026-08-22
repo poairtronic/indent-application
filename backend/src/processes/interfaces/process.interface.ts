@@ -15,4 +15,3 @@ export interface IProcessFilterParams {
   search?: string;
   status?: ProcessStatus;
 }
-

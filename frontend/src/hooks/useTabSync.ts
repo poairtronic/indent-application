@@ -13,9 +13,6 @@ export function useTabSync() {
       bc.onmessage = (event: MessageEvent) => {
         if (event.data?.type === 'LOGOUT') {
           logout();
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-          }
         }
       };
     } catch {
@@ -26,9 +23,6 @@ export function useTabSync() {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'auth_access_token' && !event.newValue) {
         logout();
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
       }
     };
 

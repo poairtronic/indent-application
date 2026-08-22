@@ -1,11 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ProcessStatus } from '@prisma/client';
 import {
   PROCESS_DESCRIPTION_MAX_LENGTH,
@@ -37,4 +31,3 @@ export class CreateProcessDto {
   @IsEnum(ProcessStatus)
   status?: ProcessStatus;
 }
-

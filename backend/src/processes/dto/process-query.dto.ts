@@ -28,4 +28,3 @@ export class ProcessQueryDto {
   @IsEnum(ProcessStatus)
   status?: ProcessStatus;
 }
-

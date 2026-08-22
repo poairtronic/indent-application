@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 vi.mock('../store/authStore', () => {
   const mockAuthStore = vi.fn((selector) => {
@@ -22,12 +23,16 @@ vi.mock('../store/authStore', () => {
   };
 });
 
+const queryClient = new QueryClient();
+
 describe('Sidebar Component', () => {
   it('should render standard headers and list items', () => {
     render(
-      <MemoryRouter>
-        <Sidebar />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <Sidebar />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
 
     expect(screen.getByText('MERC')).toBeInTheDocument();

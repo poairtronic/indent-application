@@ -42,6 +42,11 @@ export class HttpCacheInterceptor implements NestInterceptor {
     if (isMasterData) {
       // Master data: same cache for all users, only vary by query params
       cacheKey = `${prefix}:${sortedQuery || 'no_query'}`;
+    } else if (prefix.startsWith('user:')) {
+      // User-specific data (e.g. notifications)
+      const user = req.user;
+      const userId = user?.id || 'anon';
+      cacheKey = `${prefix}:${userId}:${sortedQuery || 'no_query'}`;
     } else {
       // Analytics/reports: include user context for role-based data
       const user = req.user;

@@ -14,9 +14,6 @@ export function useSessionTimeout(timeoutMs = 15 * 60 * 1000) {
       timerRef.current = setTimeout(() => {
         console.warn('Session inactive. Triggering automatic logout.');
         logout();
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
       }, timeoutMs);
     };
 

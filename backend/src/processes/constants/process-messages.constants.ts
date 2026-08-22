@@ -9,4 +9,3 @@ export const PROCESS_MESSAGES = {
   IN_USE_DELETE:
     'Manufacturing process cannot be deleted because it is referenced by indents or cost sheets.',
 };
-
