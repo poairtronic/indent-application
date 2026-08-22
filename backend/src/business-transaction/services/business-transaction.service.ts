@@ -1041,7 +1041,12 @@ export class BusinessTransactionService {
    * STORES STOCK VERIFICATION: Checks material availability for Indent Items
    */
   public async storesVerifyStock(id: string, userId: string): Promise<any> {
-    const txData = await this.getTransactionContext(id);
+    const [txData, storesDept] = await Promise.all([
+      this.getTransactionContext(id),
+      this.prisma.department.findFirst({
+        where: { departmentCode: { in: ['STORES', 'STOR'] }, isDeleted: false },
+      }),
+    ]);
 
     if (
       txData.currentState !== WorkflowState.DESIGN_COMPLETED &&
@@ -1054,10 +1059,6 @@ export class BusinessTransactionService {
 
     const targetState = WorkflowState.STORES_PROCESSING;
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
-
-    const storesDept = await this.prisma.department.findFirst({
-      where: { departmentCode: { in: ['STORES', 'STOR'] }, isDeleted: false },
-    });
 
     const verificationResults = await Promise.all(
       txData.items.map(async (item: any) => {
@@ -1143,16 +1144,27 @@ export class BusinessTransactionService {
     let isFullyIssued = false;
 
     await this.prisma.$transaction(async (prisma) => {
-      // 1. Fetch active indent items with Material
+      // 1. Fetch active indent items (narrow select)
       const itemsToIssue = await prisma.indentItem.findMany({
         where: { indentId: id, isDeleted: false },
-        include: { material: true },
+        select: { id: true, materialId: true, quantity: true, issuedQuantity: true, status: true },
       });
+
+      // 2. Batch-fetch all needed materials in ONE query (replaces N individual findUnique)
+      const nonIssuedMaterialIds = [...new Set(
+        itemsToIssue.filter((item) => item.status !== 'ISSUED').map((item) => item.materialId),
+      )];
+      const materials = nonIssuedMaterialIds.length > 0
+        ? await prisma.material.findMany({ where: { id: { in: nonIssuedMaterialIds } } })
+        : [];
+      const materialMap = new Map(materials.map((m) => [m.id, m]));
 
       let allItemsComplete = true;
       const issues = dto.issueItems || [];
+      const materialUpdates: Promise<any>[] = [];
+      const itemUpdates: Promise<any>[] = [];
 
-      // 2. Verify stock availability and decrement atomically for non-issued items
+      // 3. Validate stock and prepare updates
       for (const item of itemsToIssue) {
         if (item.status === 'ISSUED') {
           continue;
@@ -1176,56 +1188,58 @@ export class BusinessTransactionService {
           continue;
         }
 
-        const material = await prisma.material.findUnique({
-          where: { id: item.materialId },
-        });
-
+        const material = materialMap.get(item.materialId);
         if (!material) {
           throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
         }
 
         const currentStock = Number(material.currentStock);
-
         if (currentStock < issueQty) {
           throw new BadRequestException(
             `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Trying to issue: ${issueQty}`,
           );
         }
 
-        const updatedMaterial = await prisma.material.update({
-          where: { id: material.id },
-          data: {
-            currentStock: { decrement: issueQty },
-            updatedBy: userId,
-          },
-        });
+        // Queue material stock decrement
+        materialUpdates.push(
+          prisma.material.update({
+            where: { id: material.id },
+            data: { currentStock: { decrement: issueQty }, updatedBy: userId },
+          }).then((updated) => {
+            if (Number(updated.currentStock) < 0) {
+              throw new BadRequestException(`Stock cannot be negative for material '${material.materialName}'.`);
+            }
+            return updated;
+          }),
+        );
 
-        if (Number(updatedMaterial.currentStock) < 0) {
-          throw new BadRequestException(
-            `Stock cannot be negative for material '${material.materialName}'.`,
-          );
-        }
-
+        // Queue indent item update
         const newIssuedQuantity = Number(item.issuedQuantity) + issueQty;
         const isNowFullyIssued = newIssuedQuantity >= Number(item.quantity);
-
-        await prisma.indentItem.update({
-          where: { id: item.id },
-          data: {
-            issuedQuantity: newIssuedQuantity,
-            status: isNowFullyIssued ? 'ISSUED' : item.status,
-          },
-        });
+        itemUpdates.push(
+          prisma.indentItem.update({
+            where: { id: item.id },
+            data: { issuedQuantity: newIssuedQuantity, status: isNowFullyIssued ? 'ISSUED' : item.status },
+          }),
+        );
 
         if (!isNowFullyIssued) {
           allItemsComplete = false;
         }
       }
 
+      // 4. Execute all stock decrements and item updates in parallel
+      if (materialUpdates.length > 0) {
+        await Promise.all(materialUpdates);
+      }
+      if (itemUpdates.length > 0) {
+        await Promise.all(itemUpdates);
+      }
+
       isFullyIssued = allItemsComplete;
 
       if (isFullyIssued) {
-        // 3. State transition with optimistic lock protection
+        // 5. State transition with optimistic lock protection
         await this.assertCurrentStateAndUpdate(
           id,
           txData.currentState,
@@ -1238,7 +1252,7 @@ export class BusinessTransactionService {
           prisma,
         );
 
-        // 5. Create workflow history record
+        // 6. Create workflow history record
         await prisma.workflowHistory.create({
           data: {
             indentId: id,
@@ -1721,6 +1735,16 @@ export class BusinessTransactionService {
       let totalMaterialActual = 0;
       let totalProcessActual = 0;
 
+      const costItemUpdates: Promise<any>[] = [];
+      const processCostUpdates: Promise<any>[] = [];
+
+      // Batch-fetch process costs for variance lookup
+      const processCostIds = dto.processCosts?.map((pc: any) => pc.processCostId).filter(Boolean) || [];
+      const existingProcessCosts = processCostIds.length > 0
+        ? await tx.processCost.findMany({ where: { id: { in: processCostIds } } })
+        : [];
+      const processCostMap = new Map(existingProcessCosts.map((pc) => [pc.id, pc]));
+
       // 1. Update CostItems actual rate, quantity, and amount
       if (dto.costItems && dto.costItems.length > 0) {
         for (const ciDto of dto.costItems) {
@@ -1731,16 +1755,18 @@ export class BusinessTransactionService {
           const actualQuantity = roundTo4Decimals(ciDto.actualQuantity ?? 0);
           const actualAmount = safeMultiply(actualRate, actualQuantity);
           totalMaterialActual = safeAdd([totalMaterialActual, actualAmount]);
-          await tx.costItem.update({
-            where: { id: ciDto.costItemId },
-            data: {
-              actualRate,
-              actualQuantity,
-              actualAmount,
-              remarks: ciDto.remarks || undefined,
-              updatedBy: userId,
-            },
-          });
+          costItemUpdates.push(
+            tx.costItem.update({
+              where: { id: ciDto.costItemId },
+              data: {
+                actualRate,
+                actualQuantity,
+                actualAmount,
+                remarks: ciDto.remarks || undefined,
+                updatedBy: userId,
+              },
+            }),
+          );
         }
       } else {
         const existingCostItems = await tx.costItem.findMany({
@@ -1757,28 +1783,32 @@ export class BusinessTransactionService {
           }
           const actualCost = roundTo4Decimals(pcDto.actualCost ?? 0);
           totalProcessActual = safeAdd([totalProcessActual, actualCost]);
-          const existingPc = await tx.processCost.findUnique({
-            where: { id: pcDto.processCostId },
-          });
+          const existingPc = processCostMap.get(pcDto.processCostId);
           const predicted = existingPc ? Number(existingPc.predictedCost) : 0;
           const variance = safeSubtract(actualCost, predicted);
 
-          await tx.processCost.update({
-            where: { id: pcDto.processCostId },
-            data: {
-              actualCost,
-              actualHours: pcDto.actualHours,
-              variance,
-              updatedBy: userId,
-            },
-          });
+          processCostUpdates.push(
+            tx.processCost.update({
+              where: { id: pcDto.processCostId },
+              data: {
+                actualCost,
+                actualHours: pcDto.actualHours,
+                variance,
+                updatedBy: userId,
+              },
+            }),
+          );
         }
       } else {
-        const existingProcessCosts = await tx.processCost.findMany({
+        const existingProcessCostsFallback = await tx.processCost.findMany({
           where: { costSheetId },
         });
-        totalProcessActual = safeAdd(existingProcessCosts.map((item) => item.actualCost));
+        totalProcessActual = safeAdd(existingProcessCostsFallback.map((item) => item.actualCost));
       }
+
+      // Execute all batched updates in parallel
+      if (costItemUpdates.length > 0) await Promise.all(costItemUpdates);
+      if (processCostUpdates.length > 0) await Promise.all(processCostUpdates);
 
       // 3. Extract and update global actual costs directly from DTO
       const actualDesignCost =
