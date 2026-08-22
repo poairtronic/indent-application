@@ -49,7 +49,10 @@ export class AuthService {
         success: false,
         error: err.message || String(err),
       });
-      throw err;
+      // Temporary debug: surface actual error details for diagnosis
+      console.error('[LOGIN_DEBUG] Login error:', err.message, err.stack);
+      if (err.status) throw err; // re-throw HTTP exceptions as-is
+      throw new Error(`Login failed: ${err.message || String(err)}`);
     }
   }
 
