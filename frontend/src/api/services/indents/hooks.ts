@@ -30,10 +30,15 @@ export function useIndent(id: string) {
   });
 }
 
+export interface CreateTransactionResponse {
+  id: string;
+  success: boolean;
+}
+
 export function useCreateIndent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateIndentPayload) => indentService.create<IndentData>(payload),
+    mutationFn: (payload: CreateIndentPayload) => indentService.create<CreateTransactionResponse>(payload),
     onSuccess: () => {
       invalidateIndent(queryClient);
     },

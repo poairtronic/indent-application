@@ -23,7 +23,12 @@ export const IndentFormPage: React.FC = () => {
       );
     } else {
       createIndent(data, {
-        onSuccess: (newIndent) => navigate(`/indents/${newIndent.id}`),
+        onSuccess: (newIndent) => {
+          if (!newIndent || !newIndent.id) {
+            throw new Error("Create transaction succeeded but no transaction ID was returned");
+          }
+          navigate(`/indents/${newIndent.id}`);
+        },
         onError: (err: any) => {
           const errMsg = err.errors ? err.errors.join('\n') : err.message;
           alert(`Validation Error: ${errMsg}`);
