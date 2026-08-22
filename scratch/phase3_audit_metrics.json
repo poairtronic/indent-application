@@ -1,0 +1,239 @@
+{
+  "timestamp": "2026-08-22T04:23:43.740Z",
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32",
+    "arch": "x64",
+    "apiBase": "http://localhost:3001/api",
+    "frontendUrl": "http://localhost:5173",
+    "database": "Neon PostgreSQL (AWS us-east-2)",
+    "redis": "Upstash Redis (TLS enabled)"
+  },
+  "metrics": {
+    "login": {
+      "min": 1.2,
+      "max": 6015.02,
+      "avg": 772.85,
+      "p50": 1.8,
+      "p75": 2.42,
+      "p90": 3269.87,
+      "p95": 3485.89,
+      "p99": 6015.02
+    },
+    "loginPayload": {
+      "min": 143,
+      "max": 2168,
+      "avg": 548,
+      "p50": 143,
+      "p75": 143,
+      "p90": 2168,
+      "p95": 2168,
+      "p99": 2168
+    },
+    "loginSubOps": {
+      "bcrypt": {
+        "min": 227.09,
+        "max": 229.38,
+        "avg": 228.2,
+        "p50": 228.26,
+        "p75": 228.73,
+        "p90": 229.18,
+        "p95": 229.38,
+        "p99": 229.38
+      },
+      "dbUserRead": {
+        "min": 1175.87,
+        "max": 2391.53,
+        "avg": 1308.89,
+        "p50": 1187.66,
+        "p75": 1195.75,
+        "p90": 1210.73,
+        "p95": 2391.53,
+        "p99": 2391.53
+      },
+      "sessionDbWrite": {
+        "min": 235.06,
+        "max": 706.75,
+        "avg": 332.28,
+        "p50": 236.09,
+        "p75": 247.79,
+        "p90": 706.75,
+        "p95": 706.75,
+        "p99": 706.75
+      }
+    },
+    "dashboard": {
+      "coldWaterfall": 1967.52,
+      "warmWaterfall": {
+        "min": 1711.4,
+        "max": 1960.27,
+        "avg": 1752.47,
+        "p50": 1714.18,
+        "p75": 1719.89,
+        "p90": 1847.2,
+        "p95": 1960.27,
+        "p99": 1960.27
+      },
+      "endpoints": {
+        "Dashboard Overview Consolidated": {
+          "min": 442.79,
+          "max": 446.48,
+          "avg": 444.06,
+          "p50": 443.85,
+          "p75": 444.46,
+          "p90": 444.51,
+          "p95": 446.48,
+          "p99": 446.48
+        },
+        "Notifications Top 5": {
+          "min": 1711.15,
+          "max": 1960.02,
+          "avg": 1752.17,
+          "p50": 1713.9,
+          "p75": 1719.57,
+          "p90": 1846.65,
+          "p95": 1960.02,
+          "p99": 1960.02
+        },
+        "Unread Notification Count": {
+          "min": 637.76,
+          "max": 641.04,
+          "avg": 639.07,
+          "p50": 638.78,
+          "p75": 639.23,
+          "p90": 640.37,
+          "p95": 641.04,
+          "p99": 641.04
+        },
+        "Audit Logs Feed": {
+          "min": 1579.48,
+          "max": 1834.34,
+          "avg": 1609.23,
+          "p50": 1585.01,
+          "p75": 1586.69,
+          "p90": 1588.03,
+          "p95": 1834.34,
+          "p99": 1834.34
+        }
+      }
+    },
+    "indentListScaling": {
+      "limit_10": {
+        "min": 1621.5,
+        "max": 1962.32,
+        "avg": 1722.08,
+        "p50": 1718.12,
+        "p75": 1730.11,
+        "p90": 1848.48,
+        "p95": 1962.32,
+        "p99": 1962.32,
+        "payloadSize": 5087
+      },
+      "limit_25": {
+        "min": 1617.08,
+        "max": 1971.72,
+        "avg": 1735.55,
+        "p50": 1714.65,
+        "p75": 1791.7,
+        "p90": 1862.24,
+        "p95": 1971.72,
+        "p99": 1971.72,
+        "payloadSize": 8930
+      },
+      "limit_50": {
+        "min": 1631.63,
+        "max": 1745.63,
+        "avg": 1690.52,
+        "p50": 1664.97,
+        "p75": 1733.56,
+        "p90": 1734.17,
+        "p95": 1745.63,
+        "p99": 1745.63,
+        "payloadSize": 8930
+      },
+      "limit_100": {
+        "min": 1621.15,
+        "max": 2083.36,
+        "avg": 1740.99,
+        "p50": 1711.06,
+        "p75": 1729.64,
+        "p90": 1916.77,
+        "p95": 2083.36,
+        "p99": 2083.36,
+        "payloadSize": 8932
+      }
+    },
+    "dbExplainBT": {
+      "executionTimeMs": 0.082,
+      "planningTimeMs": 0.162
+    },
+    "dbExplainNotif": {
+      "executionTimeMs": 0.11,
+      "planningTimeMs": 0.113
+    },
+    "dbExplainAudit": {
+      "executionTimeMs": 0.074,
+      "planningTimeMs": 0.4
+    },
+    "redis": {
+      "ping": {
+        "min": 216.47,
+        "max": 232.75,
+        "avg": 221.33,
+        "p50": 220.19,
+        "p75": 220.46,
+        "p90": 228.9,
+        "p95": 232.75,
+        "p99": 232.75
+      },
+      "get": {
+        "min": 217.32,
+        "max": 220.58,
+        "avg": 219.16,
+        "p50": 219.44,
+        "p75": 219.99,
+        "p90": 220.18,
+        "p95": 220.58,
+        "p99": 220.58
+      }
+    },
+    "buttonActions": {
+      "New Indent Master Data Load": {
+        "min": 451.29,
+        "max": 2617.58,
+        "avg": 925.29,
+        "p50": 453.16,
+        "p75": 652.99,
+        "p90": 2617.58,
+        "p95": 2617.58,
+        "p99": 2617.58
+      }
+    },
+    "navigation": {
+      "Login -> Dashboard": {
+        "totalDurationMs": 8744.98,
+        "fcpMs": 2572,
+        "dclMs": 2502.7,
+        "loadMs": 2506.5
+      },
+      "Dashboard -> Indents List": {
+        "totalDurationMs": 2970.5
+      },
+      "Indents -> New Indent": {
+        "totalDurationMs": 1482.22
+      },
+      "Indents -> Transaction Details": {
+        "totalDurationMs": 15872.9
+      },
+      "Workflow Hub": {
+        "totalDurationMs": 4239.91
+      },
+      "Audit Logs Page": {
+        "totalDurationMs": 3182.15
+      },
+      "Settings Page": {
+        "totalDurationMs": 1667.22
+      }
+    }
+  }
+}

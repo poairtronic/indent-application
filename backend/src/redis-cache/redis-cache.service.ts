@@ -194,11 +194,23 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       const serialized = JSON.stringify(value);
+      const multi = this.redisClient.multi();
       if (ttlSeconds && ttlSeconds > 0) {
-        await this.redisClient.set(key, serialized, 'EX', ttlSeconds);
+        multi.set(key, serialized, 'EX', ttlSeconds);
       } else {
-        await this.redisClient.set(key, serialized);
+        multi.set(key, serialized);
       }
+
+      // Track keys in namespace sets for deterministic invalidation (no SCAN)
+      const parts = key.split(':');
+      if (parts.length >= 2) {
+        const ns = parts[0] + ':' + parts[1]; // e.g. "master:products", "analytics:summary"
+        multi.sadd(`idx:${ns}`, key);
+        if (ttlSeconds && ttlSeconds > 0) {
+          multi.expire(`idx:${ns}`, ttlSeconds + 60); // slightly longer TTL than the data
+        }
+      }
+      await multi.exec();
       observabilityEventBus.emit('redis.op', {
         operation: 'set',
         success: true,
@@ -262,22 +274,26 @@ export class RedisCacheService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       this.logger.log(`Invalidating keys with pattern: ${pattern}`);
-      let cursor = '0';
-      const batchSize = 100;
-      do {
-        const [nextCursor, keys] = await this.redisClient.scan(
-          cursor,
-          'MATCH',
-          pattern,
-          'COUNT',
-          batchSize,
-        );
-        cursor = nextCursor;
-        if (keys.length > 0) {
-          await this.redisClient.del(...keys);
-          this.logger.log(`Deleted ${keys.length} keys matching pattern: ${pattern}`);
+      // Strip trailing :* or * to get the namespace prefix
+      const prefix = pattern.replace(/:\*$/, '').replace(/\*$/, '');
+      const idxKey = `idx:${prefix}`;
+
+      const keys = await this.redisClient.smembers(idxKey);
+
+      if (keys && keys.length > 0) {
+        // Chunk DEL to avoid oversized commands
+        const chunkSize = 500;
+        for (let i = 0; i < keys.length; i += chunkSize) {
+          const chunk = keys.slice(i, i + chunkSize);
+          await this.redisClient.del(...chunk);
         }
-      } while (cursor !== '0');
+        await this.redisClient.del(idxKey);
+        this.logger.log(`Deleted ${keys.length} keys via index for pattern: ${pattern}`);
+      } else if (!pattern.includes('*')) {
+        // Exact key — just delete directly
+        await this.redisClient.del(pattern);
+      }
+      // If no keys found and pattern has wildcard, there's simply nothing cached
     } catch (err) {
       this.logger.warn(`Redis pattern invalidation failed for "${pattern}": ${err.message}.`);
     }

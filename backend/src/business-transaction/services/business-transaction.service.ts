@@ -1548,12 +1548,17 @@ export class BusinessTransactionService {
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
     await this.prisma.$transaction(async (tx) => {
-      await this.assertCurrentStateAndUpdate(id, txData.currentState, {
-        status: prismaTargetStatus,
-        currentState: targetState,
-        remarks: `${txData.remarks || ''}\n[PRODUCTION_COMPLETED] Manufacturing completed. ${remarks ? `Notes: ${remarks}` : ''}`,
-        updatedBy: userId,
-      }, tx);
+      await this.assertCurrentStateAndUpdate(
+        id,
+        txData.currentState,
+        {
+          status: prismaTargetStatus,
+          currentState: targetState,
+          remarks: `${txData.remarks || ''}\n[PRODUCTION_COMPLETED] Manufacturing completed. ${remarks ? `Notes: ${remarks}` : ''}`,
+          updatedBy: userId,
+        },
+        tx,
+      );
       await tx.workflowHistory.create({
         data: {
           indentId: id,
