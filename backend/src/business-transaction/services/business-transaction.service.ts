@@ -1143,28 +1143,28 @@ export class BusinessTransactionService {
     const updatedRemarks = `${txData.remarks || ''}\n[MATERIALS_ISSUED] Materials issued from Stores. ${dto.remarks ? `Remarks: ${dto.remarks}` : ''}`;
     let isFullyIssued = false;
 
-    await this.prisma.$transaction(async (prisma) => {
-      // 1. Fetch active indent items (narrow select)
-      const itemsToIssue = await prisma.indentItem.findMany({
+    // 1. Fetch active indent items OUTSIDE transaction
+      const itemsToIssue = await this.prisma.indentItem.findMany({
         where: { indentId: id, isDeleted: false },
         select: { id: true, materialId: true, quantity: true, issuedQuantity: true, status: true },
       });
 
-      // 2. Batch-fetch all needed materials in ONE query (replaces N individual findUnique)
+      // 2. Batch-fetch all needed materials OUTSIDE transaction
       const nonIssuedMaterialIds = [...new Set(
         itemsToIssue.filter((item) => item.status !== 'ISSUED').map((item) => item.materialId),
       )];
       const materials = nonIssuedMaterialIds.length > 0
-        ? await prisma.material.findMany({ where: { id: { in: nonIssuedMaterialIds } } })
+        ? await this.prisma.material.findMany({ where: { id: { in: nonIssuedMaterialIds } } })
         : [];
       const materialMap = new Map(materials.map((m) => [m.id, m]));
 
-      let allItemsComplete = true;
-      const issues = dto.issueItems || [];
-      const materialUpdates: Promise<any>[] = [];
-      const itemUpdates: Promise<any>[] = [];
+      await this.prisma.$transaction(async (prisma) => {
+        let allItemsComplete = true;
+        const issues = dto.issueItems || [];
+        const materialUpdates: Promise<any>[] = [];
+        const itemUpdates: Promise<any>[] = [];
 
-      // 3. Validate stock and prepare updates
+        // 3. Validate stock and prepare updates
       for (const item of itemsToIssue) {
         if (item.status === 'ISSUED') {
           continue;
@@ -1711,8 +1711,8 @@ export class BusinessTransactionService {
    * Computes item variances, total actual cost, total variance amount, and variance percentage.
    * Transitions to ACTUAL_COST_UPDATED state.
    */
-  public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
-    const txData = await this.getTransactionContext(id);
+    public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
+    const txData = await this.getCostContext(id);
     const targetState = WorkflowState.ACTUAL_COST_UPDATED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
@@ -1731,86 +1731,79 @@ export class BusinessTransactionService {
     const costSheetId = txData.costSheet.id;
     const prismaTargetStatus = WorkflowStateMapper.toPrisma(targetState);
 
+    // READS OUTSIDE TRANSACTION
+    const currentCostItems = await this.prisma.costItem.findMany({
+      where: { costSheetId },
+    });
+    const currentProcessCosts = await this.prisma.processCost.findMany({
+      where: { costSheetId },
+    });
+
     await this.prisma.$transaction(async (tx) => {
       let totalMaterialActual = 0;
       let totalProcessActual = 0;
 
-      const costItemUpdates: Promise<any>[] = [];
-      const processCostUpdates: Promise<any>[] = [];
+      // 1. Update CostItems
+      if (dto.costItems && Array.isArray(dto.costItems)) {
+        for (const cDto of dto.costItems) {
+          const actualRate = roundTo4Decimals(cDto.actualRate);
+          const actualQuantity = roundTo4Decimals(cDto.actualQuantity);
+          const actualAmount = roundTo4Decimals(actualRate * actualQuantity);
 
-      // Batch-fetch process costs for variance lookup
-      const processCostIds = dto.processCosts?.map((pc: any) => pc.processCostId).filter(Boolean) || [];
-      const existingProcessCosts = processCostIds.length > 0
-        ? await tx.processCost.findMany({ where: { id: { in: processCostIds } } })
-        : [];
-      const processCostMap = new Map(existingProcessCosts.map((pc) => [pc.id, pc]));
+          const cItem = currentCostItems.find(i => i.id === cDto.costItemId);
+          if (cItem) {
+            const predictedAmount = roundTo4Decimals(cItem.predictedAmount);
+            const varianceAmount = safeSubtract(actualAmount, predictedAmount);
+            const variancePercentage = safeVariancePercentage(varianceAmount, predictedAmount);
 
-      // 1. Update CostItems actual rate, quantity, and amount
-      if (dto.costItems && dto.costItems.length > 0) {
-        for (const ciDto of dto.costItems) {
-          if ((ciDto.actualRate || 0) < 0 || (ciDto.actualQuantity || 0) < 0) {
-            throw new BadRequestException('Actual rates and quantities must be non-negative.');
-          }
-          const actualRate = roundTo4Decimals(ciDto.actualRate ?? 0);
-          const actualQuantity = roundTo4Decimals(ciDto.actualQuantity ?? 0);
-          const actualAmount = safeMultiply(actualRate, actualQuantity);
-          totalMaterialActual = safeAdd([totalMaterialActual, actualAmount]);
-          costItemUpdates.push(
-            tx.costItem.update({
-              where: { id: ciDto.costItemId },
+            await tx.costItem.update({
+              where: { id: cDto.costItemId },
               data: {
                 actualRate,
                 actualQuantity,
                 actualAmount,
-                remarks: ciDto.remarks || undefined,
+                varianceAmount,
+                variancePercentage,
+                remarks: cDto.remarks,
                 updatedBy: userId,
               },
-            }),
-          );
+            });
+          }
+          totalMaterialActual = safeAdd([totalMaterialActual, actualAmount]);
         }
-      } else {
-        const existingCostItems = await tx.costItem.findMany({
-          where: { costSheetId },
-        });
-        totalMaterialActual = safeAdd(existingCostItems.map((item) => item.actualAmount));
       }
 
-      // 2. Update ProcessCosts actual cost and actual hours
-      if (dto.processCosts && dto.processCosts.length > 0) {
-        for (const pcDto of dto.processCosts) {
-          if ((pcDto.actualCost || 0) < 0 || (pcDto.actualHours || 0) < 0) {
-            throw new BadRequestException('Actual costs and hours must be non-negative.');
-          }
-          const actualCost = roundTo4Decimals(pcDto.actualCost ?? 0);
-          totalProcessActual = safeAdd([totalProcessActual, actualCost]);
-          const existingPc = processCostMap.get(pcDto.processCostId);
-          const predicted = existingPc ? Number(existingPc.predictedCost) : 0;
-          const variance = safeSubtract(actualCost, predicted);
+      // 2. Update ProcessCosts
+      if (dto.processCosts && Array.isArray(dto.processCosts)) {
+        for (const pDto of dto.processCosts) {
+          const actualCost = roundTo4Decimals(pDto.actualCost);
+          const actualHours = roundTo4Decimals(pDto.actualHours);
+          const actualAmount = roundTo4Decimals(actualCost * actualHours);
 
-          processCostUpdates.push(
-            tx.processCost.update({
-              where: { id: pcDto.processCostId },
+          const pItem = currentProcessCosts.find(i => i.id === pDto.processCostId);
+          if (pItem) {
+            const predictedAmount = roundTo4Decimals(pItem.predictedAmount);
+            const varianceAmount = safeSubtract(actualAmount, predictedAmount);
+            const variancePercentage = safeVariancePercentage(varianceAmount, predictedAmount);
+
+            await tx.processCost.update({
+              where: { id: pDto.processCostId },
               data: {
                 actualCost,
-                actualHours: pcDto.actualHours,
-                variance,
+                actualHours,
+                actualAmount,
+                varianceAmount,
+                variancePercentage,
+                remarks: pDto.remarks,
                 updatedBy: userId,
               },
-            }),
-          );
+            });
+          }
+          totalProcessActual = safeAdd([totalProcessActual, actualAmount]);
         }
-      } else {
-        const existingProcessCostsFallback = await tx.processCost.findMany({
-          where: { costSheetId },
-        });
-        totalProcessActual = safeAdd(existingProcessCostsFallback.map((item) => item.actualCost));
       }
 
-      // Execute all batched updates in parallel
-      if (costItemUpdates.length > 0) await Promise.all(costItemUpdates);
-      if (processCostUpdates.length > 0) await Promise.all(processCostUpdates);
-
-      // 3. Extract and update global actual costs directly from DTO
+      // 3. Overall CostSheet updates
       const actualDesignCost =
         dto.actualDesignCost !== undefined && dto.actualDesignCost !== null
           ? roundTo4Decimals(dto.actualDesignCost)
@@ -1826,7 +1819,6 @@ export class BusinessTransactionService {
           ? roundTo4Decimals(dto.actualContingencyCost)
           : roundTo4Decimals(txData.costSheet.actualContingencyCost || 0);
 
-      // 4. Compute overall CostSheet actual total and variance
       const actualTotal = safeAdd([
         totalMaterialActual,
         totalProcessActual,
@@ -1848,42 +1840,36 @@ export class BusinessTransactionService {
           actualTotal,
           varianceAmount,
           variancePercentage,
+          status: 'ACTUAL_COST_UPDATED',
           updatedBy: userId,
         },
       });
 
-      // 5. Update Indent state and append tag [ACTUAL_COST_UPDATED] to remarks if not already present
-      let cleanRemarks = txData.remarks || '';
-      if (!cleanRemarks.includes('[ACTUAL_COST_UPDATED]')) {
-        cleanRemarks = cleanRemarks
-          ? `${cleanRemarks}\n\n[ACTUAL_COST_UPDATED] Actual costs and variance calculations updated.`
-          : `[ACTUAL_COST_UPDATED] Actual costs and variance calculations updated.`;
-      }
-
-      await tx.indent.update({
-        where: { id },
-        data: {
+      await this.assertCurrentStateAndUpdate(
+        id,
+        txData.currentState,
+        {
           status: prismaTargetStatus,
           currentState: targetState,
-          remarks: cleanRemarks,
+          remarks: `${txData.remarks || ''}\nActual costs entered. Total Variance: ${variancePercentage}%`,
           updatedBy: userId,
         },
-      });
+        tx,
+      );
 
-      // 6. Create workflow history record
       await tx.workflowHistory.create({
         data: {
           indentId: id,
           toDepartmentId: txData.departmentId,
           movedBy: userId,
-          remarks: 'Accounts updated actual costs and process variances.',
+          remarks: `Actual costs entered and variances calculated (${variancePercentage}% variance).`,
         },
       });
     });
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);
     await this.eventService.logAudit(
-      AuditEventType.VERIFY_COSTS,
+      AuditEventType.ACTUAL_COST_ENTERED,
       id,
       userId,
       { predictedTotal: txData.costSheet.predictedTotal },
