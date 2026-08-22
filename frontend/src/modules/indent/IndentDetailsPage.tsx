@@ -110,7 +110,6 @@ export const IndentDetailsPage: React.FC = () => {
 
   const handleWorkflowSuccess = () => {
     show('success', 'Workflow action completed successfully.');
-    refetch();
   };
 
   return (

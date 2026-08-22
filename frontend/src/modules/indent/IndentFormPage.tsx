@@ -23,11 +23,22 @@ export const IndentFormPage: React.FC = () => {
       );
     } else {
       createIndent(data, {
-        onSuccess: (newIndent) => {
-          if (!newIndent || !newIndent.id) {
-            throw new Error('Create transaction succeeded but no transaction ID was returned');
+        onSuccess: (newIndent: any) => {
+          // Robust extraction of ID since backend might return { id }, { data: { id } }, or just ID string.
+          let targetId = '';
+          if (newIndent && typeof newIndent === 'object') {
+            targetId = newIndent.id || (newIndent.data && newIndent.data.id);
+          } else if (typeof newIndent === 'string') {
+            targetId = newIndent;
           }
-          navigate(`/indents/${newIndent.id}`);
+
+          if (!targetId) {
+            alert('Create transaction succeeded but no valid transaction ID was returned. Navigating to list.');
+            navigate('/indents');
+            return;
+          }
+          
+          navigate(`/indents/${targetId}`);
         },
         onError: (err: any) => {
           const errMsg = err.errors ? err.errors.join('\n') : err.message;

@@ -55,10 +55,10 @@ export const DashboardPage: React.FC = () => {
   const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
   const formatCurrency = useCurrencyFormatter({ maximumFractionDigits: 0 });
 
-  // Notifications API
+  // Notifications API (using limit: 20 to share cache with NotificationDrawer)
   const { data: notificationsData, isLoading: isNotificationsLoading } = useNotifications({
     page: 1,
-    limit: 5,
+    limit: 20,
   });
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
   const { data: unreadNotificationCount = 0 } = useUnreadNotificationCount();
