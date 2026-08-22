@@ -1711,7 +1711,7 @@ export class BusinessTransactionService {
    * Computes item variances, total actual cost, total variance amount, and variance percentage.
    * Transitions to ACTUAL_COST_UPDATED state.
    */
-    public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
+      public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
     const txData = await this.getCostContext(id);
     const targetState = WorkflowState.ACTUAL_COST_UPDATED;
 
@@ -1740,14 +1740,11 @@ export class BusinessTransactionService {
     });
 
     await this.prisma.$transaction(async (tx) => {
-      let totalMaterialActual = 0;
-      let totalProcessActual = 0;
-
-      // 1. Update CostItems
+      // 1. Update CostItems in DB and memory
       if (dto.costItems && Array.isArray(dto.costItems)) {
         for (const cDto of dto.costItems) {
-          const actualRate = roundTo4Decimals(cDto.actualRate);
-          const actualQuantity = roundTo4Decimals(cDto.actualQuantity);
+          const actualRate = roundTo4Decimals(cDto.actualRate ?? 0);
+          const actualQuantity = roundTo4Decimals(cDto.actualQuantity ?? 0);
           const actualAmount = roundTo4Decimals(actualRate * actualQuantity);
 
           const cItem = currentCostItems.find(i => i.id === cDto.costItemId);
@@ -1756,6 +1753,7 @@ export class BusinessTransactionService {
             const varianceAmount = safeSubtract(actualAmount, predictedAmount);
             const variancePercentage = safeVariancePercentage(varianceAmount, predictedAmount);
 
+            // Update in DB
             await tx.costItem.update({
               where: { id: cDto.costItemId },
               data: {
@@ -1768,16 +1766,17 @@ export class BusinessTransactionService {
                 updatedBy: userId,
               },
             });
+            // Update in memory for total calculation
+            cItem.actualAmount = actualAmount;
           }
-          totalMaterialActual = safeAdd([totalMaterialActual, actualAmount]);
         }
       }
 
-      // 2. Update ProcessCosts
+      // 2. Update ProcessCosts in DB and memory
       if (dto.processCosts && Array.isArray(dto.processCosts)) {
         for (const pDto of dto.processCosts) {
-          const actualCost = roundTo4Decimals(pDto.actualCost);
-          const actualHours = roundTo4Decimals(pDto.actualHours);
+          const actualCost = roundTo4Decimals(pDto.actualCost ?? 0);
+          const actualHours = roundTo4Decimals(pDto.actualHours ?? 0);
           const actualAmount = roundTo4Decimals(actualCost * actualHours);
 
           const pItem = currentProcessCosts.find(i => i.id === pDto.processCostId);
@@ -1786,6 +1785,7 @@ export class BusinessTransactionService {
             const varianceAmount = safeSubtract(actualAmount, predictedAmount);
             const variancePercentage = safeVariancePercentage(varianceAmount, predictedAmount);
 
+            // Update in DB
             await tx.processCost.update({
               where: { id: pDto.processCostId },
               data: {
@@ -1798,10 +1798,15 @@ export class BusinessTransactionService {
                 updatedBy: userId,
               },
             });
+            // Update in memory for total calculation
+            pItem.actualAmount = actualAmount;
           }
-          totalProcessActual = safeAdd([totalProcessActual, actualAmount]);
         }
       }
+
+      // Compute totals from memory (including items not updated in this request)
+      const totalMaterialActual = safeAdd(currentCostItems.map(i => i.actualAmount || 0));
+      const totalProcessActual = safeAdd(currentProcessCosts.map(i => i.actualAmount || 0));
 
       // 3. Overall CostSheet updates
       const actualDesignCost =
