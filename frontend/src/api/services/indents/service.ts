@@ -216,6 +216,16 @@ class IndentService extends BaseService {
     return this.getList<IndentData>(params as ListQueryParams);
   }
 
+  async getOperationalSummary(): Promise<{
+    totalTransactions: number;
+    activeTransactions: number;
+    inProduction: number;
+    completedTransactions: number;
+    stageDistribution: Array<{ stageName: string; count: number; percentage: number }>;
+  }> {
+    return this.getRaw(`${this.basePath}/operational-summary`);
+  }
+
   async getDetail(id: string): Promise<IndentData> {
     return this.get<IndentData>(`${this.basePath}/${id}`);
   }

@@ -748,6 +748,45 @@ export class BusinessTransactionService {
     };
   }
 
+  /** Minimal dashboard metrics for operational roles without analytics access. */
+  public async getOperationalSummary(): Promise<{
+    totalTransactions: number;
+    activeTransactions: number;
+    inProduction: number;
+    completedTransactions: number;
+    stageDistribution: Array<{ stageName: string; count: number; percentage: number }>;
+  }> {
+    const grouped = await this.prisma.indent.groupBy({
+      by: ['currentState'],
+      where: { isDeleted: false },
+      _count: { id: true },
+    });
+    const stageDistribution = grouped.map((row) => ({
+      stageName: row.currentState ?? WorkflowState.DRAFT,
+      count: row._count.id,
+      percentage: 0,
+    }));
+    const totalTransactions = stageDistribution.reduce((sum, row) => sum + row.count, 0);
+    const completedTransactions =
+      stageDistribution.find((row) => row.stageName === WorkflowState.COMPLETED)?.count ?? 0;
+    const activeTransactions = totalTransactions - completedTransactions;
+    const inProduction = stageDistribution
+      .filter((row) =>
+        [WorkflowState.MATERIALS_ISSUED, WorkflowState.PRODUCTION_PROCESSING, WorkflowState.PRODUCTION_COMPLETED].includes(row.stageName as WorkflowState),
+      )
+      .reduce((sum, row) => sum + row.count, 0);
+    return {
+      totalTransactions,
+      activeTransactions,
+      inProduction,
+      completedTransactions,
+      stageDistribution: stageDistribution.map((row) => ({
+        ...row,
+        percentage: totalTransactions ? Math.round((row.count / totalTransactions) * 10000) / 100 : 0,
+      })),
+    };
+  }
+
   /**
    * Update a Business Transaction draft
    */
@@ -1740,15 +1779,22 @@ export class BusinessTransactionService {
    */
   public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
     const txData = await this.getTransactionContext(id);
-    const targetState = WorkflowState.ACTUAL_COST_UPDATED;
+    // First save may advance the workflow; subsequent saves are drafts and
+    // must remain editable in ACTUAL_COST_UPDATED.
+    const shouldAdvanceWorkflow = txData.currentState === WorkflowState.ACCOUNTS_COST_VERIFICATION;
+    const targetState = shouldAdvanceWorkflow
+      ? WorkflowState.ACTUAL_COST_UPDATED
+      : txData.currentState;
 
-    const transitionValidation = this.workflowStateMachine.validateTransition(
-      txData.currentState,
-      targetState,
-      'ACCOUNTS',
-    );
-    if (!transitionValidation.isValid) {
-      throw new BadRequestException(transitionValidation.errors.join(', '));
+    if (shouldAdvanceWorkflow) {
+      const transitionValidation = this.workflowStateMachine.validateTransition(
+        txData.currentState,
+        targetState,
+        'ACCOUNTS',
+      );
+      if (!transitionValidation.isValid) {
+        throw new BadRequestException(transitionValidation.errors.join(', '));
+      }
     }
 
     if (!txData.costSheet) {
@@ -1874,26 +1920,30 @@ export class BusinessTransactionService {
         },
       });
 
-      await this.assertCurrentStateAndUpdate(
-        id,
-        txData.currentState,
-        {
-          status: prismaTargetStatus,
-          currentState: targetState,
-          remarks: `${txData.remarks || ''}\nActual costs entered. Total Variance: ${variancePercentage}%`,
-          updatedBy: userId,
-        },
-        tx,
-      );
+      if (shouldAdvanceWorkflow) {
+        await this.assertCurrentStateAndUpdate(
+          id,
+          txData.currentState,
+          {
+            status: prismaTargetStatus,
+            currentState: targetState,
+            remarks: `${txData.remarks || ''}\nActual costs entered. Total Variance: ${variancePercentage}%`,
+            updatedBy: userId,
+          },
+          tx,
+        );
+      }
 
-      await tx.workflowHistory.create({
-        data: {
-          indentId: id,
-          toDepartmentId: txData.departmentId,
-          movedBy: userId,
-          remarks: `Actual costs entered and variances calculated (${variancePercentage}% variance).`,
-        },
-      });
+      if (shouldAdvanceWorkflow) {
+        await tx.workflowHistory.create({
+          data: {
+            indentId: id,
+            toDepartmentId: txData.departmentId,
+            movedBy: userId,
+            remarks: `Actual costs entered and variances calculated (${variancePercentage}% variance).`,
+          },
+        });
+      }
     });
 
     await this.eventService.dispatchNotification(id, txData.indentNumber, targetState, userId);

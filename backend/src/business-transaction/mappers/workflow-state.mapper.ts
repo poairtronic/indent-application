@@ -39,6 +39,12 @@ export class WorkflowStateMapper {
   }
 
   public static toDomain(status: IndentStatus, indent?: any): WorkflowState {
+    // currentState is the authoritative workflow column. The legacy status
+    // projection collapses multiple financial/manufacturing states and must
+    // never overwrite a populated domain state.
+    if (indent?.currentState && Object.values(WorkflowState).includes(indent.currentState)) {
+      return indent.currentState as WorkflowState;
+    }
     if (
       status === IndentStatus.PENDING_STORES &&
       indent &&

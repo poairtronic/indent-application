@@ -45,6 +45,12 @@ export class BusinessTransactionController {
     return this.businessTransactionService.findAllTransactions(query);
   }
 
+  @Get('operational-summary')
+  @Permissions('indent.view')
+  async operationalSummary() {
+    return this.businessTransactionService.getOperationalSummary();
+  }
+
   @Get('attachments/search')
   @Permissions('indent.view', 'accounts.verify')
   async searchAttachments(

@@ -10,6 +10,8 @@ import {
 } from '../api/services/notifications/hooks';
 import { useDashboardOverview } from '../modules/analytics/hooks/useAnalytics';
 import { useAuditLogs } from '../api/services/audit/hooks';
+import { indentService } from '../api/services/indents/service';
+import { useQuery } from '@tanstack/react-query';
 import { QuickActionCard } from '../components/ui/Cards';
 import { ActivityTimeline, WorkflowTimeline } from '../components/ui/DataTimeline';
 import { PriorityBadge } from '../components/ui/StatusBadges';
@@ -75,9 +77,15 @@ export const DashboardPage: React.FC = () => {
   const hasIndentView = useAuthStore((s) => s.hasAnyPermission(['indent.view']));
 
   const { data: dashboardOverview, isError: isDashboardError } = useDashboardOverview(hasAnalyticsAccess);
+  const { data: operationalSummary, isError: isOperationalError } = useQuery({
+    queryKey: ['business-transactions', 'operational-summary'],
+    queryFn: () => indentService.getOperationalSummary(),
+    enabled: !hasAnalyticsAccess && hasIndentView,
+    staleTime: 30 * 1000,
+  });
 
-  const summary = dashboardOverview?.summary;
-  const workflowData = dashboardOverview?.workflow;
+  const summary = dashboardOverview?.summary ?? operationalSummary;
+  const workflowData: any = dashboardOverview?.workflow ?? operationalSummary;
   const departmentData = dashboardOverview?.departments;
   const costsData = dashboardOverview?.costs;
 
@@ -124,7 +132,7 @@ export const DashboardPage: React.FC = () => {
       }
     };
 
-    return workflowData.stageDistribution.map((stage, idx) => ({
+    return workflowData.stageDistribution.map((stage: any, idx: number) => ({
       id: stage.stageName || `stage-${idx}`,
       title: formatWorkflowState(stage.stageName as any),
       description: `${stage.count} Indents (${stage.percentage.toFixed(1)}%)`,
@@ -148,7 +156,7 @@ export const DashboardPage: React.FC = () => {
   // Donut chart data from backend summary/workflow
   const indentStatusDonutData = useMemo(() => {
     if (workflowData?.stageDistribution && workflowData.stageDistribution.length > 0) {
-      return workflowData.stageDistribution.map((s) => {
+      return workflowData.stageDistribution.map((s: any) => {
         let color = MERC_WORKFLOW_PALETTE.primary;
         const name = s.stageName.toLowerCase();
         if (name.includes('design') || name.includes('submit'))
@@ -212,7 +220,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess ? (isDashboardError ? 'Unavailable' : (summary?.totalTransactions ?? '—')) : 'N/A'}
+              {hasAnalyticsAccess || hasIndentView ? ((isDashboardError && isOperationalError) ? 'Unavailable' : (summary?.totalTransactions ?? '—')) : 'N/A'}
             </span>
             <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-status-success bg-status-success/15 px-2 py-0.5 rounded-full">
               <TrendingUp size={12} />
@@ -233,7 +241,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess ? (isDashboardError ? 'Unavailable' : (summary?.activeTransactions ?? '—')) : 'N/A'}
+              {hasAnalyticsAccess || hasIndentView ? ((isDashboardError && isOperationalError) ? 'Unavailable' : ((summary as any)?.inProduction ?? summary?.activeTransactions ?? '—')) : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">Active on floor</span>
           </div>

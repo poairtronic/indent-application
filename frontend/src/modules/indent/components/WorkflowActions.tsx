@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Send,
   CheckCircle,
@@ -62,6 +63,7 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   onSuccess,
 }) => {
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const queryClient = useQueryClient();
 
   const [confirmAction, setConfirmAction] = useState<{
     config: ActionConfig;
@@ -69,6 +71,9 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   const [remarks, setRemarks] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [startedLocally, setStartedLocally] = useState(false);
+  // Hooks must be initialized on every render, including renders with no
+  // permission-gated actions.
+  const executingRef = React.useRef(false);
 
   // Workflow mutation hooks
   const { mutateAsync: submitIndent, isPending: isSubmitting } = useSubmitIndent();
@@ -326,14 +331,17 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
 
   if (actions.length === 0) return null;
 
-  const executingRef = React.useRef(false);
-
   const handleConfirm = async () => {
     if (!confirmAction || executingRef.current) return;
     executingRef.current = true;
     setIsExecuting(true);
     try {
       await confirmAction.config.action(remarks || undefined);
+      // Do not leave the action panel on the pre-mutation workflow state.
+      // Closure must read ACTUAL_COST_UPDATED after the first cost save.
+      await queryClient.refetchQueries({
+        queryKey: ['api', 'detail', 'indents', indentId],
+      });
       setConfirmAction(null);
       setRemarks('');
     } catch (error: any) {

@@ -26,6 +26,9 @@ export function shouldRetry(error: AxiosError, attempt: number, config: RetryCon
   if (error.code === 'ERR_NETWORK') return true;
 
   const status = error.response?.status;
+  // Authentication attempts must never be retried automatically: retrying a
+  // 429 multiplies failed login requests and extends the lockout window.
+  if (status === 429 && error.config?.url?.includes('/auth/')) return false;
   if (status && NON_RETRYABLE_STATUS.has(status)) return false;
 
   if (status && config.retryOn.includes(status)) return true;

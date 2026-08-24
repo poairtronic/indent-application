@@ -206,7 +206,10 @@ export function getWorkflowProgress(currentState: WorkflowState): {
   isLoopBoundary: boolean;
 } {
   const stage = WORKFLOW_STAGES[currentState];
-  const totalSteps = ALL_WORKFLOW_STATES.length;
+  // Stage numbers intentionally reserve step 7 for the loop boundary. Use
+  // the declared sequence numbers so the terminal state is 12 of 12, not
+  // 12 of the number of enum entries (11).
+  const totalSteps = Math.max(...ALL_WORKFLOW_STATES.map((state) => WORKFLOW_STAGES[state].sequence));
   return {
     currentSequence: stage.sequence,
     totalSteps,

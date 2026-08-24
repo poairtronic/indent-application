@@ -115,7 +115,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
       };
 
       await enterActualCosts({ id: indent.id, data: payload });
-      window.alert('Actual costs verified successfully');
+      window.alert('Actual costs updated successfully');
     } catch (e: any) {
       window.alert(e.message || 'Failed to verify actual costs');
     }
@@ -229,10 +229,10 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
 
           {/* Detailed Indent & Costing View */}
           <div className="mt-8">
-            <IndentForm
+    <IndentForm
               key={indent.id + '-' + indent.updatedAt}
               initialData={indent}
-              onSubmit={
+      onSubmit={
                 isAccountsMode
                   ? handleAccountsSubmit
                   : isProductionMode

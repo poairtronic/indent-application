@@ -33,7 +33,14 @@ function getLoginErrorMessage(error: unknown): string {
   const err = error as any;
 
   if (err.response?.data?.message && typeof err.response.data.message === 'string') {
+    if (err.response.status === 429) {
+      return 'Too many login attempts. Please wait one minute before trying again.';
+    }
     return err.response.data.message;
+  }
+
+  if (err.response?.status === 429 || err.status === 429) {
+    return 'Too many login attempts. Please wait one minute before trying again.';
   }
 
   if (err.message && err.status) {

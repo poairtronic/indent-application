@@ -700,7 +700,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     setValue,
     formState: { errors },
   } = useForm<IndentFormData>({
-    resolver: zodResolver(indentSchema) as never,
+    // Accounts edits are a cost-entry DTO, not a design-form submission.
+    // Running the full design schema here rejects valid actual-cost updates
+    // before the API request is created. Backend DTO validation remains active.
+    resolver: isAccountsMode ? undefined : (zodResolver(indentSchema) as never),
     defaultValues: initialData
       ? {
           indent: {
@@ -1082,7 +1085,14 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 w-full">
+    <form
+      onSubmit={handleSubmit(handleFormSubmit, (formErrors) => {
+        if (isAccountsMode) {
+          console.error('Actual cost form validation failed', formErrors);
+        }
+      })}
+      className="space-y-6 w-full"
+    >
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
         <h3 className="text-sm font-bold text-text-primary mb-4">Basic Information (Indent)</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
