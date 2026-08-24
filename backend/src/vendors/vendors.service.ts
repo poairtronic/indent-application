@@ -12,14 +12,9 @@ import { VendorResponseDto } from './dto/vendor-response.dto';
 import { VENDOR_MESSAGES } from './constants/vendor-messages.constants';
 import { Prisma } from '@prisma/client';
 
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
-
 @Injectable()
 export class VendorsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly cacheService: RedisCacheService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   private mapToVendorResponse(vendor: any): VendorResponseDto {
     return {
@@ -147,9 +142,6 @@ export class VendorsService {
 
     const response = this.mapToVendorResponse(newVendor);
     await this.createAuditLog('CREATE', newVendor.id, null, response, performingUserId);
-    await this.cacheService.invalidateByPattern('master:vendors:*');
-    await this.cacheService.invalidateByPattern('reports:master-data:vendor-performance:*');
-    await this.cacheService.invalidateByPattern('analytics:vendors:*');
 
     return response;
   }
@@ -275,9 +267,6 @@ export class VendorsService {
     const oldResponse = this.mapToVendorResponse(currentVendor);
     const newResponse = this.mapToVendorResponse(updatedVendor);
     await this.createAuditLog('UPDATE', id, oldResponse, newResponse, performingUserId);
-    await this.cacheService.invalidateByPattern('master:vendors:*');
-    await this.cacheService.invalidateByPattern('reports:master-data:vendor-performance:*');
-    await this.cacheService.invalidateByPattern('analytics:vendors:*');
 
     return newResponse;
   }
@@ -316,9 +305,6 @@ export class VendorsService {
       null,
       performingUserId,
     );
-    await this.cacheService.invalidateByPattern('master:vendors:*');
-    await this.cacheService.invalidateByPattern('reports:master-data:vendor-performance:*');
-    await this.cacheService.invalidateByPattern('analytics:vendors:*');
 
     return { message: VENDOR_MESSAGES.DELETED_SUCCESS };
   }
@@ -343,9 +329,6 @@ export class VendorsService {
 
     const response = this.mapToVendorResponse(restoredVendor);
     await this.createAuditLog('RESTORE', id, null, response, performingUserId);
-    await this.cacheService.invalidateByPattern('master:vendors:*');
-    await this.cacheService.invalidateByPattern('reports:master-data:vendor-performance:*');
-    await this.cacheService.invalidateByPattern('analytics:vendors:*');
 
     return response;
   }

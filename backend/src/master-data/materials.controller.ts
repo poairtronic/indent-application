@@ -12,24 +12,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CreateMaterialDto, UpdateMaterialDto } from './dto/material.dto';
 
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
 import { DocumentNumberService } from '../common/services/document-number.service';
 
 @Controller('materials')
 export class MaterialsController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cacheService: RedisCacheService,
     private readonly documentNumberService: DocumentNumberService,
   ) {}
 
   @Get()
   @Permissions('materials.view')
-  @Cache('master:materials', 3600)
   async list(@Query() query: PaginationQueryDto) {
     const pageNumber = Math.max(1, query.page || 1);
     const pageSize = Math.max(1, query.limit || 10);
@@ -74,7 +70,6 @@ export class MaterialsController {
         status: createMaterialDto.status || 'ACTIVE',
       },
     });
-    await this.cacheService.invalidateByPattern('master:materials:*');
     return material;
   }
 
@@ -105,7 +100,6 @@ export class MaterialsController {
         where: { id },
         data,
       });
-      await this.cacheService.invalidateByPattern('master:materials:*');
       return material;
     } catch {
       throw new NotFoundException(`Material with ID ${id} not found`);
@@ -123,7 +117,6 @@ export class MaterialsController {
           deletedAt: new Date(),
         },
       });
-      await this.cacheService.invalidateByPattern('master:materials:*');
       return material;
     } catch {
       throw new NotFoundException(`Material with ID ${id} not found`);

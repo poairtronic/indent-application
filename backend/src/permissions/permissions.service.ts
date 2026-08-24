@@ -3,14 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
-
 @Injectable()
 export class PermissionsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly cacheService: RedisCacheService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreatePermissionDto) {
     const existing = await this.prisma.permission.findUnique({
@@ -28,7 +23,6 @@ export class PermissionsService {
         description: dto.description,
       },
     });
-    await this.cacheService.invalidateByPattern('master:permissions:*');
     return result;
   }
 
@@ -80,7 +74,6 @@ export class PermissionsService {
         description: dto.description,
       },
     });
-    await this.cacheService.invalidateByPattern('master:permissions:*');
     return result;
   }
 
@@ -99,7 +92,6 @@ export class PermissionsService {
         deletedAt: new Date(),
       },
     });
-    await this.cacheService.invalidateByPattern('master:permissions:*');
   }
 
   async getModules() {

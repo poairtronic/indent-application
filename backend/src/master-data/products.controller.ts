@@ -12,23 +12,19 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
 import { DocumentNumberService } from '../common/services/document-number.service';
 
 @Controller('products')
 export class ProductsController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cacheService: RedisCacheService,
     private readonly documentNumberService: DocumentNumberService,
   ) {}
 
   @Get()
   @Permissions('products.view')
-  @Cache('master:products', 3600)
   async list(@Query() query: PaginationQueryDto) {
     const pageNumber = Math.max(1, query.page || 1);
     const pageSize = Math.max(1, query.limit || 10);
@@ -67,7 +63,6 @@ export class ProductsController {
         status: createProductDto.status || 'ACTIVE',
       },
     });
-    await this.cacheService.invalidateByPattern('master:products:*');
     return product;
   }
 
@@ -79,7 +74,6 @@ export class ProductsController {
         where: { id },
         data: updateProductDto,
       });
-      await this.cacheService.invalidateByPattern('master:products:*');
       return product;
     } catch {
       throw new NotFoundException(`Product with ID ${id} not found`);
@@ -97,7 +91,6 @@ export class ProductsController {
           deletedAt: new Date(),
         },
       });
-      await this.cacheService.invalidateByPattern('master:products:*');
       return product;
     } catch {
       throw new NotFoundException(`Product with ID ${id} not found`);

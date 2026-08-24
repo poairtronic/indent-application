@@ -1,7 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 @Controller('departments')
@@ -19,7 +18,6 @@ export class DepartmentsController {
     'reports.view',
     'notifications.view',
   )
-  @Cache('master:departments', 86400)
   async list(@Query() query: PaginationQueryDto) {
     if (!query.page && !query.limit) {
       return this.prisma.department.findMany({

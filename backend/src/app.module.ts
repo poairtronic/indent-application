@@ -25,7 +25,6 @@ import { AuditModule } from './audit/audit.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { ReportsModule } from './reports/reports.module';
 import { RedisCacheModule } from './redis-cache/redis-cache.module';
-import { HttpCacheInterceptor } from './redis-cache/interceptors/http-cache.interceptor';
 import { StorageModule } from './storage/storage.module';
 import { SettingsModule } from './settings/settings.module';
 
@@ -103,10 +102,6 @@ import { getInfrastructureRedisConfig } from './config/infra-redis.config';
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: HttpCacheInterceptor,
     },
     {
       provide: APP_FILTER,

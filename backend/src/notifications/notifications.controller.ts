@@ -253,16 +253,7 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Get unread notification count for the current user' })
   async getUnreadCount(@Req() req: Request) {
     const userId = (req as any).user?.id;
-    const cacheKey = `notifications:unread-count:${userId}`;
-
-    // Return cached count if available (60-second TTL reduces DB load from polling)
-    const cached = await this.cacheService.get<number>(cacheKey);
-    if (cached !== null) {
-      return cached;
-    }
-
     // Use user info already validated and cached by JWT strategy
-    // instead of re-querying the database on every call
     const jwtUser = (req as any).user;
     if (!jwtUser) {
       return 0;
@@ -286,7 +277,6 @@ export class NotificationsController {
     }
 
     const count = await this.prisma.notificationRecipient.count({ where });
-    await this.cacheService.set(cacheKey, count, 60);
     return count;
   }
 
@@ -399,8 +389,6 @@ export class NotificationsController {
           ipAddress: req.ip || '127.0.0.1',
         },
       });
-      await this.cacheService.del(`notifications:unread-count:${userId}`);
-      await this.cacheService.invalidateByPattern(`user:notifications:${userId}:*`);
     }
 
     return { success: true };
@@ -433,10 +421,6 @@ export class NotificationsController {
         ipAddress: req.ip || '127.0.0.1',
       },
     });
-
-    await this.cacheService.del(`notifications:unread-count:${userId}`);
-    await this.cacheService.invalidateByPattern(`user:notifications:${userId}:*`);
-
     return { success: true };
   }
 }

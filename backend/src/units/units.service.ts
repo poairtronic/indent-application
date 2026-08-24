@@ -12,14 +12,9 @@ import { UnitResponseDto } from './dto/unit-response.dto';
 import { UNIT_MESSAGES } from './constants/unit-messages.constants';
 import { Prisma } from '@prisma/client';
 
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
-
 @Injectable()
 export class UnitsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly cacheService: RedisCacheService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   private mapToUnitResponse(unit: any): UnitResponseDto {
     return {
@@ -82,8 +77,6 @@ export class UnitsService {
 
     const response = this.mapToUnitResponse(newUnit);
     await this.createAuditLog('CREATE', newUnit.id, null, response, performingUserId);
-    await this.cacheService.invalidateByPattern('master:units:*');
-    await this.cacheService.invalidateByPattern('master:materials:*');
 
     return response;
   }
@@ -176,8 +169,6 @@ export class UnitsService {
     const oldResponse = this.mapToUnitResponse(currentUnit);
     const newResponse = this.mapToUnitResponse(updatedUnit);
     await this.createAuditLog('UPDATE', id, oldResponse, newResponse, performingUserId);
-    await this.cacheService.invalidateByPattern('master:units:*');
-    await this.cacheService.invalidateByPattern('master:materials:*');
 
     return newResponse;
   }
@@ -211,8 +202,6 @@ export class UnitsService {
     });
 
     await this.createAuditLog('DELETE', id, null, null, performingUserId);
-    await this.cacheService.invalidateByPattern('master:units:*');
-    await this.cacheService.invalidateByPattern('master:materials:*');
 
     return { message: UNIT_MESSAGES.DELETED_SUCCESS };
   }
@@ -237,8 +226,6 @@ export class UnitsService {
 
     const response = this.mapToUnitResponse(restoredUnit);
     await this.createAuditLog('RESTORE', id, null, response, performingUserId);
-    await this.cacheService.invalidateByPattern('master:units:*');
-    await this.cacheService.invalidateByPattern('master:materials:*');
 
     return response;
   }

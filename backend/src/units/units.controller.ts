@@ -19,7 +19,6 @@ import { UnitQueryDto } from './dto/unit-query.dto';
 import { UnitResponseDto } from './dto/unit-response.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Cache } from '../redis-cache/decorators/cache.decorator';
 
 @ApiTags('Units')
 @ApiBearerAuth()
@@ -39,7 +38,6 @@ export class UnitsController {
 
   @Get()
   @Permissions('units.view')
-  @Cache('master:units', 3600)
   @ApiOperation({ summary: 'Retrieve paginated units with search' })
   @ApiResponse({ status: 200, description: 'Paginated units list.' })
   async findAllUnits(@Query() query: UnitQueryDto) {

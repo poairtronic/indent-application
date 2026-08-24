@@ -138,48 +138,4 @@ describe('RedisCacheService', () => {
       expect(mockRedisInstance.del).toHaveBeenCalledWith('test_key');
     });
   });
-
-  describe('invalidateByPattern', () => {
-    it('should use SMEMBERS to retrieve tracked keys and DEL them (SADD-based invalidation)', async () => {
-      (service as any).isRedisAvailable = true;
-      mockRedisInstance.smembers.mockResolvedValue([
-        'master:products:1',
-        'master:products:2',
-        'master:products:3',
-      ]);
-      mockRedisInstance.del.mockResolvedValue(3);
-
-      await service.invalidateByPattern('master:products:*');
-
-      expect(mockRedisInstance.smembers).toHaveBeenCalledWith('idx:master:products');
-      expect(mockRedisInstance.del).toHaveBeenCalledTimes(2);
-      expect(mockRedisInstance.del).toHaveBeenNthCalledWith(
-        1,
-        'master:products:1',
-        'master:products:2',
-        'master:products:3',
-      );
-      expect(mockRedisInstance.del).toHaveBeenNthCalledWith(2, 'idx:master:products');
-    });
-
-    it('should handle exact key pattern without SMEMBERS', async () => {
-      (service as any).isRedisAvailable = true;
-      mockRedisInstance.smembers.mockResolvedValue([]);
-      mockRedisInstance.del.mockResolvedValue(1);
-
-      await service.invalidateByPattern('analytics:summary');
-
-      expect(mockRedisInstance.del).toHaveBeenCalledWith('analytics:summary');
-    });
-
-    it('should handle empty tracked keys gracefully', async () => {
-      (service as any).isRedisAvailable = true;
-      mockRedisInstance.smembers.mockResolvedValue([]);
-
-      await service.invalidateByPattern('master:products:*');
-
-      expect(mockRedisInstance.smembers).toHaveBeenCalledWith('idx:master:products');
-      expect(mockRedisInstance.del).not.toHaveBeenCalled();
-    });
-  });
 });

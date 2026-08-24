@@ -22,7 +22,6 @@ import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { PermissionResponseDto } from './dto/permission-response.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Cache } from '../redis-cache/decorators/cache.decorator';
 
 @ApiTags('Permissions')
 @ApiBearerAuth()
@@ -41,7 +40,6 @@ export class PermissionsController {
 
   @Get()
   @Permissions('permissions.view')
-  @Cache('master:permissions', 3600)
   @ApiOperation({ summary: 'Get all permissions, optionally filtered by module' })
   @ApiQuery({ name: 'module', required: false, type: 'string' })
   @ApiResponse({ status: 200, description: 'List of permissions', type: [PermissionResponseDto] })
@@ -51,7 +49,6 @@ export class PermissionsController {
 
   @Get('modules')
   @Permissions('permissions.view')
-  @Cache('master:permissions:modules', 3600)
   @ApiOperation({ summary: 'Get all distinct permission modules' })
   @ApiResponse({ status: 200, description: 'List of modules' })
   getModules() {
