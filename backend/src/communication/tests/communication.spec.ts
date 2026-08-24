@@ -6,7 +6,7 @@ import { RecipientResolver } from '../resolver/recipient.resolver';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CommunicationEventBus, CommunicationEventType } from '../events/communication-event.bus';
 import { NotificationDispatcher } from '../dispatcher/notification.dispatcher';
-import { QueueService } from '../queue/queue.service';
+import { PostgresQueueService } from '../queue/postgres-queue.service';
 import {
   TemplateNotFoundException,
   InvalidRecipientException,
@@ -44,6 +44,7 @@ describe('Enterprise Communication Module', () => {
   let resolver: RecipientResolver;
   let bus: CommunicationEventBus;
   let dispatcher: NotificationDispatcher;
+  let queueService: PostgresQueueService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -55,7 +56,7 @@ describe('Enterprise Communication Module', () => {
         NotificationDispatcher,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: NodemailerProvider, useValue: mockNodemailerProvider },
-        { provide: QueueService, useValue: mockQueueService },
+        { provide: PostgresQueueService, useValue: mockQueueService },
       ],
     }).compile();
 
@@ -64,6 +65,7 @@ describe('Enterprise Communication Module', () => {
     resolver = module.get<RecipientResolver>(RecipientResolver);
     bus = module.get<CommunicationEventBus>(CommunicationEventBus);
     dispatcher = module.get<NotificationDispatcher>(NotificationDispatcher);
+    queueService = module.get<PostgresQueueService>(PostgresQueueService);
 
     jest.clearAllMocks();
   });

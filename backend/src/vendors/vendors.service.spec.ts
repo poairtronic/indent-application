@@ -3,7 +3,7 @@ import { VendorsService } from './vendors.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { VendorStatus } from '@prisma/client';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
+import { VendorStatus } from '@prisma/client';
 
 describe('VendorsService', () => {
   let service: VendorsService;
@@ -52,12 +52,6 @@ describe('VendorsService', () => {
       providers: [
         VendorsService,
         { provide: PrismaService, useValue: prismaMock },
-        {
-          provide: RedisCacheService,
-          useValue: {
-            invalidateByPattern: jest.fn().mockResolvedValue(undefined),
-          },
-        },
       ],
     }).compile();
 

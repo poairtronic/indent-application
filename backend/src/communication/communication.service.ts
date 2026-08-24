@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { observabilityEventBus } from '../observability/observability-event-bus';
 import { TemplateEngine } from './templates/template.engine';
 import { RecipientResolver, IResolverQuery } from './resolver/recipient.resolver';
-import { QueueService } from './queue/queue.service';
+import { PostgresQueueService } from './queue/postgres-queue.service';
 import { IJobPayload } from './queue/queue.constants';
 import * as crypto from 'crypto';
 
@@ -29,7 +29,7 @@ export class CommunicationService {
     private readonly prisma: PrismaService,
     private readonly templateEngine: TemplateEngine,
     private readonly recipientResolver: RecipientResolver,
-    private readonly queueService: QueueService,
+    private readonly queueService: PostgresQueueService,
   ) {}
 
   /**

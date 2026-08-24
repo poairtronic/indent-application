@@ -23,7 +23,6 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AuditModule } from './audit/audit.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { ReportsModule } from './reports/reports.module';
-import { RedisCacheModule } from './redis-cache/redis-cache.module';
 import { StorageModule } from './storage/storage.module';
 import { SettingsModule } from './settings/settings.module';
 
@@ -51,7 +50,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     AuditModule,
     MasterDataModule,
     ReportsModule,
-    RedisCacheModule,
     StorageModule,
     SettingsModule,
     ObservabilityModule,

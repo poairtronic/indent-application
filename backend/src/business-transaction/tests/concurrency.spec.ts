@@ -5,7 +5,7 @@ import { BusinessTransactionValidator } from '../validators/business-transaction
 import { WorkflowStateMachineService } from '../services/workflow-state-machine.service';
 import { BusinessTransactionEventService } from '../services/business-transaction-event.service';
 import { AttachmentStorageService } from '../services/attachment-storage.service';
-import { RedisCacheService } from '../../redis-cache/redis-cache.service';
+
 import { DocumentNumberService } from '../../common/services/document-number.service';
 
 describe('Concurrency & Race Condition Resilience', () => {
@@ -108,7 +108,7 @@ describe('Concurrency & Race Condition Resilience', () => {
         { provide: WorkflowStateMachineService, useValue: mockStateMachine },
         { provide: BusinessTransactionEventService, useValue: mockEventService },
         { provide: AttachmentStorageService, useValue: mockAttachmentService },
-        { provide: RedisCacheService, useValue: mockRedisService },
+        
         { provide: DocumentNumberService, useValue: mockDocumentNumberService },
       ],
     }).compile();

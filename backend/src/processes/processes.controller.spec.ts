@@ -40,15 +40,6 @@ describe('ProcessesController', () => {
       controllers: [ProcessesController],
       providers: [
         { provide: ProcessesService, useValue: serviceMock },
-        {
-          provide: RedisCacheService,
-          useValue: {
-            get: jest.fn(),
-            set: jest.fn(),
-            del: jest.fn().mockResolvedValue(undefined),
-            invalidateByPattern: jest.fn().mockResolvedValue(undefined),
-          },
-        },
         Reflector,
       ],
     }).compile();

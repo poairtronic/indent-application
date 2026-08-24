@@ -5,7 +5,7 @@ import { BusinessTransactionValidator } from '../validators/business-transaction
 import { WorkflowStateMachineService } from '../services/workflow-state-machine.service';
 import { BusinessTransactionEventService } from '../services/business-transaction-event.service';
 import { AttachmentStorageService } from '../services/attachment-storage.service';
-import { RedisCacheService } from '../../redis-cache/redis-cache.service';
+
 import { DocumentNumberService } from '../../common/services/document-number.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WorkflowState } from '../enums/workflow-state.enum';
@@ -104,7 +104,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         { provide: WorkflowStateMachineService, useValue: mockWorkflowStateMachine },
         { provide: BusinessTransactionEventService, useValue: mockEventService },
         { provide: AttachmentStorageService, useValue: mockAttachmentStorage },
-        { provide: RedisCacheService, useValue: mockCacheService },
+        
         { provide: DocumentNumberService, useValue: mockDocumentNumberService },
       ],
     }).compile();

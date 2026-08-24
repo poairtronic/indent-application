@@ -45,12 +45,6 @@ describe('UnitsService', () => {
       providers: [
         UnitsService,
         { provide: PrismaService, useValue: prismaMock },
-        {
-          provide: RedisCacheService,
-          useValue: {
-            invalidateByPattern: jest.fn().mockResolvedValue(undefined),
-          },
-        },
       ],
     }).compile();
 

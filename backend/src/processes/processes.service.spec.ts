@@ -43,12 +43,6 @@ describe('ProcessesService', () => {
       providers: [
         ProcessesService,
         { provide: PrismaService, useValue: prismaMock },
-        {
-          provide: RedisCacheService,
-          useValue: {
-            invalidateByPattern: jest.fn().mockResolvedValue(undefined),
-          },
-        },
       ],
     }).compile();
 

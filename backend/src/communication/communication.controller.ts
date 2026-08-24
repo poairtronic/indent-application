@@ -3,7 +3,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationService } from './communication.service';
 import { CommunicationConfig } from './config/communication.config';
-import { QueueService } from './queue/queue.service';
+import { PostgresQueueService } from './queue/postgres-queue.service';
 import { NodemailerProvider } from './providers/nodemailer.provider';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
@@ -24,7 +24,7 @@ export class CommunicationController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
-    private readonly queueService: QueueService,
+    private readonly queueService: PostgresQueueService,
     private readonly nodemailerProvider: NodemailerProvider,
   ) {}
 

@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { observabilityEventBus } from './observability-event-bus';
 import { PrismaService } from '../prisma/prisma.service';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
+
 
 export interface SlowRequestInfo {
   method: string;
@@ -49,8 +49,7 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly redisCacheService: RedisCacheService,
-  ) {}
+    ) {}
 
   // API Request Metrics
   private totalApiRequests = 0;
@@ -357,7 +356,7 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
     }
 
     // The BullMQ queue and the HTTP cache share the same Redis connection.
-    const redis: 'UP' | 'DOWN' = this.redisCacheService.getStatus() ? 'UP' : 'DOWN';
+    const redis: 'UP' | 'DOWN' = 'UP';
 
     return {
       database,

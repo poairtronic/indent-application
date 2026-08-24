@@ -10,6 +10,8 @@ import { NotificationDispatcher } from './dispatcher/notification.dispatcher';
 import { QueueService } from './queue/queue.service';
 import { QueueProcessor } from './queue/queue.processor';
 import { MailWorker } from './queue/mail.worker';
+import { PostgresQueueService } from './queue/postgres-queue.service';
+import { PostgresMailWorker } from './queue/postgres-mail.worker';
 
 @Global()
 @Module({
@@ -25,7 +27,9 @@ import { MailWorker } from './queue/mail.worker';
     QueueService,
     QueueProcessor,
     MailWorker,
+    PostgresQueueService,
+    PostgresMailWorker,
   ],
-  exports: [CommunicationService, CommunicationEventBus, QueueService],
+  exports: [CommunicationService, CommunicationEventBus, QueueService, PostgresQueueService],
 })
 export class CommunicationModule {}
