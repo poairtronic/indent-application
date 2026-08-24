@@ -128,7 +128,11 @@ export function createErrorInterceptor(
       if (!originalRequest.headers) {
         originalRequest.headers = {} as any;
       }
-      originalRequest.headers.Authorization = `Bearer ${storedAccessToken}`;
+      if (typeof (originalRequest.headers as any).set === 'function') {
+        (originalRequest.headers as any).set('Authorization', `Bearer ${storedAccessToken}`);
+      } else {
+        originalRequest.headers.Authorization = `Bearer ${storedAccessToken}`;
+      }
       return apiClient(originalRequest) as Promise<never>;
     }
 
@@ -141,7 +145,11 @@ export function createErrorInterceptor(
         if (!originalRequest.headers) {
           originalRequest.headers = {} as any;
         }
-        originalRequest.headers.Authorization = `Bearer ${token}`;
+        if (typeof (originalRequest.headers as any).set === 'function') {
+          (originalRequest.headers as any).set('Authorization', `Bearer ${token}`);
+        } else {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+        }
         return apiClient(originalRequest) as Promise<never>;
       });
     }
@@ -184,7 +192,11 @@ export function createErrorInterceptor(
       if (!originalRequest.headers) {
         originalRequest.headers = {} as any;
       }
-      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      if (typeof (originalRequest.headers as any).set === 'function') {
+        (originalRequest.headers as any).set('Authorization', `Bearer ${newAccessToken}`);
+      } else {
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      }
 
       return apiClient(originalRequest) as Promise<never>;
     } catch (refreshError) {

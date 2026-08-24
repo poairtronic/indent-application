@@ -9,12 +9,12 @@ export function createAuthInterceptor() {
 
     if (!isAuthenticated || !accessToken) return config;
 
-    // Attach the token even if it may be expired.
-    // The backend will return 401 if truly expired, and the error interceptor
-    // will handle token refresh + request retry. Previously, we proactively
-    // logged out here which prevented the refresh mechanism from ever running.
     if (config.headers) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+      if (typeof config.headers.set === 'function') {
+        config.headers.set('Authorization', `Bearer ${accessToken}`);
+      } else {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
     }
     return config;
   };
