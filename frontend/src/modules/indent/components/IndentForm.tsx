@@ -897,9 +897,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       const existingCostItem = watchedCostItems?.[index];
       const rate = existingCostItem?.predictedRate || 0;
       const qty = item?.quantity || 0;
-      
+
       const actRate = existingCostItem?.actualRate;
-      
+
       return {
         materialName: item?.materialName || '',
         predictedRate: rate,
@@ -907,7 +907,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({
         // User requested: Design team enters the total directly in Est Rate, so don't multiply predicted Amount by quantity.
         predictedAmount: rate,
         actualRate: actRate,
-        actualAmount: (actRate !== undefined && actRate !== null) ? actRate * qty : existingCostItem?.actualAmount,
+        actualAmount:
+          actRate !== undefined && actRate !== null
+            ? actRate * qty
+            : existingCostItem?.actualAmount,
       };
     });
 
