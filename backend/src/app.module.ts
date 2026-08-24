@@ -1,8 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import Redis from 'ioredis';
+
 import { UsersModule } from './users/users.module';
 import { ProcessesModule } from './processes/processes.module';
 import { UnitsModule } from './units/units.module';
@@ -33,7 +32,6 @@ import { CorrelationIdMiddleware } from './observability/correlation-id.middlewa
 import { ApiMonitoringMiddleware } from './observability/api-monitoring.middleware';
 
 import { ScheduleModule } from '@nestjs/schedule';
-import { getInfrastructureRedisConfig } from './config/infra-redis.config';
 
 @Module({
   imports: [
@@ -66,15 +64,6 @@ import { getInfrastructureRedisConfig } from './config/infra-redis.config';
             limit: 300,
           },
         ],
-        storage:
-          process.env.NODE_ENV === 'production'
-            ? new ThrottlerStorageRedisService(
-                new Redis({
-                  ...getInfrastructureRedisConfig(),
-                  keyPrefix: 'throttler:',
-                }),
-              )
-            : undefined,
         getTracker: (req: Record<string, any>) => {
           return req.user?.id || req.ip;
         },

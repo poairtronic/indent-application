@@ -118,9 +118,7 @@ function resolveAllowedEventTypes(
 @ApiBearerAuth()
 @Controller('notifications')
 export class NotificationsController {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   @Get()
   @Permissions('notifications.view')

@@ -5,9 +5,7 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 
 @Injectable()
 export class RolesService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateRoleDto) {
     const existing = await this.prisma.role.findUnique({
@@ -188,8 +186,6 @@ export class RolesService {
         skipDuplicates: true,
       });
     }
-
-
 
     return this.findOne(id);
   }
