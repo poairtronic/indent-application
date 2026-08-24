@@ -60,6 +60,29 @@ export function usePrefetch() {
           });
         })
         .catch(() => {});
+
+      import('../api/services/units/service')
+        .then((m) => {
+          queryClient.prefetchQuery({
+            queryKey: [...queryKeys.units.list('units'), { page: 1, limit: 1000 }],
+            queryFn: () => m.unitService.list({ page: 1, limit: 1000 }),
+            staleTime: 5 * 60 * 1000,
+          });
+        })
+        .catch(() => {});
+
+      import('../api/services/processes/service')
+        .then((m) => {
+          queryClient.prefetchQuery({
+            queryKey: [
+              ...queryKeys.processes.list('manufacturing-processes'),
+              { page: 1, limit: 1000 },
+            ],
+            queryFn: () => m.processService.list({ page: 1, limit: 1000 }),
+            staleTime: 5 * 60 * 1000,
+          });
+        })
+        .catch(() => {});
     }
 
     if (path.includes('/workflow')) {

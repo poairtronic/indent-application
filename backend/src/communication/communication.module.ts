@@ -21,7 +21,9 @@ import { PostgresMailWorker } from './queue/postgres-mail.worker';
     RecipientResolver,
     CommunicationEventBus,
     NotificationDispatcher,
-                Postgres    Postgres  ],
-  exports: [CommunicationService, CommunicationEventBus,  PostgresQueueService],
+    PostgresQueueService,
+    PostgresMailWorker,
+  ],
+  exports: [CommunicationService, CommunicationEventBus, PostgresQueueService],
 })
 export class CommunicationModule {}

@@ -8,17 +8,19 @@ async function run() {
 
   let requests = [];
 
-  page.on('request', request => {
+  page.on('request', (request) => {
     requests.push({
       url: request.url(),
       method: request.method(),
       resourceType: request.resourceType(),
-      startTime: Date.now()
+      startTime: Date.now(),
     });
   });
 
-  page.on('response', response => {
-    const req = requests.find(r => r.url === response.url() && r.method === response.request().method());
+  page.on('response', (response) => {
+    const req = requests.find(
+      (r) => r.url === response.url() && r.method === response.request().method(),
+    );
     if (req) {
       req.status = response.status();
       req.endTime = Date.now();
@@ -35,10 +37,7 @@ async function run() {
   console.log('--- Logging In ---');
   await page.fill('input[name="email"]', 'admin@indent.com');
   await page.fill('input[name="password"]', 'Password123!');
-  await Promise.all([
-    page.waitForNavigation(),
-    page.click('button[type="submit"]')
-  ]);
+  await Promise.all([page.waitForNavigation(), page.click('button[type="submit"]')]);
   await page.waitForTimeout(2000);
 
   console.log('--- Dashboard to Indents ---');
@@ -50,10 +49,12 @@ async function run() {
   await page.waitForTimeout(2000);
 
   console.log('--- Writing Results ---');
-  
-  const apiRequests = requests.filter(r => r.url.includes('/api/'));
-  
-  const report = apiRequests.map(r => `${r.method} ${r.url} - ${r.status} - ${r.duration}ms`).join('\n');
+
+  const apiRequests = requests.filter((r) => r.url.includes('/api/'));
+
+  const report = apiRequests
+    .map((r) => `${r.method} ${r.url} - ${r.status} - ${r.duration}ms`)
+    .join('\n');
   fs.writeFileSync('waterfall-before.txt', report);
 
   console.log('Done.');

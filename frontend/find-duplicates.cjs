@@ -36,6 +36,6 @@ for (const res of results) {
 for (const [key, locations] of Object.entries(grouped)) {
   if (locations.length > 1) {
     console.log(`\nDuplicate Query Key: ${key}`);
-    locations.forEach(loc => console.log(`  - ${loc}`));
+    locations.forEach((loc) => console.log(`  - ${loc}`));
   }
 }

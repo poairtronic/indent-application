@@ -11,7 +11,6 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { Request } from 'express';
 import { NotificationQueryDto } from '../common/dto/pagination-query.dto';
 
@@ -122,7 +121,6 @@ export class NotificationsController {
 
   @Get()
   @Permissions('notifications.view')
-  @Cache('user:notifications', 60)
   @ApiOperation({ summary: 'List notifications for the current user' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })

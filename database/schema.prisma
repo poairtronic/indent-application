@@ -1476,3 +1476,29 @@ model DocumentSequence {
   @@map("document_sequences")
 }
 
+
+enum EmailJobStatus {
+  PENDING
+  PROCESSING
+  FAILED
+  DEAD_LETTER
+}
+
+model EmailJob {
+  id          String         @id @db.VarChar(255)
+  payload     Json
+  status      EmailJobStatus @default(PENDING)
+  attempts    Int            @default(0)
+  maxAttempts Int            @default(4)
+  lastError   String?        @db.Text
+  lockedAt    DateTime?      @db.Timestamptz(6)
+  lockedBy    String?        @db.VarChar(255)
+  priority    Int            @default(0)
+  availableAt DateTime       @default(now()) @db.Timestamptz(6)
+  createdAt   DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime       @updatedAt @db.Timestamptz(6)
+
+  @@index([status, availableAt, priority, createdAt])
+  @@map("email_jobs")
+}
+

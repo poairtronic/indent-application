@@ -101,8 +101,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    await this.accountSecurityService.resetFailedAttempts(user.id);
-
     const accessToken = await this.tokenService.generateAccessToken(user.id, user.email);
     const refreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);
 

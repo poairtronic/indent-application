@@ -14,6 +14,9 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
   private pollTimer: NodeJS.Timeout | null = null;
   private concurrency: number;
   private activeJobs = 0;
+  private basePollInterval = 2000;
+  private maxPollInterval = 10000;
+  private currentPollInterval = 2000;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -28,16 +31,30 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     this.logger.log(
       `Starting PostgresMailWorker (ID: ${this.workerId}, Concurrency: ${this.concurrency})`,
     );
-    this.pollTimer = setInterval(() => this.poll(), 2000); // Poll every 2s
+    this.scheduleNextPoll(this.basePollInterval);
 
     // Recovery of stuck jobs
     setInterval(() => this.recoverStuckJobs(), 60000);
   }
 
+  private scheduleNextPoll(delayMs: number) {
+    if (this.isShuttingDown) return;
+    this.pollTimer = setTimeout(() => {
+      this.poll().then((jobsClaimed) => {
+        if (jobsClaimed > 0) {
+          this.currentPollInterval = this.basePollInterval;
+        } else {
+          this.currentPollInterval = Math.min(this.currentPollInterval * 2, this.maxPollInterval);
+        }
+        this.scheduleNextPoll(this.currentPollInterval);
+      });
+    }, delayMs);
+  }
+
   onModuleDestroy() {
     this.isShuttingDown = true;
     if (this.pollTimer) {
-      clearInterval(this.pollTimer);
+      clearTimeout(this.pollTimer);
     }
     this.logger.log('PostgresMailWorker shutting down.');
   }
@@ -66,11 +83,11 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async poll() {
-    if (this.isShuttingDown) return;
+  private async poll(): Promise<number> {
+    if (this.isShuttingDown) return 0;
 
     const availableSlots = this.concurrency - this.activeJobs;
-    if (availableSlots <= 0) return;
+    if (availableSlots <= 0) return 0;
 
     try {
       // Atomic claim
@@ -96,9 +113,12 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
             this.activeJobs--;
           });
         }
+        return claimedJobs.length;
       }
+      return 0;
     } catch (error) {
       this.logger.error('Error polling email_jobs', error);
+      return 0;
     }
   }
 

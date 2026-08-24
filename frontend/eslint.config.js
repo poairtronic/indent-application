@@ -13,6 +13,7 @@ export default tseslint.config(
       'vite.config.ts',
       'postcss.config.js',
       'prettier.config.cjs',
+      '**/*.cjs',
     ],
   },
   eslint.configs.recommended,

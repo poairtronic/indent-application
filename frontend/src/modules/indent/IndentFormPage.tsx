@@ -33,11 +33,9 @@ export const IndentFormPage: React.FC = () => {
           }
 
           if (!targetId) {
-            alert('Create transaction succeeded but no valid transaction ID was returned. Navigating to list.');
-            navigate('/indents');
+            console.error('Create transaction succeeded but no valid transaction ID was returned.');
             return;
           }
-          
           navigate(`/indents/${targetId}`);
         },
         onError: (err: any) => {

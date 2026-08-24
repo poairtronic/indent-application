@@ -148,7 +148,6 @@ describe('AuthService', () => {
         mockUser.id,
         mockUser,
       );
-      expect(mockAccountSecurityService.resetFailedAttempts).toHaveBeenCalledWith(mockUser.id);
       expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
 

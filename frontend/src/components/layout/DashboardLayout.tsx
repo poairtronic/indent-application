@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Breadcrumbs } from '../ui/Breadcrumbs';
+import { usePrefetch } from '../../hooks/usePrefetch';
 
 export const DashboardLayout: React.FC = () => {
+  const { prefetchPath } = usePrefetch();
+
+  useEffect(() => {
+    // Eagerly prefetch master data needed for core flows (like Indent creation)
+    // to improve user-perceived performance and prevent waterfalls on navigation
+    prefetchPath('/indents');
+  }, [prefetchPath]);
+
   return (
     <div className="flex h-screen bg-background-primary text-text-primary font-sans transition-colors duration-300 overflow-hidden">
       <Sidebar />
