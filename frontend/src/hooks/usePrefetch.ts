@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../api/hooks/query-keys';
+import { useAuthStore } from '../store/authStore';
 
 export function usePrefetch() {
   const queryClient = useQueryClient();
@@ -7,15 +8,17 @@ export function usePrefetch() {
   const prefetchPath = (path: string) => {
     if (path.includes('/dashboard')) {
       import('../pages/DashboardPage').catch(() => {});
-      import('../api/services/analytics/service')
-        .then((m) => {
-          queryClient.prefetchQuery({
-            queryKey: ['analytics', 'dashboard-overview'],
-            queryFn: () => m.analyticsService.getDashboardOverview(),
-            staleTime: 60 * 1000,
-          });
-        })
-        .catch(() => {});
+      if (useAuthStore.getState().hasPermission('analytics.view')) {
+        import('../api/services/analytics/service')
+          .then((m) => {
+            queryClient.prefetchQuery({
+              queryKey: ['analytics', 'dashboard-overview'],
+              queryFn: () => m.analyticsService.getDashboardOverview(),
+              staleTime: 60 * 1000,
+            });
+          })
+          .catch(() => {});
+      }
     }
 
     if (path.includes('/indents') && !path.includes('create')) {
@@ -31,58 +34,68 @@ export function usePrefetch() {
         .catch(() => {});
 
       // Safe to prefetch master data for "New Indent" using the EXACT same keys the form uses
-      import('../api/services/materials/service')
-        .then((m) => {
-          queryClient.prefetchQuery({
-            queryKey: [...queryKeys.materials.list('materials'), { page: 1, limit: 1000 }],
-            queryFn: () => m.materialService.list({ page: 1, limit: 1000 }),
-            staleTime: 5 * 60 * 1000,
-          });
-        })
-        .catch(() => {});
+      if (useAuthStore.getState().hasPermission('materials.view')) {
+        import('../api/services/materials/service')
+          .then((m) => {
+            queryClient.prefetchQuery({
+              queryKey: [...queryKeys.materials.list('materials'), { page: 1, limit: 1000 }],
+              queryFn: () => m.materialService.list({ page: 1, limit: 1000 }),
+              staleTime: 5 * 60 * 1000,
+            });
+          })
+          .catch(() => {});
+      }
 
-      import('../api/services/products/service')
-        .then((m) => {
-          queryClient.prefetchQuery({
-            queryKey: [...queryKeys.products.list('products'), { page: 1, limit: 1000 }],
-            queryFn: () => m.productService.list({ page: 1, limit: 1000 }),
-            staleTime: 5 * 60 * 1000,
-          });
-        })
-        .catch(() => {});
+      if (useAuthStore.getState().hasPermission('products.view')) {
+        import('../api/services/products/service')
+          .then((m) => {
+            queryClient.prefetchQuery({
+              queryKey: [...queryKeys.products.list('products'), { page: 1, limit: 1000 }],
+              queryFn: () => m.productService.list({ page: 1, limit: 1000 }),
+              staleTime: 5 * 60 * 1000,
+            });
+          })
+          .catch(() => {});
+      }
 
-      import('../api/services/vendors/service')
-        .then((m) => {
-          queryClient.prefetchQuery({
-            queryKey: [...queryKeys.vendors.list('vendors'), { page: 1, limit: 1000 }],
-            queryFn: () => m.vendorService.list({ page: 1, limit: 1000 }),
-            staleTime: 5 * 60 * 1000,
-          });
-        })
-        .catch(() => {});
+      if (useAuthStore.getState().hasPermission('vendors.view')) {
+        import('../api/services/vendors/service')
+          .then((m) => {
+            queryClient.prefetchQuery({
+              queryKey: [...queryKeys.vendors.list('vendors'), { page: 1, limit: 1000 }],
+              queryFn: () => m.vendorService.list({ page: 1, limit: 1000 }),
+              staleTime: 5 * 60 * 1000,
+            });
+          })
+          .catch(() => {});
+      }
 
-      import('../api/services/units/service')
-        .then((m) => {
-          queryClient.prefetchQuery({
-            queryKey: [...queryKeys.units.list('units'), { page: 1, limit: 1000 }],
-            queryFn: () => m.unitService.list({ page: 1, limit: 1000 }),
-            staleTime: 5 * 60 * 1000,
-          });
-        })
-        .catch(() => {});
+      if (useAuthStore.getState().hasPermission('units.view')) {
+        import('../api/services/units/service')
+          .then((m) => {
+            queryClient.prefetchQuery({
+              queryKey: [...queryKeys.units.list('units'), { page: 1, limit: 1000 }],
+              queryFn: () => m.unitService.list({ page: 1, limit: 1000 }),
+              staleTime: 5 * 60 * 1000,
+            });
+          })
+          .catch(() => {});
+      }
 
-      import('../api/services/processes/service')
-        .then((m) => {
-          queryClient.prefetchQuery({
-            queryKey: [
-              ...queryKeys.processes.list('manufacturing-processes'),
-              { page: 1, limit: 1000 },
-            ],
-            queryFn: () => m.processService.list({ page: 1, limit: 1000 }),
-            staleTime: 5 * 60 * 1000,
-          });
-        })
-        .catch(() => {});
+      if (useAuthStore.getState().hasPermission('manufacturing-processes.view')) {
+        import('../api/services/processes/service')
+          .then((m) => {
+            queryClient.prefetchQuery({
+              queryKey: [
+                ...queryKeys.processes.list('manufacturing-processes'),
+                { page: 1, limit: 1000 },
+              ],
+              queryFn: () => m.processService.list({ page: 1, limit: 1000 }),
+              staleTime: 5 * 60 * 1000,
+            });
+          })
+          .catch(() => {});
+      }
     }
 
     if (path.includes('/workflow')) {
