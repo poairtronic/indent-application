@@ -668,9 +668,19 @@ export class BusinessTransactionService {
     }
 
     // Use currentState column for direct domain WorkflowState filtering
-    const requestedDomainState = query.state as WorkflowState | undefined;
-    if (requestedDomainState) {
-      where.currentState = requestedDomainState;
+    // Support comma-separated workflow states so module queues can be fetched
+    // server-side. This keeps pagination and totals correct instead of
+    // filtering only the current page in the browser.
+    const requestedDomainStates = String(query.state ?? '')
+      .split(',')
+      .map((state) => state.trim())
+      .filter((state): state is WorkflowState =>
+        Object.values(WorkflowState).includes(state as WorkflowState),
+      );
+    if (requestedDomainStates.length === 1) {
+      where.currentState = requestedDomainStates[0];
+    } else if (requestedDomainStates.length > 1) {
+      where.currentState = { in: requestedDomainStates };
     }
 
     // Unambiguous or no state filter: use standard DB pagination

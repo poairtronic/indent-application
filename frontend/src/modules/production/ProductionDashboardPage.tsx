@@ -32,7 +32,8 @@ export const ProductionDashboardPage: React.FC = () => {
     page: filters.page,
     limit: filters.limit,
     search: search || undefined,
-    state: (filters.status || undefined) as WorkflowState | undefined,
+    state: (filters.status ||
+      'STORES_PROCESSING,MATERIALS_ISSUED,PRODUCTION_PROCESSING,PRODUCTION_COMPLETED') as WorkflowState | undefined,
     departmentId: filters.departmentId || undefined,
   };
 
@@ -60,17 +61,8 @@ export const ProductionDashboardPage: React.FC = () => {
   const total = data?.total ?? (data as any)?.meta?.total ?? 0;
   const totalPages = data?.totalPages ?? (data as any)?.meta?.totalPages ?? 1;
 
-  // Filter local items to only show production relevant ones if no explicit status filter is set
-  const productionStatuses = [
-    'STORES_PROCESSING',
-    'MATERIALS_ISSUED',
-    'PRODUCTION_PROCESSING',
-    'PRODUCTION_COMPLETED',
-  ];
-
-  const displayItems = filters.status
-    ? items
-    : items.filter((item: any) => productionStatuses.includes(item.currentState));
+  // The backend applies the queue state filter before pagination.
+  const displayItems = items;
 
   return (
     <div className="space-y-6">
@@ -153,8 +145,8 @@ export const ProductionDashboardPage: React.FC = () => {
         pagination={{
           page: filters.page,
           limit: filters.limit,
-          total: filters.status ? total : displayItems.length,
-          totalPages: filters.status ? totalPages : 1,
+          total,
+          totalPages,
         }}
         onPageChange={handlePageChange}
         viewMode={viewMode}
