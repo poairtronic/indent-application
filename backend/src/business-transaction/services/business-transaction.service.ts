@@ -299,7 +299,8 @@ export class BusinessTransactionService {
                 vendorId: ci.vendorId || null,
                 predictedRate: roundTo4Decimals(ci.predictedRate),
                 predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
-                predictedAmount: safeMultiply(ci.predictedRate, ci.predictedQuantity),
+                // User requirement: Design team enters total directly, so use DTO predictedAmount
+                predictedAmount: roundTo4Decimals(ci.predictedAmount ?? ci.predictedRate),
                 remarks: ci.remarks || null,
               })),
             },
@@ -935,7 +936,8 @@ export class BusinessTransactionService {
                 vendorId: ci.vendorId || null,
                 predictedRate: roundTo4Decimals(ci.predictedRate),
                 predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
-                predictedAmount: safeMultiply(ci.predictedRate, ci.predictedQuantity),
+                // User requirement: Design team enters total directly, so use DTO predictedAmount
+                predictedAmount: roundTo4Decimals(ci.predictedAmount ?? ci.predictedRate),
                 remarks: ci.remarks || null,
               })),
             });

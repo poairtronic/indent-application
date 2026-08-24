@@ -177,8 +177,11 @@ export const CostSheetDetailsPage: React.FC = () => {
     cs.processCosts?.reduce((a, c) => a + (Number(c.actualCost) || 0), 0) || 0;
   const processVariance = actualProcessCost - plannedProcessCost;
 
+  const isExecutingRef = React.useRef(false);
+
   const handleSaveActuals = async () => {
-    if (!id) return;
+    if (!id || isExecutingRef.current) return;
+    isExecutingRef.current = true;
     const payload = {
       costItems: Object.entries(actuals.materials).map(([costItemId, vals]) => ({
         costItemId,
@@ -197,11 +200,14 @@ export const CostSheetDetailsPage: React.FC = () => {
       show('success', 'Actual costs updated successfully!');
     } catch {
       show('error', 'Failed to save actual costs. Please try again.');
+    } finally {
+      isExecutingRef.current = false;
     }
   };
 
   const handleFinancialClose = async () => {
-    if (!id) return;
+    if (!id || isExecutingRef.current) return;
+    isExecutingRef.current = true;
     try {
       await financialClose({
         id,
@@ -210,6 +216,8 @@ export const CostSheetDetailsPage: React.FC = () => {
       show('success', 'Cost Sheet finalized successfully!');
     } catch {
       show('error', 'Failed to finalize cost sheet. Please try again.');
+    } finally {
+      isExecutingRef.current = false;
     }
   };
 

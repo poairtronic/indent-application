@@ -897,13 +897,17 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       const existingCostItem = watchedCostItems?.[index];
       const rate = existingCostItem?.predictedRate || 0;
       const qty = item?.quantity || 0;
+      
+      const actRate = existingCostItem?.actualRate;
+      
       return {
         materialName: item?.materialName || '',
         predictedRate: rate,
         predictedQuantity: qty,
-        predictedAmount: rate * qty,
-        actualRate: existingCostItem?.actualRate,
-        actualAmount: existingCostItem?.actualAmount,
+        // User requested: Design team enters the total directly in Est Rate, so don't multiply predicted Amount by quantity.
+        predictedAmount: rate,
+        actualRate: actRate,
+        actualAmount: (actRate !== undefined && actRate !== null) ? actRate * qty : existingCostItem?.actualAmount,
       };
     });
 
@@ -1480,8 +1484,12 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         valueAsNumber: true,
                         onChange: (e) => {
                           const qty = parseFloat(e.target.value) || 0;
-                          const rate = watchedCostItems?.[index]?.predictedRate || 0;
-                          setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
+                          // User requested: Design team enters the total directly in Est Rate, so don't multiply predicted Amount by quantity.
+                          // However, we still need to recalculate actualAmount if Accounts has entered an actual rate.
+                          const actRate = watchedCostItems?.[index]?.actualRate;
+                          if (actRate !== undefined && actRate !== null) {
+                            setValue(`costSheet.costItems.${index}.actualAmount`, actRate * qty);
+                          }
                         },
                       })}
                       error={errors.indent?.items?.[index]?.quantity?.message}
@@ -1570,8 +1578,8 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                             valueAsNumber: true,
                             onChange: (e) => {
                               const rate = parseFloat(e.target.value) || 0;
-                              const qty = watchedItems?.[index]?.quantity || 0;
-                              setValue(`costSheet.costItems.${index}.predictedAmount`, rate * qty);
+                              // User requested: Design team enters the total directly in Est Rate, do NOT multiply by quantity.
+                              setValue(`costSheet.costItems.${index}.predictedAmount`, rate);
                             },
                           })}
                           error={errors.costSheet?.costItems?.[index]?.predictedRate?.message}

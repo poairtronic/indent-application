@@ -326,8 +326,11 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
 
   if (actions.length === 0) return null;
 
+  const executingRef = React.useRef(false);
+
   const handleConfirm = async () => {
-    if (!confirmAction || isExecuting) return;
+    if (!confirmAction || executingRef.current) return;
+    executingRef.current = true;
     setIsExecuting(true);
     try {
       await confirmAction.config.action(remarks || undefined);
@@ -336,6 +339,7 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
     } catch (error: any) {
       window.alert(error.message || 'An error occurred while performing this action.');
     } finally {
+      executingRef.current = false;
       setIsExecuting(false);
     }
   };
