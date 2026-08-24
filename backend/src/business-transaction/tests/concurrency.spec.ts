@@ -54,7 +54,9 @@ describe('Concurrency & Race Condition Resilience', () => {
         return dbRow;
       }),
       updateMany: jest.fn().mockImplementation(async (args: any) => {
-        if (args.where.currentState !== dbRow.currentState) {
+        // Support both legacy direct currentState and new OR-based WHERE clause
+        const expectedState = args.where.currentState ?? args.where.OR?.[0]?.currentState;
+        if (expectedState !== dbRow.currentState) {
           return { count: 0 }; // Concurrency conflict
         }
         dbRow.currentState = args.data.currentState;

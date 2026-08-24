@@ -87,7 +87,13 @@ export class BusinessTransactionService {
 
   /**
    * Atomically asserts the current workflow state and applies the given update data.
-   * Uses updateMany with a currentState WHERE assertion to prevent concurrent state corruption.
+   * Uses updateMany with a WHERE assertion to prevent concurrent state corruption.
+   *
+   * Matches records where:
+   *   - currentState = expectedCurrentState (populated records), OR
+   *   - currentState IS NULL AND status = expectedPrismaStatus (legacy records where
+   *     currentState column was not yet populated).
+   *
    * If count === 0, the state was already changed by a concurrent request → throws ConflictException.
    */
   private async assertCurrentStateAndUpdate(
@@ -97,8 +103,18 @@ export class BusinessTransactionService {
     tx?: any,
   ): Promise<void> {
     const client = tx || this.prisma;
+
+    // Derive the expected Prisma status from the domain state for null-safe fallback matching
+    const expectedPrismaStatus = WorkflowStateMapper.toPrisma(expectedCurrentState as WorkflowState);
+
     const result = await client.indent.updateMany({
-      where: { id, currentState: expectedCurrentState },
+      where: {
+        id,
+        OR: [
+          { currentState: expectedCurrentState },
+          { currentState: null, status: expectedPrismaStatus },
+        ],
+      },
       data,
     });
     if (result.count === 0) {
