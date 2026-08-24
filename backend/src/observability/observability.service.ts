@@ -463,6 +463,10 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
         queueFailures: this.notificationQueueFailures,
         unreadErrors: this.unreadCountErrors,
       },
+      nodeMetrics: {
+        uptimeSeconds: process.uptime(),
+        memoryUsage: process.memoryUsage(),
+      },
       frontendErrors: {
         totalErrors: this.frontendErrorsHistory.length,
         history: [...this.frontendErrorsHistory].reverse(),
