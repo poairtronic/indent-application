@@ -159,7 +159,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       const duration = Date.now() - startTime;
 
       await this.prisma.$transaction(async (tx) => {
-        await tx.emailJob.delete({ where: { id: job.id } });
+        await tx.emailJob.deleteMany({ where: { id: job.id } });
 
         if (logIds && logIds.length > 0) {
           await tx.emailLog.updateMany({
@@ -184,7 +184,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
 
       if (attempts >= job.maxAttempts) {
         await this.prisma.$transaction(async (tx) => {
-          await tx.emailJob.update({
+          await tx.emailJob.updateMany({
             where: { id: job.id },
             data: {
               status: 'DEAD_LETTER',
@@ -211,7 +211,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
         const backoffDelay = 5 * 60 * 1000 * Math.pow(2, attempts - 1); // Exponential backoff (BullMQ default was 5m base)
 
         await this.prisma.$transaction(async (tx) => {
-          await tx.emailJob.update({
+          await tx.emailJob.updateMany({
             where: { id: job.id },
             data: {
               status: 'PENDING',
