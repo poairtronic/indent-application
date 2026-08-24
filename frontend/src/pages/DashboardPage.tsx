@@ -74,13 +74,12 @@ export const DashboardPage: React.FC = () => {
   const hasIndentCreate = useAuthStore((s) => s.hasAnyPermission(['indent.create']));
   const hasIndentView = useAuthStore((s) => s.hasAnyPermission(['indent.view']));
 
-  const { data: dashboardOverview } = useDashboardOverview(hasAnalyticsAccess);
+  const { data: dashboardOverview, isError: isDashboardError } = useDashboardOverview(hasAnalyticsAccess);
 
   const summary = dashboardOverview?.summary;
   const workflowData = dashboardOverview?.workflow;
   const departmentData = dashboardOverview?.departments;
   const costsData = dashboardOverview?.costs;
-  const productsData = dashboardOverview?.products;
 
   const { data: auditData, isLoading: isAuditLoading } = useAuditLogs(
     {
@@ -166,13 +165,7 @@ export const DashboardPage: React.FC = () => {
       });
     }
 
-    return [
-      { label: 'Design Completed', value: 8, color: MERC_WORKFLOW_PALETTE.design },
-      { label: 'Stores Processing', value: 12, color: MERC_WORKFLOW_PALETTE.stores },
-      { label: 'Production Processing', value: 14, color: MERC_WORKFLOW_PALETTE.production },
-      { label: 'Accounts Verification', value: 6, color: MERC_WORKFLOW_PALETTE.accounts },
-      { label: 'Completed', value: 8, color: MERC_WORKFLOW_PALETTE.completed },
-    ];
+    return [];
   }, [workflowData?.stageDistribution]);
 
   return (
@@ -219,7 +212,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess ? (summary?.totalTransactions ?? 0) : 'N/A'}
+              {hasAnalyticsAccess ? (isDashboardError ? 'Unavailable' : (summary?.totalTransactions ?? '—')) : 'N/A'}
             </span>
             <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-status-success bg-status-success/15 px-2 py-0.5 rounded-full">
               <TrendingUp size={12} />
@@ -240,7 +233,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess ? (summary?.activeTransactions ?? 0) : 'N/A'}
+              {hasAnalyticsAccess ? (isDashboardError ? 'Unavailable' : (summary?.activeTransactions ?? '—')) : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">Active on floor</span>
           </div>
@@ -259,9 +252,7 @@ export const DashboardPage: React.FC = () => {
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
               {hasAnalyticsAccess
-                ? productsData?.products?.length
-                  ? productsData.products.length * 12
-                  : 0
+                ? isDashboardError ? 'Unavailable' : '—'
                 : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">24 Categories</span>
@@ -280,7 +271,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-xl sm:text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess ? formatCurrency(costsData?.totalPlannedCost ?? 0) : 'N/A'}
+              {hasAnalyticsAccess ? (isDashboardError ? 'Unavailable' : costsData ? formatCurrency(costsData.totalPlannedCost) : '—') : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">Active queue</span>
           </div>
@@ -422,7 +413,7 @@ export const DashboardPage: React.FC = () => {
                   Stalled Transactions
                 </span>
                 <span className="text-xl font-black text-status-warning font-mono mt-1 block">
-                  {workflowData?.stalledTransactions ?? 2} Indents
+                  {workflowData?.stalledTransactions ?? '—'} Indents
                 </span>
                 <span className="text-[11px] text-text-muted mt-0.5 block">
                   Unchanged for &gt; 7 days
@@ -436,7 +427,7 @@ export const DashboardPage: React.FC = () => {
               <span className="font-medium leading-snug">
                 Highest Queue Backlog Detected:{' '}
                 <strong className="font-bold font-mono">
-                  {formatWorkflowState((workflowData?.bottleneckStage || 'PENDING_STORES') as any)}
+                  {workflowData?.bottleneckStage ? formatWorkflowState(workflowData.bottleneckStage as any) : '—'}
                 </strong>
               </span>
             </div>

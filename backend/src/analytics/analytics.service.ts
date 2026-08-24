@@ -91,9 +91,10 @@ export class AnalyticsService {
   public async getExecutiveSummary(): Promise<IExecutiveSummary> {
     this.logger.log('Computing executive summary analytics');
 
-    // Fetch all non-deleted indents (group by status using count)
+    // currentState is the authoritative workflow population. `status` is a
+    // legacy projection and cannot distinguish the two-loop workflow states.
     const grouped = await this.prisma.indent.groupBy({
-      by: ['status'],
+      by: ['currentState'],
       where: { isDeleted: false },
       _count: { id: true },
     });
@@ -103,17 +104,18 @@ export class AnalyticsService {
 
     grouped.forEach((row) => {
       const count = row._count.id;
-      statusMap.set(row.status, count);
+      const state = row.currentState ?? 'DRAFT';
+      statusMap.set(state, (statusMap.get(state) ?? 0) + count);
       total += count;
     });
 
     const active = ACTIVE_STATUSES.reduce((sum, s) => sum + (statusMap.get(s) ?? 0), 0);
     const pending = PENDING_STATUSES.reduce((sum, s) => sum + (statusMap.get(s) ?? 0), 0);
-    const completed = statusMap.get(IndentStatus.COMPLETED) ?? 0;
-    const archived = statusMap.get(IndentStatus.PENDING_GENERAL_MANAGER) ?? 0;
+    const completed = statusMap.get('COMPLETED') ?? 0;
+    const archived = statusMap.get('ARCHIVED') ?? 0;
 
     const statusBreakdown: ITransactionStatusBreakdown[] = grouped.map((row) => ({
-      status: STATUS_LABEL_MAP[row.status] ?? row.status,
+      status: STATUS_LABEL_MAP[row.currentState ?? 'DRAFT'] ?? row.currentState ?? 'DRAFT',
       count: row._count.id,
     }));
 
