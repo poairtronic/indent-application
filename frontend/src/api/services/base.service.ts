@@ -149,7 +149,6 @@ export class BaseService {
 
     const response = await apiClient.post<ApiResponse<T>>(path, formData, {
       timeout: TIMEOUTS.UPLOAD,
-      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: onProgress
         ? (progressEvent) => {
             const percent = progressEvent.total
