@@ -19,14 +19,6 @@ services:
         sync: false
       - key: FRONTEND_URL
         value: https://indent-application-frontend.onrender.com
-      - key: REDIS_HOST
-        sync: false
-      - key: REDIS_PORT
-        sync: false
-      - key: REDIS_PASSWORD
-        sync: false
-      - key: REDIS_TLS
-        value: "true"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
