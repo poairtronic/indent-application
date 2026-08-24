@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { AuthUser } from '../api/services/auth/types';
+import { queryClient } from '../api/hooks/query-client';
 
 interface AuthState {
   user: AuthUser | null;
@@ -92,6 +93,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     clearPersistedState();
+    queryClient.clear();
     set({
       accessToken: null,
       refreshToken: null,

@@ -219,7 +219,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {summary?.totalTransactions ?? 48}
+              {hasAnalyticsAccess ? (summary?.totalTransactions ?? 0) : 'N/A'}
             </span>
             <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-status-success bg-status-success/15 px-2 py-0.5 rounded-full">
               <TrendingUp size={12} />
@@ -240,7 +240,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {summary?.activeTransactions ?? 12}
+              {hasAnalyticsAccess ? (summary?.activeTransactions ?? 0) : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">Active on floor</span>
           </div>
@@ -258,7 +258,11 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {productsData?.products?.length ? productsData.products.length * 12 : 156}
+              {hasAnalyticsAccess
+                ? productsData?.products?.length
+                  ? productsData.products.length * 12
+                  : 0
+                : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">24 Categories</span>
           </div>
@@ -276,7 +280,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-xl sm:text-2xl font-black text-text-primary tracking-tight font-mono">
-              {formatCurrency(costsData?.totalPlannedCost ?? 4832150)}
+              {hasAnalyticsAccess ? formatCurrency(costsData?.totalPlannedCost ?? 0) : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">Active queue</span>
           </div>

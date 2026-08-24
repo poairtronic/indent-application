@@ -48,22 +48,24 @@ function getRetryDelay(failureCount: number): number {
   return Math.min(1000 * 2 ** (failureCount - 1), 8000);
 }
 
-export function createQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 5 * 60 * 1000,
-        gcTime: 10 * 60 * 1000,
-        retry: shouldRetryQuery,
-        retryDelay: getRetryDelay,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: 'always',
-        throwOnError: false,
-      },
-      mutations: {
-        retry: false,
-        throwOnError: false,
-      },
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: shouldRetryQuery,
+      retryDelay: getRetryDelay,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: 'always',
+      throwOnError: false,
     },
-  });
+    mutations: {
+      retry: false,
+      throwOnError: false,
+    },
+  },
+});
+
+export function createQueryClient(): QueryClient {
+  return queryClient;
 }
