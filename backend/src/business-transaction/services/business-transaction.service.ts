@@ -21,7 +21,6 @@ import {
 } from '../dto/create-business-transaction.dto';
 import { StoresIssueDto } from '../dto/stores-issue.dto';
 import { ProductionUpdateDto } from '../dto/production-update.dto';
-import { RedisCacheService } from '../../redis-cache/redis-cache.service';
 import { validateFileSignature } from '../../common/utils/file-validator.util';
 import {
   safeMultiply,
@@ -43,21 +42,12 @@ export class BusinessTransactionService {
     private readonly workflowStateMachine: WorkflowStateMachineService,
     private readonly eventService: BusinessTransactionEventService,
     private readonly attachmentStorage: AttachmentStorageService,
-    private readonly cacheService: RedisCacheService,
     private readonly documentNumberService: DocumentNumberService,
   ) {}
 
   private invalidateMetadataCache(): void {
     try {
-      Promise.all([
-        this.cacheService.invalidateByPattern('master:products:*'),
-        this.cacheService.invalidateByPattern('master:departments:*'),
-        this.cacheService.invalidateByPattern('master:materials:*'),
-        this.cacheService.invalidateByPattern('reports:master-data:products:*'),
-        this.cacheService.invalidateByPattern('analytics:summary'),
-        this.cacheService.invalidateByPattern('analytics:kpis:*'),
-        this.cacheService.invalidateByPattern('analytics:insights:*'),
-      ]).catch((err) =>
+      Promise.all([]).catch((err) =>
         this.logger.warn(`Failed to invalidate metadata cache async: ${err.message}`),
       );
     } catch (err) {
@@ -67,15 +57,7 @@ export class BusinessTransactionService {
 
   private invalidateWorkflowCache(): void {
     try {
-      Promise.all([
-        this.cacheService.invalidateByPattern('analytics:summary'),
-        this.cacheService.invalidateByPattern('analytics:workflow'),
-        this.cacheService.invalidateByPattern('analytics:departments'),
-        this.cacheService.invalidateByPattern('analytics:kpis:*'),
-        this.cacheService.invalidateByPattern('analytics:insights:*'),
-        this.cacheService.invalidateByPattern('reports:production:*'),
-        this.cacheService.invalidateByPattern('reports:workflow:*'),
-      ]).catch((err) =>
+      Promise.all([]).catch((err) =>
         this.logger.warn(`Failed to invalidate workflow cache async: ${err.message}`),
       );
     } catch (err) {
@@ -85,14 +67,9 @@ export class BusinessTransactionService {
 
   private invalidateCostCache(): void {
     try {
-      Promise.all([
-        this.cacheService.invalidateByPattern('analytics:costs:*'),
-        this.cacheService.invalidateByPattern('analytics:summary'),
-        this.cacheService.invalidateByPattern('analytics:kpis:*'),
-        this.cacheService.invalidateByPattern('analytics:insights:*'),
-        this.cacheService.invalidateByPattern('reports:cost:*'),
-        this.cacheService.invalidateByPattern('reports:production:*'),
-      ]).catch((err) => this.logger.warn(`Failed to invalidate cost cache async: ${err.message}`));
+      Promise.all([]).catch((err) =>
+        this.logger.warn(`Failed to invalidate cost cache async: ${err.message}`),
+      );
     } catch (err) {
       this.logger.warn(`Failed to trigger cost cache invalidation: ${err.message}`);
     }
@@ -100,10 +77,9 @@ export class BusinessTransactionService {
 
   private invalidateAllCache(): void {
     try {
-      Promise.all([
-        this.cacheService.invalidateByPattern('reports:*'),
-        this.cacheService.invalidateByPattern('analytics:*'),
-      ]).catch((err) => this.logger.warn(`Failed to invalidate all cache async: ${err.message}`));
+      Promise.all([]).catch((err) =>
+        this.logger.warn(`Failed to invalidate all cache async: ${err.message}`),
+      );
     } catch (err) {
       this.logger.warn(`Failed to trigger all cache invalidation: ${err.message}`);
     }

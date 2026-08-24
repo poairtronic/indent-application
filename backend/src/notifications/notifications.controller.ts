@@ -11,7 +11,6 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
 import { Cache } from '../redis-cache/decorators/cache.decorator';
 import { Request } from 'express';
 import { NotificationQueryDto } from '../common/dto/pagination-query.dto';
@@ -121,7 +120,6 @@ function resolveAllowedEventTypes(
 export class NotificationsController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cacheService: RedisCacheService,
   ) {}
 
   @Get()

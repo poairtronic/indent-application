@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 
@@ -8,7 +7,6 @@ import { UpdateRoleDto } from './dto/update-role.dto';
 export class RolesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly cacheService: RedisCacheService,
   ) {}
 
   async create(dto: CreateRoleDto) {
@@ -191,17 +189,7 @@ export class RolesService {
       });
     }
 
-    // Invalidate JWT session cache for all users with this role
-    // so they pick up the new permissions on next request
-    try {
-      const usersWithRole = await this.prisma.user.findMany({
-        where: { roleId: id, isDeleted: false },
-        select: { id: true },
-      });
-      await Promise.all(usersWithRole.map((u) => this.cacheService.del(`user:session:${u.id}`)));
-    } catch {
-      // Best-effort cache invalidation; stale entries expire in ≤5 min
-    }
+
 
     return this.findOne(id);
   }
