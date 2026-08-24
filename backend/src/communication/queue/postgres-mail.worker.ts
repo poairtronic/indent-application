@@ -51,12 +51,28 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     }, delayMs);
   }
 
-  onModuleDestroy() {
+  async onModuleDestroy() {
     this.isShuttingDown = true;
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
     }
-    this.logger.log('PostgresMailWorker shutting down.');
+    this.logger.log(
+      `PostgresMailWorker shutting down. Waiting for ${this.activeJobs} active jobs to finish...`,
+    );
+
+    let waitTime = 0;
+    while (this.activeJobs > 0 && waitTime < 10000) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      waitTime += 500;
+    }
+
+    if (this.activeJobs > 0) {
+      this.logger.warn(
+        `PostgresMailWorker shut down forcefully with ${this.activeJobs} jobs still processing.`,
+      );
+    } else {
+      this.logger.log('PostgresMailWorker shut down gracefully.');
+    }
   }
 
   private async recoverStuckJobs() {
@@ -142,13 +158,24 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       const result = await this.nodemailerProvider.sendEmail(mailPayload);
       const duration = Date.now() - startTime;
 
-      await this.prisma.emailJob.update({
-        where: { id: job.id },
-        data: { status: 'PENDING' }, // Will be deleted on success anyway, but safe
-      });
-      await this.prisma.emailJob.delete({ where: { id: job.id } });
+      await this.prisma.$transaction(async (tx) => {
+        await tx.emailJob.delete({ where: { id: job.id } });
 
-      await this.finalizeLogStatus(logIds, EmailState.SENT, duration, result.messageId);
+        if (logIds && logIds.length > 0) {
+          await tx.emailLog.updateMany({
+            where: { id: { in: logIds } },
+            data: {
+              status: EmailState.SENT,
+              errorMessage: null,
+              retryCount: { increment: 1 },
+              sentAt: new Date(),
+              durationMs: duration,
+              messageId: result.messageId || null,
+            },
+          });
+        }
+      });
+
       this.logger.log(`Job ${job.id} processed successfully in ${duration}ms`);
       observabilityEventBus.emit('notification.event', { action: 'delivered', success: true });
     } catch (error: any) {
@@ -156,17 +183,24 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       const errorMessage = error?.message || String(error);
 
       if (attempts >= job.maxAttempts) {
-        await this.prisma.emailJob.update({
-          where: { id: job.id },
-          data: {
-            status: 'DEAD_LETTER',
-            attempts,
-            lastError: errorMessage,
-            lockedAt: null,
-            lockedBy: null,
-          },
+        await this.prisma.$transaction(async (tx) => {
+          await tx.emailJob.update({
+            where: { id: job.id },
+            data: {
+              status: 'DEAD_LETTER',
+              attempts,
+              lastError: errorMessage,
+              lockedAt: null,
+              lockedBy: null,
+            },
+          });
+          if (logIds && logIds.length > 0) {
+            await tx.emailLog.updateMany({
+              where: { id: { in: logIds } },
+              data: { status: EmailState.DEAD_LETTER, errorMessage },
+            });
+          }
         });
-        await this.updateLogStatus(logIds, EmailState.DEAD_LETTER, errorMessage);
         this.logger.warn(`Max retries reached. Job ${job.id} moved to DLQ.`);
         observabilityEventBus.emit('notification.event', {
           action: 'failed',
@@ -175,22 +209,30 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
         });
       } else {
         const backoffDelay = 5 * 60 * 1000 * Math.pow(2, attempts - 1); // Exponential backoff (BullMQ default was 5m base)
-        await this.prisma.emailJob.update({
-          where: { id: job.id },
-          data: {
-            status: 'PENDING',
-            attempts,
-            lastError: errorMessage,
-            availableAt: new Date(Date.now() + backoffDelay),
-            lockedAt: null,
-            lockedBy: null,
-          },
+
+        await this.prisma.$transaction(async (tx) => {
+          await tx.emailJob.update({
+            where: { id: job.id },
+            data: {
+              status: 'PENDING',
+              attempts,
+              lastError: errorMessage,
+              availableAt: new Date(Date.now() + backoffDelay),
+              lockedAt: null,
+              lockedBy: null,
+            },
+          });
+          if (logIds && logIds.length > 0) {
+            await tx.emailLog.updateMany({
+              where: { id: { in: logIds } },
+              data: {
+                status: EmailState.RETRYING,
+                errorMessage: `Retry #${attempts} scheduled. Error: ${errorMessage}`,
+              },
+            });
+          }
         });
-        await this.updateLogStatus(
-          logIds,
-          EmailState.RETRYING,
-          `Retry #${attempts} scheduled. Error: ${errorMessage}`,
-        );
+
         this.logger.log(`Job ${job.id} failed attempt ${attempts}. Scheduled for retry.`);
         observabilityEventBus.emit('notification.event', {
           action: 'retried',

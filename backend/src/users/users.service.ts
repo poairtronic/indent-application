@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from '../auth/services/password.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import * as bcrypt from 'bcrypt';
+
 import { CommunicationConfig } from '../communication/config/communication.config';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';

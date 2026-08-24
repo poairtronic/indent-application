@@ -3,7 +3,6 @@ import { ProcessesController } from './processes.controller';
 import { ProcessesService } from './processes.service';
 import { ProcessStatus } from '@prisma/client';
 import { Reflector } from '@nestjs/core';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 describe('ProcessesController', () => {
   let controller: ProcessesController;

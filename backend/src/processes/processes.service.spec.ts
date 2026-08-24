@@ -3,7 +3,6 @@ import { ProcessesService } from './processes.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { ProcessStatus } from '@prisma/client';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 describe('ProcessesService', () => {
   let service: ProcessesService;

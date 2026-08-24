@@ -44,7 +44,6 @@ describe('Enterprise Communication Module', () => {
   let resolver: RecipientResolver;
   let bus: CommunicationEventBus;
   let dispatcher: NotificationDispatcher;
-  let queueService: PostgresQueueService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -65,7 +64,6 @@ describe('Enterprise Communication Module', () => {
     resolver = module.get<RecipientResolver>(RecipientResolver);
     bus = module.get<CommunicationEventBus>(CommunicationEventBus);
     dispatcher = module.get<NotificationDispatcher>(NotificationDispatcher);
-    queueService = module.get<PostgresQueueService>(PostgresQueueService);
 
     jest.clearAllMocks();
   });

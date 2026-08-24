@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnitsService } from './units.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
-import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 describe('UnitsService', () => {
   let service: UnitsService;
