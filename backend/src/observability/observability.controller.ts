@@ -45,7 +45,6 @@ export class ObservabilityController {
         status: 'DOWN',
         services: {
           database: statuses.database,
-          redis: statuses.redis,
           queue: statuses.queue,
         },
         timestamp: new Date().toISOString(),
@@ -56,7 +55,6 @@ export class ObservabilityController {
       status: 'UP',
       services: {
         database: 'UP',
-        redis: 'UP',
         queue: 'UP',
       },
       timestamp: new Date().toISOString(),

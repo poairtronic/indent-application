@@ -338,7 +338,6 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
   // Diagnostic getter for Readiness Probe
   public async getSystemStatuses(): Promise<{
     database: 'UP' | 'DOWN';
-    redis: 'UP' | 'DOWN';
     queue: 'UP' | 'DOWN';
   }> {
     // Perform live, lightweight checks against the actual dependencies instead
@@ -352,13 +351,17 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
       database = 'DOWN';
     }
 
-    // The BullMQ queue and the HTTP cache share the same Redis connection.
-    const redis: 'UP' | 'DOWN' = 'UP';
+    let queue: 'UP' | 'DOWN' = 'DOWN';
+    try {
+      await this.prismaService.$queryRaw`SELECT 1 FROM "EmailJob" LIMIT 1`;
+      queue = 'UP';
+    } catch {
+      queue = 'DOWN';
+    }
 
     return {
       database,
-      redis,
-      queue: redis,
+      queue,
     };
   }
 
