@@ -90,8 +90,14 @@ describe('RedisCacheService', () => {
       await service.set('master:products:123', { foo: 'bar' });
 
       expect(mockRedisInstance.multi).toHaveBeenCalled();
-      expect(mockMultiResult.set).toHaveBeenCalledWith('master:products:123', JSON.stringify({ foo: 'bar' }));
-      expect(mockMultiResult.sadd).toHaveBeenCalledWith('idx:master:products', 'master:products:123');
+      expect(mockMultiResult.set).toHaveBeenCalledWith(
+        'master:products:123',
+        JSON.stringify({ foo: 'bar' }),
+      );
+      expect(mockMultiResult.sadd).toHaveBeenCalledWith(
+        'idx:master:products',
+        'master:products:123',
+      );
       expect(mockMultiResult.exec).toHaveBeenCalled();
     });
 
@@ -102,8 +108,16 @@ describe('RedisCacheService', () => {
       await service.set('analytics:summary', { total: 100 }, 60);
 
       expect(mockRedisInstance.multi).toHaveBeenCalled();
-      expect(mockMultiResult.set).toHaveBeenCalledWith('analytics:summary', JSON.stringify({ total: 100 }), 'EX', 60);
-      expect(mockMultiResult.sadd).toHaveBeenCalledWith('idx:analytics:summary', 'analytics:summary');
+      expect(mockMultiResult.set).toHaveBeenCalledWith(
+        'analytics:summary',
+        JSON.stringify({ total: 100 }),
+        'EX',
+        60,
+      );
+      expect(mockMultiResult.sadd).toHaveBeenCalledWith(
+        'idx:analytics:summary',
+        'analytics:summary',
+      );
       expect(mockMultiResult.expire).toHaveBeenCalledWith('idx:analytics:summary', 120);
       expect(mockMultiResult.exec).toHaveBeenCalled();
     });
@@ -128,14 +142,23 @@ describe('RedisCacheService', () => {
   describe('invalidateByPattern', () => {
     it('should use SMEMBERS to retrieve tracked keys and DEL them (SADD-based invalidation)', async () => {
       (service as any).isRedisAvailable = true;
-      mockRedisInstance.smembers.mockResolvedValue(['master:products:1', 'master:products:2', 'master:products:3']);
+      mockRedisInstance.smembers.mockResolvedValue([
+        'master:products:1',
+        'master:products:2',
+        'master:products:3',
+      ]);
       mockRedisInstance.del.mockResolvedValue(3);
 
       await service.invalidateByPattern('master:products:*');
 
       expect(mockRedisInstance.smembers).toHaveBeenCalledWith('idx:master:products');
       expect(mockRedisInstance.del).toHaveBeenCalledTimes(2);
-      expect(mockRedisInstance.del).toHaveBeenNthCalledWith(1, 'master:products:1', 'master:products:2', 'master:products:3');
+      expect(mockRedisInstance.del).toHaveBeenNthCalledWith(
+        1,
+        'master:products:1',
+        'master:products:2',
+        'master:products:3',
+      );
       expect(mockRedisInstance.del).toHaveBeenNthCalledWith(2, 'idx:master:products');
     });
 

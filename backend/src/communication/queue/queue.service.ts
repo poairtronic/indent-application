@@ -3,6 +3,7 @@ import { Queue, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { MAIL_QUEUE_NAME, MAIL_DEAD_QUEUE_NAME, IJobPayload } from './queue.constants';
 import { ConfigurationException } from '../exceptions/communication.exceptions';
+import { getInfrastructureRedisConfig } from '../../config/infra-redis.config';
 
 @Injectable()
 export class QueueService implements OnModuleInit, OnModuleDestroy {
@@ -26,30 +27,13 @@ export class QueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   private initializeRedisAndQueues(): void {
-    const host = process.env.REDIS_HOST || 'localhost';
-    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
-    const password = process.env.REDIS_PASSWORD || undefined;
-    const db = parseInt(process.env.REDIS_DB || '0', 10);
-    const useTls = process.env.REDIS_TLS === 'true';
-
-    if (isNaN(port)) {
-      throw new ConfigurationException('REDIS_PORT', 'Redis Port number must be a valid integer.');
-    }
-
     try {
-      this.logger.log(`Connecting to Redis at ${host}:${port} (DB ${db})`);
-      const connectionOptions: any = {
-        host,
-        port,
-        password,
-        db,
-        maxRetriesPerRequest: null, // Critical requirement for BullMQ
-        lazyConnect: true,
-        enableOfflineQueue: false,
-        tls: useTls ? {} : undefined,
-      };
+      const config = getInfrastructureRedisConfig();
+      this.logger.log(
+        `Connecting to Infrastructure Redis for Queue Service at ${config.host}:${config.port} (DB ${config.db})`,
+      );
 
-      this.redisConnection = new Redis(connectionOptions);
+      this.redisConnection = new Redis(config);
 
       this.redisConnection.on('error', (err) => {
         this.logger.warn(

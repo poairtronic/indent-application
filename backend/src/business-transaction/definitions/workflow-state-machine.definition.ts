@@ -106,7 +106,10 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'ACCOUNTS',
     requiredPermissionCode: 'accounts.verify',
-    allowedNextStates: [WorkflowState.ACTUAL_COST_UPDATED, WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE],
+    allowedNextStates: [
+      WorkflowState.ACTUAL_COST_UPDATED,
+      WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE,
+    ],
     isLoopBoundary: false,
     isTerminalState: false,
     description: 'Actual costs entered and variance calculations updated.',

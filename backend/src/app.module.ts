@@ -34,6 +34,7 @@ import { CorrelationIdMiddleware } from './observability/correlation-id.middlewa
 import { ApiMonitoringMiddleware } from './observability/api-monitoring.middleware';
 
 import { ScheduleModule } from '@nestjs/schedule';
+import { getInfrastructureRedisConfig } from './config/infra-redis.config';
 
 @Module({
   imports: [
@@ -70,11 +71,7 @@ import { ScheduleModule } from '@nestjs/schedule';
           process.env.NODE_ENV === 'production'
             ? new ThrottlerStorageRedisService(
                 new Redis({
-                  host: process.env.REDIS_HOST || 'localhost',
-                  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-                  password: process.env.REDIS_PASSWORD || undefined,
-                  db: parseInt(process.env.REDIS_DB || '0', 10),
-                  tls: process.env.REDIS_TLS === 'true' ? {} : undefined,
+                  ...getInfrastructureRedisConfig(),
                   keyPrefix: 'throttler:',
                 }),
               )

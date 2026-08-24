@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 import { MAIL_QUEUE_NAME, IJobPayload } from './queue.constants';
 import { QueueProcessor } from './queue.processor';
 import { observabilityEventBus } from '../../observability/observability-event-bus';
+import { getInfrastructureRedisConfig } from '../../config/infra-redis.config';
 
 @Injectable()
 export class MailWorker implements OnModuleInit, OnModuleDestroy {
@@ -29,12 +30,6 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   private startWorker(): void {
-    const host = process.env.REDIS_HOST || 'localhost';
-    const port = parseInt(process.env.REDIS_PORT || '6379', 10);
-    const password = process.env.REDIS_PASSWORD || undefined;
-    const db = parseInt(process.env.REDIS_DB || '0', 10);
-    const useTls = process.env.REDIS_TLS === 'true';
-
     const concurrency = parseInt(process.env.SMTP_CONCURRENCY || '2', 10);
 
     try {
@@ -42,16 +37,8 @@ export class MailWorker implements OnModuleInit, OnModuleDestroy {
         `Starting BullMQ worker on queue '${MAIL_QUEUE_NAME}' with concurrency: ${concurrency}`,
       );
 
-      this.redisConnection = new Redis({
-        host,
-        port,
-        password,
-        db,
-        maxRetriesPerRequest: null, // Critical requirement for BullMQ
-        lazyConnect: true,
-        enableOfflineQueue: false,
-        tls: useTls ? {} : undefined,
-      });
+      const config = getInfrastructureRedisConfig();
+      this.redisConnection = new Redis(config);
 
       this.redisConnection.on('error', (err) => {
         this.logger.warn(

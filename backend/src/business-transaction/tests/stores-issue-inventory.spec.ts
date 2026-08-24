@@ -126,11 +126,13 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           status: 'AVAILABLE',
         },
       ]);
-      mockPrisma.material.findMany.mockResolvedValue([{
-        id: 'mat-1',
-        materialName: 'Stainless Steel Rod',
-        currentStock: 100,
-      }]);
+      mockPrisma.material.findMany.mockResolvedValue([
+        {
+          id: 'mat-1',
+          materialName: 'Stainless Steel Rod',
+          currentStock: 100,
+        },
+      ]);
       mockPrisma.material.update.mockResolvedValue({
         id: 'mat-1',
         currentStock: 70,
@@ -159,11 +161,13 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           status: 'AVAILABLE',
         },
       ]);
-      mockPrisma.material.findMany.mockResolvedValue([{
-        id: 'mat-1',
-        materialName: 'Stainless Steel Rod',
-        currentStock: 30,
-      }]);
+      mockPrisma.material.findMany.mockResolvedValue([
+        {
+          id: 'mat-1',
+          materialName: 'Stainless Steel Rod',
+          currentStock: 30,
+        },
+      ]);
       mockPrisma.material.update.mockResolvedValue({
         id: 'mat-1',
         currentStock: 0,
@@ -191,11 +195,13 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           status: 'AVAILABLE',
         },
       ]);
-      mockPrisma.material.findMany.mockResolvedValue([{
-        id: 'mat-1',
-        materialName: 'Stainless Steel Rod',
-        currentStock: 30,
-      }]);
+      mockPrisma.material.findMany.mockResolvedValue([
+        {
+          id: 'mat-1',
+          materialName: 'Stainless Steel Rod',
+          currentStock: 30,
+        },
+      ]);
 
       await expect(
         service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Over issue' }),
@@ -233,11 +239,13 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           status: 'AVAILABLE',
         },
       ]);
-      mockPrisma.material.findMany.mockResolvedValue([{
-        id: 'mat-1',
-        materialName: 'Stainless Steel Rod',
-        currentStock: 80,
-      }]);
+      mockPrisma.material.findMany.mockResolvedValue([
+        {
+          id: 'mat-1',
+          materialName: 'Stainless Steel Rod',
+          currentStock: 80,
+        },
+      ]);
       // Simultaneous update drove stock negative
       mockPrisma.material.update.mockResolvedValue({
         id: 'mat-1',
@@ -259,11 +267,13 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           status: 'AVAILABLE',
         },
       ]);
-      mockPrisma.material.findMany.mockResolvedValue([{
-        id: 'mat-1',
-        materialName: 'Stainless Steel Rod',
-        currentStock: 10,
-      }]);
+      mockPrisma.material.findMany.mockResolvedValue([
+        {
+          id: 'mat-1',
+          materialName: 'Stainless Steel Rod',
+          currentStock: 10,
+        },
+      ]);
       mockPrisma.material.update.mockResolvedValue({
         id: 'mat-1',
         currentStock: 10,
@@ -283,11 +293,13 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           status: 'AVAILABLE',
         },
       ]);
-      mockPrisma.material.findMany.mockResolvedValue([{
-        id: 'mat-1',
-        materialName: 'Stainless Steel Rod',
-        currentStock: 100,
-      }]);
+      mockPrisma.material.findMany.mockResolvedValue([
+        {
+          id: 'mat-1',
+          materialName: 'Stainless Steel Rod',
+          currentStock: 100,
+        },
+      ]);
       mockPrisma.material.update.mockResolvedValue({
         id: 'mat-1',
         currentStock: 110,

@@ -1003,9 +1003,9 @@ export class BusinessTransactionService {
 
     await this.prisma.$transaction(async (tx) => {
       await this.assertCurrentStateAndUpdate(
-              id,
-              txData.currentState,
-              {
+        id,
+        txData.currentState,
+        {
           status: prismaTargetStatus,
           currentState: targetState,
           updatedBy: userId,
@@ -1130,10 +1130,10 @@ export class BusinessTransactionService {
     const targetState = WorkflowState.MATERIALS_ISSUED;
 
     const transitionValidation = this.workflowStateMachine.validateTransition(
-            txData.currentState,
-            targetState,
-            'STORES',
-          );
+      txData.currentState,
+      targetState,
+      'STORES',
+    );
     if (!transitionValidation.isValid) {
       throw new BadRequestException(transitionValidation.errors.join(', '));
     }
@@ -1144,27 +1144,30 @@ export class BusinessTransactionService {
     let isFullyIssued = false;
 
     // 1. Fetch active indent items OUTSIDE transaction
-      const itemsToIssue = await this.prisma.indentItem.findMany({
-        where: { indentId: id, isDeleted: false },
-        select: { id: true, materialId: true, quantity: true, issuedQuantity: true, status: true },
-      });
+    const itemsToIssue = await this.prisma.indentItem.findMany({
+      where: { indentId: id, isDeleted: false },
+      select: { id: true, materialId: true, quantity: true, issuedQuantity: true, status: true },
+    });
 
-      // 2. Batch-fetch all needed materials OUTSIDE transaction
-      const nonIssuedMaterialIds = [...new Set(
+    // 2. Batch-fetch all needed materials OUTSIDE transaction
+    const nonIssuedMaterialIds = [
+      ...new Set(
         itemsToIssue.filter((item) => item.status !== 'ISSUED').map((item) => item.materialId),
-      )];
-      const materials = nonIssuedMaterialIds.length > 0
+      ),
+    ];
+    const materials =
+      nonIssuedMaterialIds.length > 0
         ? await this.prisma.material.findMany({ where: { id: { in: nonIssuedMaterialIds } } })
         : [];
-      const materialMap = new Map(materials.map((m) => [m.id, m]));
+    const materialMap = new Map(materials.map((m) => [m.id, m]));
 
-      await this.prisma.$transaction(async (prisma) => {
-        let allItemsComplete = true;
-        const issues = dto.issueItems || [];
-        const materialUpdates: Promise<any>[] = [];
-        const itemUpdates: Promise<any>[] = [];
+    await this.prisma.$transaction(async (prisma) => {
+      let allItemsComplete = true;
+      const issues = dto.issueItems || [];
+      const materialUpdates: Promise<any>[] = [];
+      const itemUpdates: Promise<any>[] = [];
 
-        // 3. Validate stock and prepare updates
+      // 3. Validate stock and prepare updates
       for (const item of itemsToIssue) {
         if (item.status === 'ISSUED') {
           continue;
@@ -1202,15 +1205,19 @@ export class BusinessTransactionService {
 
         // Queue material stock decrement
         materialUpdates.push(
-          prisma.material.update({
-            where: { id: material.id },
-            data: { currentStock: { decrement: issueQty }, updatedBy: userId },
-          }).then((updated) => {
-            if (Number(updated.currentStock) < 0) {
-              throw new BadRequestException(`Stock cannot be negative for material '${material.materialName}'.`);
-            }
-            return updated;
-          }),
+          prisma.material
+            .update({
+              where: { id: material.id },
+              data: { currentStock: { decrement: issueQty }, updatedBy: userId },
+            })
+            .then((updated) => {
+              if (Number(updated.currentStock) < 0) {
+                throw new BadRequestException(
+                  `Stock cannot be negative for material '${material.materialName}'.`,
+                );
+              }
+              return updated;
+            }),
         );
 
         // Queue indent item update
@@ -1219,7 +1226,10 @@ export class BusinessTransactionService {
         itemUpdates.push(
           prisma.indentItem.update({
             where: { id: item.id },
-            data: { issuedQuantity: newIssuedQuantity, status: isNowFullyIssued ? 'ISSUED' : item.status },
+            data: {
+              issuedQuantity: newIssuedQuantity,
+              status: isNowFullyIssued ? 'ISSUED' : item.status,
+            },
           }),
         );
 
@@ -1362,22 +1372,22 @@ export class BusinessTransactionService {
       // All items issued — inline the final transition (avoids redundant storesIssueMaterials delegation)
       const targetState = WorkflowState.MATERIALS_ISSUED;
       if (
-          txData.currentState === WorkflowState.DESIGN_COMPLETED ||
-          txData.currentState === WorkflowState.STORES_PROCESSING
-        ) {
-          let currentState = txData.currentState;
-          if (currentState === WorkflowState.DESIGN_COMPLETED) {
-            // First transition to STORES_PROCESSING
-            await this.prisma.indent.update({
-              where: { id },
-              data: {
-                status: WorkflowStateMapper.toPrisma(WorkflowState.STORES_PROCESSING),
-                currentState: WorkflowState.STORES_PROCESSING,
-                updatedBy: userId,
-              },
-            });
-            currentState = WorkflowState.STORES_PROCESSING;
-          }
+        txData.currentState === WorkflowState.DESIGN_COMPLETED ||
+        txData.currentState === WorkflowState.STORES_PROCESSING
+      ) {
+        let currentState = txData.currentState;
+        if (currentState === WorkflowState.DESIGN_COMPLETED) {
+          // First transition to STORES_PROCESSING
+          await this.prisma.indent.update({
+            where: { id },
+            data: {
+              status: WorkflowStateMapper.toPrisma(WorkflowState.STORES_PROCESSING),
+              currentState: WorkflowState.STORES_PROCESSING,
+              updatedBy: userId,
+            },
+          });
+          currentState = WorkflowState.STORES_PROCESSING;
+        }
         const transitionValidation = this.workflowStateMachine.validateTransition(
           txData.currentState,
           targetState,
@@ -1724,7 +1734,7 @@ export class BusinessTransactionService {
    * Computes item variances, total actual cost, total variance amount, and variance percentage.
    * Transitions to ACTUAL_COST_UPDATED state.
    */
-      public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
+  public async enterActualCosts(id: string, userId: string, dto: any): Promise<any> {
     const txData = await this.getTransactionContext(id);
     const targetState = WorkflowState.ACTUAL_COST_UPDATED;
 
@@ -1760,7 +1770,7 @@ export class BusinessTransactionService {
           const actualQuantity = roundTo4Decimals(cDto.actualQuantity ?? 0);
           const actualAmount = roundTo4Decimals(actualRate * actualQuantity);
 
-          const cItem = currentCostItems.find(i => i.id === cDto.costItemId);
+          const cItem = currentCostItems.find((i) => i.id === cDto.costItemId);
           if (cItem) {
             const predictedAmount = roundTo4Decimals(cItem.predictedAmount);
             const varianceAmount = safeSubtract(actualAmount, predictedAmount);
@@ -1773,7 +1783,7 @@ export class BusinessTransactionService {
                 actualRate,
                 actualQuantity,
                 actualAmount,
-                
+
                 remarks: cDto.remarks,
                 updatedBy: userId,
               },
@@ -1791,7 +1801,7 @@ export class BusinessTransactionService {
           const actualHours = roundTo4Decimals(pDto.actualHours ?? 0);
           const actualAmount = actualCost; // The frontend passes the total actual cost as actualCost
 
-          const pItem = currentProcessCosts.find(i => i.id === pDto.processCostId);
+          const pItem = currentProcessCosts.find((i) => i.id === pDto.processCostId);
           if (pItem) {
             const predictedAmount = roundTo4Decimals(Number(pItem.predictedCost));
             const varianceAmount = safeSubtract(actualAmount, predictedAmount);
@@ -1801,10 +1811,10 @@ export class BusinessTransactionService {
             await tx.processCost.update({
               where: { id: pDto.processCostId },
               data: {
-
                 actualHours,
-                actualCost: actualAmount, variance: varianceAmount,
-                
+                actualCost: actualAmount,
+                variance: varianceAmount,
+
                 updatedBy: userId,
               },
             });
@@ -1815,8 +1825,8 @@ export class BusinessTransactionService {
       }
 
       // Compute totals from memory (including items not updated in this request)
-      const totalMaterialActual = safeAdd(currentCostItems.map(i => Number(i.actualAmount) || 0));
-      const totalProcessActual = safeAdd(currentProcessCosts.map(i => Number(i.actualCost) || 0));
+      const totalMaterialActual = safeAdd(currentCostItems.map((i) => Number(i.actualAmount) || 0));
+      const totalProcessActual = safeAdd(currentProcessCosts.map((i) => Number(i.actualCost) || 0));
 
       // 3. Overall CostSheet updates
       const actualDesignCost =
@@ -1855,7 +1865,7 @@ export class BusinessTransactionService {
           actualTotal,
           varianceAmount,
           variancePercentage,
-          
+
           updatedBy: userId,
         },
       });
