@@ -7,9 +7,6 @@ import { TemplateEngine } from './templates/template.engine';
 import { RecipientResolver } from './resolver/recipient.resolver';
 import { CommunicationEventBus } from './events/communication-event.bus';
 import { NotificationDispatcher } from './dispatcher/notification.dispatcher';
-import { QueueService } from './queue/queue.service';
-import { QueueProcessor } from './queue/queue.processor';
-import { MailWorker } from './queue/mail.worker';
 import { PostgresQueueService } from './queue/postgres-queue.service';
 import { PostgresMailWorker } from './queue/postgres-mail.worker';
 
@@ -24,12 +21,7 @@ import { PostgresMailWorker } from './queue/postgres-mail.worker';
     RecipientResolver,
     CommunicationEventBus,
     NotificationDispatcher,
-    QueueService,
-    QueueProcessor,
-    MailWorker,
-    PostgresQueueService,
-    PostgresMailWorker,
-  ],
-  exports: [CommunicationService, CommunicationEventBus, QueueService, PostgresQueueService],
+                Postgres    Postgres  ],
+  exports: [CommunicationService, CommunicationEventBus,  PostgresQueueService],
 })
 export class CommunicationModule {}

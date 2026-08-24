@@ -38,10 +38,7 @@ describe('ProcessesController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProcessesController],
-      providers: [
-        { provide: ProcessesService, useValue: serviceMock },
-        Reflector,
-      ],
+      providers: [{ provide: ProcessesService, useValue: serviceMock }, Reflector],
     }).compile();
 
     controller = module.get<ProcessesController>(ProcessesController);

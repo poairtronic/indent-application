@@ -36,9 +36,12 @@ export class PostgresQueueService {
       by: ['status'],
       _count: true,
     });
-    
-    let active = 0, waiting = 0, failed = 0, dead = 0;
-    
+
+    let active = 0,
+      waiting = 0,
+      failed = 0,
+      dead = 0;
+
     for (const row of counts) {
       if (row.status === 'PROCESSING') active = row._count;
       if (row.status === 'PENDING') waiting = row._count;
@@ -48,19 +51,19 @@ export class PostgresQueueService {
 
     // Historical counts from emailLogs
     const completed = await this.prisma.emailLog.count({ where: { status: 'SENT' } });
-    
+
     return {
       active,
       waiting,
       delayed: 0,
       failed,
       dead,
-      completed
+      completed,
     };
   }
 
   public async checkRedisHealth(): Promise<'UP' | 'DOWN'> {
-    // Redis is removed, this queue is powered by Postgres. 
+    // Redis is removed, this queue is powered by Postgres.
     // Always return 'UP' so health checks don't think it's broken.
     return 'UP';
   }

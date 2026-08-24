@@ -104,7 +104,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         { provide: WorkflowStateMachineService, useValue: mockWorkflowStateMachine },
         { provide: BusinessTransactionEventService, useValue: mockEventService },
         { provide: AttachmentStorageService, useValue: mockAttachmentStorage },
-        
+
         { provide: DocumentNumberService, useValue: mockDocumentNumberService },
       ],
     }).compile();

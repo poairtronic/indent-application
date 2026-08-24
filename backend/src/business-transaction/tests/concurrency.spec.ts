@@ -108,7 +108,7 @@ describe('Concurrency & Race Condition Resilience', () => {
         { provide: WorkflowStateMachineService, useValue: mockStateMachine },
         { provide: BusinessTransactionEventService, useValue: mockEventService },
         { provide: AttachmentStorageService, useValue: mockAttachmentService },
-        
+
         { provide: DocumentNumberService, useValue: mockDocumentNumberService },
       ],
     }).compile();

@@ -2,7 +2,6 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { observabilityEventBus } from './observability-event-bus';
 import { PrismaService } from '../prisma/prisma.service';
 
-
 export interface SlowRequestInfo {
   method: string;
   url: string;
@@ -47,9 +46,7 @@ export interface FrontendErrorInfo {
 export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ObservabilityService.name);
 
-  constructor(
-    private readonly prismaService: PrismaService,
-    ) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   // API Request Metrics
   private totalApiRequests = 0;
