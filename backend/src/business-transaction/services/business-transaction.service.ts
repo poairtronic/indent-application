@@ -2371,17 +2371,14 @@ export class BusinessTransactionService {
         });
 
         // Log: Notification delivered
-        for (const recId of uniqueUserIds) {
-          await this.prisma.auditLog.create({
-            data: {
-              module: 'NOTIFICATIONS',
-              recordId: notification.id,
-              action: 'DELIVER',
-              newValue: { recipientUserId: recId },
-              performedBy: userId || 'SYSTEM',
-            },
-          });
-        }
+        const auditLogs = uniqueUserIds.map((recId) => ({
+            module: 'NOTIFICATIONS',
+            recordId: notification.id,
+            action: 'DELIVER',
+            newValue: { recipientUserId: recId },
+            performedBy: userId || 'SYSTEM',
+          }));
+          await this.prisma.auditLog.createMany({ data: auditLogs });
       }
     } catch (notifErr) {
       this.logger.error(`Failed to send attachment upload notification: ${notifErr.message}`);
@@ -2529,17 +2526,14 @@ export class BusinessTransactionService {
         });
 
         // Log: Notification delivered
-        for (const recId of uniqueUserIds) {
-          await this.prisma.auditLog.create({
-            data: {
-              module: 'NOTIFICATIONS',
-              recordId: notification.id,
-              action: 'DELIVER',
-              newValue: { recipientUserId: recId },
-              performedBy: userId || 'SYSTEM',
-            },
-          });
-        }
+        const auditLogs = uniqueUserIds.map((recId) => ({
+            module: 'NOTIFICATIONS',
+            recordId: notification.id,
+            action: 'DELIVER',
+            newValue: { recipientUserId: recId },
+            performedBy: userId || 'SYSTEM',
+          }));
+          await this.prisma.auditLog.createMany({ data: auditLogs });
       }
     } catch (notifErr) {
       this.logger.error(`Failed to send document delete notification: ${notifErr.message}`);
@@ -3005,17 +2999,14 @@ export class BusinessTransactionService {
         });
 
         // Log: Notification delivered
-        for (const recId of uniqueUserIds) {
-          await this.prisma.auditLog.create({
-            data: {
-              module: 'NOTIFICATIONS',
-              recordId: notification.id,
-              action: 'DELIVER',
-              newValue: { recipientUserId: recId },
-              performedBy: userId || 'SYSTEM',
-            },
-          });
-        }
+        const auditLogs = uniqueUserIds.map((recId) => ({
+            module: 'NOTIFICATIONS',
+            recordId: notification.id,
+            action: 'DELIVER',
+            newValue: { recipientUserId: recId },
+            performedBy: userId || 'SYSTEM',
+          }));
+          await this.prisma.auditLog.createMany({ data: auditLogs });
       }
     } catch (notifErr) {
       this.logger.error(`Failed to send document replace notification: ${notifErr.message}`);
