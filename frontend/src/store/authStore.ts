@@ -11,7 +11,7 @@ interface AuthState {
   isLoading: boolean;
   isHydrating: boolean;
   login: (accessToken: string, refreshToken: string, user: AuthUser, isSync?: boolean) => void;
-  logout: () => void;
+  logout: (broadcast?: boolean) => void;
   setAccessToken: (token: string) => void;
   setLoading: (loading: boolean) => void;
   hasPermission: (permission: string) => boolean;
@@ -34,7 +34,11 @@ function isTokenValid(token: string | null): boolean {
     if (!base64Url) return false;
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const jsonPayload = decodeURIComponent(
-      window.atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+      window
+        .atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
     );
     const payload = JSON.parse(jsonPayload);
     // Add 10 seconds leeway
@@ -120,7 +124,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  logout: () => {
+  logout: (broadcast = true) => {
     clearPersistedState();
     queryClient.clear();
     set({
@@ -132,13 +136,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isHydrating: false,
     });
 
-    // Broadcast logout to other tabs
-    try {
-      const bc = new BroadcastChannel('imcms-auth');
-      bc.postMessage({ type: 'LOGOUT' });
-      bc.close();
-    } catch {
-      // BroadcastChannel not supported
+    if (broadcast) {
+      // Broadcast logout to other tabs
+      try {
+        const bc = new BroadcastChannel('imcms-auth');
+        bc.postMessage({ type: 'LOGOUT' });
+        bc.close();
+      } catch {
+        // BroadcastChannel not supported
+      }
     }
   },
 
@@ -192,15 +198,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initializeAuth: async () => {
     if (isInitializing && initializePromise) return initializePromise;
-    
+
     isInitializing = true;
     initializePromise = (async () => {
       try {
         const { accessToken, refreshToken, user } = get();
-        
+
         // 1. If no token, no active session
         if (!accessToken || !refreshToken || !user) {
-          get().logout();
+          get().logout(false);
           return;
         }
 
@@ -216,7 +222,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
           const res = await apiClient.post('/auth/refresh');
           const data = res.data.data || res.data;
-          
+
           if (data && data.accessToken) {
             get().login(data.accessToken, data.refreshToken || refreshToken, user, true);
           } else {
@@ -224,7 +230,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }
         } catch (error) {
           console.error('Initial auth refresh failed:', error);
-          get().logout();
+          get().logout(false);
         }
       } finally {
         set({ isHydrating: false });

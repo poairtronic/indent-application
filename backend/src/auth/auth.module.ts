@@ -12,6 +12,7 @@ import { AuthorizationService } from './services/authorization.service';
 import { SessionService } from './services/session.service';
 import { LoginHistoryService } from './services/login-history.service';
 import { AccountSecurityService } from './services/account-security.service';
+import { AuthRateLimitService } from './services/auth-rate-limit.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { RolesGuard } from './guards/roles.guard';
@@ -29,6 +30,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
     SessionService,
     LoginHistoryService,
     AccountSecurityService,
+    AuthRateLimitService,
     JwtStrategy,
     JwtRefreshStrategy,
     RolesGuard,
@@ -43,6 +45,7 @@ import { PermissionsGuard } from './guards/permissions.guard';
     SessionService,
     LoginHistoryService,
     AccountSecurityService,
+    AuthRateLimitService,
     PassportModule,
     JwtModule,
     RolesGuard,

@@ -5,6 +5,7 @@ import { TokenService } from './token.service';
 import { SessionService } from './session.service';
 import { LoginHistoryService } from './login-history.service';
 import { AccountSecurityService } from './account-security.service';
+import { AuthRateLimitService } from './auth-rate-limit.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CommunicationEventBus } from '../../communication/events/communication-event.bus';
 import { UnauthorizedException } from '@nestjs/common';
@@ -59,7 +60,7 @@ describe('AuthService', () => {
   };
 
   const mockSessionService = {
-    createSession: jest.fn().mockResolvedValue({ id: 'session_id' }),
+    createSession: jest.fn().mockResolvedValue(undefined),
     revokeAllSessions: jest.fn().mockResolvedValue(undefined),
     revokeSessionByToken: jest.fn().mockResolvedValue(undefined),
   };
@@ -73,6 +74,13 @@ describe('AuthService', () => {
     checkAccountLocked: jest.fn().mockResolvedValue(undefined),
     recordFailedAttempt: jest.fn().mockResolvedValue(undefined),
     resetFailedAttempts: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockAuthRateLimitService = {
+    checkRateLimit: jest.fn(),
+    recordFailedAttempt: jest.fn(),
+    recordSuccessfulLogin: jest.fn(),
+    resetAll: jest.fn(),
   };
 
   const mockEventBus = {
@@ -89,6 +97,7 @@ describe('AuthService', () => {
         { provide: SessionService, useValue: mockSessionService },
         { provide: LoginHistoryService, useValue: mockLoginHistoryService },
         { provide: AccountSecurityService, useValue: mockAccountSecurityService },
+        { provide: AuthRateLimitService, useValue: mockAuthRateLimitService },
         { provide: CommunicationEventBus, useValue: mockEventBus },
       ],
     }).compile();

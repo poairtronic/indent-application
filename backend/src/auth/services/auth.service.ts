@@ -7,6 +7,7 @@ import { SessionService } from './session.service';
 import { CommunicationConfig } from '../../communication/config/communication.config';
 import { LoginHistoryService } from './login-history.service';
 import { AccountSecurityService } from './account-security.service';
+import { AuthRateLimitService } from './auth-rate-limit.service';
 import { LoginDto } from '../dto/login.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly loginHistoryService: LoginHistoryService,
     private readonly accountSecurityService: AccountSecurityService,
+    private readonly authRateLimitService: AuthRateLimitService,
     private readonly eventBus: CommunicationEventBus,
   ) {}
 
@@ -49,8 +51,6 @@ export class AuthService {
         success: false,
         error: err.message || String(err),
       });
-      // Temporary debug: surface actual error details for diagnosis
-      console.error('[LOGIN_DEBUG] Login error:', err.message, err.stack);
       if (err.status) throw err; // re-throw HTTP exceptions as-is
       throw new Error(`Login failed: ${err.message || String(err)}`);
     }
@@ -60,6 +60,11 @@ export class AuthService {
     loginDto: LoginDto,
     deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
   ): Promise<AuthResponse> {
+    const clientIp = deviceInfo?.ipAddress || 'unknown';
+
+    // 1. Verify brute-force / failure rate limiting for this IP and email
+    this.authRateLimitService.checkRateLimit(clientIp, loginDto.email);
+
     const user = await this.prisma.user.findUnique({
       where: { email: loginDto.email },
       include: {
@@ -76,6 +81,7 @@ export class AuthService {
     });
 
     if (!user || user.isDeleted) {
+      this.authRateLimitService.recordFailedAttempt(clientIp, loginDto.email);
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -88,6 +94,7 @@ export class AuthService {
     const isPasswordValid = await this.passwordService.compare(loginDto.password, user.password);
 
     if (!isPasswordValid) {
+      this.authRateLimitService.recordFailedAttempt(clientIp, loginDto.email);
       await this.accountSecurityService.recordFailedAttempt(user.id);
       await this.loginHistoryService.recordLogin({
         userId: user.id,
@@ -100,6 +107,9 @@ export class AuthService {
       });
       throw new UnauthorizedException('Invalid email or password');
     }
+
+    // Password valid -> Reset failed attempts counter immediately
+    this.authRateLimitService.recordSuccessfulLogin(clientIp, loginDto.email);
 
     const accessToken = await this.tokenService.generateAccessToken(user.id, user.email);
     const refreshToken = await this.tokenService.generateRefreshToken(user.id, user.email);
