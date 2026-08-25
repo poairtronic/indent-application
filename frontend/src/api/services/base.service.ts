@@ -147,6 +147,14 @@ export class BaseService {
       }
     }
 
+    const uploadConfig: AxiosRequestConfig = {
+      ...config,
+      // Let the browser set multipart/form-data with its boundary.
+      headers: {
+        ...(config?.headers ?? {}),
+        'Content-Type': undefined,
+      },
+    };
     const response = await apiClient.post<ApiResponse<T>>(path, formData, {
       timeout: TIMEOUTS.UPLOAD,
       onUploadProgress: onProgress
@@ -157,7 +165,7 @@ export class BaseService {
             onProgress(percent);
           }
         : undefined,
-      ...config,
+      ...uploadConfig,
     });
     return unwrap(response.data);
   }

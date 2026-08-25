@@ -2300,6 +2300,10 @@ export class BusinessTransactionService {
     userId: string,
     remarks?: string,
   ): Promise<any> {
+    if (!file) {
+      throw new BadRequestException('No file was received. Please choose a PDF or Excel file.');
+    }
+
     const [txData, user] = await Promise.all([
       this.getTransactionContext(id),
       this.prisma.user.findUnique({

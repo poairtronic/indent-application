@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Res,
+  BadRequestException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -296,6 +297,9 @@ export class BusinessTransactionController {
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
+    if (!file) {
+      throw new BadRequestException('No file was received. Please choose a PDF or Excel file.');
+    }
     return this.businessTransactionService.uploadAttachmentToIndent(id, file, req.user.id, remarks);
   }
 

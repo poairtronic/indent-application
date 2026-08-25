@@ -137,7 +137,7 @@ export const Header: React.FC = () => {
         <div className="flex items-center space-x-3 shrink-0">
           {/* Quick Create Button */}
           <Link
-            to="/indents/new"
+            to="/indents/create"
             className="hidden sm:flex items-center space-x-1.5 text-text-secondary hover:text-text-primary p-1.5 rounded-lg hover:bg-surface-elevated transition-colors"
             title="Create New Indent"
             aria-label="Create New Indent"
