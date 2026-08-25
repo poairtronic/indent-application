@@ -6,7 +6,6 @@ import { useSettingsStore } from '../store/settingsStore';
 import { GlobalErrorBoundary } from '../components/common/GlobalErrorBoundary';
 
 import { useTabSync } from '../hooks/useTabSync';
-import { useSessionTimeout } from '../hooks/useSessionTimeout';
 import { createQueryClient } from '../api/hooks/query-client';
 import { useAuthStore } from '../store/authStore';
 
@@ -19,8 +18,6 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { dataDensity } = useSettingsStore();
 
   useTabSync();
-  useSessionTimeout();
-
   // Initialize Auth
   useEffect(() => {
     const { initializeAuth } = useAuthStore.getState();

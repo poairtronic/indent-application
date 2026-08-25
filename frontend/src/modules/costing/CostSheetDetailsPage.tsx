@@ -150,6 +150,10 @@ export const CostSheetDetailsPage: React.FC = () => {
     }
   }, [indent, isAccountsStage]);
 
+  // Keep this hook before the loading/empty early returns so the hook order
+  // remains identical while the cost sheet query transitions states.
+  const isExecutingRef = React.useRef(false);
+
   if (isLoading) {
     return (
       <div className="flex justify-center p-12">
@@ -176,8 +180,6 @@ export const CostSheetDetailsPage: React.FC = () => {
   const actualProcessCost =
     cs.processCosts?.reduce((a, c) => a + (Number(c.actualCost) || 0), 0) || 0;
   const processVariance = actualProcessCost - plannedProcessCost;
-
-  const isExecutingRef = React.useRef(false);
 
   const handleSaveActuals = async () => {
     if (!id || isExecutingRef.current) return;

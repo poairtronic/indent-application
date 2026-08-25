@@ -120,7 +120,7 @@ export function createErrorInterceptor(
     }
 
     // 5. Multi-Tab Optimization: Check if another tab refreshed the token while request was in-flight
-    const storedAccessToken = localStorage.getItem('auth_access_token');
+    const storedAccessToken = sessionStorage.getItem('auth_access_token');
     const authHeader = (originalRequest.headers?.Authorization as string) || '';
     const requestToken = authHeader.replace(/^Bearer\s+/i, '');
 
@@ -175,7 +175,7 @@ export function createErrorInterceptor(
     refreshAttempts++;
 
     try {
-      const refreshToken = localStorage.getItem('auth_refresh_token');
+      const refreshToken = sessionStorage.getItem('auth_refresh_token');
       if (!refreshToken) {
         throw new UnauthorizedError('No refresh token available');
       }

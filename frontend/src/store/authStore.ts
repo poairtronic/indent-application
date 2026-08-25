@@ -50,10 +50,10 @@ function isTokenValid(token: string | null): boolean {
 
 function loadPersistedState() {
   try {
-    const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-    const userJson = localStorage.getItem(STORAGE_KEYS.USER);
-    const permsJson = localStorage.getItem(STORAGE_KEYS.PERMISSIONS);
+    const token = sessionStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const refreshToken = sessionStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    const userJson = sessionStorage.getItem(STORAGE_KEYS.USER);
+    const permsJson = sessionStorage.getItem(STORAGE_KEYS.PERMISSIONS);
 
     const user = userJson ? JSON.parse(userJson) : null;
     const permissions = permsJson ? JSON.parse(permsJson) : [];
@@ -81,17 +81,17 @@ function loadPersistedState() {
 }
 
 function persistAuthState(accessToken: string, refreshToken: string, user: AuthUser) {
-  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-  localStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(user.permissions ?? []));
+  sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+  sessionStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+  sessionStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  sessionStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(user.permissions ?? []));
 }
 
 function clearPersistedState() {
-  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-  localStorage.removeItem(STORAGE_KEYS.USER);
-  localStorage.removeItem(STORAGE_KEYS.PERMISSIONS);
+  sessionStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+  sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+  sessionStorage.removeItem(STORAGE_KEYS.USER);
+  sessionStorage.removeItem(STORAGE_KEYS.PERMISSIONS);
 }
 
 // Single initialization lock to prevent strict-mode double firing
@@ -149,7 +149,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setAccessToken: (accessToken) => {
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+    sessionStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
     set({ accessToken, isAuthenticated: true });
   },
 
