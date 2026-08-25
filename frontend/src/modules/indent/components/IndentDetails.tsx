@@ -229,10 +229,10 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
 
           {/* Detailed Indent & Costing View */}
           <div className="mt-8">
-    <IndentForm
+            <IndentForm
               key={indent.id + '-' + indent.updatedAt}
               initialData={indent}
-      onSubmit={
+              onSubmit={
                 isAccountsMode
                   ? handleAccountsSubmit
                   : isProductionMode

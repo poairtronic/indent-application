@@ -33,7 +33,8 @@ export const ProductionDashboardPage: React.FC = () => {
     limit: filters.limit,
     search: search || undefined,
     state: (filters.status ||
-      'STORES_PROCESSING,MATERIALS_ISSUED,PRODUCTION_PROCESSING,PRODUCTION_COMPLETED') as WorkflowState | undefined,
+      'STORES_PROCESSING,MATERIALS_ISSUED,PRODUCTION_PROCESSING,PRODUCTION_COMPLETED') as
+      WorkflowState | undefined,
     departmentId: filters.departmentId || undefined,
   };
 

@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore';
 
 export function useTabSync() {
   const logout = useAuthStore((s) => s.logout);
+  const login = useAuthStore((s) => s.login);
 
   useEffect(() => {
     // BroadcastChannel for same-origin multi-tab sync
@@ -13,6 +14,8 @@ export function useTabSync() {
       bc.onmessage = (event: MessageEvent) => {
         if (event.data?.type === 'LOGOUT') {
           logout();
+        } else if (event.data?.type === 'LOGIN') {
+          login(event.data.accessToken, event.data.refreshToken, event.data.user, true);
         }
       };
     } catch {
@@ -21,8 +24,23 @@ export function useTabSync() {
 
     // Fallback: storage event for browsers without BroadcastChannel
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'auth_access_token' && !event.newValue) {
-        logout();
+      if (event.key === 'auth_access_token') {
+        if (!event.newValue) {
+          logout();
+        } else {
+          // A crude fallback for login across tabs if broadcast channel isn't supported
+          const token = localStorage.getItem('auth_access_token');
+          const refresh = localStorage.getItem('auth_refresh_token');
+          const userStr = localStorage.getItem('auth_user');
+          if (token && refresh && userStr) {
+            try {
+              const user = JSON.parse(userStr);
+              login(token, refresh, user, true);
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
       }
     };
 

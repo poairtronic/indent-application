@@ -9,7 +9,7 @@ interface AuthState {
   permissions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (accessToken: string, refreshToken: string, user: AuthUser) => void;
+  login: (accessToken: string, refreshToken: string, user: AuthUser, isSync?: boolean) => void;
   logout: () => void;
   setAccessToken: (token: string) => void;
   setLoading: (loading: boolean) => void;
@@ -71,7 +71,7 @@ function clearPersistedState() {
 export const useAuthStore = create<AuthState>((set, get) => ({
   ...loadPersistedState(),
 
-  login: (accessToken, refreshToken, user) => {
+  login: (accessToken, refreshToken, user, isSync = false) => {
     persistAuthState(accessToken, refreshToken, user);
     set({
       accessToken,
@@ -81,13 +81,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: true,
     });
 
-    // Broadcast login to other tabs
-    try {
-      const bc = new BroadcastChannel('imcms-auth');
-      bc.postMessage({ type: 'LOGIN', accessToken, refreshToken, user });
-      bc.close();
-    } catch {
-      // BroadcastChannel not supported or already closed
+    if (!isSync) {
+      // Broadcast login to other tabs
+      try {
+        const bc = new BroadcastChannel('imcms-auth');
+        bc.postMessage({ type: 'LOGIN', accessToken, refreshToken, user });
+        bc.close();
+      } catch {
+        // BroadcastChannel not supported or already closed
+      }
     }
   },
 

@@ -70,10 +70,37 @@ export const SettingsPage: React.FC = () => {
   const overdueAlertsSettingKey = 'MATERIAL_ISSUE_OVERDUE_ALERTS_ENABLED';
   const { data: overdueAlertsData, isLoading: overdueAlertsLoading } =
     useSetting(overdueAlertsSettingKey);
+
+  const globalEmailSettingsKey = 'GLOBAL_EMAIL_NOTIFICATIONS_ENABLED';
+  const { data: globalEmailData, isLoading: globalEmailLoading } =
+    useSetting(globalEmailSettingsKey);
+
   const { mutate: updateSetting, isPending: isUpdatingSetting } = useUpdateSetting();
 
   // We default to true as per requirements if it hasn't been set yet
   const overdueAlertsEnabled = overdueAlertsData?.value === 'false' ? false : true;
+  const globalEmailEnabled = globalEmailData?.value === 'false' ? false : true;
+
+  const handleGlobalEmailToggle = (checked: boolean) => {
+    updateSetting(
+      {
+        key: globalEmailSettingsKey,
+        payload: {
+          value: checked ? 'true' : 'false',
+          category: 'Notification',
+          description: 'Enable or disable all email notifications globally for all users.',
+        },
+      },
+      {
+        onSuccess: () => {
+          show('success', 'Global email notifications setting updated');
+        },
+        onError: () => {
+          show('error', 'Failed to update setting');
+        },
+      },
+    );
+  };
 
   const handleOverdueAlertsToggle = (checked: boolean) => {
     updateSetting(
@@ -155,7 +182,7 @@ export const SettingsPage: React.FC = () => {
   // ── ui ───────────────────────────────────────────────────────────────────
 
   const allNotificationsOff =
-    !settings.emailNotifications && !settings.workflowAlerts && !settings.costDeviationWarnings;
+    !globalEmailEnabled && !settings.workflowAlerts && !settings.costDeviationWarnings;
 
   return (
     <div className="max-w-4xl animate-fade-in">
@@ -238,16 +265,16 @@ export const SettingsPage: React.FC = () => {
             {/* Email Notifications */}
             <div
               className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                settings.emailNotifications
+                globalEmailEnabled
                   ? 'border-border-default bg-surface-card'
                   : 'border-yellow-500/20 bg-yellow-500/5'
-              }`}
+              } ${isUpdatingSetting || globalEmailLoading ? 'opacity-50 pointer-events-none' : ''}`}
             >
               <Switch
-                label="Email Notifications"
-                description="Receive daily digests of your tasks and pending items"
-                checked={settings.emailNotifications}
-                onChange={(e) => handleToggle('emailNotifications', e.target.checked)}
+                label="Global Email Notifications"
+                description="Enable or disable all email notifications globally for all users"
+                checked={globalEmailEnabled}
+                onChange={(e) => handleGlobalEmailToggle(e.target.checked)}
               />
             </div>
 
@@ -303,7 +330,11 @@ export const SettingsPage: React.FC = () => {
           {/* Notification status summary */}
           <div className="mt-4 pt-3 border-t border-border-default grid grid-cols-3 gap-3">
             {[
-              { key: 'emailNotifications', label: 'Email', value: settings.emailNotifications },
+              {
+                key: 'globalEmailNotifications',
+                label: 'Email (Global)',
+                value: globalEmailEnabled,
+              },
               { key: 'workflowAlerts', label: 'Workflow', value: settings.workflowAlerts },
               {
                 key: 'costDeviationWarnings',

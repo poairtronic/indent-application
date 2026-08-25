@@ -76,7 +76,8 @@ export const DashboardPage: React.FC = () => {
   const hasIndentCreate = useAuthStore((s) => s.hasAnyPermission(['indent.create']));
   const hasIndentView = useAuthStore((s) => s.hasAnyPermission(['indent.view']));
 
-  const { data: dashboardOverview, isError: isDashboardError } = useDashboardOverview(hasAnalyticsAccess);
+  const { data: dashboardOverview, isError: isDashboardError } =
+    useDashboardOverview(hasAnalyticsAccess);
   const { data: operationalSummary, isError: isOperationalError } = useQuery({
     queryKey: ['business-transactions', 'operational-summary'],
     queryFn: () => indentService.getOperationalSummary(),
@@ -220,7 +221,11 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess || hasIndentView ? ((isDashboardError && isOperationalError) ? 'Unavailable' : (summary?.totalTransactions ?? '—')) : 'N/A'}
+              {hasAnalyticsAccess || hasIndentView
+                ? isDashboardError && isOperationalError
+                  ? 'Unavailable'
+                  : (summary?.totalTransactions ?? '—')
+                : 'N/A'}
             </span>
             <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-status-success bg-status-success/15 px-2 py-0.5 rounded-full">
               <TrendingUp size={12} />
@@ -241,7 +246,11 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess || hasIndentView ? ((isDashboardError && isOperationalError) ? 'Unavailable' : ((summary as any)?.inProduction ?? summary?.activeTransactions ?? '—')) : 'N/A'}
+              {hasAnalyticsAccess || hasIndentView
+                ? isDashboardError && isOperationalError
+                  ? 'Unavailable'
+                  : ((summary as any)?.inProduction ?? summary?.activeTransactions ?? '—')
+                : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">Active on floor</span>
           </div>
@@ -259,9 +268,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess
-                ? isDashboardError ? 'Unavailable' : '—'
-                : 'N/A'}
+              {hasAnalyticsAccess ? (isDashboardError ? 'Unavailable' : '—') : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">24 Categories</span>
           </div>
@@ -279,7 +286,13 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline justify-between">
             <span className="text-xl sm:text-2xl font-black text-text-primary tracking-tight font-mono">
-              {hasAnalyticsAccess ? (isDashboardError ? 'Unavailable' : costsData ? formatCurrency(costsData.totalPlannedCost) : '—') : 'N/A'}
+              {hasAnalyticsAccess
+                ? isDashboardError
+                  ? 'Unavailable'
+                  : costsData
+                    ? formatCurrency(costsData.totalPlannedCost)
+                    : '—'
+                : 'N/A'}
             </span>
             <span className="text-[11px] text-text-muted font-medium">Active queue</span>
           </div>
@@ -435,7 +448,9 @@ export const DashboardPage: React.FC = () => {
               <span className="font-medium leading-snug">
                 Highest Queue Backlog Detected:{' '}
                 <strong className="font-bold font-mono">
-                  {workflowData?.bottleneckStage ? formatWorkflowState(workflowData.bottleneckStage as any) : '—'}
+                  {workflowData?.bottleneckStage
+                    ? formatWorkflowState(workflowData.bottleneckStage as any)
+                    : '—'}
                 </strong>
               </span>
             </div>

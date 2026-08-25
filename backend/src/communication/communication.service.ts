@@ -56,6 +56,16 @@ export class CommunicationService {
       return { success: false };
     }
 
+    // Check global email notification toggle
+    const globalToggle = await this.prisma.applicationSetting.findUnique({
+      where: { key: 'GLOBAL_EMAIL_NOTIFICATIONS_ENABLED' },
+    });
+
+    if (globalToggle && globalToggle.value === 'false') {
+      this.logger.warn('Global email notifications are disabled. Aborting queue dispatch.');
+      return { success: false };
+    }
+
     const jobId = crypto.randomUUID();
     const correlationId = options.correlationId || crypto.randomUUID();
 
