@@ -14,6 +14,7 @@ import { useVendors } from '../../../api/services/vendors/hooks';
 import type { IndentData } from '../../../api/services/indents/service';
 import { useAuthStore } from '../../../store/authStore';
 import { getWorkflowAccess } from '../../../constants/workflow';
+import { AppPermission } from '../../../constants/permissions';
 import { calculateMaterialWeight } from '../../../utils/materialWeight';
 import { useMaterials } from '../../../api/services/materials/hooks';
 
@@ -676,6 +677,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       : initialData?.currentState === 'ACCOUNTS_COST_VERIFICATION';
 
   const user = useAuthStore((s) => s.user);
+  const hasPermission = useAuthStore((s) => s.hasPermission);
   const canViewCostSheet = !!(
     user?.permissions?.includes('costsheet.view') || user?.permissions?.includes('settings.manage')
   );
@@ -872,7 +874,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const { data: processesData } = useProcesses({ page: 1, limit: 1000 });
   const { data: materialsRes } = useMaterials({ page: 1, limit: 1000 });
   const { data: productsRes } = useProducts({ page: 1, limit: 1000 });
-  const { data: vendorsRes } = useVendors({ page: 1, limit: 1000 });
+  const canViewVendors = hasPermission(AppPermission.VENDORS_VIEW);
+  const { data: vendorsRes } = useVendors(
+    { page: 1, limit: 1000 },
+    !isReadOnly && (canViewVendors || isProductionMode),
+  );
 
   const units = unitsData?.items ?? [];
   const processes = processesData?.items ?? [];
@@ -1658,6 +1664,37 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         Prod. Vendor
                       </div>
                       <div className="md:col-span-6">
+                        <label
+                          htmlFor={`production-vendor-list-${index}`}
+                          className="block text-[10px] font-extrabold uppercase tracking-wider text-text-muted mb-1.5"
+                        >
+                          Vendor List
+                        </label>
+                        <select
+                          id={`production-vendor-list-${index}`}
+                          disabled={!isProductionMode}
+                          value={
+                            vendorsList.some((v) => v.vendorName === selectedProdVendorName)
+                              ? selectedProdVendorName
+                              : ''
+                          }
+                          onChange={(e) => {
+                            const vName = e.target.value;
+                            setValue(
+                              `indent.items.${index}.productionSource`,
+                              vName ? `Vendor: ${vName}` : 'Vendor',
+                            );
+                          }}
+                          className="w-full h-10 rounded-xl border border-border-default bg-surface-card px-3 text-sm text-text-primary mb-2"
+                        >
+                          <option value="">Choose a vendor from the list</option>
+                          {vendorsList.map((v) => (
+                            <option key={v.id} value={v.vendorName}>
+                              {v.vendorName}
+                              {v.vendorCode ? ` (${v.vendorCode})` : ''}
+                            </option>
+                          ))}
+                        </select>
                         <Input
                           label="Select Production Vendor"
                           placeholder="Type or select production vendor..."
@@ -1830,16 +1867,18 @@ export const IndentForm: React.FC<IndentFormProps> = ({
             </div>
             <div className="text-right">
               <p className="text-sm text-text-secondary">
-                Grand Total (Material + Process + Global)
+                {isAccountsMode
+                  ? 'Grand Total (Actual Material + Process + Global)'
+                  : 'Grand Total (Material + Process + Global)'}
               </p>
               <p className="text-2xl font-bold text-accent-primary">
                 ₹
-                {grandTotal.toLocaleString(undefined, {
+                {(isAccountsMode ? actualGrandTotal : grandTotal).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </p>
-              {(isAccountsMode || actualGrandTotal > 0) && (
+              {!isAccountsMode && actualGrandTotal > 0 && (
                 <p className="text-lg font-bold text-status-success mt-1">
                   Actual: ₹
                   {actualGrandTotal.toLocaleString(undefined, {

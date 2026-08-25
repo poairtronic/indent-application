@@ -8,6 +8,7 @@ import {
   useIssueMaterialItem,
   useEnterActualCosts,
   useUpdateIndent,
+  useUploadAttachment,
 } from '../../../api/services/indents/hooks';
 import { IndentWorkflowTimeline } from './WorkflowTimeline';
 import { IndentActivityFeed } from './ActivityFeed';
@@ -42,6 +43,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
   const { mutateAsync: issueItem, isPending: isIssuingItem } = useIssueMaterialItem();
   const { mutateAsync: enterActualCosts, isPending: isEnteringCosts } = useEnterActualCosts();
+  const { mutateAsync: uploadAttachment, isPending: isUploadingAttachment } = useUploadAttachment();
 
   const user = useAuthStore((s) => s.user);
 
@@ -74,6 +76,23 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   }, [indent.currentState, user]);
 
   const { mutateAsync: updateIndent, isPending: isUpdatingProduction } = useUpdateIndent();
+
+  const handleAccountsAttachmentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      await uploadAttachment({
+        id: indent.id,
+        file,
+        remarks: 'Vendor bill uploaded by Accounts',
+      });
+      window.alert(`File "${file.name}" uploaded successfully`);
+    } catch (error: any) {
+      window.alert(error?.message || 'Failed to upload the document');
+    }
+  };
 
   const handleProductionSubmit = async (data: any) => {
     try {
@@ -326,13 +345,31 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
           )}
 
           {/* Attachments */}
-          {indent.attachments && indent.attachments.length > 0 && (
+          {(isAccountsMode || (indent.attachments && indent.attachments.length > 0)) && (
             <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
-              <h3 className="text-sm font-bold text-text-primary mb-4">
-                Attachments ({indent.attachments.length})
-              </h3>
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <h3 className="text-sm font-bold text-text-primary">
+                  Attachments ({indent.attachments?.length ?? 0})
+                </h3>
+                {isAccountsMode && (
+                  <label
+                    htmlFor="accounts-document-upload"
+                    className="inline-flex items-center justify-center rounded-lg bg-accent-primary px-4 py-2 text-xs font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity"
+                  >
+                    {isUploadingAttachment ? 'Uploading...' : 'Upload Document'}
+                    <input
+                      id="accounts-document-upload"
+                      type="file"
+                      accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png"
+                      className="hidden"
+                      onChange={handleAccountsAttachmentUpload}
+                      disabled={isUploadingAttachment}
+                    />
+                  </label>
+                )}
+              </div>
               <div className="space-y-2">
-                {indent.attachments.map((att) => (
+                {indent.attachments?.map((att) => (
                   <div
                     key={att.id}
                     className="flex items-center justify-between p-3 border border-border-default rounded-lg bg-background-primary"

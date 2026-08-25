@@ -41,7 +41,7 @@ export class VendorsController {
   }
 
   @Get()
-  @Permissions('vendors.view')
+  @Permissions('vendors.view', 'production.view')
   @ApiOperation({ summary: 'Retrieve paginated vendors with filters and search' })
   @ApiResponse({ status: 200, description: 'Paginated vendors list.' })
   async findAllVendors(@Query() query: VendorQueryDto) {

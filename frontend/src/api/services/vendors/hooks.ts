@@ -8,10 +8,11 @@ import type {
   UpdateVendorPayload,
 } from '../../../types/vendor';
 
-export function useVendors(params: VendorQueryParams) {
+export function useVendors(params: VendorQueryParams, enabled = true) {
   return useQuery({
     queryKey: [...queryKeys.vendors.list('vendors'), params],
     queryFn: () => vendorService.list(params),
+    enabled,
   });
 }
 
