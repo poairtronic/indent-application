@@ -7,6 +7,7 @@ import {
   TimeoutError,
 } from '../errors';
 import { reportFrontendError } from '../utils/errorTelemetry';
+import { cancelAllRequests } from '../utils/cancellation';
 import type { ApiErrorResponse } from '../types/api-response';
 import { apiLogger } from '../utils/logger';
 import { logSecurityDenial } from '../../utils/securityLogger';
@@ -156,10 +157,17 @@ export function createErrorInterceptor(
 
     // 7. Max refresh attempts guard
     if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
-      processQueue(error, null);
+      const sessionExpiredError = createApiError(
+        401,
+        'Maximum refresh attempts exceeded',
+        undefined,
+        originalRequest.url,
+      );
+      processQueue(sessionExpiredError, null);
       resetRefreshState();
+      cancelAllRequests(); // Cancel any in-flight requests from the old session
       onLogout();
-      throw new UnauthorizedError('Maximum refresh attempts exceeded');
+      throw sessionExpiredError;
     }
 
     originalRequest._retry = true;
@@ -199,12 +207,22 @@ export function createErrorInterceptor(
       }
 
       return apiClient(originalRequest) as Promise<never>;
-    } catch (refreshError) {
+    } catch {
       apiLogger.authRefresh(false);
-      processQueue(refreshError, null);
+
+      const sessionExpiredError = createApiError(
+        401,
+        'Session Expired',
+        undefined,
+        originalRequest.url,
+      );
+
+      processQueue(sessionExpiredError, null);
       resetRefreshState();
+      cancelAllRequests(); // Cancel any in-flight requests from the old session
       onLogout();
-      throw refreshError;
+
+      throw sessionExpiredError;
     } finally {
       isRefreshing = false;
     }

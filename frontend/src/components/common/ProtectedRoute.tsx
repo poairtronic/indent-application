@@ -14,9 +14,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   permissions,
   fallbackPath = '/unauthorized',
 }) => {
+  const isHydrating = useAuthStore((s) => s.isHydrating);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasAnyPermission = useAuthStore((s) => s.hasAnyPermission);
   const location = useLocation();
+
+  if (isHydrating) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Verifying session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     const returnUrl = encodeURIComponent(location.pathname + location.search);

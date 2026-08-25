@@ -8,6 +8,7 @@ import { GlobalErrorBoundary } from '../components/common/GlobalErrorBoundary';
 import { useTabSync } from '../hooks/useTabSync';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
 import { createQueryClient } from '../api/hooks/query-client';
+import { useAuthStore } from '../store/authStore';
 
 const queryClient = createQueryClient();
 
@@ -19,6 +20,12 @@ export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useTabSync();
   useSessionTimeout();
+
+  // Initialize Auth
+  useEffect(() => {
+    const { initializeAuth } = useAuthStore.getState();
+    initializeAuth();
+  }, []);
 
   // Apply resolved theme to <html>
   useEffect(() => {

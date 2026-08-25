@@ -9,12 +9,15 @@ interface AuthState {
   permissions: string[];
   isAuthenticated: boolean;
   isLoading: boolean;
+  isHydrating: boolean;
   login: (accessToken: string, refreshToken: string, user: AuthUser, isSync?: boolean) => void;
   logout: () => void;
   setAccessToken: (token: string) => void;
   setLoading: (loading: boolean) => void;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
+  hydrate: () => void;
+  initializeAuth: () => Promise<void>;
 }
 
 const STORAGE_KEYS = {
@@ -23,6 +26,23 @@ const STORAGE_KEYS = {
   USER: 'auth_user',
   PERMISSIONS: 'auth_permissions',
 } as const;
+
+function isTokenValid(token: string | null): boolean {
+  if (!token) return false;
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return false;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      window.atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    // Add 10 seconds leeway
+    return payload.exp && payload.exp * 1000 > Date.now() + 10000;
+  } catch {
+    return false;
+  }
+}
 
 function loadPersistedState() {
   try {
@@ -39,8 +59,9 @@ function loadPersistedState() {
       accessToken: token,
       refreshToken,
       permissions: permissions as string[],
-      isAuthenticated: !!token,
+      isAuthenticated: false, // Start false until hydrated
       isLoading: false,
+      isHydrating: true, // Start in hydration state
     };
   } catch {
     return {
@@ -50,6 +71,7 @@ function loadPersistedState() {
       permissions: [],
       isAuthenticated: false,
       isLoading: false,
+      isHydrating: true,
     };
   }
 }
@@ -68,6 +90,10 @@ function clearPersistedState() {
   localStorage.removeItem(STORAGE_KEYS.PERMISSIONS);
 }
 
+// Single initialization lock to prevent strict-mode double firing
+let isInitializing = false;
+let initializePromise: Promise<void> | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   ...loadPersistedState(),
 
@@ -79,13 +105,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user,
       permissions: user.permissions ?? [],
       isAuthenticated: true,
+      isHydrating: false,
     });
 
     if (!isSync) {
       // Broadcast login to other tabs
       try {
         const bc = new BroadcastChannel('imcms-auth');
-        bc.postMessage({ type: 'LOGIN', accessToken, refreshToken, user });
+        bc.postMessage({ type: 'LOGIN' });
         bc.close();
       } catch {
         // BroadcastChannel not supported or already closed
@@ -102,6 +129,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: null,
       permissions: [],
       isAuthenticated: false,
+      isHydrating: false,
     });
 
     // Broadcast logout to other tabs
@@ -155,5 +183,56 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return true;
     }
     return perms.some((p) => permissions.some((up) => up.toLowerCase() === p.toLowerCase()));
+  },
+
+  hydrate: () => {
+    const state = loadPersistedState();
+    set({ ...state, isAuthenticated: !!state.accessToken, isHydrating: false });
+  },
+
+  initializeAuth: async () => {
+    if (isInitializing && initializePromise) return initializePromise;
+    
+    isInitializing = true;
+    initializePromise = (async () => {
+      try {
+        const { accessToken, refreshToken, user } = get();
+        
+        // 1. If no token, no active session
+        if (!accessToken || !refreshToken || !user) {
+          get().logout();
+          return;
+        }
+
+        // 2. Check token validity locally
+        if (isTokenValid(accessToken)) {
+          set({ isAuthenticated: true, isHydrating: false });
+          return;
+        }
+
+        // 3. Token is expired, trigger refresh ONE time
+        // Import apiClient dynamically to avoid circular dependency
+        const { apiClient } = await import('../api/client');
+        try {
+          const res = await apiClient.post('/auth/refresh');
+          const data = res.data.data || res.data;
+          
+          if (data && data.accessToken) {
+            get().login(data.accessToken, data.refreshToken || refreshToken, user, true);
+          } else {
+            throw new Error('No token returned from refresh');
+          }
+        } catch (error) {
+          console.error('Initial auth refresh failed:', error);
+          get().logout();
+        }
+      } finally {
+        set({ isHydrating: false });
+        isInitializing = false;
+        initializePromise = null;
+      }
+    })();
+
+    return initializePromise;
   },
 }));
