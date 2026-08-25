@@ -82,6 +82,17 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
     event.target.value = '';
     if (!file) return;
 
+    const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
+    const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`;
+    if (!allowedExtensions.includes(extension)) {
+      window.alert('Only PDF, Excel, JPG, JPEG, and PNG files are supported.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      window.alert('The maximum file size is 10MB.');
+      return;
+    }
+
     try {
       await uploadAttachment({
         id: indent.id,
