@@ -89,9 +89,6 @@ describe('Concurrency & Race Condition Resilience', () => {
   };
 
   const mockAttachmentService = {};
-  const mockRedisService = {
-    invalidatePattern: jest.fn(),
-  };
   const mockDocumentNumberService = {
     generateIndentNumber: jest.fn().mockResolvedValue('AGIPL-IND-2026-001'),
     generateCostSheetNumber: jest.fn().mockResolvedValue('AGIPL-CS-2026-001'),

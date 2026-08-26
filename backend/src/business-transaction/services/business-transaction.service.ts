@@ -105,7 +105,9 @@ export class BusinessTransactionService {
     const client = tx || this.prisma;
 
     // Derive the expected Prisma status from the domain state for null-safe fallback matching
-    const expectedPrismaStatus = WorkflowStateMapper.toPrisma(expectedCurrentState as WorkflowState);
+    const expectedPrismaStatus = WorkflowStateMapper.toPrisma(
+      expectedCurrentState as WorkflowState,
+    );
 
     const result = await client.indent.updateMany({
       where: {
@@ -368,7 +370,12 @@ export class BusinessTransactionService {
         attachments: { where: { isDeleted: false } },
         costSheet: {
           include: {
-            costItems: { include: { material: { select: { id: true, materialName: true, materialCode: true } }, vendor: { select: { id: true, vendorName: true, vendorCode: true } } } },
+            costItems: {
+              include: {
+                material: { select: { id: true, materialName: true, materialCode: true } },
+                vendor: { select: { id: true, vendorName: true, vendorCode: true } },
+              },
+            },
             processCosts: { include: { process: { select: { id: true, processName: true } } } },
           },
         },
@@ -475,7 +482,12 @@ export class BusinessTransactionService {
         attachments: { where: { isDeleted: false } },
         costSheet: {
           include: {
-            costItems: { include: { material: { select: { id: true, materialName: true, materialCode: true } }, vendor: { select: { id: true, vendorName: true, vendorCode: true } } } },
+            costItems: {
+              include: {
+                material: { select: { id: true, materialName: true, materialCode: true } },
+                vendor: { select: { id: true, vendorName: true, vendorCode: true } },
+              },
+            },
             processCosts: { include: { process: { select: { id: true, processName: true } } } },
           },
         },
@@ -772,7 +784,11 @@ export class BusinessTransactionService {
     const activeTransactions = totalTransactions - completedTransactions;
     const inProduction = stageDistribution
       .filter((row) =>
-        [WorkflowState.MATERIALS_ISSUED, WorkflowState.PRODUCTION_PROCESSING, WorkflowState.PRODUCTION_COMPLETED].includes(row.stageName as WorkflowState),
+        [
+          WorkflowState.MATERIALS_ISSUED,
+          WorkflowState.PRODUCTION_PROCESSING,
+          WorkflowState.PRODUCTION_COMPLETED,
+        ].includes(row.stageName as WorkflowState),
       )
       .reduce((sum, row) => sum + row.count, 0);
     return {
@@ -782,7 +798,9 @@ export class BusinessTransactionService {
       completedTransactions,
       stageDistribution: stageDistribution.map((row) => ({
         ...row,
-        percentage: totalTransactions ? Math.round((row.count / totalTransactions) * 10000) / 100 : 0,
+        percentage: totalTransactions
+          ? Math.round((row.count / totalTransactions) * 10000) / 100
+          : 0,
       })),
     };
   }
@@ -1822,10 +1840,6 @@ export class BusinessTransactionService {
 
           const cItem = currentCostItems.find((i) => i.id === cDto.costItemId);
           if (cItem) {
-            const predictedAmount = roundTo4Decimals(cItem.predictedAmount);
-            const varianceAmount = safeSubtract(actualAmount, predictedAmount);
-            const variancePercentage = safeVariancePercentage(varianceAmount, predictedAmount);
-
             // Update in DB
             await tx.costItem.update({
               where: { id: cDto.costItemId },
@@ -1855,7 +1869,6 @@ export class BusinessTransactionService {
           if (pItem) {
             const predictedAmount = roundTo4Decimals(Number(pItem.predictedCost));
             const varianceAmount = safeSubtract(actualAmount, predictedAmount);
-            const variancePercentage = safeVariancePercentage(varianceAmount, predictedAmount);
 
             // Update in DB
             await tx.processCost.update({

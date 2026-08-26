@@ -17,7 +17,6 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
   let mockEventService: any;
   let mockValidator: any;
   let mockAttachmentStorage: any;
-  let mockCacheService: any;
 
   const sampleIndent = {
     id: 'indent-123',
@@ -86,9 +85,6 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
 
     mockValidator = {};
     mockAttachmentStorage = {};
-    mockCacheService = {
-      del: jest.fn().mockResolvedValue(undefined),
-    };
     const mockDocumentNumberService = {
       generateIndentNumber: jest.fn().mockResolvedValue('AGIPL-IND-2026-001'),
       generateCostSheetNumber: jest.fn().mockResolvedValue('AGIPL-CS-2026-001'),

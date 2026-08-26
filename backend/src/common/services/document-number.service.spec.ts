@@ -1,4 +1,4 @@
-import { DocumentNumberService, DocumentType, COMPANY_CODE } from './document-number.service';
+import { DocumentNumberService } from './document-number.service';
 
 describe('DocumentNumberService', () => {
   let service: DocumentNumberService;
