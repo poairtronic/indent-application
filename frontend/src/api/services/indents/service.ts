@@ -49,17 +49,75 @@ export interface IndentItemData {
   indentProcesses?: Array<{ process: { id: string; processName: string } }>;
 }
 
+export interface DocumentUploader {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface DocumentIndentSummary {
+  id: string;
+  indentNumber: string;
+  customerName?: string | null;
+  layoutNumber?: string | null;
+  status: string;
+  currentState: string;
+  purpose?: string | null;
+  createdAt: string;
+  product?: {
+    id: string;
+    productName: string;
+    productCode: string;
+  } | null;
+  department?: {
+    id: string;
+    departmentName: string;
+    departmentCode: string;
+  } | null;
+}
+
 export interface IndentAttachmentData {
   id: string;
   fileName: string;
   fileUrl: string;
   fileType: string;
-  uploadedBy: string;
+  uploadedBy: string | DocumentUploader;
   createdAt: string;
   mimeType?: string;
   fileSize?: number;
   department?: string;
   remarks?: string;
+  storageFileName?: string;
+}
+
+export interface IndentDocumentItem {
+  id: string;
+  indentId: string;
+  indent?: DocumentIndentSummary | null;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedBy?: DocumentUploader | string;
+  createdAt: string;
+  mimeType?: string;
+  fileSize?: number;
+  department?: string;
+  remarks?: string;
+  costSheetId?: string | null;
+  storageFileName?: string;
+}
+
+export interface DocumentSearchParams {
+  businessTransactionId?: string;
+  costSheetId?: string;
+  documentType?: string;
+  department?: string;
+  uploadedBy?: string;
+  uploadDate?: string;
+  fileName?: string;
+  indentNumber?: string;
+  search?: string;
 }
 
 export interface CostSheetData {
@@ -328,6 +386,19 @@ class IndentService extends BaseService {
     totalFileSize: number;
   }> {
     return this.get(`${this.basePath}/${id}/attachments/summary`);
+  }
+
+  async searchAttachments(params?: DocumentSearchParams): Promise<IndentDocumentItem[]> {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          query.append(key, String(value));
+        }
+      });
+    }
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return this.get<IndentDocumentItem[]>(`${this.basePath}/attachments/search${queryString}`);
   }
 
   async removeAttachment(id: string, attachmentId: string): Promise<void> {

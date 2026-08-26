@@ -3,8 +3,8 @@ import { ApiError } from '../errors';
 import { isCancel } from '../client';
 
 const MAX_NETWORK_RETRIES = 1;
-const MAX_SERVER_RETRIES = 2;
-const MAX_DEFAULT_RETRIES = 1;
+const MAX_SERVER_RETRIES = 1;
+const MAX_DEFAULT_RETRIES = 0;
 
 function shouldRetryQuery(failureCount: number, error: unknown): boolean {
   if (isCancel(error)) return false;

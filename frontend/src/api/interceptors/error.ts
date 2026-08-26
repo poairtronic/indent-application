@@ -141,18 +141,22 @@ export function createErrorInterceptor(
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {
         failedQueue.push({ resolve, reject });
-      }).then((token) => {
-        originalRequest._retry = true;
-        if (!originalRequest.headers) {
-          originalRequest.headers = {} as any;
-        }
-        if (typeof (originalRequest.headers as any).set === 'function') {
-          (originalRequest.headers as any).set('Authorization', `Bearer ${token}`);
-        } else {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-        }
-        return apiClient(originalRequest) as Promise<never>;
-      });
+      })
+        .then((token) => {
+          originalRequest._retry = true;
+          if (!originalRequest.headers) {
+            originalRequest.headers = {} as any;
+          }
+          if (typeof (originalRequest.headers as any).set === 'function') {
+            (originalRequest.headers as any).set('Authorization', `Bearer ${token}`);
+          } else {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
+          return apiClient(originalRequest) as Promise<never>;
+        })
+        .catch((err) => {
+          return Promise.reject(err);
+        });
     }
 
     // 7. Max refresh attempts guard

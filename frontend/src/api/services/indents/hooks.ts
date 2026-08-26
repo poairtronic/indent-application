@@ -262,6 +262,14 @@ export function useRemoveAttachment() {
       indentService.removeAttachment(id, attachmentId),
     onSuccess: (_data, variables) => {
       invalidateIndent(queryClient, variables.id);
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
     },
+  });
+}
+
+export function useDocuments(params?: import('./service').DocumentSearchParams) {
+  return useQuery({
+    queryKey: ['documents', 'list', params],
+    queryFn: () => indentService.searchAttachments(params),
   });
 }

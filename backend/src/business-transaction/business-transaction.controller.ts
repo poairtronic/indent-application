@@ -53,7 +53,7 @@ export class BusinessTransactionController {
   }
 
   @Get('attachments/search')
-  @Permissions('indent.view', 'accounts.verify')
+  @Permissions('indent.view', 'accounts.verify', 'reports.view')
   async searchAttachments(
     @Query('businessTransactionId') businessTransactionId?: string,
     @Query('costSheetId') costSheetId?: string,
@@ -62,6 +62,8 @@ export class BusinessTransactionController {
     @Query('uploadedBy') uploadedBy?: string,
     @Query('uploadDate') uploadDate?: string,
     @Query('fileName') fileName?: string,
+    @Query('indentNumber') indentNumber?: string,
+    @Query('search') search?: string,
   ) {
     return this.businessTransactionService.searchAttachments({
       businessTransactionId,
@@ -71,6 +73,8 @@ export class BusinessTransactionController {
       uploadedBy,
       uploadDate,
       fileName,
+      indentNumber,
+      search,
     });
   }
 

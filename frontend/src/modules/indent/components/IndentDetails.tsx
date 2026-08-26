@@ -2,6 +2,7 @@ import React from 'react';
 import type { IndentData } from '../../../api/services/indents/service';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
+import { Download } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { getWorkflowAccess } from '../../../constants/workflow';
 import {
@@ -9,6 +10,7 @@ import {
   useEnterActualCosts,
   useUpdateIndent,
   useUploadAttachment,
+  useDownloadAttachment,
 } from '../../../api/services/indents/hooks';
 import { IndentWorkflowTimeline } from './WorkflowTimeline';
 import { IndentActivityFeed } from './ActivityFeed';
@@ -44,6 +46,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const { mutateAsync: issueItem, isPending: isIssuingItem } = useIssueMaterialItem();
   const { mutateAsync: enterActualCosts, isPending: isEnteringCosts } = useEnterActualCosts();
   const { mutateAsync: uploadAttachment, isPending: isUploadingAttachment } = useUploadAttachment();
+  const { mutateAsync: downloadAttachment } = useDownloadAttachment();
 
   const user = useAuthStore((s) => s.user);
 
@@ -382,20 +385,38 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                 {indent.attachments?.map((att) => (
                   <div
                     key={att.id}
-                    className="flex items-center justify-between p-3 border border-border-default rounded-lg bg-background-primary"
+                    className="flex items-center justify-between p-3 border border-border-default rounded-lg bg-background-primary hover:border-accent-primary/40 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-accent-primary/10 flex items-center justify-center text-accent-primary text-xs font-bold">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded bg-accent-primary/10 flex items-center justify-center text-accent-primary text-xs font-bold shrink-0">
                         {att.fileType?.slice(0, 3).toUpperCase() || 'FILE'}
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-text-primary">{att.fileName}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {att.fileName}
+                        </p>
                         <p className="text-xs text-text-muted">
                           {att.department || 'Design'} •{' '}
                           {new Date(att.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const downloadKey = att.storageFileName || att.fileName;
+                          await downloadAttachment(downloadKey);
+                        } catch (err: any) {
+                          window.alert(err?.message || `Failed to download ${att.fileName}`);
+                        }
+                      }}
+                      className="h-8 px-3 text-xs flex items-center gap-1.5 shrink-0 ml-3"
+                    >
+                      <Download size={13} />
+                      <span>Download</span>
+                    </Button>
                   </div>
                 ))}
               </div>

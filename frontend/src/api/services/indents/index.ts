@@ -3,6 +3,9 @@ export type {
   IndentData,
   IndentItemData,
   IndentAttachmentData,
+  IndentDocumentItem,
+  DocumentSearchParams,
+  DocumentIndentSummary,
   CostSheetData,
   CostItemData,
   ProcessCostData,
@@ -34,4 +37,5 @@ export {
   useDownloadAttachment,
   useAttachmentSummary,
   useRemoveAttachment,
+  useDocuments,
 } from './hooks';

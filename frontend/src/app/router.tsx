@@ -178,6 +178,11 @@ const NotificationsPage = lazy(() =>
   })),
 );
 
+// Documents Module Page
+const DocumentsPage = lazy(() =>
+  import('../pages/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })),
+);
+
 // Reports Module Pages
 const ReportsDashboardPage = lazy(() =>
   import('../modules/reports/ReportsDashboardPage').then((m) => ({
@@ -400,6 +405,14 @@ export const AppRouter: React.FC = () => {
           element={
             <ProtectedRoute permissions={['reports.view']}>
               {suspended(ReportDetailPage)}
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/documents"
+          element={
+            <ProtectedRoute permissions={['indent.view', 'accounts.verify', 'reports.view']}>
+              {suspended(DocumentsPage)}
             </ProtectedRoute>
           }
         />

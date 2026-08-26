@@ -2670,7 +2670,16 @@ export class BusinessTransactionService {
     }
 
     // Admin has full unrestricted access
-    if (user.role?.roleName === 'Admin') {
+    const roleUpper = (user.role?.roleName || '').toUpperCase();
+    const deptUpper = (user.department?.departmentCode || '').toUpperCase();
+    const isSystemAdmin =
+      roleUpper === 'ADMIN' ||
+      roleUpper === 'SYSTEM ADMINISTRATOR' ||
+      user.role?.isSystem === true ||
+      deptUpper === 'ADMIN' ||
+      deptUpper === 'ADM';
+
+    if (isSystemAdmin) {
       return this.attachmentStorage.getDownloadStream(fileName);
     }
 
@@ -2683,16 +2692,26 @@ export class BusinessTransactionService {
       // Fallback
     }
 
-    const userDeptCode = user.department?.departmentCode;
-    const userRoleName = user.role?.roleName;
+    const userDeptCode = (user.department?.departmentCode || '').toUpperCase();
+    const userRoleName = (user.role?.roleName || '').toUpperCase();
 
     // Managers have read-only access to everything
-    const isManager = userRoleName === 'Senior Manager' || userRoleName === 'General Manager';
+    const isManager =
+      userRoleName === 'SENIOR MANAGER' ||
+      userRoleName === 'GENERAL MANAGER' ||
+      userRoleName === 'MANAGER';
 
-    const isAttAccounts = attachmentDept === 'ACCOUNTS' || attachmentDept === 'ACCT';
-    const isUserAccounts = userDeptCode === 'ACCOUNTS' || userDeptCode === 'ACCT';
+    const isAttAccounts =
+      attachmentDept.toUpperCase() === 'ACCOUNTS' ||
+      attachmentDept.toUpperCase() === 'ACCT' ||
+      attachmentDept.toUpperCase() === 'ACC';
+    const isUserAccounts =
+      userDeptCode === 'ACCOUNTS' ||
+      userDeptCode === 'ACCT' ||
+      userDeptCode === 'ACC' ||
+      userDeptCode === 'FINANCE';
 
-    // Accounts files (e.g. bills/invoices) are restricted to Accounts and Managers
+    // Accounts files (e.g. bills/invoices) are restricted to Accounts, Managers, and Admins
     if (isAttAccounts) {
       if (!isUserAccounts && !isManager) {
         throw new ForbiddenException(
@@ -2735,8 +2754,35 @@ export class BusinessTransactionService {
 
     const dbAttachments = await this.prisma.indentAttachment.findMany({
       where: whereClause,
+      orderBy: { createdAt: 'desc' },
       include: {
         uploader: { select: { id: true, firstName: true, lastName: true, email: true } },
+        indent: {
+          select: {
+            id: true,
+            indentNumber: true,
+            customerName: true,
+            layoutNumber: true,
+            status: true,
+            currentState: true,
+            purpose: true,
+            createdAt: true,
+            product: {
+              select: {
+                id: true,
+                productName: true,
+                productCode: true,
+              },
+            },
+            department: {
+              select: {
+                id: true,
+                departmentName: true,
+                departmentCode: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -2745,6 +2791,8 @@ export class BusinessTransactionService {
         const meta = JSON.parse(att.fileName);
         return {
           id: att.id,
+          indentId: att.indentId,
+          indent: att.indent,
           fileName: meta.originalName || att.fileName,
           fileUrl: att.fileUrl,
           fileType: att.fileType,
@@ -2760,6 +2808,8 @@ export class BusinessTransactionService {
       } catch {
         return {
           id: att.id,
+          indentId: att.indentId,
+          indent: att.indent,
           fileName: att.fileName,
           fileUrl: att.fileUrl,
           fileType: att.fileType,
@@ -2784,6 +2834,29 @@ export class BusinessTransactionService {
       }
       if (query.fileName && !att.fileName.toLowerCase().includes(query.fileName.toLowerCase())) {
         return false;
+      }
+      if (
+        query.indentNumber &&
+        !att.indent?.indentNumber?.toLowerCase().includes(query.indentNumber.toLowerCase())
+      ) {
+        return false;
+      }
+      if (query.search) {
+        const s = query.search.toLowerCase();
+        const matchesName = att.fileName.toLowerCase().includes(s);
+        const matchesIndent = att.indent?.indentNumber?.toLowerCase().includes(s);
+        const matchesCustomer = att.indent?.customerName?.toLowerCase().includes(s);
+        const matchesProduct = att.indent?.product?.productName?.toLowerCase().includes(s);
+        const matchesRemarks = att.remarks?.toLowerCase().includes(s);
+        if (
+          !matchesName &&
+          !matchesIndent &&
+          !matchesCustomer &&
+          !matchesProduct &&
+          !matchesRemarks
+        ) {
+          return false;
+        }
       }
       return true;
     });

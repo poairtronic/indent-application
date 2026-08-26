@@ -28,6 +28,12 @@ export const menuItems: MenuItem[] = [
   { label: 'Units', path: '/units', iconName: 'Scale', permission: 'units.view' },
   { label: 'Vendors', path: '/vendors', iconName: 'Briefcase', permission: 'vendors.view' },
   { label: 'Reports', path: '/reports', iconName: 'FileText', permission: 'reports.view' },
+  {
+    label: 'Documents',
+    path: '/documents',
+    iconName: 'FolderArchive',
+    permission: 'indent.view',
+  },
   { label: 'Analytics', path: '/analytics', iconName: 'BarChart3', permission: 'analytics.view' },
   {
     label: 'Notifications',

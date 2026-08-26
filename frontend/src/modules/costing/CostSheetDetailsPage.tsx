@@ -5,12 +5,14 @@ import {
   useEnterActualCosts,
   useFinancialClose,
   useUploadAttachment,
+  useDownloadAttachment,
 } from '../../api/services/indents/hooks';
 import { useAuthStore } from '../../store/authStore';
 import {
   ArrowLeft,
   Save,
   FileText,
+  Download,
   CheckCircle,
   Clock,
   User,
@@ -91,6 +93,7 @@ export const CostSheetDetailsPage: React.FC = () => {
   const { mutateAsync: saveActualCosts, isPending: isSaving } = useEnterActualCosts();
   const { mutateAsync: financialClose, isPending: isClosing } = useFinancialClose();
   const { mutateAsync: uploadAttachment, isPending: isUploading } = useUploadAttachment();
+  const { mutateAsync: downloadAttachment } = useDownloadAttachment();
 
   const user = useAuthStore((s) => s.user);
   const canViewWorkflow = hasPermission(AppPermission.WORKFLOW_VIEW);
@@ -646,18 +649,37 @@ export const CostSheetDetailsPage: React.FC = () => {
               {indent.attachments.map((att) => (
                 <div
                   key={att.id}
-                  className="flex items-center justify-between p-3 bg-background-primary rounded-lg border border-border-default/50"
+                  className="flex items-center justify-between p-3 bg-background-primary rounded-lg border border-border-default/50 hover:border-accent-primary/40 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <FileText size={16} className="text-text-muted" />
-                    <div>
-                      <p className="text-sm font-medium text-text-primary">{att.fileName}</p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText size={18} className="text-accent-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-primary truncate">
+                        {att.fileName}
+                      </p>
                       <p className="text-xs text-text-muted">
                         {att.fileType} &middot; {formatTimestamp(att.createdAt)}
                         {att.remarks && ` -- ${att.remarks}`}
                       </p>
                     </div>
                   </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const downloadKey = att.storageFileName || att.fileName;
+                        await downloadAttachment(downloadKey);
+                        show('success', `Downloaded "${att.fileName}" successfully.`);
+                      } catch (err: any) {
+                        show('error', err?.message || `Failed to download "${att.fileName}".`);
+                      }
+                    }}
+                    className="h-8 px-3 text-xs flex items-center gap-1.5 shrink-0 ml-3"
+                  >
+                    <Download size={13} />
+                    <span>Download</span>
+                  </Button>
                 </div>
               ))}
             </div>
