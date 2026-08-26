@@ -46,6 +46,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           status = HttpStatus.BAD_REQUEST;
           message = 'Referenced resource does not exist (Foreign key violation).';
           break;
+        case 'P2000':
+          status = HttpStatus.BAD_REQUEST;
+          message = 'Uploaded file metadata is too large for the database column.';
+          break;
         default:
           status = HttpStatus.BAD_REQUEST;
           message = 'Invalid data provided.';
