@@ -74,7 +74,7 @@ export const MaterialsPage: React.FC = () => {
   );
 
   const materialsQuery = useMaterials(query);
-  const unitsQuery = useUnits({ page: 1, limit: 100 });
+  const unitsQuery = useUnits({ page: 1, limit: 1000 });
   const createMutation = useCreateMaterial();
   const updateMutation = useUpdateMaterial();
   const deleteMutation = useDeleteMaterial();

@@ -539,8 +539,10 @@ model Indent {
   @@index([customerName])
   @@index([layoutNumber])
   @@index([productId])
+  @@index([departmentId, isDeleted, createdAt(sort: Desc)])
   @@index([departmentId])
   @@index([createdBy])
+  @@index([isDeleted, status, createdAt(sort: Desc)])
   @@index([status])
   @@index([currentState])
   @@index([currentStageId])
@@ -687,7 +689,7 @@ model CostSheet {
   @@index([costNumber])
   @@index([indentId])
   @@index([status])
-  @@index([createdAt])
+  @@index([isDeleted, createdAt(sort: Desc)])
   @@map("cost_sheets")
 }
 
@@ -1501,7 +1503,7 @@ model EmailJob {
   createdAt   DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime       @updatedAt @db.Timestamptz(6)
 
-  @@index([status, availableAt, priority, createdAt])
+  @@index([status, priority(sort: Desc), createdAt(sort: Asc), availableAt])
   @@map("email_jobs")
 }
 

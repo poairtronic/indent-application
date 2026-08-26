@@ -32,7 +32,9 @@ export function usePrefetch() {
           });
         })
         .catch(() => {});
+    }
 
+    if (path.includes('/indents/create')) {
       // Safe to prefetch master data for "New Indent" using the EXACT same keys the form uses
       if (useAuthStore.getState().hasPermission('materials.view')) {
         import('../api/services/materials/service')

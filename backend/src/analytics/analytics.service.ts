@@ -9,6 +9,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IndentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { KpiService } from './kpi.service';
 import { KpiQueryDto } from './dto/kpi-query.dto';
 import {
@@ -142,52 +143,40 @@ export class AnalyticsService {
   public async getWorkflowAnalytics(): Promise<IWorkflowAnalytics> {
     this.logger.log('Computing workflow analytics');
 
-    const [stateCounts, completedIndents, total, activeIndents] = await Promise.all([
-      // SQL-side groupBy: returns ~5-10 rows instead of thousands of indent objects
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // SQL-side calculation entirely replacing findMany + JS map/reduce
+    const [stateCounts, total, cycleTimeResult, stalledResult] = await Promise.all([
       this.prisma.indent.groupBy({
         by: ['currentState'],
         where: { isDeleted: false },
         _count: { id: true },
       }),
-      // Completed indents with timestamps for cycle time calculation
-      this.prisma.indent.findMany({
-        where: { isDeleted: false, status: IndentStatus.COMPLETED },
-        select: { createdAt: true, updatedAt: true },
-      }),
-      // Total non-deleted
       this.prisma.indent.count({ where: { isDeleted: false } }),
-      // Active indents to evaluate stalled duration based on current state entry timestamp (BUG-KPI-001)
-      this.prisma.indent.findMany({
-        where: {
-          isDeleted: false,
-          status: { in: ACTIVE_STATUSES },
-        },
-        select: {
-          id: true,
-          createdAt: true,
-          workflowHistory: {
-            where: { isDeleted: false },
-            orderBy: { movedAt: 'desc' },
-            take: 1,
-            select: { movedAt: true },
-          },
-        },
-      }),
+      this.prisma.$queryRaw<{ avgCycleDays: number | null }[]>`
+        SELECT AVG(EXTRACT(EPOCH FROM ("updatedAt" - "createdAt")) / 86400.0) as "avgCycleDays"
+        FROM "indents"
+        WHERE "isDeleted" = false AND "status" = 'COMPLETED'
+      `,
+      this.prisma.$queryRaw<{ stalledCount: number }[]>`
+        SELECT COUNT(*)::int as "stalledCount"
+        FROM "indents" i
+        WHERE i."isDeleted" = false
+          AND i."status"::text IN (${Prisma.join(ACTIVE_STATUSES)})
+          AND COALESCE(
+            (
+              SELECT "movedAt"
+              FROM "workflow_history" wh
+              WHERE wh."indentId" = i.id AND wh."isDeleted" = false
+              ORDER BY "movedAt" DESC
+              LIMIT 1
+            ),
+            i."createdAt"
+          ) <= ${sevenDaysAgo}
+      `,
     ]);
 
-    // Compute stalled transactions: active indents whose current state entry timestamp is > 7 days ago
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    let stalledCount = 0;
-    for (const indent of activeIndents) {
-      const stateEnteredAt =
-        indent.workflowHistory && indent.workflowHistory.length > 0
-          ? new Date(indent.workflowHistory[0].movedAt)
-          : new Date(indent.createdAt);
-
-      if (stateEnteredAt <= sevenDaysAgo) {
-        stalledCount++;
-      }
-    }
+    const stalledCount = stalledResult[0]?.stalledCount ?? 0;
 
     // Build domain state counts directly from SQL groupBy result
     const domainStateCounts = new Map<string, number>();
@@ -211,12 +200,11 @@ export class AnalyticsService {
 
     // Average cycle time (createdAt → updatedAt for COMPLETED)
     let averageCycleDays: number | null = null;
-    if (completedIndents.length > 0) {
-      const totalDays = completedIndents.reduce((sum, indent) => {
-        const diff = indent.updatedAt.getTime() - indent.createdAt.getTime();
-        return sum + diff / (1000 * 60 * 60 * 24);
-      }, 0);
-      averageCycleDays = Math.round((totalDays / completedIndents.length) * 100) / 100;
+    if (
+      cycleTimeResult[0]?.avgCycleDays !== null &&
+      cycleTimeResult[0]?.avgCycleDays !== undefined
+    ) {
+      averageCycleDays = Math.round(Number(cycleTimeResult[0].avgCycleDays) * 100) / 100;
     }
 
     // Bottleneck: domain state with highest count (excluding COMPLETED)

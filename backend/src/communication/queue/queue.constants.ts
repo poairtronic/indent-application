@@ -24,6 +24,8 @@ export interface IJobPayload {
   recipients: string[];
   template: string;
   subject: string;
+  body?: string;
+  html?: string;
   businessEvent: string;
   payload: Record<string, any>;
   attachments?: { filename: string; path?: string; content?: any; contentType?: string }[];

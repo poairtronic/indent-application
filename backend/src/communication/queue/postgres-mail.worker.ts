@@ -139,18 +139,31 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   private async processJob(job: any) {
-    const payload: IJobPayload = job.payload;
-    const logIds = payload.emailLogIds || [payload.jobId];
+    const payload: IJobPayload = job.payload || {};
+    const rawLogIds = payload.emailLogIds || (payload.jobId ? [payload.jobId] : []);
+    const logIds = (Array.isArray(rawLogIds) ? rawLogIds : [rawLogIds]).filter(
+      (id): id is string => typeof id === 'string' && id.trim().length > 0,
+    );
     const startTime = Date.now();
 
     try {
-      await this.updateLogStatus(logIds, EmailState.PROCESSING);
+      if (logIds.length > 0) {
+        await this.updateLogStatus(logIds, EmailState.PROCESSING);
+      }
 
-      const html = this.templateEngine.render(payload.template, payload.payload);
+      let html = '';
+      if (payload.html) {
+        html = payload.html;
+      } else if (payload.template) {
+        html = this.templateEngine.render(payload.template, payload.payload || {});
+      } else {
+        html = `<p>${payload.body || payload.subject || 'MERC Notification'}</p>`;
+      }
+
       const mailPayload: any = {
         to: payload.recipients,
         subject: payload.subject,
-        body: 'MERC Notification. Please view in HTML mode.',
+        body: payload.body || 'MERC Notification. Please view in HTML mode.',
         html,
         attachments: payload.attachments,
       };
@@ -161,7 +174,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       await this.prisma.$transaction(async (tx) => {
         await tx.emailJob.deleteMany({ where: { id: job.id } });
 
-        if (logIds && logIds.length > 0) {
+        if (logIds.length > 0) {
           await tx.emailLog.updateMany({
             where: { id: { in: logIds } },
             data: {
@@ -194,7 +207,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
               lockedBy: null,
             },
           });
-          if (logIds && logIds.length > 0) {
+          if (logIds.length > 0) {
             await tx.emailLog.updateMany({
               where: { id: { in: logIds } },
               data: { status: EmailState.DEAD_LETTER, errorMessage },
@@ -208,7 +221,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
           error: errorMessage,
         });
       } else {
-        const backoffDelay = 5 * 60 * 1000 * Math.pow(2, attempts - 1); // Exponential backoff (BullMQ default was 5m base)
+        const backoffDelay = 5 * 60 * 1000 * Math.pow(2, attempts - 1); // Exponential backoff
 
         await this.prisma.$transaction(async (tx) => {
           await tx.emailJob.updateMany({
@@ -222,7 +235,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
               lockedBy: null,
             },
           });
-          if (logIds && logIds.length > 0) {
+          if (logIds.length > 0) {
             await tx.emailLog.updateMany({
               where: { id: { in: logIds } },
               data: {
@@ -246,9 +259,12 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
 
   private async updateLogStatus(logIds: string[], status: EmailState, errorMessage?: string) {
     try {
-      if (!logIds || logIds.length === 0) return;
+      const validIds = (logIds || []).filter(
+        (id): id is string => typeof id === 'string' && id.trim().length > 0,
+      );
+      if (validIds.length === 0) return;
       await this.prisma.emailLog.updateMany({
-        where: { id: { in: logIds } },
+        where: { id: { in: validIds } },
         data: { status, errorMessage: errorMessage || null },
       });
     } catch (err) {
@@ -263,9 +279,12 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     messageId?: string,
   ) {
     try {
-      if (!logIds || logIds.length === 0) return;
+      const validIds = (logIds || []).filter(
+        (id): id is string => typeof id === 'string' && id.trim().length > 0,
+      );
+      if (validIds.length === 0) return;
       await this.prisma.emailLog.updateMany({
-        where: { id: { in: logIds } },
+        where: { id: { in: validIds } },
         data: {
           status,
           errorMessage: null,

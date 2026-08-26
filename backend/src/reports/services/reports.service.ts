@@ -751,63 +751,7 @@ export class ReportsService {
       where.costSheet.createdAt = dateFilter;
     }
 
-    // Database aggregation: Group and sum directly in PostgreSQL
-    const grouped = await this.prisma.costItem.groupBy({
-      by: ['materialId'],
-      where,
-      _sum: {
-        predictedQuantity: true,
-        predictedAmount: true,
-        actualQuantity: true,
-        actualAmount: true,
-      },
-      _count: {
-        actualAmount: true,
-      },
-    });
-
-    if (grouped.length === 0) {
-      return {
-        data: [],
-        meta: { total: 0, page, limit, totalPages: 0 },
-      };
-    }
-
-    // Fetch material master data for the grouped results
-    const materials = await this.prisma.material.findMany({
-      where: {
-        id: { in: grouped.map((g) => g.materialId) },
-      },
-    });
-
-    const materialMap = new Map(materials.map((m) => [m.id, m]));
-
-    const allGroupedItems = grouped
-      .map((g) => {
-        const material = materialMap.get(g.materialId);
-        if (!material) return null;
-
-        const predAmt = g._sum.predictedAmount ? Number(g._sum.predictedAmount) : 0;
-        const actAmt = g._sum.actualAmount ? Number(g._sum.actualAmount) : null;
-        const hasActuals = (g._count.actualAmount ?? 0) > 0;
-
-        const variance = hasActuals && actAmt !== null ? actAmt - predAmt : null;
-
-        return {
-          materialId: g.materialId,
-          materialCode: material.materialCode,
-          materialName: material.materialName,
-          category: material.category,
-          totalPredictedQty: g._sum.predictedQuantity ? Number(g._sum.predictedQuantity) : 0,
-          totalActualQty:
-            hasActuals && g._sum.actualQuantity ? Number(g._sum.actualQuantity) : null,
-          totalPredictedAmount: predAmt,
-          totalActualAmount: hasActuals ? actAmt : null,
-          varianceAmount: variance,
-        };
-      })
-      .filter((item) => item !== null) as MaterialCostBreakdownReportItem[];
-
+    // SQL-side aggregation and pagination replacing JS map/sort/slice
     const allowedSortFields = [
       'materialCode',
       'materialName',
@@ -820,23 +764,120 @@ export class ReportsService {
     ];
     const cleanSortBy = sortBy && allowedSortFields.includes(sortBy) ? sortBy : 'materialCode';
     const isAsc = sortOrder.toLowerCase() === 'asc';
+    const orderDirection = isAsc ? 'ASC' : 'DESC';
 
-    allGroupedItems.sort((a: any, b: any) => {
-      const valA = a[cleanSortBy];
-      const valB = b[cleanSortBy];
-      if (valA === null || valA === undefined) return isAsc ? 1 : -1;
-      if (valB === null || valB === undefined) return isAsc ? -1 : 1;
-      if (typeof valA === 'string' && typeof valB === 'string') {
-        return isAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      }
-      return isAsc ? Number(valA) - Number(valB) : Number(valB) - Number(valA);
+    // Map cleanSortBy to SQL columns/expressions
+    let sqlOrderBy = `m."materialCode" ${orderDirection}`;
+    if (cleanSortBy === 'materialName') sqlOrderBy = `m."materialName" ${orderDirection}`;
+    if (cleanSortBy === 'category') sqlOrderBy = `m."category" ${orderDirection}`;
+    if (cleanSortBy === 'totalPredictedQty')
+      sqlOrderBy = `SUM(ci."predictedQuantity") ${orderDirection}`;
+    if (cleanSortBy === 'totalActualQty') sqlOrderBy = `SUM(ci."actualQuantity") ${orderDirection}`;
+    if (cleanSortBy === 'totalPredictedAmount')
+      sqlOrderBy = `SUM(ci."predictedAmount") ${orderDirection}`;
+    if (cleanSortBy === 'totalActualAmount')
+      sqlOrderBy = `SUM(ci."actualAmount") ${orderDirection}`;
+    if (cleanSortBy === 'varianceAmount')
+      sqlOrderBy = `(SUM(ci."actualAmount") - SUM(ci."predictedAmount")) ${orderDirection}`;
+
+    const searchQuery = search ? `%${search}%` : null;
+    const statusQuery = status || null;
+    const matQuery = materialId || null;
+
+    const offset = (page - 1) * limit;
+
+    // Ensure proper date types for parameterized queries
+    // Ensure proper date types for parameterized queries
+    const startDate = dateFrom ? new Date(dateFrom) : null;
+    const endDate = dateTo ? new Date(dateTo) : null;
+
+    // First query the total count of distinct materials in the filtered set
+    const countResult = await this.prisma.$queryRawUnsafe<{ total: number }[]>(
+      `
+        SELECT COUNT(DISTINCT ci."materialId")::int AS "total"
+        FROM "cost_items" ci
+        JOIN "materials" m ON m."id" = ci."materialId" AND m."isDeleted" = false
+        ${dateFrom || dateTo ? 'JOIN "cost_sheets" cs ON cs."id" = ci."costSheetId" AND cs."isDeleted" = false' : ''}
+        WHERE ci."isDeleted" = false
+          AND ($1::text IS NULL OR ci."materialId" = $1)
+          AND ($2::text IS NULL OR m."category" = $2)
+          AND ($3::text IS NULL OR m."materialName" ILIKE $3 OR m."materialCode" ILIKE $3)
+          AND ($4::timestamp IS NULL OR cs."createdAt" >= $4)
+          AND ($5::timestamp IS NULL OR cs."createdAt" <= $5)
+      `,
+      matQuery,
+      statusQuery,
+      searchQuery,
+      startDate,
+      endDate,
+    );
+
+    const total = countResult[0]?.total || 0;
+
+    if (total === 0) {
+      return {
+        data: [],
+        meta: { total: 0, page, limit, totalPages: 0 },
+      };
+    }
+
+    // Fetch aggregated data
+    const rawItems = await this.prisma.$queryRawUnsafe<any[]>(
+      `
+        SELECT 
+          m."id" AS "materialId",
+          m."materialCode",
+          m."materialName",
+          m."category",
+          COALESCE(SUM(ci."predictedQuantity"), 0)::float AS "totalPredictedQty",
+          SUM(ci."actualQuantity")::float AS "totalActualQty",
+          COALESCE(SUM(ci."predictedAmount"), 0)::float AS "totalPredictedAmount",
+          SUM(ci."actualAmount")::float AS "totalActualAmount",
+          COUNT(ci."actualAmount")::int AS "actualCount"
+        FROM "cost_items" ci
+        JOIN "materials" m ON m."id" = ci."materialId" AND m."isDeleted" = false
+        ${dateFrom || dateTo ? 'JOIN "cost_sheets" cs ON cs."id" = ci."costSheetId" AND cs."isDeleted" = false' : ''}
+        WHERE ci."isDeleted" = false
+          AND ($1::text IS NULL OR ci."materialId" = $1)
+          AND ($2::text IS NULL OR m."category" = $2)
+          AND ($3::text IS NULL OR m."materialName" ILIKE $3 OR m."materialCode" ILIKE $3)
+          AND ($4::timestamp IS NULL OR cs."createdAt" >= $4)
+          AND ($5::timestamp IS NULL OR cs."createdAt" <= $5)
+        GROUP BY m."id", m."materialCode", m."materialName", m."category"
+        ORDER BY ${sqlOrderBy} NULLS LAST, m."materialCode" ASC
+        LIMIT $6 OFFSET $7
+      `,
+      matQuery,
+      statusQuery,
+      searchQuery,
+      startDate,
+      endDate,
+      limit,
+      offset,
+    );
+
+    const data: MaterialCostBreakdownReportItem[] = rawItems.map((item) => {
+      const hasActuals = item.actualCount > 0;
+      const actAmt =
+        hasActuals && item.totalActualAmount !== null ? Number(item.totalActualAmount) : null;
+      const predAmt = Number(item.totalPredictedAmount);
+
+      return {
+        materialId: item.materialId,
+        materialCode: item.materialCode,
+        materialName: item.materialName,
+        category: item.category,
+        totalPredictedQty: Number(item.totalPredictedQty),
+        totalActualQty:
+          hasActuals && item.totalActualQty !== null ? Number(item.totalActualQty) : null,
+        totalPredictedAmount: predAmt,
+        totalActualAmount: actAmt,
+        varianceAmount: actAmt !== null ? actAmt - predAmt : null,
+      };
     });
 
-    const total = allGroupedItems.length;
-    const paginatedItems = allGroupedItems.slice((page - 1) * limit, page * limit);
-
     return {
-      data: paginatedItems,
+      data,
       meta: {
         total,
         page,
@@ -1128,54 +1169,76 @@ export class ReportsService {
         },
       };
     } else {
-      // SQL-side counts instead of fetching full relation arrays for .length
-      const products = await this.prisma.product.findMany({
-        where,
-        include: {
-          _count: {
-            select: {
-              productMaterials: { where: { isDeleted: false } },
-              indents: {
-                where: {
-                  isDeleted: false,
-                  status: { notIn: ['COMPLETED', 'CANCELLED', 'REJECTED'] as any },
-                },
-              },
-            },
-          },
-        },
-      });
+      // SQL-side aggregation and sorting entirely replacing JS mapping and slicing
+      const isAsc = sortOrder.toLowerCase() === 'asc';
+      const orderDirection = isAsc ? 'ASC' : 'DESC';
+      const orderByClause =
+        cleanSortBy === 'materialCount'
+          ? `"materialCount" ${orderDirection}`
+          : `"activeIndentCount" ${orderDirection}`;
 
-      const mapped = products.map((p: any) => ({
+      const searchQuery = search ? `%${search}%` : null;
+      const statusQuery = status || null;
+      const offset = (page - 1) * limit;
+
+      const [totalResult, rawProducts] = await Promise.all([
+        this.prisma.product.count({ where }),
+        this.prisma.$queryRawUnsafe<any[]>(
+          `
+          SELECT 
+            p."id",
+            p."productCode",
+            p."productName",
+            p."drawingNumber",
+            p."revision",
+            p."status",
+            p."createdAt",
+            (
+              SELECT COUNT(*)::int 
+              FROM "product_materials" pm 
+              WHERE pm."productId" = p."id" AND pm."isDeleted" = false
+            ) AS "materialCount",
+            (
+              SELECT COUNT(*)::int 
+              FROM "indents" i 
+              WHERE i."productId" = p."id" 
+                AND i."isDeleted" = false 
+                AND i."status" NOT IN ('COMPLETED', 'CANCELLED', 'REJECTED')
+            ) AS "activeIndentCount"
+          FROM "products" p
+          WHERE p."isDeleted" = false
+            AND ($1::text IS NULL OR p."status" = $1)
+            AND ($2::text IS NULL OR p."productName" ILIKE $2 OR p."productCode" ILIKE $2)
+          ORDER BY ${orderByClause}, p."productCode" ASC
+          LIMIT $3 OFFSET $4
+        `,
+          statusQuery,
+          searchQuery,
+          limit,
+          offset,
+        ),
+      ]);
+
+      const data = rawProducts.map((p) => ({
         id: p.id,
         productCode: p.productCode,
         productName: p.productName,
         drawingNumber: p.drawingNumber,
         revision: p.revision,
         status: p.status,
-        materialCount: p._count.productMaterials,
+        materialCount: p.materialCount,
         processCount: 0,
-        activeIndentCount: p._count.indents,
+        activeIndentCount: p.activeIndentCount,
         createdAt: p.createdAt,
       }));
-
-      const isAsc = sortOrder.toLowerCase() === 'asc';
-      mapped.sort((a: any, b: any) => {
-        const valA = a[cleanSortBy];
-        const valB = b[cleanSortBy];
-        return isAsc ? valA - valB : valB - valA;
-      });
-
-      const total = mapped.length;
-      const data = mapped.slice((page - 1) * limit, page * limit);
 
       return {
         data,
         meta: {
-          total,
+          total: totalResult,
           page,
           limit,
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(totalResult / limit),
         },
       };
     }

@@ -144,9 +144,9 @@ export const ReportDetailPage: React.FC = () => {
   };
 
   // Fetch dropdown lists
-  const { data: productsData } = useProducts({ limit: 100 });
+  const { data: productsData } = useProducts({ page: 1, limit: 1000 });
   const { data: departmentsData } = useDepartments(undefined);
-  const { data: vendorsData } = useVendors({ limit: 100 });
+  const { data: vendorsData } = useVendors({ page: 1, limit: 1000 });
 
   // Map data to dropdown options
   const productOptions = useMemo(() => {

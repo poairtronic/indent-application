@@ -1,5 +1,10 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useUnits } from '../../api/services/units/hooks';
+import { useProcesses } from '../../api/services/processes/hooks';
+import { useMaterials } from '../../api/services/materials/hooks';
+import { useProducts } from '../../api/services/products/hooks';
+import { useVendors } from '../../api/services/vendors/hooks';
 import { useIndent, useCreateIndent, useUpdateIndent } from '../../api/services/indents/hooks';
 import { IndentForm } from './components/IndentForm';
 import { ArrowLeft } from 'lucide-react';
@@ -10,6 +15,13 @@ export const IndentFormPage: React.FC = () => {
   const isEdit = Boolean(id);
 
   const { data: indent, isLoading: isFetching } = useIndent(id || '');
+
+  // PARALLELIZE MASTER DATA FETCHING (Eliminates waterfall when rendering IndentForm)
+  useUnits({ page: 1, limit: 1000 });
+  useProcesses({ page: 1, limit: 1000 });
+  useMaterials({ page: 1, limit: 1000 });
+  useProducts({ page: 1, limit: 1000 });
+  useVendors({ page: 1, limit: 1000 });
   const { mutate: createIndent, isPending: isCreating } = useCreateIndent();
   const { mutate: updateIndent, isPending: isUpdating } = useUpdateIndent();
 
