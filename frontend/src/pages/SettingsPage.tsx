@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { FormField } from '../components/ui/FormField';
 import { Select } from '../components/ui/Select';
 import { Switch } from '../components/ui/Switch';
@@ -58,7 +59,9 @@ function useUnsavedChanges(store: SettingsState) {
 // ─── component ────────────────────────────────────────────────────────────────
 
 export const SettingsPage: React.FC = () => {
-  const { theme, setTheme } = useThemeStore();
+  const { theme, setTheme } = useThemeStore(
+    useShallow((state) => ({ theme: state.theme, setTheme: state.setTheme })),
+  );
   const settings = useSettingsStore();
   const { toasts, show, dismiss } = useToasts();
   const [isSaving, setIsSaving] = useState(false);

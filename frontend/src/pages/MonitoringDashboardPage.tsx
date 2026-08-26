@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { get } from '../api/client';
 import { Badge } from '../components/ui/Badge';
@@ -129,7 +129,7 @@ export const MonitoringDashboardPage: React.FC = () => {
 
   const metrics = data?.data;
 
-  const renderHealthIndicator = (serviceName: string, status?: string) => {
+  const renderHealthIndicator = useCallback((serviceName: string, status?: string) => {
     const isUp = status === 'UP';
     return (
       <div className="flex items-center justify-between p-4 bg-background-primary/50 border border-border-default/50 rounded-xl">
@@ -138,11 +138,15 @@ export const MonitoringDashboardPage: React.FC = () => {
           <span
             className={`w-2.5 h-2.5 rounded-full ${isUp ? 'bg-status-success animate-pulse' : 'bg-status-error'}`}
           />
-          <Badge tone={isUp ? 'green' : 'red'}>{status || 'DOWN'}</Badge>
+          <span
+            className={`text-xs font-bold ${isUp ? 'text-status-success' : 'text-status-error'}`}
+          >
+            {status || 'UNKNOWN'}
+          </span>
         </div>
       </div>
     );
-  };
+  }, []);
 
   return (
     <div className="space-y-6">

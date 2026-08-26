@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -27,7 +28,12 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const { theme, setTheme } = useThemeStore();
+  const { theme, setTheme } = useThemeStore(
+    useShallow((state) => ({
+      theme: state.theme,
+      setTheme: state.setTheme,
+    })),
+  );
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);

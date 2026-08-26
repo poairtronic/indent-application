@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Smartphone, Tablet, Laptop, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useSecurityStore, type Session } from '../store/securityStore';
 import { Button } from '../components/ui/Button';
@@ -13,7 +14,16 @@ export const SessionManagementPage: React.FC = () => {
     logoutOtherSessions,
     logoutAllSessions,
     isLoading,
-  } = useSecurityStore();
+  } = useSecurityStore(
+    useShallow((state) => ({
+      sessions: state.sessions,
+      fetchSessions: state.fetchSessions,
+      revokeSession: state.revokeSession,
+      logoutOtherSessions: state.logoutOtherSessions,
+      logoutAllSessions: state.logoutAllSessions,
+      isLoading: state.isLoading,
+    })),
+  );
   const [confirmLogoutAll, setConfirmLogoutAll] = useState(false);
 
   useEffect(() => {

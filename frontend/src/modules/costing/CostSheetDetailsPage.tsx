@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   useIndent,
@@ -98,34 +98,37 @@ export const CostSheetDetailsPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const canViewWorkflow = hasPermission(AppPermission.WORKFLOW_VIEW);
 
-  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = '';
-    if (files.length === 0 || !id) return;
+  const handleUploadFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files ?? []);
+      e.target.value = '';
+      if (files.length === 0 || !id) return;
 
-    try {
-      for (const file of files) {
-        const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`;
-        if (!['.pdf', '.xlsx', '.xls'].includes(extension)) {
-          throw new Error(`"${file.name}" is not a PDF or Excel file.`);
+      try {
+        for (const file of files) {
+          const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`;
+          if (!['.pdf', '.xlsx', '.xls'].includes(extension)) {
+            throw new Error(`"${file.name}" is not a PDF or Excel file.`);
+          }
+          if (file.size > 20 * 1024 * 1024) {
+            throw new Error(`"${file.name}" exceeds the 20MB limit.`);
+          }
+          await uploadAttachment({
+            id,
+            file,
+            remarks: 'Vendor bill uploaded by Accounts',
+          });
         }
-        if (file.size > 20 * 1024 * 1024) {
-          throw new Error(`"${file.name}" exceeds the 20MB limit.`);
-        }
-        await uploadAttachment({
-          id,
-          file,
-          remarks: 'Vendor bill uploaded by Accounts',
-        });
+        show(
+          'success',
+          `${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully!`,
+        );
+      } catch (error: any) {
+        show('error', error?.message || 'Failed to upload vendor bill. Please try again.');
       }
-      show(
-        'success',
-        `${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully!`,
-      );
-    } catch (error: any) {
-      show('error', error?.message || 'Failed to upload vendor bill. Please try again.');
-    }
-  };
+    },
+    [id, uploadAttachment, show],
+  );
 
   const isEditable = React.useMemo(() => {
     if (!indent) return false;
@@ -197,7 +200,7 @@ export const CostSheetDetailsPage: React.FC = () => {
     cs.processCosts?.reduce((a, c) => a + (Number(c.actualCost) || 0), 0) || 0;
   const processVariance = actualProcessCost - plannedProcessCost;
 
-  const handleSaveActuals = async () => {
+  const handleSaveActuals = useCallback(async () => {
     if (!id || isExecutingRef.current) return;
     isExecutingRef.current = true;
     const payload = {
@@ -221,9 +224,9 @@ export const CostSheetDetailsPage: React.FC = () => {
     } finally {
       isExecutingRef.current = false;
     }
-  };
+  }, [id, actuals, saveActualCosts, show]);
 
-  const handleFinancialClose = async () => {
+  const handleFinancialClose = useCallback(async () => {
     if (!id || isExecutingRef.current) return;
     isExecutingRef.current = true;
     try {
@@ -237,7 +240,7 @@ export const CostSheetDetailsPage: React.FC = () => {
     } finally {
       isExecutingRef.current = false;
     }
-  };
+  }, [id, financialClose, show]);
 
   return (
     <div className="space-y-6">

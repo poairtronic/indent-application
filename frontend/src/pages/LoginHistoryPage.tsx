@@ -1,10 +1,17 @@
 import React, { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useSecurityStore } from '../store/securityStore';
 import { Badge } from '../components/ui/Badge';
 import { BaseCard } from '../components/ui/Cards';
 
 export const LoginHistoryPage: React.FC = () => {
-  const { loginHistory, fetchLoginHistory, isLoading } = useSecurityStore();
+  const { loginHistory, fetchLoginHistory, isLoading } = useSecurityStore(
+    useShallow((state) => ({
+      loginHistory: state.loginHistory,
+      fetchLoginHistory: state.fetchLoginHistory,
+      isLoading: state.isLoading,
+    })),
+  );
 
   useEffect(() => {
     fetchLoginHistory();

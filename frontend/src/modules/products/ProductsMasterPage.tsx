@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import {
   Package,
   Plus,
@@ -189,6 +190,12 @@ export const ProductsMasterPage: React.FC = () => {
     );
   }
 
+  const virtualizer = useWindowVirtualizer({
+    count: products.length,
+    estimateSize: () => 65,
+    overscan: 5,
+  });
+
   return (
     <div className="space-y-6 font-sans">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
@@ -331,64 +338,99 @@ export const ProductsMasterPage: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  products.map((p) => (
-                    <tr key={p.id} className="hover:bg-background-primary/40 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-accent-primary">
-                        {p.productCode}
-                      </td>
-                      <td className="py-3.5 px-4 font-bold">{p.productName}</td>
-                      <td className="py-3.5 px-4 text-text-secondary truncate max-w-[200px]">
-                        {p.description || '—'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <Badge tone={p.status === 'ACTIVE' ? 'green' : 'gray'}>{p.status}</Badge>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {canUpdate && (
-                            <button
-                              onClick={() => handleToggleArchive(p.id)}
-                              className={`px-2 py-1 rounded text-[10px] font-bold ${
-                                p.status === 'ACTIVE'
-                                  ? 'text-status-warning hover:bg-status-warning/10'
-                                  : 'text-status-success hover:bg-status-success/10'
-                              }`}
-                            >
-                              {p.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setDetailProduct(responseToProductData(p))}
-                            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
-                            title="View Specs"
-                          >
-                            <Eye size={15} />
-                          </button>
-                          {canUpdate && (
-                            <button
-                              onClick={() => {
-                                setEditingProduct(responseToProductData(p));
-                                setFormModalOpen(true);
-                              }}
-                              className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
-                              title="Edit Product"
-                            >
-                              <Pencil size={15} />
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              onClick={() => setDeleteTarget(responseToProductData(p))}
-                              className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10"
-                              title="Delete Product"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  <>
+                    {virtualizer.getVirtualItems().length > 0 &&
+                      virtualizer.getVirtualItems()[0]?.start > 0 && (
+                        <tr>
+                          <td
+                            style={{ height: `${virtualizer.getVirtualItems()[0].start}px` }}
+                            colSpan={5}
+                          />
+                        </tr>
+                      )}
+                    {virtualizer.getVirtualItems().map((virtualRow) => {
+                      const p = products[virtualRow.index];
+                      return (
+                        <tr
+                          key={p.id}
+                          ref={virtualizer.measureElement}
+                          data-index={virtualRow.index}
+                          className="hover:bg-background-primary/40 transition-colors"
+                        >
+                          <td className="py-3.5 px-4 font-mono font-bold text-accent-primary">
+                            {p.productCode}
+                          </td>
+                          <td className="py-3.5 px-4 font-bold">{p.productName}</td>
+                          <td className="py-3.5 px-4 text-text-secondary truncate max-w-[200px]">
+                            {p.description || '—'}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <Badge tone={p.status === 'ACTIVE' ? 'green' : 'gray'}>
+                              {p.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              {canUpdate && (
+                                <button
+                                  onClick={() => handleToggleArchive(p.id)}
+                                  className={`px-2 py-1 rounded text-[10px] font-bold ${
+                                    p.status === 'ACTIVE'
+                                      ? 'text-status-warning hover:bg-status-warning/10'
+                                      : 'text-status-success hover:bg-status-success/10'
+                                  }`}
+                                >
+                                  {p.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setDetailProduct(responseToProductData(p))}
+                                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
+                                title="View Specs"
+                              >
+                                <Eye size={15} />
+                              </button>
+                              {canUpdate && (
+                                <button
+                                  onClick={() => {
+                                    setEditingProduct(responseToProductData(p));
+                                    setFormModalOpen(true);
+                                  }}
+                                  className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-background-secondary"
+                                  title="Edit Product"
+                                >
+                                  <Pencil size={15} />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  onClick={() => setDeleteTarget(responseToProductData(p))}
+                                  className="p-1.5 rounded-lg text-status-error/80 hover:text-status-error hover:bg-status-error/10"
+                                  title="Delete Product"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {virtualizer.getVirtualItems().length > 0 &&
+                      virtualizer.getTotalSize() -
+                        virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1]
+                          .end >
+                        0 && (
+                        <tr>
+                          <td
+                            style={{
+                              height: `${virtualizer.getTotalSize() - virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1].end}px`,
+                            }}
+                            colSpan={5}
+                          />
+                        </tr>
+                      )}
+                  </>
                 )}
               </tbody>
             </table>

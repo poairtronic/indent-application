@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useNavigate } from 'react-router-dom';
 import { useIndents } from '../../api/services/indents/hooks';
 import { useIndentStore } from '../../store/useIndentStore';
@@ -24,7 +25,14 @@ const COST_RELEVANT_STATES: { label: string; value: string }[] = [
 
 export const CostSheetDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { filters, setFilters, viewMode, setViewMode } = useIndentStore();
+  const { filters, setFilters, viewMode, setViewMode } = useIndentStore(
+    useShallow((state) => ({
+      filters: state.filters,
+      setFilters: state.setFilters,
+      viewMode: state.viewMode,
+      setViewMode: state.setViewMode,
+    })),
+  );
   const hasPermission = useAuthStore((s) => s.hasPermission);
 
   const canView = hasPermission(AppPermission.COSTSHEET_VIEW);

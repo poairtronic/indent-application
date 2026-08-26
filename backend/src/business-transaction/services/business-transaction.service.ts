@@ -47,41 +47,41 @@ export class BusinessTransactionService {
 
   private invalidateMetadataCache(): void {
     try {
-      Promise.all([]).catch((err) =>
-        this.logger.warn(`Failed to invalidate metadata cache async: ${err.message}`),
+      Promise.all([]).catch((err: unknown) =>
+        this.logger.warn(`Failed to invalidate metadata cache async: ${(err as Error).message}`),
       );
-    } catch (err) {
-      this.logger.warn(`Failed to trigger metadata cache invalidation: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Failed to trigger metadata cache invalidation: ${(err as Error).message}`);
     }
   }
 
   private invalidateWorkflowCache(): void {
     try {
-      Promise.all([]).catch((err) =>
-        this.logger.warn(`Failed to invalidate workflow cache async: ${err.message}`),
+      Promise.all([]).catch((err: unknown) =>
+        this.logger.warn(`Failed to invalidate workflow cache async: ${(err as Error).message}`),
       );
-    } catch (err) {
-      this.logger.warn(`Failed to trigger workflow cache invalidation: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Failed to trigger workflow cache invalidation: ${(err as Error).message}`);
     }
   }
 
   private invalidateCostCache(): void {
     try {
-      Promise.all([]).catch((err) =>
-        this.logger.warn(`Failed to invalidate cost cache async: ${err.message}`),
+      Promise.all([]).catch((err: unknown) =>
+        this.logger.warn(`Failed to invalidate cost cache async: ${(err as Error).message}`),
       );
-    } catch (err) {
-      this.logger.warn(`Failed to trigger cost cache invalidation: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Failed to trigger cost cache invalidation: ${(err as Error).message}`);
     }
   }
 
   private invalidateAllCache(): void {
     try {
-      Promise.all([]).catch((err) =>
-        this.logger.warn(`Failed to invalidate all cache async: ${err.message}`),
+      Promise.all([]).catch((err: unknown) =>
+        this.logger.warn(`Failed to invalidate all cache async: ${(err as Error).message}`),
       );
-    } catch (err) {
-      this.logger.warn(`Failed to trigger all cache invalidation: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(`Failed to trigger all cache invalidation: ${(err as Error).message}`);
     }
   }
 
@@ -461,7 +461,14 @@ export class BusinessTransactionService {
           },
         },
         productionReceipt: {
-          include: {
+          select: {
+            id: true,
+            indentId: true,
+            receivedDate: true,
+            receivedBy: true,
+            remarks: true,
+            createdAt: true,
+            updatedAt: true,
             receiver: { select: { id: true, firstName: true, lastName: true } },
           },
         },
@@ -562,35 +569,133 @@ export class BusinessTransactionService {
         },
         indentItems: {
           where: { isDeleted: false },
-          include: {
+          select: {
+            id: true,
+            indentId: true,
+            materialId: true,
+            quantity: true,
+            issuedQuantity: true,
+            unitId: true,
+            shape: true,
+            diameterMm: true,
+            lengthMm: true,
+            widthMm: true,
+            heightMm: true,
+            unitWeightKg: true,
+            totalWeightKg: true,
+            remarks: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
             material: { select: { id: true, materialName: true, materialCode: true } },
             unit: { select: { id: true, unitName: true, symbol: true } },
             indentProcesses: {
-              include: { process: { select: { id: true, processName: true } } },
+              select: {
+                id: true,
+                indentItemId: true,
+                processId: true,
+                sequence: true,
+                estimatedHours: true,
+                actualHours: true,
+                inputQuantity: true,
+                outputQuantity: true,
+                scrapQuantity: true,
+                status: true,
+                process: { select: { id: true, processName: true } },
+              },
             },
           },
         },
-        attachments: { where: { isDeleted: false } },
+        attachments: {
+          where: { isDeleted: false },
+          select: {
+            id: true,
+            indentId: true,
+            fileName: true,
+            fileUrl: true,
+            fileType: true,
+            uploadedBy: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         costSheet: {
-          include: {
+          select: {
+            id: true,
+            costNumber: true,
+            indentId: true,
+            preparedBy: true,
+            designCost: true,
+            overheadCost: true,
+            contingencyCost: true,
+            actualDesignCost: true,
+            actualOverheadCost: true,
+            actualContingencyCost: true,
+            predictedTotal: true,
+            actualTotal: true,
+            varianceAmount: true,
+            variancePercentage: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
             costItems: {
-              include: {
+              select: {
+                id: true,
+                costSheetId: true,
+                materialId: true,
+                vendorId: true,
+                predictedRate: true,
+                predictedQuantity: true,
+                predictedAmount: true,
+                actualRate: true,
+                actualQuantity: true,
+                actualAmount: true,
+                remarks: true,
                 material: { select: { id: true, materialName: true, materialCode: true } },
                 vendor: { select: { id: true, vendorName: true, vendorCode: true } },
               },
             },
-            processCosts: { include: { process: { select: { id: true, processName: true } } } },
+            processCosts: {
+              select: {
+                id: true,
+                costSheetId: true,
+                processId: true,
+                predictedCost: true,
+                actualCost: true,
+                variance: true,
+                estimatedHours: true,
+                actualHours: true,
+                process: { select: { id: true, processName: true } },
+              },
+            },
           },
         },
         productionReceipt: {
-          include: {
+          select: {
+            id: true,
+            indentId: true,
+            receivedDate: true,
+            receivedBy: true,
+            remarks: true,
+            createdAt: true,
+            updatedAt: true,
             receiver: { select: { id: true, firstName: true, lastName: true } },
           },
         },
         workflowHistory: {
           orderBy: { movedAt: 'desc' },
           take: 10,
-          include: {
+          select: {
+            id: true,
+            indentId: true,
+            fromDepartmentId: true,
+            toDepartmentId: true,
+            stageId: true,
+            movedBy: true,
+            movedAt: true,
+            remarks: true,
+            createdAt: true,
+            updatedAt: true,
             mover: { select: { id: true, firstName: true, lastName: true } },
             toDepartment: { select: { id: true, departmentName: true, departmentCode: true } },
           },
@@ -2573,8 +2678,8 @@ export class BusinessTransactionService {
         }));
         await this.prisma.auditLog.createMany({ data: auditLogs });
       }
-    } catch (notifErr) {
-      this.logger.error(`Failed to send attachment upload notification: ${notifErr.message}`);
+    } catch (notifErr: unknown) {
+      this.logger.error(`Failed to send attachment upload notification: ${(notifErr as Error).message}`);
     }
 
     return { id, success: true };
@@ -2728,8 +2833,8 @@ export class BusinessTransactionService {
         }));
         await this.prisma.auditLog.createMany({ data: auditLogs });
       }
-    } catch (notifErr) {
-      this.logger.error(`Failed to send document delete notification: ${notifErr.message}`);
+    } catch (notifErr: unknown) {
+      this.logger.error(`Failed to send document delete notification: ${(notifErr as Error).message}`);
     }
 
     return { id, success: true };
@@ -3002,8 +3107,8 @@ export class BusinessTransactionService {
           },
         );
       }
-    } catch (err) {
-      this.logger.error(`Failed to log document download audit event: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.error(`Failed to log document download audit event: ${(err as Error).message}`);
     }
   }
 
@@ -3274,8 +3379,8 @@ export class BusinessTransactionService {
         }));
         await this.prisma.auditLog.createMany({ data: auditLogs });
       }
-    } catch (notifErr) {
-      this.logger.error(`Failed to send document replace notification: ${notifErr.message}`);
+    } catch (notifErr: unknown) {
+      this.logger.error(`Failed to send document replace notification: ${(notifErr as Error).message}`);
     }
 
     return { id, success: true };

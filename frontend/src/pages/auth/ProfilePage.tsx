@@ -18,7 +18,7 @@ import { Button } from '../../components/ui/Button';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
   const profileQuery = useProfile();
   const logoutMutation = useLogout();
   const queryClient = useQueryClient();

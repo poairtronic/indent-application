@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Eye, Pencil, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useAuthStore } from '../../store/authStore';
 import { AppPermission } from '../../constants/permissions';
 import {
@@ -152,6 +153,11 @@ export const VendorsPage: React.FC = () => {
 
   const { data, isLoading, isError, error, refetch, isFetching } = vendorsQuery;
   const items = data?.items ?? [];
+  const virtualizer = useWindowVirtualizer({
+    count: items.length,
+    estimateSize: () => 65,
+    overscan: 5,
+  });
 
   return (
     <div className="space-y-6">
@@ -298,65 +304,92 @@ export const VendorsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-default">
-                  {items.map((vendor) => (
-                    <tr
-                      key={vendor.id}
-                      className="hover:bg-background-secondary/70 transition-colors cursor-pointer"
-                      onClick={() => setDetailVendor(vendor)}
-                    >
-                      <td className="px-6 py-3.5">
-                        <div className="text-sm font-medium text-text-primary">
-                          {vendor.vendorName}
-                        </div>
-                        <div className="text-xs text-text-muted">{vendor.vendorCode}</div>
-                      </td>
-                      <td className="px-6 py-3.5 text-sm text-text-secondary">{vendor.email}</td>
-                      <td className="px-6 py-3.5 text-sm text-text-secondary">
-                        {vendor.gstNumber ?? '-'}
-                      </td>
-                      <td className="px-6 py-3.5 text-sm text-text-secondary">{vendor.city}</td>
-                      <td className="px-6 py-3.5">
-                        <Badge tone={vendorStatusTone[vendor.status]}>
-                          {vendorStatusLabel[vendor.status]}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-3.5 text-sm text-text-muted">
-                        {formatDateTime(vendor.updatedAt)}
-                      </td>
-                      <td
-                        className="px-6 py-3.5 text-right whitespace-nowrap"
-                        onClick={(event) => event.stopPropagation()}
+                  {virtualizer.getVirtualItems().length > 0 &&
+                    virtualizer.getVirtualItems()[0]?.start > 0 && (
+                      <tr>
+                        <td
+                          style={{ height: `${virtualizer.getVirtualItems()[0].start}px` }}
+                          colSpan={7}
+                        />
+                      </tr>
+                    )}
+                  {virtualizer.getVirtualItems().map((virtualRow) => {
+                    const vendor = items[virtualRow.index];
+                    return (
+                      <tr
+                        key={vendor.id}
+                        ref={virtualizer.measureElement}
+                        data-index={virtualRow.index}
+                        className="hover:bg-background-secondary/70 transition-colors cursor-pointer"
+                        onClick={() => setDetailVendor(vendor)}
                       >
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            icon={<Eye size={15} />}
-                            aria-label={`View ${vendor.vendorName}`}
-                            onClick={() => setDetailVendor(vendor)}
-                          />
-                          {canUpdate && (
+                        <td className="px-6 py-3.5">
+                          <div className="text-sm font-medium text-text-primary">
+                            {vendor.vendorName}
+                          </div>
+                          <div className="text-xs text-text-muted">{vendor.vendorCode}</div>
+                        </td>
+                        <td className="px-6 py-3.5 text-sm text-text-secondary">{vendor.email}</td>
+                        <td className="px-6 py-3.5 text-sm text-text-secondary">
+                          {vendor.gstNumber ?? '-'}
+                        </td>
+                        <td className="px-6 py-3.5 text-sm text-text-secondary">{vendor.city}</td>
+                        <td className="px-6 py-3.5">
+                          <Badge tone={vendorStatusTone[vendor.status]}>
+                            {vendorStatusLabel[vendor.status]}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-3.5 text-sm text-text-muted">
+                          {formatDateTime(vendor.updatedAt)}
+                        </td>
+                        <td
+                          className="px-6 py-3.5 text-right whitespace-nowrap"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
-                              icon={<Pencil size={15} />}
-                              aria-label={`Edit ${vendor.vendorName}`}
-                              onClick={() => handleEdit(vendor)}
+                              icon={<Eye size={15} />}
+                              aria-label={`View ${vendor.vendorName}`}
+                              onClick={() => setDetailVendor(vendor)}
                             />
-                          )}
-                          {canDelete && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              icon={<Trash2 size={15} />}
-                              aria-label={`Delete ${vendor.vendorName}`}
-                              onClick={() => setDeleteTarget(vendor)}
-                            />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {canUpdate && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={<Pencil size={15} />}
+                                aria-label={`Edit ${vendor.vendorName}`}
+                                onClick={() => handleEdit(vendor)}
+                              />
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                icon={<Trash2 size={15} />}
+                                aria-label={`Delete ${vendor.vendorName}`}
+                                onClick={() => setDeleteTarget(vendor)}
+                              />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {virtualizer.getVirtualItems().length > 0 &&
+                    virtualizer.getTotalSize() -
+                      virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1].end >
+                      0 && (
+                      <tr>
+                        <td
+                          style={{
+                            height: `${virtualizer.getTotalSize() - virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1].end}px`,
+                          }}
+                          colSpan={7}
+                        />
+                      </tr>
+                    )}
                 </tbody>
               </table>
             </div>

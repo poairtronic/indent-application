@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -76,7 +77,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, onCloseMobile })
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const user = useAuthStore((s) => s.user);
 
-  const { favorites, toggleFavorite } = useNavigationStore();
+  const { favorites, toggleFavorite } = useNavigationStore(
+    useShallow((state) => ({
+      favorites: state.favorites,
+      toggleFavorite: state.toggleFavorite,
+    })),
+  );
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
 
   const visibleItems = menuItems.filter(

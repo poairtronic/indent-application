@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useNavigate } from 'react-router-dom';
 import {
   useNotifications,
@@ -96,7 +97,13 @@ export const NotificationsPage: React.FC = () => {
   }, [markAllAsRead, refetch, show]);
 
   const user = useAuthStore((s) => s.user);
-  const { workflowAlerts, costDeviationWarnings, emailNotifications } = useSettingsStore();
+  const { workflowAlerts, costDeviationWarnings, emailNotifications } = useSettingsStore(
+    useShallow((state) => ({
+      workflowAlerts: state.workflowAlerts,
+      costDeviationWarnings: state.costDeviationWarnings,
+      emailNotifications: state.emailNotifications,
+    })),
+  );
 
   const notifications = React.useMemo(() => {
     let items = filterNotificationsForUser(data?.items ?? [], user);

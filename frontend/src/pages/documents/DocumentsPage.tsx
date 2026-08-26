@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import {
   FolderArchive,
   FileText,
@@ -290,6 +291,12 @@ export const DocumentsPage: React.FC = () => {
       return true;
     });
   }, [documents, departmentFilter, fileTypeFilter, searchTerm]);
+
+  const virtualizer = useWindowVirtualizer({
+    count: filteredDocuments.length,
+    estimateSize: () => 75,
+    overscan: 5,
+  });
 
   // Group documents by Indent
   const groupedByIndent = useMemo(() => {
@@ -852,7 +859,17 @@ export const DocumentsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-default/50">
-                {filteredDocuments.map((doc) => {
+                {virtualizer.getVirtualItems().length > 0 &&
+                  virtualizer.getVirtualItems()[0]?.start > 0 && (
+                    <tr>
+                      <td
+                        style={{ height: `${virtualizer.getVirtualItems()[0].start}px` }}
+                        colSpan={8}
+                      />
+                    </tr>
+                  )}
+                {virtualizer.getVirtualItems().map((virtualRow) => {
+                  const doc = filteredDocuments[virtualRow.index];
                   const cfg = getFileTypeConfig(doc.fileType, doc.fileName);
                   const Icon = cfg.icon;
                   const isAccounts =
@@ -869,6 +886,8 @@ export const DocumentsPage: React.FC = () => {
                   return (
                     <tr
                       key={doc.id}
+                      ref={virtualizer.measureElement}
+                      data-index={virtualRow.index}
                       className="hover:bg-background-primary/40 transition-colors group"
                     >
                       <td className="py-3.5 px-4">
@@ -968,6 +987,19 @@ export const DocumentsPage: React.FC = () => {
                     </tr>
                   );
                 })}
+                {virtualizer.getVirtualItems().length > 0 &&
+                  virtualizer.getTotalSize() -
+                    virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1].end >
+                    0 && (
+                    <tr>
+                      <td
+                        style={{
+                          height: `${virtualizer.getTotalSize() - virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1].end}px`,
+                        }}
+                        colSpan={8}
+                      />
+                    </tr>
+                  )}
               </tbody>
             </table>
           </div>

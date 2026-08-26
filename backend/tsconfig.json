@@ -29,7 +29,8 @@
     "ignoreDeprecations": "5.0",
     "noImplicitAny": true,
     "strictBindCallApply": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "types": ["jest", "node"]
   },
   "exclude": ["node_modules", "dist", "prettier.config.cjs", "eslint.config.js", "performance"]
 }

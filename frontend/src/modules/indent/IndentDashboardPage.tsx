@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useNavigate } from 'react-router-dom';
 import { useIndents } from '../../api/services/indents/hooks';
 import { useDepartmentOptions } from '../../api/services/departments/hooks';
@@ -15,7 +16,14 @@ import type { WorkflowState } from '../../api/types/enums';
 
 export const IndentDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { filters, setFilters, viewMode, setViewMode } = useIndentStore();
+  const { filters, setFilters, viewMode, setViewMode } = useIndentStore(
+    useShallow((state) => ({
+      filters: state.filters,
+      setFilters: state.setFilters,
+      viewMode: state.viewMode,
+      setViewMode: state.setViewMode,
+    })),
+  );
   const hasPermission = useAuthStore((s) => s.hasPermission);
 
   const canCreate = hasPermission(AppPermission.INDENT_CREATE);

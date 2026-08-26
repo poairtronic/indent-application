@@ -1,10 +1,17 @@
 import React, { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useSecurityStore } from '../store/securityStore';
 import { Badge } from '../components/ui/Badge';
 import { BaseCard } from '../components/ui/Cards';
 
 export const SecurityDashboardPage: React.FC = () => {
-  const { securityStatus, fetchSecurityStatus, isLoading } = useSecurityStore();
+  const { securityStatus, fetchSecurityStatus, isLoading } = useSecurityStore(
+    useShallow((state) => ({
+      securityStatus: state.securityStatus,
+      fetchSecurityStatus: state.fetchSecurityStatus,
+      isLoading: state.isLoading,
+    })),
+  );
 
   useEffect(() => {
     fetchSecurityStatus();

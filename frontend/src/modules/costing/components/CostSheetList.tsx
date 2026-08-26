@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Pagination } from '../../../components/ui/Pagination';
 import { Badge } from '../../../components/ui/Badge';
 import { useCurrencyFormatter } from '../../../utils/currencyFormatter';
@@ -105,6 +106,12 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
     );
   }
 
+  const virtualizer = useWindowVirtualizer({
+    count: indents.length,
+    estimateSize: () => 60,
+    overscan: 5,
+  });
+
   return (
     <div className="w-full">
       {viewMode === 'list' ? (
@@ -124,7 +131,17 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-default/50 text-text-primary">
-                  {indents.map((item) => {
+                  {virtualizer.getVirtualItems().length > 0 &&
+                    virtualizer.getVirtualItems()[0]?.start > 0 && (
+                      <tr>
+                        <td
+                          style={{ height: `${virtualizer.getVirtualItems()[0].start}px` }}
+                          colSpan={7}
+                        />
+                      </tr>
+                    )}
+                  {virtualizer.getVirtualItems().map((virtualRow) => {
+                    const item = indents[virtualRow.index];
                     const actualTotal = item.costSheet?.actualTotal;
                     const variance =
                       actualTotal !== undefined && item.predictedTotal !== undefined
@@ -142,6 +159,8 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
                     return (
                       <tr
                         key={item.id}
+                        ref={virtualizer.measureElement}
+                        data-index={virtualRow.index}
                         className="hover:bg-background-primary/40 transition-colors cursor-pointer"
                         onClick={() => navigate(`/cost-sheets/${item.id}`)}
                       >
@@ -175,6 +194,19 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
                       </tr>
                     );
                   })}
+                  {virtualizer.getVirtualItems().length > 0 &&
+                    virtualizer.getTotalSize() -
+                      virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1].end >
+                      0 && (
+                      <tr>
+                        <td
+                          style={{
+                            height: `${virtualizer.getTotalSize() - virtualizer.getVirtualItems()[virtualizer.getVirtualItems().length - 1].end}px`,
+                          }}
+                          colSpan={7}
+                        />
+                      </tr>
+                    )}
                 </tbody>
               </table>
             </div>

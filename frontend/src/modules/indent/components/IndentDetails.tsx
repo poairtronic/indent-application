@@ -42,7 +42,7 @@ const priorityTone: Record<string, 'green' | 'yellow' | 'red' | 'blue'> = {
 };
 
 export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
-  const formatStatus = (state: string) => state.replace(/_/g, ' ');
+  const formatStatus = React.useCallback((state: string) => state.replace(/_/g, ' '), []);
   const { mutateAsync: issueItem, isPending: isIssuingItem } = useIssueMaterialItem();
   const { mutateAsync: enterActualCosts, isPending: isEnteringCosts } = useEnterActualCosts();
   const { mutateAsync: uploadAttachment, isPending: isUploadingAttachment } = useUploadAttachment();
@@ -80,45 +80,51 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
 
   const { mutateAsync: updateIndent, isPending: isUpdatingProduction } = useUpdateIndent();
 
-  const handleAccountsAttachmentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = '';
-    if (files.length === 0) return;
+  const handleAccountsAttachmentUpload = React.useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(event.target.files ?? []);
+      event.target.value = '';
+      if (files.length === 0) return;
 
-    try {
-      for (const file of files) {
-        const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`;
-        if (!['.pdf', '.xlsx', '.xls'].includes(extension)) {
-          throw new Error(`"${file.name}" is not a PDF or Excel file.`);
+      try {
+        for (const file of files) {
+          const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`;
+          if (!['.pdf', '.xlsx', '.xls'].includes(extension)) {
+            throw new Error(`"${file.name}" is not a PDF or Excel file.`);
+          }
+          if (file.size > 20 * 1024 * 1024) {
+            throw new Error(`"${file.name}" exceeds the 20MB limit.`);
+          }
+          await uploadAttachment({
+            id: indent.id,
+            file,
+            remarks: 'Vendor bill uploaded by Accounts',
+          });
         }
-        if (file.size > 20 * 1024 * 1024) {
-          throw new Error(`"${file.name}" exceeds the 20MB limit.`);
-        }
-        await uploadAttachment({
-          id: indent.id,
-          file,
-          remarks: 'Vendor bill uploaded by Accounts',
-        });
+        window.alert(`${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully`);
+      } catch (error: any) {
+        window.alert(error?.message || 'Failed to upload the document');
       }
-      window.alert(`${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully`);
-    } catch (error: any) {
-      window.alert(error?.message || 'Failed to upload the document');
-    }
-  };
+    },
+    [indent.id, uploadAttachment],
+  );
 
-  const handleProductionSubmit = async (data: any) => {
-    try {
-      const payload = {
-        indent: {
-          items: data.indent.items,
-        },
-      };
-      await updateIndent({ id: indent.id, payload: payload as any });
-      window.alert('Production details updated successfully');
-    } catch (e: any) {
-      window.alert(e.message || 'Failed to update production details');
-    }
-  };
+  const handleProductionSubmit = React.useCallback(
+    async (data: any) => {
+      try {
+        const payload = {
+          indent: {
+            items: data.indent.items,
+          },
+        };
+        await updateIndent({ id: indent.id, payload: payload as any });
+        window.alert('Production details updated successfully');
+      } catch (e: any) {
+        window.alert(e.message || 'Failed to update production details');
+      }
+    },
+    [indent.id, updateIndent],
+  );
 
   const parsedRemarks = parseIndentRemarks(indent.remarks);
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Outlet, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/theme.store';
@@ -7,7 +8,12 @@ import { Sun, Moon } from 'lucide-react';
 export const AuthLayout: React.FC = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [searchParams] = useSearchParams();
-  const { resolvedTheme, toggleTheme } = useThemeStore();
+  const { resolvedTheme, toggleTheme } = useThemeStore(
+    useShallow((state) => ({
+      resolvedTheme: state.resolvedTheme,
+      toggleTheme: state.toggleTheme,
+    })),
+  );
 
   if (isAuthenticated) {
     const returnUrl = searchParams.get('returnUrl');

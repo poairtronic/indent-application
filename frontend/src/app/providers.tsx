@@ -14,8 +14,8 @@ const queryClient = createQueryClient();
 import { OfflineBanner } from '../components/common/OfflineBanner';
 
 export const AppProviders: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { resolvedTheme } = useThemeStore();
-  const { dataDensity } = useSettingsStore();
+  const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
+  const dataDensity = useSettingsStore((state) => state.dataDensity);
 
   useTabSync();
   // Initialize Auth
