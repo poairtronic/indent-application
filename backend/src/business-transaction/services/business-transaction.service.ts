@@ -358,18 +358,18 @@ export class BusinessTransactionService {
         indentItems: {
           where: { isDeleted: false },
           include: {
-            material: true,
-            unit: true,
+            material: { select: { id: true, materialName: true, materialCode: true } },
+            unit: { select: { id: true, unitName: true, symbol: true } },
             indentProcesses: {
-              include: { process: true },
+              include: { process: { select: { id: true, processName: true } } },
             },
           },
         },
         attachments: { where: { isDeleted: false } },
         costSheet: {
           include: {
-            costItems: { include: { material: true, vendor: true } },
-            processCosts: { include: { process: true } },
+            costItems: { include: { material: { select: { id: true, materialName: true, materialCode: true } }, vendor: { select: { id: true, vendorName: true, vendorCode: true } } } },
+            processCosts: { include: { process: { select: { id: true, processName: true } } } },
           },
         },
         productionReceipt: {
@@ -382,7 +382,7 @@ export class BusinessTransactionService {
           take: 20,
           include: {
             mover: { select: { id: true, firstName: true, lastName: true } },
-            toDepartment: true,
+            toDepartment: { select: { id: true, departmentName: true, departmentCode: true } },
           },
         },
       },
@@ -465,18 +465,18 @@ export class BusinessTransactionService {
         indentItems: {
           where: { isDeleted: false },
           include: {
-            material: true,
-            unit: true,
+            material: { select: { id: true, materialName: true, materialCode: true } },
+            unit: { select: { id: true, unitName: true, symbol: true } },
             indentProcesses: {
-              include: { process: true },
+              include: { process: { select: { id: true, processName: true } } },
             },
           },
         },
         attachments: { where: { isDeleted: false } },
         costSheet: {
           include: {
-            costItems: { include: { material: true, vendor: true } },
-            processCosts: { include: { process: true } },
+            costItems: { include: { material: { select: { id: true, materialName: true, materialCode: true } }, vendor: { select: { id: true, vendorName: true, vendorCode: true } } } },
+            processCosts: { include: { process: { select: { id: true, processName: true } } } },
           },
         },
         productionReceipt: {
@@ -489,7 +489,7 @@ export class BusinessTransactionService {
           take: 10,
           include: {
             mover: { select: { id: true, firstName: true, lastName: true } },
-            toDepartment: true,
+            toDepartment: { select: { id: true, departmentName: true, departmentCode: true } },
           },
         },
       },
