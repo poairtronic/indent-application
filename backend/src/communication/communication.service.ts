@@ -120,9 +120,12 @@ export class CommunicationService {
     errorMessage?: string,
   ): Promise<void> {
     try {
-      if (!logIds || logIds.length === 0) return;
+      const validLogIds = (logIds || []).filter(
+        (id): id is string => typeof id === 'string' && id.trim().length > 0,
+      );
+      if (validLogIds.length === 0) return;
       await this.prisma.emailLog.updateMany({
-        where: { id: { in: logIds } },
+        where: { id: { in: validLogIds } },
         data: { status, errorMessage: errorMessage || null },
       });
     } catch (err) {
