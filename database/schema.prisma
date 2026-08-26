@@ -591,7 +591,9 @@ model IndentItem {
 model IndentAttachment {
   id         String   @id @default(uuid()) @db.Uuid
   indentId   String   @db.Uuid
-  fileName   String   @db.VarChar(255)
+  // Stores JSON metadata (original name, MIME type, size, department and the
+  // Supabase object key). This must not be limited to 255 characters.
+  fileName   String   @db.Text
   fileUrl    String   @db.VarChar(500)
   fileType   FileType @default(OTHER)
   uploadedBy String   @db.Uuid

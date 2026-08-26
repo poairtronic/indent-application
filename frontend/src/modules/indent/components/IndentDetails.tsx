@@ -78,28 +78,26 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const { mutateAsync: updateIndent, isPending: isUpdatingProduction } = useUpdateIndent();
 
   const handleAccountsAttachmentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = '';
-    if (!file) return;
-
-    const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
-    const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`;
-    if (!allowedExtensions.includes(extension)) {
-      window.alert('Only PDF, Excel, JPG, JPEG, and PNG files are supported.');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      window.alert('The maximum file size is 10MB.');
-      return;
-    }
+    if (files.length === 0) return;
 
     try {
-      await uploadAttachment({
-        id: indent.id,
-        file,
-        remarks: 'Vendor bill uploaded by Accounts',
-      });
-      window.alert(`File "${file.name}" uploaded successfully`);
+      for (const file of files) {
+        const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`;
+        if (!['.pdf', '.xlsx', '.xls'].includes(extension)) {
+          throw new Error(`"${file.name}" is not a PDF or Excel file.`);
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          throw new Error(`"${file.name}" exceeds the 20MB limit.`);
+        }
+        await uploadAttachment({
+          id: indent.id,
+          file,
+          remarks: 'Vendor bill uploaded by Accounts',
+        });
+      }
+      window.alert(`${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully`);
     } catch (error: any) {
       window.alert(error?.message || 'Failed to upload the document');
     }
@@ -371,7 +369,8 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                     <input
                       id="accounts-document-upload"
                       type="file"
-                      accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png"
+                      accept=".pdf,.xlsx,.xls"
+                      multiple
                       className="hidden"
                       onChange={handleAccountsAttachmentUpload}
                       disabled={isUploadingAttachment}

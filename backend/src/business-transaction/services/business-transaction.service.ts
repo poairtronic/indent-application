@@ -2318,9 +2318,9 @@ export class BusinessTransactionService {
 
     const departmentCode = user.department.departmentCode;
 
-    const MAX_SIZE = 10 * 1024 * 1024;
+    const MAX_SIZE = 20 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      throw new BadRequestException('File size exceeds the maximum limit of 10MB.');
+      throw new BadRequestException('File size exceeds the maximum limit of 20MB.');
     }
 
     const ext = path.extname(file.originalname).toLowerCase();
@@ -2384,16 +2384,23 @@ export class BusinessTransactionService {
       storageFileName: saved.fileName,
     };
 
-    await this.prisma.indentAttachment.create({
-      data: {
-        indentId: id,
-        fileName: JSON.stringify(meta),
-        fileUrl: saved.fileUrl,
-        fileType,
-        uploadedBy: userId,
-        createdBy: userId,
-      },
-    });
+    try {
+      await this.prisma.indentAttachment.create({
+        data: {
+          indentId: id,
+          fileName: JSON.stringify(meta),
+          fileUrl: saved.fileUrl,
+          fileType,
+          uploadedBy: userId,
+          createdBy: userId,
+        },
+      });
+    } catch (error) {
+      // Do not leave an orphaned Supabase object when the Neon metadata write
+      // fails (for example, because of a schema mismatch or transient DB error).
+      await this.attachmentStorage.deleteFile(saved.fileName);
+      throw error;
+    }
 
     await this.eventService.logAudit(AuditEventType.PRODUCTION_UPDATE, id, userId, null, {
       uploadedAttachment: file.originalname,
@@ -2982,9 +2989,9 @@ export class BusinessTransactionService {
       }
     }
 
-    const MAX_SIZE = 10 * 1024 * 1024;
+    const MAX_SIZE = 20 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      throw new BadRequestException('File size exceeds the maximum limit of 10MB.');
+      throw new BadRequestException('File size exceeds the maximum limit of 20MB.');
     }
 
     const ext = path.extname(file.originalname).toLowerCase();

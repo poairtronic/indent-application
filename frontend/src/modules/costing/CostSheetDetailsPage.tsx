@@ -96,18 +96,28 @@ export const CostSheetDetailsPage: React.FC = () => {
   const canViewWorkflow = hasPermission(AppPermission.WORKFLOW_VIEW);
 
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !id) return;
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (files.length === 0 || !id) return;
 
     try {
-      await uploadAttachment({
-        id,
-        file,
-        remarks: 'Vendor bill uploaded by Accounts',
-      });
-      show('success', `File "${file.name}" uploaded successfully!`);
-    } catch {
-      show('error', 'Failed to upload vendor bill. Please try again.');
+      for (const file of files) {
+        const extension = `.${file.name.split('.').pop()?.toLowerCase() ?? ''}`;
+        if (!['.pdf', '.xlsx', '.xls'].includes(extension)) {
+          throw new Error(`"${file.name}" is not a PDF or Excel file.`);
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          throw new Error(`"${file.name}" exceeds the 20MB limit.`);
+        }
+        await uploadAttachment({
+          id,
+          file,
+          remarks: 'Vendor bill uploaded by Accounts',
+        });
+      }
+      show('success', `${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully!`);
+    } catch (error: any) {
+      show('error', error?.message || 'Failed to upload vendor bill. Please try again.');
     }
   };
 
@@ -612,6 +622,8 @@ export const CostSheetDetailsPage: React.FC = () => {
                 <input
                   type="file"
                   id="vendor-bill-upload"
+                  accept=".pdf,.xlsx,.xls"
+                  multiple
                   className="hidden"
                   onChange={handleUploadFile}
                   disabled={isUploading}

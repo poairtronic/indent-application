@@ -289,8 +289,11 @@ export class BusinessTransactionController {
 
   @Post(':id/attachments')
   @Permissions('indent.edit', 'accounts.verify')
-  @Throttle({ default: { limit: 20, ttl: 60000 } })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 20 * 1024 * 1024 },
+    }),
+  )
   async uploadAttachment(
     @Param('id') id: string,
     @UploadedFile() file: any,
@@ -341,7 +344,11 @@ export class BusinessTransactionController {
   @Put(':id/attachments/:attachmentId')
   @Permissions('indent.edit', 'accounts.verify')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 20 * 1024 * 1024 },
+    }),
+  )
   async replaceAttachment(
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
