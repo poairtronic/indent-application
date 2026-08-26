@@ -689,7 +689,7 @@ model CostSheet {
   @@index([costNumber])
   @@index([indentId])
   @@index([status])
-  @@index([isDeleted, createdAt(sort: Desc)])
+  @@index([createdAt])
   @@map("cost_sheets")
 }
 
