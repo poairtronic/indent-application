@@ -220,11 +220,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Import apiClient dynamically to avoid circular dependency
         const { apiClient } = await import('../api/client');
         try {
-          const res = await apiClient.post('/auth/refresh');
-          const data = res.data.data || res.data;
+          const res = await apiClient.post('/auth/refresh', { refreshToken });
+          const data = res.data?.data || res.data;
 
           if (data && data.accessToken) {
-            get().login(data.accessToken, data.refreshToken || refreshToken, user, true);
+            get().login(
+              data.accessToken,
+              data.refreshToken || refreshToken,
+              data.user || user,
+              true,
+            );
           } else {
             throw new Error('No token returned from refresh');
           }

@@ -115,7 +115,10 @@ export const CostSheetDetailsPage: React.FC = () => {
           remarks: 'Vendor bill uploaded by Accounts',
         });
       }
-      show('success', `${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully!`);
+      show(
+        'success',
+        `${files.length} file${files.length === 1 ? '' : 's'} uploaded successfully!`,
+      );
     } catch (error: any) {
       show('error', error?.message || 'Failed to upload vendor bill. Please try again.');
     }

@@ -40,7 +40,8 @@ function createApiClient(): AxiosInstance {
           { refreshToken },
           { timeout: TIMEOUTS.AUTH_REFRESH || 10000 },
         );
-        const { accessToken, refreshToken: newRefreshToken, user } = response.data.data;
+        const data = response.data?.data || response.data;
+        const { accessToken, refreshToken: newRefreshToken, user } = data;
         useAuthStore.getState().login(accessToken, newRefreshToken, user);
         return { accessToken, refreshToken: newRefreshToken };
       },
