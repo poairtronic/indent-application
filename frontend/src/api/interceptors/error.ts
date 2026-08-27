@@ -74,6 +74,12 @@ export function createErrorInterceptor(
 
     // 2. 403 Forbidden
     if (error.response?.status === 403) {
+      const data = error.response?.data as ApiErrorResponse | any;
+      let finalMessage = data?.message;
+      if (Array.isArray(finalMessage)) {
+        finalMessage = finalMessage.join(', ');
+      }
+
       onForbidden?.();
       try {
         logSecurityDenial(
@@ -84,7 +90,7 @@ export function createErrorInterceptor(
       } catch {
         // Logging must never crash error handling
       }
-      throw new ForbiddenError();
+      throw new ForbiddenError(finalMessage);
     }
 
     // 3. Non-401 errors or already-retried requests
