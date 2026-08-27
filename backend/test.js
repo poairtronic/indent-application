@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { const jobs = await prisma.emailJob.findMany({ where: { status: 'DEAD_LETTER' }, take: 1, select: { lastError: true } }); console.log(jobs); } main().catch(console.error).finally(() => prisma.$disconnect());

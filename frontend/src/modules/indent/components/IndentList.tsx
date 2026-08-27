@@ -50,6 +50,12 @@ export const IndentList: React.FC<IndentListProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  const virtualizer = useWindowVirtualizer({
+    count: indents.length,
+    estimateSize: () => 60,
+    overscan: 5,
+  });
+
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
 
   const gridRender = (item: IndentData) => {
@@ -143,12 +149,6 @@ export const IndentList: React.FC<IndentListProps> = ({
       </div>
     );
   }
-
-  const virtualizer = useWindowVirtualizer({
-    count: indents.length,
-    estimateSize: () => 60,
-    overscan: 5,
-  });
 
   return (
     <div className="w-full">
