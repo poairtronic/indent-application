@@ -640,10 +640,15 @@
   }
   
   /* Ensure scrolling containers expand to full height for printing */
-  .overflow-y-auto, .overflow-y-scroll, .overflow-hidden {
+  .overflow-y-auto, .overflow-y-scroll, .overflow-hidden, .overflow-x-auto {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
+  }
+  
+  /* Reset flex wrappers to block to allow native page breaks */
+  .flex.h-screen, .flex-1.flex-col, .flex-1.overflow-y-auto {
+    display: block !important;
   }
   
   /* Hide typical UI elements that shouldn't be printed */
