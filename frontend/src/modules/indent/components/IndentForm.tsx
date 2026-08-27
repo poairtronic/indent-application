@@ -790,14 +790,14 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 }) || []
               );
             })(),
-            broughtMaterials: initialData.broughtMaterials?.map((bm) => ({
-              name: bm.name,
-              quantity: bm.quantity,
-              specification: bm.specification || '',
-              amount: bm.amount || 0,
-              actualAmount: bm.actualAmount || 0,
-            })) || [],
           },
+          broughtMaterials: initialData.broughtMaterials?.map((bm) => ({
+            name: bm.name,
+            quantity: bm.quantity,
+            specification: bm.specification || '',
+            amount: bm.amount || 0,
+            actualAmount: bm.actualAmount || 0,
+          })) || [],
           costSheet: {
             predictedTotal: initialData.costSheet?.predictedTotal || 0,
             designCost:
@@ -894,7 +894,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     remove: removeBroughtMaterial,
   } = useFieldArray({
     control,
-    name: 'indent.broughtMaterials',
+    name: 'broughtMaterials',
   });
 
   const { data: unitsData } = useUnits({ page: 1, limit: 1000 });
@@ -1842,7 +1842,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <Controller
-                    name={`indent.broughtMaterials.${index}.name`}
+                    name={`broughtMaterials.${index}.name`}
                     control={control}
                     render={({ field: inputProps, fieldState: { error } }) => (
                       <Input
@@ -1856,7 +1856,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   />
 
                   <Controller
-                    name={`indent.broughtMaterials.${index}.quantity`}
+                    name={`broughtMaterials.${index}.quantity`}
                     control={control}
                     render={({ field: inputProps, fieldState: { error } }) => (
                       <Input
@@ -1873,7 +1873,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   />
 
                   <Controller
-                    name={`indent.broughtMaterials.${index}.specification`}
+                    name={`broughtMaterials.${index}.specification`}
                     control={control}
                     render={({ field: inputProps, fieldState: { error } }) => (
                       <Input
@@ -1887,7 +1887,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   />
 
                   <Controller
-                    name={`indent.broughtMaterials.${index}.amount`}
+                    name={`broughtMaterials.${index}.amount`}
                     control={control}
                     render={({ field: inputProps, fieldState: { error } }) => (
                       <Input
@@ -1905,7 +1905,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   />
 
                   <Controller
-                    name={`indent.broughtMaterials.${index}.actualAmount`}
+                    name={`broughtMaterials.${index}.actualAmount`}
                     control={control}
                     render={({ field: inputProps, fieldState: { error } }) => (
                       <Input
