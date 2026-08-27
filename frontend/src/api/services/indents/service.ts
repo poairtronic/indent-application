@@ -28,8 +28,8 @@ export interface IndentData {
   updatedAt: string;
   issuedItemsCount?: number;
   totalItemsCount?: number;
-  // Detail relations
   items?: IndentItemData[];
+  broughtMaterials?: IndentBroughtMaterialData[];
   attachments?: IndentAttachmentData[];
   costSheet?: CostSheetData;
   workflowHistory?: WorkflowHistoryData[];
@@ -47,6 +47,15 @@ export interface IndentItemData {
   remarks?: string;
   status?: string;
   indentProcesses?: Array<{ process: { id: string; processName: string } }>;
+}
+
+export interface IndentBroughtMaterialData {
+  id: string;
+  name: string;
+  quantity: number;
+  specification?: string | null;
+  amount?: number | null;
+  actualAmount?: number | null;
 }
 
 export interface DocumentUploader {

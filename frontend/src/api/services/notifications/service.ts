@@ -23,6 +23,10 @@ class NotificationService extends BaseService {
     await this.patch('/notifications/read-all');
   }
 
+  async clearAll(): Promise<void> {
+    await this.delete('/notifications/clear-all');
+  }
+
   async getUnreadCount(): Promise<number> {
     return this.get<number>('/notifications/unread-count');
   }

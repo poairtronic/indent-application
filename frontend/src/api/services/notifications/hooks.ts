@@ -39,6 +39,19 @@ export function useMarkAllNotificationsRead() {
   });
 }
 
+export function useClearAllNotifications() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => notificationService.clearAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list('notifications') });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.notifications.detail('notifications', 'unread'),
+      });
+    },
+  });
+}
+
 export function useUnreadNotificationCount() {
   return useQuery({
     queryKey: queryKeys.notifications.detail('notifications', 'unread'),

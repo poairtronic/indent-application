@@ -7,6 +7,7 @@ import {
   useNotifications,
   useMarkAllNotificationsRead,
   useUnreadNotificationCount,
+  useClearAllNotifications,
 } from '../api/services/notifications/hooks';
 import { useDashboardOverview } from '../modules/analytics/hooks/useAnalytics';
 import { useAuditLogs } from '../api/services/audit/hooks';
@@ -39,6 +40,7 @@ import {
   ShieldCheck,
   Layers,
   ArrowUpRight,
+  Trash2,
 } from 'lucide-react';
 
 const DEPARTMENT_NAMES: Record<string, string> = {
@@ -64,6 +66,7 @@ export const DashboardPage: React.FC = () => {
   });
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
   const { data: unreadNotificationCount = 0 } = useUnreadNotificationCount();
+  const { mutateAsync: clearAll } = useClearAllNotifications();
   const notifications = useMemo(() => {
     const items = notificationsData?.items;
     if (!items || items.length === 0) return [];
@@ -107,6 +110,16 @@ export const DashboardPage: React.FC = () => {
       // silent
     }
   }, [markAllAsRead]);
+
+  const handleClearAll = useCallback(async () => {
+    if (window.confirm('Are you sure you want to clear all notifications?')) {
+      try {
+        await clearAll();
+      } catch {
+        // silent
+      }
+    }
+  }, [clearAll]);
 
   const userDept = user?.department?.departmentCode;
   const isAdmin = user?.permissions.includes('settings.manage');
@@ -763,6 +776,14 @@ export const DashboardPage: React.FC = () => {
                   className="text-xs text-[#8B5CF6] hover:underline font-semibold flex items-center gap-1"
                 >
                   <CheckCheck size={14} /> Mark all read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="text-xs text-red-500 hover:underline font-semibold flex items-center gap-1"
+                >
+                  <Trash2 size={14} /> Clear all
                 </button>
               )}
               <button

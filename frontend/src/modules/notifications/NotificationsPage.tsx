@@ -6,6 +6,7 @@ import {
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
   useUnreadNotificationCount,
+  useClearAllNotifications,
 } from '../../api/services/notifications/hooks';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -23,6 +24,11 @@ import {
   Search,
   Filter,
   ArrowLeft,
+  Info,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  Trash2,
   Clock,
   FileText,
 } from 'lucide-react';
@@ -59,6 +65,7 @@ export const NotificationsPage: React.FC = () => {
   const { data: unreadCount } = useUnreadNotificationCount();
   const { mutateAsync: markAsRead } = useMarkNotificationRead();
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
+  const { mutateAsync: clearAll } = useClearAllNotifications();
 
   const [searchInput, setSearchInput] = useState('');
   const [filterType, setFilterType] = useState<string>('');
@@ -95,6 +102,18 @@ export const NotificationsPage: React.FC = () => {
       show('error', 'Failed to mark all notifications as read.');
     }
   }, [markAllAsRead, refetch, show]);
+
+  const handleClearAll = useCallback(async () => {
+    if (window.confirm('Are you sure you want to clear all notifications? This cannot be undone.')) {
+      try {
+        await clearAll();
+        show('success', 'All notifications cleared.');
+        refetch();
+      } catch {
+        show('error', 'Failed to clear notifications.');
+      }
+    }
+  }, [clearAll, refetch, show]);
 
   const user = useAuthStore((s) => s.user);
   const { workflowAlerts, costDeviationWarnings, emailNotifications } = useSettingsStore(
@@ -164,17 +183,30 @@ export const NotificationsPage: React.FC = () => {
             </p>
           </div>
         </div>
-        {unreadCount !== undefined && unreadCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleMarkAllAsRead}
-            className="flex items-center gap-2"
-          >
-            <CheckCheck size={16} />
-            Mark All as Read
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {unreadCount !== undefined && unreadCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllAsRead}
+              className="flex items-center gap-2"
+            >
+              <CheckCheck size={16} />
+              Mark All as Read
+            </Button>
+          )}
+          {data?.items && data.items.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearAll}
+              className="flex items-center gap-2 text-red-500 hover:text-red-600 hover:border-red-200"
+            >
+              <Trash2 size={16} />
+              Clear All
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}

@@ -362,6 +362,42 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
             </div>
           )}
 
+          {/* Brought Materials */}
+          {indent.broughtMaterials && indent.broughtMaterials.length > 0 && (
+            <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
+              <h3 className="text-sm font-bold text-text-primary mb-4">
+                Brought Material (Bought Out Items)
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-base text-text-tertiary uppercase border-b border-border-default">
+                    <tr>
+                      <th className="py-3 px-4">Name</th>
+                      <th className="py-3 px-4">Quantity</th>
+                      <th className="py-3 px-4">Specification</th>
+                      <th className="py-3 px-4">Amount (₹)</th>
+                      <th className="py-3 px-4">Actual Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-text-secondary">
+                    {indent.broughtMaterials.map((bm, idx) => (
+                      <tr
+                        key={bm.id || idx}
+                        className="border-b border-border-default hover:bg-surface-base/50 transition-colors"
+                      >
+                        <td className="py-3 px-4 font-medium">{bm.name}</td>
+                        <td className="py-3 px-4">{bm.quantity}</td>
+                        <td className="py-3 px-4">{bm.specification || '-'}</td>
+                        <td className="py-3 px-4">{bm.amount || '-'}</td>
+                        <td className="py-3 px-4">{bm.actualAmount || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Attachments */}
           {(isAccountsMode || (indent.attachments && indent.attachments.length > 0)) && (
             <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">

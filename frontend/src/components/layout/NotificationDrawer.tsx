@@ -4,8 +4,9 @@ import {
   useNotifications,
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
+  useClearAllNotifications,
 } from '../../api/services/notifications/hooks';
-import { Info, AlertTriangle, AlertCircle, CheckCircle2, Bell, BellOff, X } from 'lucide-react';
+import { Info, AlertTriangle, AlertCircle, CheckCircle2, Bell, BellOff, X, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { filterNotificationsForUser } from '../../utils/notificationFilter';
@@ -46,6 +47,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
   const { data, isLoading } = useNotifications({ page: 1, limit: 20 }, isOpen);
   const { mutateAsync: markAsRead } = useMarkNotificationRead();
   const { mutateAsync: markAllAsRead } = useMarkAllNotificationsRead();
+  const { mutateAsync: clearAll } = useClearAllNotifications();
 
   const user = useAuthStore((s) => s.user);
   const { workflowAlerts, costDeviationWarnings, emailNotifications } = useSettingsStore();
@@ -102,6 +104,14 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
     }
   }, [markAllAsRead]);
 
+  const handleClearAll = useCallback(async () => {
+    try {
+      await clearAll();
+    } catch {
+      // silent
+    }
+  }, [clearAll]);
+
   const handleViewAll = () => {
     onClose();
     navigate('/notifications');
@@ -148,12 +158,21 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
 
         {notifications.length > 0 && (
           <div className="px-4 py-2 bg-background-secondary border-b border-border-default flex items-center justify-between text-[11px]">
-            <button
-              onClick={handleMarkAllRead}
-              className="text-accent-primary hover:text-accent-hover font-semibold transition-colors focus:outline-none"
-            >
-              Mark all read
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleMarkAllRead}
+                className="text-accent-primary hover:text-accent-hover font-semibold transition-colors focus:outline-none"
+              >
+                Mark all read
+              </button>
+              <button
+                onClick={handleClearAll}
+                className="text-red-500 hover:text-red-400 font-semibold transition-colors flex items-center gap-1 focus:outline-none"
+                title="Clear all notifications"
+              >
+                <Trash2 size={12} /> Clear all
+              </button>
+            </div>
             <button
               onClick={handleViewAll}
               className="text-text-muted hover:text-text-primary font-medium transition-colors focus:outline-none"

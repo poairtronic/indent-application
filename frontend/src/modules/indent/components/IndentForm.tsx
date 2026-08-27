@@ -165,6 +165,17 @@ const indentSchema = z
         )
         .min(1, 'At least one material is required'),
     }),
+    broughtMaterials: z
+      .array(
+        z.object({
+          name: z.string().trim().min(1, 'Name is required'),
+          quantity: z.coerce.number().min(0.0001, 'Quantity is required'),
+          specification: z.string().optional(),
+          amount: z.coerce.number().optional(),
+          actualAmount: z.coerce.number().optional(),
+        })
+      )
+      .optional(),
     costSheet: z.object({
       predictedTotal: z.number(),
       designCost: z.number().min(0).optional(),
@@ -779,6 +790,13 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 }) || []
               );
             })(),
+            broughtMaterials: initialData.broughtMaterials?.map((bm) => ({
+              name: bm.name,
+              quantity: bm.quantity,
+              specification: bm.specification || '',
+              amount: bm.amount || 0,
+              actualAmount: bm.actualAmount || 0,
+            })) || [],
           },
           costSheet: {
             predictedTotal: initialData.costSheet?.predictedTotal || 0,
@@ -868,6 +886,15 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   } = useFieldArray({
     control,
     name: 'indent.items',
+  });
+
+  const {
+    fields: broughtMaterialFields,
+    append: appendBroughtMaterial,
+    remove: removeBroughtMaterial,
+  } = useFieldArray({
+    control,
+    name: 'indent.broughtMaterials',
   });
 
   const { data: unitsData } = useUnits({ page: 1, limit: 1000 });
@@ -1749,6 +1776,152 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   vendorsList={vendorsList}
                   itemTotal={itemTotals[index]}
                 />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Brought Material section */}
+      <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-bold text-text-primary">
+            Brought Material (Bought Out Items)
+          </h3>
+          {!isReadOnly && !isProductionMode && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                appendBroughtMaterial({
+                  name: '',
+                  quantity: 1,
+                  specification: '',
+                  amount: 0,
+                  actualAmount: 0,
+                })
+              }
+            >
+              + Add Material
+            </Button>
+          )}
+        </div>
+
+        {broughtMaterialFields.length === 0 && (
+          <div className="text-center py-4 text-text-tertiary text-sm italic">
+            No brought materials added.
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {broughtMaterialFields.map((field, index) => {
+            return (
+              <div
+                key={field.id}
+                className="p-4 bg-surface-base border border-border-default rounded-lg"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold">
+                      #{index + 1}
+                    </span>
+                  </div>
+                  {!isReadOnly && !isProductionMode && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-feedback-error hover:text-feedback-error/80 hover:bg-feedback-error/10"
+                      onClick={() => removeBroughtMaterial(index)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <Controller
+                    name={`indent.broughtMaterials.${index}.name`}
+                    control={control}
+                    render={({ field: inputProps, fieldState: { error } }) => (
+                      <Input
+                        label="NAME *"
+                        placeholder="e.g. Screws M4"
+                        error={error?.message}
+                        disabled={isReadOnly || isProductionMode || isAccountsMode}
+                        {...inputProps}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name={`indent.broughtMaterials.${index}.quantity`}
+                    control={control}
+                    render={({ field: inputProps, fieldState: { error } }) => (
+                      <Input
+                        type="number"
+                        label="QUANTITY *"
+                        step="1"
+                        min="0"
+                        error={error?.message}
+                        disabled={isReadOnly || isProductionMode || isAccountsMode}
+                        {...inputProps}
+                        onChange={(e) => inputProps.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name={`indent.broughtMaterials.${index}.specification`}
+                    control={control}
+                    render={({ field: inputProps, fieldState: { error } }) => (
+                      <Input
+                        label="SPECIFICATION"
+                        placeholder="(Optional)"
+                        error={error?.message}
+                        disabled={isReadOnly || isProductionMode || isAccountsMode}
+                        {...inputProps}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name={`indent.broughtMaterials.${index}.amount`}
+                    control={control}
+                    render={({ field: inputProps, fieldState: { error } }) => (
+                      <Input
+                        type="number"
+                        label="AMOUNT (₹)"
+                        placeholder="(Optional)"
+                        step="0.01"
+                        min="0"
+                        error={error?.message}
+                        disabled={isReadOnly || isProductionMode || isAccountsMode}
+                        {...inputProps}
+                        onChange={(e) => inputProps.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name={`indent.broughtMaterials.${index}.actualAmount`}
+                    control={control}
+                    render={({ field: inputProps, fieldState: { error } }) => (
+                      <Input
+                        type="number"
+                        label="ACTUAL AMOUNT (₹) *"
+                        placeholder={isAccountsMode && !isReadOnly ? "Enter actual amount" : "By Accounts"}
+                        step="0.01"
+                        min="0"
+                        error={error?.message}
+                        disabled={!isAccountsMode || isReadOnly}
+                        {...inputProps}
+                        onChange={(e) => inputProps.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    )}
+                  />
+                </div>
               </div>
             );
           })}

@@ -80,6 +80,28 @@ export class IndentItemDto {
   processes?: IndentProcessDto[];
 }
 
+export class IndentBroughtMaterialDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsNumber()
+  @Min(0.0001)
+  quantity: number;
+
+  @IsString()
+  @IsOptional()
+  specification?: string;
+
+  @IsNumber()
+  @IsOptional()
+  amount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  actualAmount?: number;
+}
+
 export class IndentAttachmentDto {
   @IsString()
   @IsNotEmpty()
@@ -140,6 +162,12 @@ export class CreateIndentSheetDto {
   @IsArray()
   @IsOptional()
   @ValidateNested({ each: true })
+  @Type(() => IndentBroughtMaterialDto)
+  broughtMaterials?: IndentBroughtMaterialDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
   @Type(() => IndentAttachmentDto)
   attachments?: IndentAttachmentDto[];
 }
@@ -186,4 +214,10 @@ export class UpdateIndentSheetDto {
   @ValidateNested({ each: true })
   @Type(() => IndentItemDto)
   items?: IndentItemDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => IndentBroughtMaterialDto)
+  broughtMaterials?: IndentBroughtMaterialDto[];
 }

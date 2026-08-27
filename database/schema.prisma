@@ -526,6 +526,7 @@ model Indent {
   creator            User                        @relation("IndentCreator", fields: [createdBy], references: [id])
   currentStage       WorkflowStage?              @relation(fields: [currentStageId], references: [id])
   indentItems        IndentItem[]
+  broughtMaterials   IndentBroughtMaterial[]
   attachments        IndentAttachment[]
   costSheet          CostSheet?
   workflowHistory    WorkflowHistory[]
@@ -589,6 +590,33 @@ model IndentItem {
   @@index([isDeleted])
   @@index([createdAt])
   @@map("indent_items")
+}
+
+model IndentBroughtMaterial {
+  id            String   @id @default(uuid()) @db.Uuid
+  indentId      String   @db.Uuid
+  name          String   @db.VarChar(150)
+  quantity      Decimal  @db.Decimal(18, 4)
+  specification String?  @db.Text
+  amount        Decimal? @db.Decimal(18, 4)
+  actualAmount  Decimal? @db.Decimal(18, 4)
+
+  // Audit Fields
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(6)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime? @db.Timestamptz(6)
+  createdBy String?   @db.Uuid
+  updatedBy String?   @db.Uuid
+  deletedBy String?   @db.Uuid
+
+  // Relations
+  indent Indent @relation(fields: [indentId], references: [id], onDelete: Cascade)
+
+  @@index([indentId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@map("indent_brought_materials")
 }
 
 model IndentAttachment {

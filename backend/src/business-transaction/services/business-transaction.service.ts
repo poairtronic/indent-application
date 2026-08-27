@@ -261,9 +261,24 @@ export class BusinessTransactionService {
                 };
               }),
             },
+            ...(dto.indent.broughtMaterials && dto.indent.broughtMaterials.length > 0
+              ? {
+                  broughtMaterials: {
+                    create: dto.indent.broughtMaterials.map((bm) => ({
+                      name: bm.name,
+                      quantity: roundTo4Decimals(bm.quantity),
+                      specification: bm.specification || null,
+                      amount: bm.amount || null,
+                      actualAmount: bm.actualAmount || null,
+                      createdBy: userId,
+                    })),
+                  },
+                }
+              : {}),
           },
           include: {
             indentItems: true,
+            broughtMaterials: true,
           },
         });
 
@@ -1157,6 +1172,29 @@ export class BusinessTransactionService {
                   })),
                 });
               }
+            }
+          }
+        }
+
+        // 2b. Recreate brought materials if provided
+        if (dto.indent?.broughtMaterials !== undefined) {
+          if (existing.currentState !== WorkflowState.PRODUCTION_PROCESSING) {
+            await tx.indentBroughtMaterial.deleteMany({
+              where: { indentId: id },
+            });
+
+            if (dto.indent.broughtMaterials.length > 0) {
+              await tx.indentBroughtMaterial.createMany({
+                data: dto.indent.broughtMaterials.map((bm) => ({
+                  indentId: id,
+                  name: bm.name,
+                  quantity: roundTo4Decimals(bm.quantity),
+                  specification: bm.specification || null,
+                  amount: bm.amount || null,
+                  actualAmount: bm.actualAmount || null,
+                  createdBy: userId,
+                })),
+              });
             }
           }
         }

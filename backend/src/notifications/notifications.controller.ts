@@ -7,6 +7,7 @@ import {
   Req,
   ForbiddenException,
   NotFoundException,
+  Delete,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Permissions } from '../auth/decorators/permissions.decorator';
@@ -146,17 +147,15 @@ export class NotificationsController {
 
     const where: any = {
       isDeleted: false,
-    };
-
-    if (allowedEventTypes !== null) {
-      // Non-admin: must be a recipient
-      where.recipients = {
+      recipients: {
         some: {
           userId,
           isDeleted: false,
         },
-      };
+      },
+    };
 
+    if (allowedEventTypes !== null) {
       // Filter by eventType-based department visibility
       if (allowedEventTypes.length > 0) {
         where.eventType = { in: allowedEventTypes };
@@ -176,17 +175,7 @@ export class NotificationsController {
     }
 
     if (isRead !== undefined) {
-      if (where.recipients) {
-        where.recipients.some.isRead = isRead;
-      } else {
-        where.recipients = {
-          some: {
-            userId,
-            isRead: isRead,
-            isDeleted: false,
-          },
-        };
-      }
+      where.recipients.some.isRead = isRead;
     }
 
     const [notifications, total] = await this.prisma.$transaction([
@@ -355,6 +344,64 @@ export class NotificationsController {
     };
   }
 
+  @Patch('read-all')
+  @Permissions('notifications.view')
+  @ApiOperation({ summary: 'Mark all notifications as read for the current user' })
+  async markAllAsRead(@Req() req: Request) {
+    const userId = (req as any).user?.id;
+
+    await this.prisma.notificationRecipient.updateMany({
+      where: {
+        userId,
+        isRead: false,
+        isDeleted: false,
+      },
+      data: {
+        isRead: true,
+        readAt: new Date(),
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        module: 'NOTIFICATIONS',
+        recordId: 'all',
+        action: 'MARK_ALL_READ',
+        performedBy: userId,
+        ipAddress: req.ip || '127.0.0.1',
+      },
+    });
+    return { success: true };
+  }
+
+  @Delete('clear-all')
+  @Permissions('notifications.view')
+  @ApiOperation({ summary: 'Clear all notifications for the current user' })
+  async clearAllNotifications(@Req() req: Request) {
+    const userId = (req as any).user?.id;
+
+    await this.prisma.notificationRecipient.updateMany({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+      data: {
+        isDeleted: true,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        module: 'NOTIFICATIONS',
+        recordId: 'all',
+        action: 'CLEAR_ALL',
+        performedBy: userId,
+        ipAddress: req.ip || '127.0.0.1',
+      },
+    });
+    return { success: true };
+  }
+
   @Patch(':id/read')
   @Permissions('notifications.view')
   @ApiOperation({ summary: 'Mark a notification as read' })
@@ -385,36 +432,6 @@ export class NotificationsController {
       });
     }
 
-    return { success: true };
-  }
-
-  @Patch('read-all')
-  @Permissions('notifications.view')
-  @ApiOperation({ summary: 'Mark all notifications as read for the current user' })
-  async markAllAsRead(@Req() req: Request) {
-    const userId = (req as any).user?.id;
-
-    await this.prisma.notificationRecipient.updateMany({
-      where: {
-        userId,
-        isRead: false,
-        isDeleted: false,
-      },
-      data: {
-        isRead: true,
-        readAt: new Date(),
-      },
-    });
-
-    await this.prisma.auditLog.create({
-      data: {
-        module: 'NOTIFICATIONS',
-        recordId: 'all',
-        action: 'MARK_ALL_READ',
-        performedBy: userId,
-        ipAddress: req.ip || '127.0.0.1',
-      },
-    });
     return { success: true };
   }
 }
