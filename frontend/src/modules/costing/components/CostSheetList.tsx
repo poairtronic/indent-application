@@ -46,6 +46,12 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
 
   const formatStatus = (state: string) => state.replace(/_/g, ' ');
 
+  const virtualizer = useWindowVirtualizer({
+    count: indents.length,
+    estimateSize: () => 60,
+    overscan: 5,
+  });
+
   const gridRender = (item: IndentData) => (
     <div
       className="flex flex-col gap-2 p-4 border border-border-default rounded-xl bg-surface-card shadow-sm hover:shadow-card transition-shadow cursor-pointer"
@@ -105,12 +111,6 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
       </div>
     );
   }
-
-  const virtualizer = useWindowVirtualizer({
-    count: indents.length,
-    estimateSize: () => 60,
-    overscan: 5,
-  });
 
   return (
     <div className="w-full">
