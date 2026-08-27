@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import axios from 'axios';
 import type { AuthUser } from '../api/services/auth/types';
 import { queryClient } from '../api/hooks/query-client';
+import { apiConfig } from '../api/config';
 
 interface AuthState {
   user: AuthUser | null;
@@ -217,10 +219,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         // 3. Token is expired, trigger refresh ONE time
-        // Import apiClient dynamically to avoid circular dependency
-        const { apiClient } = await import('../api/client');
+        // Use axios directly to avoid circular dependency with apiClient
         try {
-          const res = await apiClient.post('/auth/refresh', { refreshToken });
+          const res = await axios.post(`${apiConfig.baseURL}/auth/refresh`, { refreshToken });
           const data = res.data?.data || res.data;
 
           if (data && data.accessToken) {
