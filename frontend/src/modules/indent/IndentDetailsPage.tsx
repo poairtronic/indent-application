@@ -157,7 +157,7 @@ export const IndentDetailsPage: React.FC = () => {
       </div>
 
       {/* Workflow Progress Bar */}
-      <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card">
+      <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card print:hidden">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-accent-primary" />
@@ -188,7 +188,7 @@ export const IndentDetailsPage: React.FC = () => {
 
       {/* Workflow Actions */}
       {!isCompleted && (
-        <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card">
+        <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card print:hidden">
           <div className="flex items-center gap-2 mb-3">
             <AlertCircle size={16} className="text-accent-primary" />
             <span className="text-sm font-bold text-text-primary">Available Actions</span>

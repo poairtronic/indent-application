@@ -664,10 +664,14 @@
     padding: 0 !important;
   }
   
-  /* Ensure backgrounds and colors print properly */
+  /* Ensure backgrounds and colors print properly - Force Pure Black and White */
   * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    color: black !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-color: #000 !important;
   }
   
   /* Add subtle page breaks where appropriate */
@@ -686,10 +690,7 @@
   }
   
   .glass-panel, .glass-surface {
-    background: transparent !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    border: 1px solid #ddd !important;
+    border: 1px solid #000 !important;
   }
 }
 

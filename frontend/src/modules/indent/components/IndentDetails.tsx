@@ -185,7 +185,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
       </div>
 
       {/* Workflow Progress */}
-      <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
+      <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card print:hidden">
         <h3 className="text-sm font-bold text-text-primary mb-6">Workflow Progress</h3>
         <IndentWorkflowTimeline currentStatus={indent.currentState} />
       </div>
@@ -257,7 +257,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
             </div>
 
             {parsedRemarks.userRemarks && (
-              <div className="mt-6 pt-6 border-t border-border-default">
+              <div className="mt-6 pt-6 border-t border-border-default print:hidden">
                 <p className="text-xs text-text-muted mb-1">Remarks</p>
                 <p className="text-sm text-text-secondary">{parsedRemarks.userRemarks}</p>
               </div>
@@ -431,7 +431,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
         </div>
 
         {/* Sidebar Activity */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 print:hidden">
           <IndentActivityFeed history={indent.workflowHistory} />
         </div>
       </div>
