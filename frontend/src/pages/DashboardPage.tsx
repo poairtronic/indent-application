@@ -134,7 +134,7 @@ export const DashboardPage: React.FC = () => {
     };
 
     return workflowData.stageDistribution.map((stage: any, idx: number) => ({
-      id: stage.stageName || `stage-${idx}`,
+      id: `${stage.stageName || 'stage'}-${idx}`,
       title: formatWorkflowState(stage.stageName as any),
       description: `${stage.count} Indents (${stage.percentage.toFixed(1)}%)`,
       timestamp: `Stage ${idx + 1}`,
