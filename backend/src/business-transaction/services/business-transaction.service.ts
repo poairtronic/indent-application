@@ -2868,8 +2868,6 @@ export class BusinessTransactionService {
       throw new NotFoundException(`Attachment with filename '${fileName}' not found.`);
     }
 
-    const att = atts[0];
-
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {

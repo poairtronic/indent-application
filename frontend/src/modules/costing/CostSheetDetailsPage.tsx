@@ -173,33 +173,6 @@ export const CostSheetDetailsPage: React.FC = () => {
   // remains identical while the cost sheet query transitions states.
   const isExecutingRef = React.useRef(false);
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-12">
-        <div className="flex items-center gap-3 text-text-muted">
-          <div className="w-5 h-5 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
-          Loading cost sheet details...
-        </div>
-      </div>
-    );
-  }
-
-  if (!indent || !indent.costSheet) {
-    return <div className="flex justify-center p-12 text-status-error">Cost Sheet not found.</div>;
-  }
-
-  const cs = indent.costSheet;
-  const plannedMaterialCost =
-    cs.costItems?.reduce((a, c) => a + (Number(c.predictedAmount) || 0), 0) || 0;
-  const actualMaterialCost =
-    cs.costItems?.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) || 0;
-  const materialVariance = actualMaterialCost - plannedMaterialCost;
-  const plannedProcessCost =
-    cs.processCosts?.reduce((a, c) => a + (Number(c.predictedCost) || 0), 0) || 0;
-  const actualProcessCost =
-    cs.processCosts?.reduce((a, c) => a + (Number(c.actualCost) || 0), 0) || 0;
-  const processVariance = actualProcessCost - plannedProcessCost;
-
   const handleSaveActuals = useCallback(async () => {
     if (!id || isExecutingRef.current) return;
     isExecutingRef.current = true;
@@ -241,6 +214,33 @@ export const CostSheetDetailsPage: React.FC = () => {
       isExecutingRef.current = false;
     }
   }, [id, financialClose, show]);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-12">
+        <div className="flex items-center gap-3 text-text-muted">
+          <div className="w-5 h-5 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
+          Loading cost sheet details...
+        </div>
+      </div>
+    );
+  }
+
+  if (!indent || !indent.costSheet) {
+    return <div className="flex justify-center p-12 text-status-error">Cost Sheet not found.</div>;
+  }
+
+  const cs = indent.costSheet;
+  const plannedMaterialCost =
+    cs.costItems?.reduce((a, c) => a + (Number(c.predictedAmount) || 0), 0) || 0;
+  const actualMaterialCost =
+    cs.costItems?.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) || 0;
+  const materialVariance = actualMaterialCost - plannedMaterialCost;
+  const plannedProcessCost =
+    cs.processCosts?.reduce((a, c) => a + (Number(c.predictedCost) || 0), 0) || 0;
+  const actualProcessCost =
+    cs.processCosts?.reduce((a, c) => a + (Number(c.actualCost) || 0), 0) || 0;
+  const processVariance = actualProcessCost - plannedProcessCost;
 
   return (
     <div className="space-y-6">

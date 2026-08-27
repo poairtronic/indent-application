@@ -29,24 +29,6 @@ import {
 } from './interfaces/analytics.interfaces';
 
 /**
- * Maps Prisma IndentStatus values to human-readable workflow stage names.
- * Mirrors the Two-Loop Zero-Approval workflow architecture.
- */
-const STATUS_LABEL_MAP: Record<string, string> = {
-  DRAFT: 'Draft',
-  SUBMITTED: 'Design Completed',
-  PENDING_STORES: 'Stores Processing',
-  IN_PRODUCTION: 'Production Processing',
-  APPROVED: 'Customer Delivered',
-  PENDING_ACCOUNTS: 'Accounts Cost Verification',
-  PENDING_SENIOR_MANAGER: 'Accounts Financial Closure',
-  PENDING_GENERAL_MANAGER: 'Archived',
-  COMPLETED: 'Completed',
-  REJECTED: 'Rejected',
-  CANCELLED: 'Cancelled',
-};
-
-/**
  * Statuses considered "active" (currently progressing through a workflow stage)
  */
 const ACTIVE_STATUSES: IndentStatus[] = [
@@ -58,21 +40,45 @@ const ACTIVE_STATUSES: IndentStatus[] = [
   IndentStatus.PENDING_SENIOR_MANAGER,
 ];
 
-/**
- * Statuses considered "pending" (not yet completed or archived)
- */
-const PENDING_STATUSES: IndentStatus[] = [
-  IndentStatus.DRAFT,
-  IndentStatus.SUBMITTED,
-  IndentStatus.PENDING_STORES,
-  IndentStatus.IN_PRODUCTION,
-  IndentStatus.APPROVED,
-  IndentStatus.PENDING_ACCOUNTS,
-  IndentStatus.PENDING_SENIOR_MANAGER,
-];
-
 @Injectable()
 export class AnalyticsService {
+  public static readonly CURRENT_STATE_ACTIVE = [
+    'DESIGN_COMPLETED',
+    'STORES_PROCESSING',
+    'MATERIALS_ISSUED',
+    'PRODUCTION_PROCESSING',
+    'PRODUCTION_COMPLETED',
+    'ACCOUNTS_COST_VERIFICATION',
+    'ACTUAL_COST_UPDATED',
+    'ACCOUNTS_FINANCIAL_CLOSURE',
+  ];
+
+  public static readonly CURRENT_STATE_PENDING = [
+    'DRAFT',
+    'DESIGN_COMPLETED',
+    'STORES_PROCESSING',
+    'MATERIALS_ISSUED',
+    'PRODUCTION_PROCESSING',
+    'PRODUCTION_COMPLETED',
+    'ACCOUNTS_COST_VERIFICATION',
+    'ACTUAL_COST_UPDATED',
+    'ACCOUNTS_FINANCIAL_CLOSURE',
+  ];
+
+  public static readonly CURRENT_STATE_LABEL_MAP: Record<string, string> = {
+    DRAFT: 'Draft',
+    DESIGN_COMPLETED: 'Design Completed',
+    STORES_PROCESSING: 'Stores Processing',
+    MATERIALS_ISSUED: 'Materials Issued',
+    PRODUCTION_PROCESSING: 'Production Processing',
+    PRODUCTION_COMPLETED: 'Production Completed',
+    ACCOUNTS_COST_VERIFICATION: 'Accounts Cost Verification',
+    ACTUAL_COST_UPDATED: 'Actual Cost Updated',
+    ACCOUNTS_FINANCIAL_CLOSURE: 'Accounts Financial Closure',
+    ARCHIVED: 'Archived',
+    COMPLETED: 'Completed',
+  };
+
   private readonly logger = new Logger(AnalyticsService.name);
 
   constructor(
@@ -110,13 +116,22 @@ export class AnalyticsService {
       total += count;
     });
 
-    const active = ACTIVE_STATUSES.reduce((sum, s) => sum + (statusMap.get(s) ?? 0), 0);
-    const pending = PENDING_STATUSES.reduce((sum, s) => sum + (statusMap.get(s) ?? 0), 0);
+    const active = AnalyticsService.CURRENT_STATE_ACTIVE.reduce(
+      (sum, s) => sum + (statusMap.get(s) ?? 0),
+      0,
+    );
+    const pending = AnalyticsService.CURRENT_STATE_PENDING.reduce(
+      (sum, s) => sum + (statusMap.get(s) ?? 0),
+      0,
+    );
     const completed = statusMap.get('COMPLETED') ?? 0;
     const archived = statusMap.get('ARCHIVED') ?? 0;
 
     const statusBreakdown: ITransactionStatusBreakdown[] = grouped.map((row) => ({
-      status: STATUS_LABEL_MAP[row.currentState ?? 'DRAFT'] ?? row.currentState ?? 'DRAFT',
+      status:
+        AnalyticsService.CURRENT_STATE_LABEL_MAP[row.currentState ?? 'DRAFT'] ??
+        row.currentState ??
+        'DRAFT',
       count: row._count.id,
     }));
 
@@ -176,7 +191,7 @@ export class AnalyticsService {
       `,
     ]);
 
-    const stalledCount = stalledResult[0]?.stalledCount ?? 0;
+    const stalledCount = stalledResult?.[0]?.stalledCount ?? 0;
 
     // Build domain state counts directly from SQL groupBy result
     const domainStateCounts = new Map<string, number>();
@@ -200,11 +215,13 @@ export class AnalyticsService {
 
     // Average cycle time (createdAt → updatedAt for COMPLETED)
     let averageCycleDays: number | null = null;
-    if (
-      cycleTimeResult[0]?.avgCycleDays !== null &&
-      cycleTimeResult[0]?.avgCycleDays !== undefined
-    ) {
-      averageCycleDays = Math.round(Number(cycleTimeResult[0].avgCycleDays) * 100) / 100;
+    const rawAvgCycleDays =
+      Array.isArray(cycleTimeResult) && cycleTimeResult.length > 0
+        ? (cycleTimeResult[0]?.avgCycleDays ?? null)
+        : null;
+
+    if (rawAvgCycleDays !== null && rawAvgCycleDays !== undefined) {
+      averageCycleDays = Math.round(Number(rawAvgCycleDays) * 100) / 100;
     }
 
     // Bottleneck: domain state with highest count (excluding COMPLETED)
@@ -239,14 +256,14 @@ export class AnalyticsService {
   public async getDepartmentAnalytics(): Promise<IDepartmentAnalytics> {
     this.logger.log('Computing department analytics');
 
-    // SQL-side: group indents by departmentId + status in one query
-    const [departments, deptStatusCounts] = await Promise.all([
+    // SQL-side: group indents by departmentId + currentState in one query
+    const [departments, deptStateCounts] = await Promise.all([
       this.prisma.department.findMany({
         where: { isDeleted: false, status: 'ACTIVE' },
         select: { id: true, departmentCode: true, departmentName: true },
       }),
       this.prisma.indent.groupBy({
-        by: ['departmentId', 'status'],
+        by: ['departmentId', 'currentState'],
         where: { isDeleted: false },
         _count: { id: true },
       }),
@@ -258,13 +275,14 @@ export class AnalyticsService {
       deptMap.set(dept.id, { total: 0, pending: 0, completed: 0 });
     }
 
-    for (const row of deptStatusCounts) {
+    for (const row of deptStateCounts) {
       const stats = deptMap.get(row.departmentId);
       if (!stats) continue;
       stats.total += row._count.id;
-      if (row.status === IndentStatus.COMPLETED) {
+      const state = row.currentState || 'DRAFT';
+      if (state === 'COMPLETED') {
         stats.completed += row._count.id;
-      } else if (PENDING_STATUSES.includes(row.status as IndentStatus)) {
+      } else if (AnalyticsService.CURRENT_STATE_PENDING.includes(state)) {
         stats.pending += row._count.id;
       }
     }

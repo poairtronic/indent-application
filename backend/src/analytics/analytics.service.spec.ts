@@ -1,5 +1,5 @@
 /**
- * Analytics Service — Unit Tests
+ * Analytics Service â€” Unit Tests
  * Phase 15A: Analytics & Executive Intelligence
  *
  * Uses Jest mock for PrismaService.
@@ -11,9 +11,9 @@ import { AnalyticsService } from './analytics.service';
 import { KpiService } from './kpi.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Mock PrismaService
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const mockPrisma = {
   indent: {
@@ -51,18 +51,18 @@ describe('AnalyticsService', () => {
     jest.resetAllMocks();
   });
 
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 1. Executive Summary Tests
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   describe('getExecutiveSummary()', () => {
     it('should return correct total, active, pending, completed and archived counts', async () => {
       mockPrisma.indent.groupBy.mockResolvedValue([
-        { status: 'DRAFT', _count: { id: 5 } },
-        { status: 'SUBMITTED', _count: { id: 3 } },
-        { status: 'PENDING_STORES', _count: { id: 2 } },
-        { status: 'COMPLETED', _count: { id: 4 } },
-        { status: 'PENDING_GENERAL_MANAGER', _count: { id: 1 } },
+        { currentState: 'DRAFT', _count: { id: 5 } },
+        { currentState: 'DESIGN_COMPLETED', _count: { id: 3 } },
+        { currentState: 'STORES_PROCESSING', _count: { id: 2 } },
+        { currentState: 'COMPLETED', _count: { id: 4 } },
+        { currentState: 'ARCHIVED', _count: { id: 1 } },
       ]);
 
       const result = await service.getExecutiveSummary();
@@ -89,7 +89,9 @@ describe('AnalyticsService', () => {
     });
 
     it('should map status values to human-readable labels', async () => {
-      mockPrisma.indent.groupBy.mockResolvedValue([{ status: 'SUBMITTED', _count: { id: 2 } }]);
+      mockPrisma.indent.groupBy.mockResolvedValue([
+        { currentState: 'DESIGN_COMPLETED', _count: { id: 2 } },
+      ]);
 
       const result = await service.getExecutiveSummary();
 
@@ -97,73 +99,101 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ─────────────────────────────────────────────
   // 2. Workflow Analytics Tests
-  // ─────────────────────────────────────────────
-
   describe('getWorkflowAnalytics()', () => {
     beforeEach(() => {
-      // groupBy call: domain state counting
       mockPrisma.indent.groupBy.mockResolvedValue([
-        { currentState: 'DRAFT', _count: { id: 4 } },
-        { currentState: 'DESIGN_COMPLETED', _count: { id: 6 } },
         { currentState: 'COMPLETED', _count: { id: 10 } },
+        { currentState: 'DESIGN_COMPLETED', _count: { id: 6 } },
+        { currentState: 'STORES_PROCESSING', _count: { id: 4 } },
       ]);
-      // findMany calls: completed indents + active indents for stalled check
-      mockPrisma.indent.findMany
-        .mockResolvedValueOnce([
-          {
-            createdAt: new Date('2025-01-01'),
-            updatedAt: new Date('2025-01-11'), // 10 days
-          },
-          {
-            createdAt: new Date('2025-02-01'),
-            updatedAt: new Date('2025-02-06'), // 5 days
-          },
-        ])
-        .mockResolvedValueOnce([
-          // Stalled (entered 10 days ago)
-          {
-            id: 'ind-1',
-            createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-            workflowHistory: [{ movedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) }],
-          },
-          // Not stalled (entered 2 days ago, even if created 20 days ago)
-          {
-            id: 'ind-2',
-            createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-            workflowHistory: [{ movedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) }],
-          },
-        ]);
+      mockPrisma.$queryRaw
+        .mockResolvedValueOnce([{ avgCycleDays: 7.5 }]) // cycleTimeResult
+        .mockResolvedValueOnce([{ stalledCount: 1 }]); // stalledResult
       mockPrisma.indent.count.mockResolvedValue(20);
+    });
+
+    afterEach(() => {
+      mockPrisma.$queryRaw.mockReset();
     });
 
     it('should compute completionRate correctly', async () => {
       const result = await service.getWorkflowAnalytics();
-      // 4 DRAFT + 6 SUBMITTED + 10 COMPLETED = 20 total; 10 completed / 20 = 50%
       expect(result.completionRate).toBe(50);
     });
 
-    it('should compute averageCycleDays correctly', async () => {
+    it('should compute averageCycleDays correctly for normal populated result', async () => {
       const result = await service.getWorkflowAnalytics();
-      // (10 + 5) / 2 = 7.5 days
       expect(result.averageCycleDays).toBe(7.5);
+    });
+
+    it('should handle fractional-day result correctly', async () => {
+      mockPrisma.$queryRaw
+        .mockReset()
+        .mockResolvedValueOnce([{ avgCycleDays: 7.5678 }])
+        .mockResolvedValueOnce([{ stalledCount: 1 }]);
+      const result = await service.getWorkflowAnalytics();
+      expect(result.averageCycleDays).toBe(7.57);
+    });
+
+    it('should handle zero-day result correctly', async () => {
+      mockPrisma.$queryRaw
+        .mockReset()
+        .mockResolvedValueOnce([{ avgCycleDays: 0 }])
+        .mockResolvedValueOnce([{ stalledCount: 1 }]);
+      const result = await service.getWorkflowAnalytics();
+      expect(result.averageCycleDays).toBe(0);
+    });
+
+    it('should safely handle empty array results without throwing', async () => {
+      mockPrisma.$queryRaw
+        .mockReset()
+        .mockResolvedValueOnce([]) // Empty cycle time
+        .mockResolvedValueOnce([]); // Empty stalled
+      const result = await service.getWorkflowAnalytics();
+      expect(result.averageCycleDays).toBeNull();
+      expect(result.stalledTransactions).toBe(0);
+    });
+
+    it('should safely handle undefined query results without throwing', async () => {
+      mockPrisma.$queryRaw
+        .mockReset()
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(undefined);
+      const result = await service.getWorkflowAnalytics();
+      expect(result.averageCycleDays).toBeNull();
+      expect(result.stalledTransactions).toBe(0);
+    });
+
+    it('should return null averageCycleDays when avgCycleDays is null in result', async () => {
+      mockPrisma.$queryRaw
+        .mockReset()
+        .mockResolvedValueOnce([{ avgCycleDays: null }])
+        .mockResolvedValueOnce([{ stalledCount: 0 }]);
+      const result = await service.getWorkflowAnalytics();
+      expect(result.averageCycleDays).toBeNull();
     });
 
     it('should identify the bottleneck stage', async () => {
       const result = await service.getWorkflowAnalytics();
-      // SUBMITTED → DESIGN_COMPLETED has count 6 (highest non-terminal)
       expect(result.bottleneckStage).toBe('DESIGN_COMPLETED');
     });
 
-    it('should return stalledTransactions count based on current state entry timestamp', async () => {
+    it('should return stalledTransactions count', async () => {
       const result = await service.getWorkflowAnalytics();
       expect(result.stalledTransactions).toBe(1);
     });
 
-    it('should return null averageCycleDays when no completed indents exist', async () => {
-      mockPrisma.indent.groupBy.mockResolvedValue([]);
-      mockPrisma.indent.findMany.mockReset().mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    it('should include percentage in stageDistribution', async () => {
+      const result = await service.getWorkflowAnalytics();
+      const designCompleted = result.stageDistribution.find(
+        (s) => s.stageName === 'DESIGN_COMPLETED',
+      );
+      expect(designCompleted?.percentage).toBe(30);
+    });
+
+    it('should handle empty array result gracefully without throwing TypeError', async () => {
+      mockPrisma.$queryRaw.mockReset().mockResolvedValueOnce([]).mockResolvedValueOnce([]);
       mockPrisma.indent.count.mockResolvedValue(0);
       const result = await service.getWorkflowAnalytics();
       expect(result.averageCycleDays).toBeNull();
@@ -178,9 +208,9 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 3. Department Analytics Tests
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   describe('getDepartmentAnalytics()', () => {
     const dept1Id = 'dept-1';
@@ -192,10 +222,10 @@ describe('AnalyticsService', () => {
         { id: dept2Id, departmentCode: 'STORES', departmentName: 'Stores' },
       ]);
       mockPrisma.indent.groupBy.mockResolvedValue([
-        { departmentId: dept1Id, status: 'DRAFT', _count: { id: 1 } },
-        { departmentId: dept1Id, status: 'SUBMITTED', _count: { id: 1 } },
-        { departmentId: dept1Id, status: 'COMPLETED', _count: { id: 1 } },
-        { departmentId: dept2Id, status: 'PENDING_STORES', _count: { id: 1 } },
+        { departmentId: dept1Id, currentState: 'DRAFT', _count: { id: 1 } },
+        { departmentId: dept1Id, currentState: 'DESIGN_COMPLETED', _count: { id: 1 } },
+        { departmentId: dept1Id, currentState: 'COMPLETED', _count: { id: 1 } },
+        { departmentId: dept2Id, currentState: 'STORES_PROCESSING', _count: { id: 1 } },
       ]);
     });
 
@@ -220,9 +250,9 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 4. Cost Analytics Tests
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   describe('getCostAnalytics()', () => {
     beforeEach(() => {
@@ -290,9 +320,9 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 5. Product Analytics Tests
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   describe('getProductAnalytics()', () => {
     beforeEach(() => {
@@ -361,9 +391,9 @@ describe('AnalyticsService', () => {
     });
   });
 
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // 6. Vendor Analytics Tests
-  // ─────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   describe('getVendorAnalytics()', () => {
     beforeEach(() => {

@@ -27,6 +27,9 @@ const mockPrisma = {
   emailLog: {
     create: jest.fn(),
   },
+  applicationSetting: {
+    findUnique: jest.fn().mockResolvedValue({ value: 'true' }),
+  },
 };
 
 const mockNodemailerProvider = {
