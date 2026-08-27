@@ -311,7 +311,7 @@ export class BusinessTransactionController {
   }
 
   @Get('attachments/download/:fileName')
-  @Permissions('indent.view', 'accounts.verify')
+  @Permissions('documents.view')
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   async downloadAttachment(
     @Param('fileName') fileName: string,
@@ -334,13 +334,13 @@ export class BusinessTransactionController {
   }
 
   @Get(':id/attachments/summary')
-  @Permissions('indent.view', 'accounts.verify')
+  @Permissions('documents.view')
   async getAttachmentSummary(@Param('id') id: string) {
     return this.businessTransactionService.getAttachmentSummary(id);
   }
 
   @Get(':id/attachments/:attachmentId/history')
-  @Permissions('indent.view', 'accounts.verify')
+  @Permissions('documents.view')
   async getAttachmentHistory(@Param('id') id: string, @Param('attachmentId') attachmentId: string) {
     return this.businessTransactionService.getAttachmentHistory(id, attachmentId);
   }

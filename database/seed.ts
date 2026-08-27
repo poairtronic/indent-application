@@ -111,6 +111,8 @@ async function main() {
     { module: 'indent', action: PermissionAction.APPROVE, code: 'indent.submit', description: 'Submit indent' },
     { module: 'indent', action: PermissionAction.DELETE, code: 'indent.delete', description: 'Delete indent' },
 
+    { module: 'documents', action: PermissionAction.READ, code: 'documents.view', description: 'View and download documents' },
+
     { module: 'costsheet', action: PermissionAction.CREATE, code: 'costsheet.create', description: 'Create cost sheet' },
     { module: 'costsheet', action: PermissionAction.READ, code: 'costsheet.view', description: 'View cost sheet' },
     { module: 'costsheet', action: PermissionAction.UPDATE, code: 'costsheet.update', description: 'Update cost sheet' },
@@ -294,6 +296,11 @@ async function main() {
   const rolePermissionData = [];
   for (const [roleName, permissionIds] of Object.entries(rolePermissionsMap)) {
     const roleId = roleMap[roleName];
+    // Give documents.view to all roles by default
+    const docsViewPerm = permMap['documents.view'];
+    if (docsViewPerm && !permissionIds.includes(docsViewPerm)) {
+      permissionIds.push(docsViewPerm);
+    }
     for (const permissionId of permissionIds) {
       rolePermissionData.push({ roleId, permissionId });
     }

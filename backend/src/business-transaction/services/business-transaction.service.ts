@@ -2907,32 +2907,6 @@ export class BusinessTransactionService {
 
     const userDeptCode = (user.department?.departmentCode || '').toUpperCase();
     const userRoleName = (user.role?.roleName || '').toUpperCase();
-
-    // Managers have read-only access to everything
-    const isManager =
-      userRoleName === 'SENIOR MANAGER' ||
-      userRoleName === 'GENERAL MANAGER' ||
-      userRoleName === 'MANAGER';
-
-    const isAttAccounts =
-      attachmentDept.toUpperCase() === 'ACCOUNTS' ||
-      attachmentDept.toUpperCase() === 'ACCT' ||
-      attachmentDept.toUpperCase() === 'ACC';
-    const isUserAccounts =
-      userDeptCode === 'ACCOUNTS' ||
-      userDeptCode === 'ACCT' ||
-      userDeptCode === 'ACC' ||
-      userDeptCode === 'FINANCE';
-
-    // Accounts files (e.g. bills/invoices) are restricted to Accounts, Managers, and Admins
-    if (isAttAccounts) {
-      if (!isUserAccounts && !isManager) {
-        throw new ForbiddenException(
-          'Access denied. Financial files are restricted to Accounts department.',
-        );
-      }
-    }
-
     return this.attachmentStorage.getDownloadStream(fileName);
   }
 

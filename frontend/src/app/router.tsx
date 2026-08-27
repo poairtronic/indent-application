@@ -411,7 +411,7 @@ export const AppRouter: React.FC = () => {
         <Route
           path="/documents"
           element={
-            <ProtectedRoute permissions={['indent.view', 'accounts.verify', 'reports.view']}>
+            <ProtectedRoute permissions={['documents.view']}>
               {suspended(DocumentsPage)}
             </ProtectedRoute>
           }

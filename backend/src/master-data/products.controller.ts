@@ -24,7 +24,7 @@ export class ProductsController {
   ) {}
 
   @Get()
-  @Permissions('products.view')
+  @Permissions('products.view', 'indent.view', 'materials.view')
   async list(@Query() query: PaginationQueryDto) {
     const pageNumber = Math.max(1, query.page || 1);
     const pageSize = Math.max(1, query.limit || 10);

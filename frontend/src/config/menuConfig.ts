@@ -32,7 +32,7 @@ export const menuItems: MenuItem[] = [
     label: 'Documents',
     path: '/documents',
     iconName: 'FolderArchive',
-    permission: 'indent.view',
+    permission: 'documents.view',
   },
   { label: 'Analytics', path: '/analytics', iconName: 'BarChart3', permission: 'analytics.view' },
   {
