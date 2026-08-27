@@ -2896,17 +2896,6 @@ export class BusinessTransactionService {
       return this.attachmentStorage.getDownloadStream(fileName);
     }
 
-    // Extract meta information
-    let attachmentDept = 'DESIGN';
-    try {
-      const meta = JSON.parse(att.fileName);
-      attachmentDept = meta.department || 'DESIGN';
-    } catch {
-      // Fallback
-    }
-
-    const userDeptCode = (user.department?.departmentCode || '').toUpperCase();
-    const userRoleName = (user.role?.roleName || '').toUpperCase();
     return this.attachmentStorage.getDownloadStream(fileName);
   }
 
