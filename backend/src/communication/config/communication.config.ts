@@ -15,6 +15,11 @@ export interface ISmtpConfig {
   maxMessages: number;
   rejectUnauthorized: boolean;
   family?: 4 | 6;
+  oauth2?: {
+    clientId: string;
+    clientSecret: string;
+    refreshToken: string;
+  };
 }
 
 export interface IAppMailConfig {
@@ -42,6 +47,19 @@ export class CommunicationConfig {
     const configuredFamily = parseInt(process.env.SMTP_FAMILY || '4', 10);
     const family = configuredFamily === 6 ? 6 : 4;
 
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.SMTP_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.SMTP_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN || process.env.SMTP_REFRESH_TOKEN;
+
+    let oauth2;
+    if (clientId && clientSecret && refreshToken) {
+      oauth2 = {
+        clientId,
+        clientSecret,
+        refreshToken,
+      };
+    }
+
     // Basic Validation: host and port must be set if no service is provided.
     if (!service) {
       if (!host) {
@@ -67,6 +85,7 @@ export class CommunicationConfig {
       maxMessages,
       rejectUnauthorized,
       family,
+      oauth2,
     };
   }
 

@@ -150,6 +150,42 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     );
     const startTime = Date.now();
 
+    // ENFORCE: Global Email Notification Toggle
+    const globalToggle = await this.prisma.applicationSetting.findUnique({
+      where: { key: 'GLOBAL_EMAIL_NOTIFICATIONS_ENABLED' },
+    });
+
+    if (globalToggle && globalToggle.value === 'false') {
+      const errorMessage = 'Global email notifications are disabled. Job permanently suppressed.';
+      const attempts = (job.attempts || 0) + 1;
+
+      await this.prisma.emailJob.updateMany({
+        where: { id: job.id },
+        data: {
+          status: 'DEAD_LETTER',
+          lastError: errorMessage,
+          attempts,
+          lockedAt: null,
+          lockedBy: null,
+        },
+      });
+
+      if (logIds.length > 0) {
+        await this.prisma.emailLog.updateMany({
+          where: { id: { in: logIds } },
+          data: { status: EmailState.DEAD_LETTER, errorMessage },
+        });
+      }
+
+      this.logger.warn(`Job ${job.id} suppressed because global emails are disabled.`);
+      observabilityEventBus.emit('notification.event', {
+        action: 'suppressed',
+        success: false,
+        error: errorMessage,
+      });
+      return;
+    }
+
     try {
       if (logIds.length > 0) {
         await this.updateLogStatus(logIds, EmailState.PROCESSING);

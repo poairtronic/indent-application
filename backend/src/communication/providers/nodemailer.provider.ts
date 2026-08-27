@@ -60,7 +60,15 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
         // Host and port are automatically handled by the preset
       }
 
-      if (config.user || config.pass) {
+      if (config.oauth2) {
+        smtpOptions.auth = {
+          type: 'OAuth2',
+          user: config.user,
+          clientId: config.oauth2.clientId,
+          clientSecret: config.oauth2.clientSecret,
+          refreshToken: config.oauth2.refreshToken,
+        };
+      } else if (config.user || config.pass) {
         smtpOptions.auth = {
           user: config.user,
           pass: config.pass,
