@@ -14,6 +14,7 @@ export interface ISmtpConfig {
   maxConnections: number;
   maxMessages: number;
   rejectUnauthorized: boolean;
+  family?: 4 | 6;
 }
 
 export interface IAppMailConfig {
@@ -38,6 +39,8 @@ export class CommunicationConfig {
     const maxConnections = parseInt(process.env.SMTP_MAX_CONNECTIONS || '5', 10);
     const maxMessages = parseInt(process.env.SMTP_MAX_MESSAGES || '100', 10);
     const rejectUnauthorized = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
+    const configuredFamily = parseInt(process.env.SMTP_FAMILY || '4', 10);
+    const family = configuredFamily === 6 ? 6 : 4;
 
     // Basic Validation: host and port must be set if no service is provided.
     if (!service) {
@@ -63,6 +66,7 @@ export class CommunicationConfig {
       maxConnections,
       maxMessages,
       rejectUnauthorized,
+      family,
     };
   }
 

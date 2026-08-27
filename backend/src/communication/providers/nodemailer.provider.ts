@@ -50,6 +50,9 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
         tls: {
           rejectUnauthorized: config.rejectUnauthorized,
         },
+        // Render instances may have no IPv6 egress. Prefer IPv4 for SMTP
+        // unless explicitly overridden with SMTP_FAMILY=6.
+        family: config.family,
       };
 
       if (config.service) {

@@ -11,6 +11,8 @@ services:
     envVars:
       - key: PORT
         value: 3000
+      - key: NODE_ENV
+        value: production
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
@@ -19,6 +21,8 @@ services:
         sync: false
       - key: FRONTEND_URL
         value: https://indent-application-frontend.onrender.com
+      - key: APP_URL
+        value: https://indent-application.onrender.com
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
@@ -28,7 +32,11 @@ services:
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
-        sync: false
+        value: 587
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_FAMILY
+        value: "4"
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS

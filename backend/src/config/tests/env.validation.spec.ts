@@ -38,6 +38,20 @@ describe('Environment Validation (Phase B8)', () => {
     expect(() => validateEnvironmentConfig()).toThrow(/SMTP_PASSWORD/);
   });
 
+  it('should accept Render-compatible SMTP_PASS in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.SMTP_HOST = 'smtp.example.com';
+    process.env.SMTP_PORT = '587';
+    process.env.SMTP_USER = 'user@example.com';
+    process.env.SMTP_PASSWORD = '';
+    process.env.SMTP_PASS = 'render-secret';
+    process.env.SMTP_FROM = 'no-reply@example.com';
+    process.env.FRONTEND_URL = 'https://example-frontend.com';
+    process.env.APP_URL = 'https://example-api.com';
+
+    expect(() => validateEnvironmentConfig()).not.toThrow();
+  });
+
   it('should fail startup with configuration error if FRONTEND_URL is missing in production', () => {
     process.env.NODE_ENV = 'production';
     process.env.SMTP_HOST = 'smtp.example.com';

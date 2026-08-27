@@ -164,8 +164,18 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
         html = `<p>${payload.body || payload.subject || 'MERC Notification'}</p>`;
       }
 
+      const recipients = Array.isArray(payload.recipients)
+        ? payload.recipients.filter((recipient) => typeof recipient === 'string' && recipient.trim())
+        : typeof payload.recipient === 'string' && payload.recipient.trim()
+          ? [payload.recipient]
+          : [];
+
+      if (recipients.length === 0) {
+        throw new Error(`Email job ${job.id} has no valid recipients`);
+      }
+
       const mailPayload: any = {
-        to: payload.recipients,
+        to: recipients,
         subject: payload.subject,
         body: payload.body || 'MERC Notification. Please view in HTML mode.',
         html,

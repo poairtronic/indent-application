@@ -36,6 +36,9 @@ export class AuthService {
     loginDto: LoginDto,
     deviceInfo?: { ipAddress: string; browser: string; operatingSystem: string; device: string },
   ): Promise<AuthResponse> {
+    // Email addresses are case-insensitive in practice; normalize input so
+    // production login does not fail because of whitespace or casing.
+    loginDto = { ...loginDto, email: loginDto.email.trim().toLowerCase() };
     try {
       const result = await this.executeLogin(loginDto, deviceInfo);
       observabilityEventBus.emit('auth.event', {
