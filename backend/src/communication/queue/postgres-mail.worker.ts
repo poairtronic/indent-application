@@ -165,7 +165,9 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       }
 
       const recipients = Array.isArray(payload.recipients)
-        ? payload.recipients.filter((recipient) => typeof recipient === 'string' && recipient.trim())
+        ? payload.recipients.filter(
+            (recipient) => typeof recipient === 'string' && recipient.trim(),
+          )
         : typeof payload.recipient === 'string' && payload.recipient.trim()
           ? [payload.recipient]
           : [];

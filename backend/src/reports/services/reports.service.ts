@@ -161,7 +161,7 @@ export class ReportsService {
     queryParams: any,
   ) {
     const currency = this.getSystemCurrency();
-    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape', bufferPages: true });
     doc.pipe(res);
 
     // Title Section

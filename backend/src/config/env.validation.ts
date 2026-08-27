@@ -1,14 +1,7 @@
 export function validateEnvironmentConfig() {
   const isProd = process.env.NODE_ENV === 'production';
   const required = isProd
-    ? [
-        'SMTP_HOST',
-        'SMTP_PORT',
-        'SMTP_USER',
-        'SMTP_FROM',
-        'FRONTEND_URL',
-        'APP_URL',
-      ]
+    ? ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_FROM', 'FRONTEND_URL', 'APP_URL']
     : [];
 
   const missing = required.filter((key) => !process.env[key] || process.env[key].trim() === '');

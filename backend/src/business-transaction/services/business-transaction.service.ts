@@ -2679,7 +2679,9 @@ export class BusinessTransactionService {
         await this.prisma.auditLog.createMany({ data: auditLogs });
       }
     } catch (notifErr: unknown) {
-      this.logger.error(`Failed to send attachment upload notification: ${(notifErr as Error).message}`);
+      this.logger.error(
+        `Failed to send attachment upload notification: ${(notifErr as Error).message}`,
+      );
     }
 
     return { id, success: true };
@@ -2834,7 +2836,9 @@ export class BusinessTransactionService {
         await this.prisma.auditLog.createMany({ data: auditLogs });
       }
     } catch (notifErr: unknown) {
-      this.logger.error(`Failed to send document delete notification: ${(notifErr as Error).message}`);
+      this.logger.error(
+        `Failed to send document delete notification: ${(notifErr as Error).message}`,
+      );
     }
 
     return { id, success: true };
@@ -3380,7 +3384,9 @@ export class BusinessTransactionService {
         await this.prisma.auditLog.createMany({ data: auditLogs });
       }
     } catch (notifErr: unknown) {
-      this.logger.error(`Failed to send document replace notification: ${(notifErr as Error).message}`);
+      this.logger.error(
+        `Failed to send document replace notification: ${(notifErr as Error).message}`,
+      );
     }
 
     return { id, success: true };

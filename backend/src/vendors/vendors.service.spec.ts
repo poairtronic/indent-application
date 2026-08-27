@@ -4,7 +4,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { VendorStatus } from '@prisma/client';
 
-
 describe('VendorsService', () => {
   let service: VendorsService;
   let prismaMock: any;
