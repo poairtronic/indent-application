@@ -27,16 +27,16 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({ children, titl
       return true;
     }
     if (currentPath === '/analytics/costs') {
-      return Boolean(isAdmin || isManager || userDept === 'ACCT');
+      return Boolean(isAdmin || isManager || user?.permissions?.includes('costsheet.view') || userDept === 'ACCT');
     }
     if (currentPath === '/analytics/products') {
-      return Boolean(isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR');
+      return Boolean(isAdmin || isManager || user?.permissions?.includes('products.view') || userDept === 'DSGN' || userDept === 'STOR');
     }
     if (currentPath === '/analytics/vendors') {
-      return Boolean(isAdmin || isManager || userDept === 'STOR' || userDept === 'ACCT');
+      return Boolean(isAdmin || isManager || user?.permissions?.includes('vendors.view') || userDept === 'STOR' || userDept === 'ACCT');
     }
     return true;
-  }, [currentPath, isAdmin, isManager, userDept]);
+  }, [currentPath, isAdmin, isManager, userDept, user?.permissions]);
 
   React.useEffect(() => {
     if (!isPathAllowed) {
@@ -55,20 +55,20 @@ export const AnalyticsLayout: React.FC<AnalyticsLayoutProps> = ({ children, titl
       { name: 'Departments', path: '/analytics/departments' },
     ];
 
-    if (isAdmin || isManager || userDept === 'ACCT') {
+    if (isAdmin || isManager || user?.permissions?.includes('costsheet.view') || userDept === 'ACCT') {
       list.push({ name: 'Costs', path: '/analytics/costs' });
     }
 
-    if (isAdmin || isManager || userDept === 'DSGN' || userDept === 'STOR') {
+    if (isAdmin || isManager || user?.permissions?.includes('products.view') || userDept === 'DSGN' || userDept === 'STOR') {
       list.push({ name: 'Products', path: '/analytics/products' });
     }
 
-    if (isAdmin || isManager || userDept === 'STOR' || userDept === 'ACCT') {
+    if (isAdmin || isManager || user?.permissions?.includes('vendors.view') || userDept === 'STOR' || userDept === 'ACCT') {
       list.push({ name: 'Vendors', path: '/analytics/vendors' });
     }
 
     return list;
-  }, [isAdmin, isManager, userDept]);
+  }, [isAdmin, isManager, userDept, user?.permissions]);
 
   return (
     <div className="space-y-6 p-6">
