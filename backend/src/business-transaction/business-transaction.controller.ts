@@ -378,4 +378,10 @@ export class BusinessTransactionController {
   ) {
     return this.businessTransactionService.deleteAttachment(id, attachmentId, req.user.id);
   }
+
+  @Delete(':id')
+  @Permissions('indent.delete')
+  async deleteIndent(@Param('id') id: string, @Request() req: any) {
+    return this.businessTransactionService.deleteIndent(id, req.user.id);
+  }
 }

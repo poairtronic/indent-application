@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { IndentData } from '../../../api/services/indents/service';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
-import { Download } from 'lucide-react';
+import { Download, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
+import { toast } from '../../../components/ui/toast';
 import { getWorkflowAccess } from '../../../constants/workflow';
 import {
   useIssueMaterialItem,
@@ -11,6 +14,7 @@ import {
   useUpdateIndent,
   useUploadAttachment,
   useDownloadAttachment,
+  useDeleteIndent,
 } from '../../../api/services/indents/hooks';
 import { IndentWorkflowTimeline } from './WorkflowTimeline';
 import { IndentActivityFeed } from './ActivityFeed';
@@ -47,8 +51,23 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const { mutateAsync: enterActualCosts, isPending: isEnteringCosts } = useEnterActualCosts();
   const { mutateAsync: uploadAttachment, isPending: isUploadingAttachment } = useUploadAttachment();
   const { mutateAsync: downloadAttachment } = useDownloadAttachment();
+  const { mutateAsync: deleteIndent, isPending: isDeleting } = useDeleteIndent();
+  const navigate = useNavigate();
 
   const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role?.name === 'System Admin';
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDelete = async () => {
+    try {
+      await deleteIndent(indent.id);
+      toast.success('Indent deleted successfully');
+      setShowDeleteConfirm(false);
+      navigate('/indents');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to delete indent');
+    }
+  };
 
   const isDesignTeam = React.useMemo(() => {
     const code = user?.department?.departmentCode?.toUpperCase() ?? '';
@@ -162,13 +181,27 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
     <div className="space-y-6">
       {/* Header Info */}
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-text-primary mb-1">
-            {indent.indentNumber} {indent.purpose ? `(PO: ${indent.purpose})` : ''}
-          </h2>
-          <p className="text-sm text-text-secondary">
-            Material request for PO {indent.purpose || 'N/A'}
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-text-primary mb-1">
+              {indent.indentNumber} {indent.purpose ? `(PO: ${indent.purpose})` : ''}
+            </h2>
+            <p className="text-sm text-text-secondary">
+              Material request for PO {indent.purpose || 'N/A'}
+            </p>
+          </div>
+          {isAdmin && (
+            <Button
+              variant="secondary"
+              tone="red"
+              size="sm"
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={() => setShowDeleteConfirm(true)}
+              className="ml-2"
+            >
+              Delete
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
@@ -520,6 +553,18 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
           <IndentActivityFeed history={indent.workflowHistory} />
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Delete Indent"
+        message="Deleted items cannot be recovered and this is not be stored in my appliucation also."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

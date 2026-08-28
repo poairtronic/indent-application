@@ -28,8 +28,9 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  Trash2,
 } from 'lucide-react';
-import { useDocuments, useDownloadAttachment } from '../../api/services/indents/hooks';
+import { useDocuments, useDownloadAttachment, useRemoveAttachment } from '../../api/services/indents/hooks';
 import type { IndentDocumentItem } from '../../api/services/indents/service';
 import { apiClient } from '../../api/client';
 import { Badge, StatusChip } from '../../components/ui/Badge';
@@ -38,6 +39,8 @@ import { Input } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { ToastViewport, useToasts } from '../../components/ui/toast';
+import { useAuthStore } from '../../store/authStore';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 // Helper to format file sizes
 function formatFileSize(bytes?: number): string {
@@ -138,7 +141,26 @@ export const DocumentsPage: React.FC = () => {
   // Queries & Mutations
   const { data: documents = [], isLoading, isError, error, refetch, isRefetching } = useDocuments();
   const { mutateAsync: downloadAttachment } = useDownloadAttachment();
+  const { mutateAsync: removeAttachment, isPending: isRemoving } = useRemoveAttachment();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role?.name === 'System Admin';
+  const [deleteDoc, setDeleteDoc] = useState<{ id: string; indentId: string } | null>(null);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDoc) return;
+    try {
+      await removeAttachment({
+        indentId: deleteDoc.indentId,
+        attachmentId: deleteDoc.id,
+      });
+      show('success', 'Document deleted successfully.');
+      setDeleteDoc(null);
+    } catch (err: any) {
+      show('error', err?.message || 'Failed to delete document.');
+    }
+  };
 
   // Handle Download Action
   const handleDownload = async (doc: IndentDocumentItem, e?: React.MouseEvent) => {
@@ -831,6 +853,21 @@ export const DocumentsPage: React.FC = () => {
                               />
                               <span>{downloadingId === doc.id ? 'Saving...' : 'Download'}</span>
                             </Button>
+                            {isAdmin && (
+                              <Button
+                                variant="secondary"
+                                tone="red"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteDoc({ id: doc.id, indentId: doc.indentId });
+                                }}
+                                className="h-8 px-2 text-xs flex items-center justify-center gap-1.5"
+                                title="Delete document"
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
@@ -982,6 +1019,21 @@ export const DocumentsPage: React.FC = () => {
                               {downloadingId === doc.id ? 'Saving...' : 'Download'}
                             </span>
                           </Button>
+                          {isAdmin && (
+                            <Button
+                              variant="secondary"
+                              tone="red"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteDoc({ id: doc.id, indentId: doc.indentId });
+                              }}
+                              className="h-8 px-2.5 text-xs flex items-center gap-1"
+                              title="Delete document"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1226,6 +1278,18 @@ export const DocumentsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteDoc}
+        onClose={() => setDeleteDoc(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Document"
+        message="Deleted items cannot be recovered and this is not be stored in my appliucation also."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous
+        isLoading={isRemoving}
+      />
     </div>
   );
 };

@@ -415,6 +415,10 @@ class IndentService extends BaseService {
   async removeAttachment(id: string, attachmentId: string): Promise<void> {
     await this.delete(`${this.basePath}/${id}/attachments/${attachmentId}`);
   }
+
+  async deleteIndent(id: string): Promise<void> {
+    await this.delete(`${this.basePath}/${id}`);
+  }
 }
 
 export const indentService = new IndentService();

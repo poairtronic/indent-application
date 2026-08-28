@@ -1,5 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
+import { useAuthStore } from '../../../store/authStore';
+import { useDeleteIndent } from '../../../api/services/indents/hooks';
+import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
+import { toast } from '../../../components/ui/toast';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Pagination } from '../../../components/ui/Pagination';
 import { Badge } from '../../../components/ui/Badge';
@@ -49,6 +54,23 @@ export const IndentList: React.FC<IndentListProps> = ({
   viewMode,
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role?.name === 'System Admin';
+  const { mutateAsync: deleteIndent, isPending: isDeleting } = useDeleteIndent();
+  
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await deleteIndent(deleteId);
+      toast.success('Indent deleted successfully');
+      setDeleteId(null);
+      onRefresh();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to delete indent');
+    }
+  };
 
   const virtualizer = useWindowVirtualizer({
     count: indents.length,
@@ -82,6 +104,18 @@ export const IndentList: React.FC<IndentListProps> = ({
               ? ` (${item.issuedItemsCount || 0}/${item.totalItemsCount} ISSUED)`
               : ''}
           </Badge>
+          {isAdmin && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteId(item.id);
+              }}
+              className="ml-2 p-1.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+              title="Delete Indent"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <div className="text-xs text-text-secondary mt-2 space-y-1">
           {(item.customerName || parsedRemarks.customerName) && (
@@ -168,6 +202,7 @@ export const IndentList: React.FC<IndentListProps> = ({
                     <th className="py-3 px-4">Required Date</th>
                     <th className="py-3 px-4">Created</th>
                     <th className="py-3 px-4 text-right">Cost</th>
+                    {isAdmin && <th className="py-3 px-4 text-center">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-default/50 text-text-primary">
@@ -238,6 +273,20 @@ export const IndentList: React.FC<IndentListProps> = ({
                             ? `₹${item.predictedTotal.toLocaleString()}`
                             : '—'}
                         </td>
+                        {isAdmin && (
+                          <td className="py-3.5 px-4 text-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteId(item.id);
+                              }}
+                              className="p-1.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                              title="Delete Indent"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -258,8 +307,8 @@ export const IndentList: React.FC<IndentListProps> = ({
               </table>
             </div>
           </div>
-          {pagination.total > pagination.limit && (
-            <div className="mt-4">
+          {viewMode === 'list' && pagination.total > pagination.limit && (
+            <div className="mt-4 flex justify-end">
               <Pagination
                 page={pagination.page}
                 totalPages={pagination.totalPages}
@@ -269,6 +318,17 @@ export const IndentList: React.FC<IndentListProps> = ({
               />
             </div>
           )}
+          <ConfirmDialog
+            isOpen={!!deleteId}
+            onClose={() => setDeleteId(null)}
+            onConfirm={handleDelete}
+            title="Delete Indent"
+            message="Deleted items cannot be recovered and this is not be stored in my appliucation also."
+            confirmText="Delete"
+            cancelText="Cancel"
+            isDangerous
+            isLoading={isDeleting}
+          />
         </>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

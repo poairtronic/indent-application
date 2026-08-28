@@ -267,6 +267,17 @@ export function useRemoveAttachment() {
   });
 }
 
+export function useDeleteIndent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => indentService.deleteIndent(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.indents.all });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+    },
+  });
+}
+
 export function useDocuments(params?: import('./service').DocumentSearchParams) {
   return useQuery({
     queryKey: ['documents', 'list', params],

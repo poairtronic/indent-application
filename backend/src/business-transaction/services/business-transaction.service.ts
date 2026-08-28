@@ -2811,7 +2811,7 @@ export class BusinessTransactionService {
       }),
       this.prisma.user.findUnique({
         where: { id: userId },
-        include: { department: true },
+        include: { department: true, role: true },
       }),
     ]);
 
@@ -2823,43 +2823,46 @@ export class BusinessTransactionService {
     }
 
     const departmentCode = user.department.departmentCode;
+    const isAdmin = user.role?.name === 'System Admin';
 
     let storageFileName = attachment.fileName;
     try {
       const meta = JSON.parse(attachment.fileName);
       storageFileName = meta.storageFileName;
 
-      const isMetaDesign = meta.department === 'DESIGN' || meta.department === 'DSGN';
-      const isMetaAccounts = meta.department === 'ACCOUNTS' || meta.department === 'ACCT';
-      const isUserDesign = departmentCode === 'DESIGN' || departmentCode === 'DSGN';
-      const isUserAccounts = departmentCode === 'ACCOUNTS' || departmentCode === 'ACCT';
+      if (!isAdmin) {
+        const isMetaDesign = meta.department === 'DESIGN' || meta.department === 'DSGN';
+        const isMetaAccounts = meta.department === 'ACCOUNTS' || meta.department === 'ACCT';
+        const isUserDesign = departmentCode === 'DESIGN' || departmentCode === 'DSGN';
+        const isUserAccounts = departmentCode === 'ACCOUNTS' || departmentCode === 'ACCT';
 
-      if (isMetaDesign) {
-        if (!isUserDesign) {
-          throw new ForbiddenException('Only Design department can delete design files.');
+        if (isMetaDesign) {
+          if (!isUserDesign) {
+            throw new ForbiddenException('Only Design department can delete design files.');
+          }
+          if (txData.currentState !== WorkflowState.DRAFT) {
+            throw new BadRequestException('Cannot delete Design files after submission.');
+          }
         }
-        if (txData.currentState !== WorkflowState.DRAFT) {
-          throw new BadRequestException('Cannot delete Design files after submission.');
-        }
-      }
-      if (isMetaAccounts) {
-        if (!isUserAccounts) {
-          throw new ForbiddenException('Only Accounts department can delete financial files.');
-        }
-        if (
-          txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
-          txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
-        ) {
-          throw new BadRequestException(
-            'Cannot delete Accounts files outside verification states.',
-          );
+        if (isMetaAccounts) {
+          if (!isUserAccounts) {
+            throw new ForbiddenException('Only Accounts department can delete financial files.');
+          }
+          if (
+            txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
+            txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
+          ) {
+            throw new BadRequestException(
+              'Cannot delete Accounts files outside verification states.',
+            );
+          }
         }
       }
     } catch (err) {
       if (err instanceof ForbiddenException || err instanceof BadRequestException) {
         throw err;
       }
-      if (txData.currentState !== WorkflowState.DRAFT) {
+      if (!isAdmin && txData.currentState !== WorkflowState.DRAFT) {
         throw new BadRequestException('Design files are locked post-submission.');
       }
     }
@@ -3464,5 +3467,66 @@ export class BusinessTransactionService {
     }
 
     return { id, success: true };
+  }
+
+  /**
+   * Soft deletes an Indent and its associated CostSheet.
+   */
+  async deleteIndent(id: string, performingUserId: string): Promise<{ success: boolean; message: string }> {
+    const indent = await this.prisma.indent.findFirst({
+      where: { id, isDeleted: false },
+      include: { costSheet: true },
+    });
+
+    if (!indent) {
+      throw new NotFoundException(INDENT_MESSAGES.NOT_FOUND);
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Soft delete the Indent
+      await tx.indent.update({
+        where: { id },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: performingUserId,
+        },
+      });
+
+      // 2. Soft delete the associated CostSheet if it exists
+      if (indent.costSheet) {
+        await tx.costSheet.update({
+          where: { id: indent.costSheet.id },
+          data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedBy: performingUserId,
+          },
+        });
+      }
+
+      // 3. Audit Log
+      await tx.auditLog.create({
+        data: {
+          module: 'INDENT',
+          recordId: id,
+          action: 'DELETE',
+          oldValue: { status: indent.status, currentState: indent.currentState },
+          performedBy: performingUserId,
+        },
+      });
+
+      // 4. Timeline Event
+      await tx.timelineEvent.create({
+        data: {
+          indentId: id,
+          action: 'DELETED',
+          description: 'Indent was deleted by Administrator',
+          performedBy: performingUserId,
+        },
+      });
+    });
+
+    return { success: true, message: 'Indent deleted successfully' };
   }
 }
