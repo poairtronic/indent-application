@@ -43,7 +43,7 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.code = info.code;
     this.status = info.status;
-    this.details = details ?? [];
+    this.details = Array.isArray(details) ? details : (details ? [details as any] : []);
     this.timestamp = new Date().toISOString();
     this.path = path;
   }
