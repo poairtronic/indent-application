@@ -563,10 +563,8 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* TABLES ROW: Recent Indents & Low Stock Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Recent Indents Table */}
-        <div className="lg:col-span-7 bg-surface-card border border-border-default rounded-2xl p-5 lg:p-6 shadow-card space-y-4 glass-panel">
+      {/* TABLES ROW: Recent Indents */}
+      <div className="w-full bg-surface-card border border-border-default rounded-2xl p-5 lg:p-6 shadow-card space-y-4 glass-panel">
           <div className="flex items-center justify-between border-b border-border-default/60 pb-3">
             <div>
               <h3 className="text-sm font-bold text-text-primary">Recent Indents</h3>
@@ -659,98 +657,6 @@ export const DashboardPage: React.FC = () => {
             </table>
           </div>
         </div>
-
-        {/* Low Stock Alerts Table */}
-        <div className="lg:col-span-5 bg-surface-card border border-border-default rounded-2xl p-5 lg:p-6 shadow-card space-y-4 glass-panel">
-          <div className="flex items-center justify-between border-b border-border-default/60 pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-text-primary">Low Stock Alerts</h3>
-              <p className="text-xs text-text-muted">Materials below reorder threshold</p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate('/materials')}
-              className="text-xs font-bold"
-            >
-              View All &rarr;
-            </Button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border-default text-[10px] font-extrabold uppercase text-text-muted tracking-wider">
-                  <th className="py-2.5 px-3">MATERIAL</th>
-                  <th className="py-2.5 px-3">CURRENT</th>
-                  <th className="py-2.5 px-3">REORDER</th>
-                  <th className="py-2.5 px-3">UNIT</th>
-                  <th className="py-2.5 px-3">STATUS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-default/50 font-medium">
-                {[
-                  {
-                    name: 'MS Plate 12mm',
-                    current: 120,
-                    reorder: 500,
-                    unit: 'kg',
-                    isCritical: false,
-                  },
-                  {
-                    name: 'EN31 Steel Rod',
-                    current: 45,
-                    reorder: 200,
-                    unit: 'kg',
-                    isCritical: false,
-                  },
-                  {
-                    name: 'SS 304 Sheet',
-                    current: 18,
-                    reorder: 100,
-                    unit: 'kg',
-                    isCritical: false,
-                  },
-                  {
-                    name: 'Aluminium 6061 Block',
-                    current: 25,
-                    reorder: 150,
-                    unit: 'kg',
-                    isCritical: false,
-                  },
-                  {
-                    name: 'Copper Busbar Rod',
-                    current: 10,
-                    reorder: 50,
-                    unit: 'kg',
-                    isCritical: true,
-                  },
-                ].map((item, idx) => (
-                  <tr key={idx} className="hover:bg-surface-hover/50 transition-colors">
-                    <td className="py-3 px-3 text-text-primary font-semibold">{item.name}</td>
-                    <td className="py-3 px-3 text-text-primary font-mono font-bold">
-                      {item.current}
-                    </td>
-                    <td className="py-3 px-3 text-text-muted font-mono">{item.reorder}</td>
-                    <td className="py-3 px-3 text-text-muted font-mono">{item.unit}</td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          item.isCritical
-                            ? 'bg-status-error text-white font-black'
-                            : 'bg-status-warning/15 text-status-warning border border-status-warning/30'
-                        }`}
-                      >
-                        {item.isCritical ? 'CRITICAL' : 'LOW'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
 
       {/* NOTIFICATIONS & ACTIVITY FEED */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -898,3 +804,5 @@ export const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
+
+
