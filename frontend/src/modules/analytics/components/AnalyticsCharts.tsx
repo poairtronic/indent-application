@@ -53,8 +53,10 @@ export const DonutChart: React.FC<DonutChartProps> = React.memo(
       (sum, item) => sum + (Number.isFinite(item.value) ? item.value : 0),
       0,
     );
-    const radius = (size - thickness) / 2;
-    const circumference = 2 * Math.PI * radius;
+    // For a solid pie chart:
+    const pieRadius = size / 4;
+    const pieStrokeWidth = size / 2;
+    const circumference = 2 * Math.PI * pieRadius;
 
     let accumulatedPercentage = 0;
 
@@ -73,61 +75,64 @@ export const DonutChart: React.FC<DonutChartProps> = React.memo(
             <circle
               cx={size / 2}
               cy={size / 2}
-              r={radius}
+              r={pieRadius}
               fill="transparent"
-              stroke="var(--border-default)"
-              strokeWidth={thickness}
-              className="opacity-25"
+              stroke="var(--bg-canvas)"
+              strokeWidth={pieStrokeWidth}
+              className="opacity-50"
             />
             {total > 0 &&
               data.map((item, idx) => {
                 const color = item.color || DEFAULT_CHART_COLORS[idx % DEFAULT_CHART_COLORS.length];
                 const pct = total > 0 ? item.value / total : 0;
+                
+                // For proper pie chart slicing:
                 const strokeLength = pct * circumference;
-                const strokeOffset =
-                  circumference - strokeLength + accumulatedPercentage * circumference;
-                accumulatedPercentage -= pct;
+                const dasharray = `${strokeLength} ${circumference - strokeLength}`;
+                // To rotate clockwise, we use negative offset
+                const dashoffset = -accumulatedPercentage * circumference;
+                
+                accumulatedPercentage += pct;
 
                 const isHovered = hoveredIdx === idx;
+                const isOtherHovered = hoveredIdx !== null && !isHovered;
 
                 return (
                   <circle
                     key={idx}
                     cx={size / 2}
                     cy={size / 2}
-                    r={radius}
+                    r={pieRadius}
                     fill="transparent"
                     stroke={color}
-                    strokeWidth={isHovered ? thickness + 4 : thickness}
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeOffset}
-                    strokeLinecap="round"
-                    className="transition-all duration-300 ease-out cursor-pointer"
+                    strokeWidth={isHovered ? pieStrokeWidth + 12 : pieStrokeWidth}
+                    strokeDasharray={dasharray}
+                    strokeDashoffset={dashoffset}
+                    className="transition-all duration-300 ease-out cursor-pointer origin-center"
                     onMouseEnter={() => setHoveredIdx(idx)}
                     onMouseLeave={() => setHoveredIdx(null)}
                     style={{
-                      opacity: hoveredIdx === null || isHovered ? 1 : 0.4,
-                      filter: isHovered ? `drop-shadow(0 0 8px ${color})` : 'none',
+                      opacity: isOtherHovered ? 0.3 : 1,
+                      filter: isHovered ? `drop-shadow(0 0 12px ${color})` : 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))',
+                      transform: isHovered ? 'scale(1.02)' : 'scale(1)',
                     }}
                   />
                 );
               })}
           </svg>
-          {/* Centered Total / Selected Value */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none text-center px-3">
-            <span className="text-2xl font-black text-text-primary tracking-tight font-mono leading-none">
-              {hoveredIdx !== null && data[hoveredIdx]
-                ? formatValue
-                  ? formatValue(data[hoveredIdx].value)
-                  : data[hoveredIdx].value
-                : formatValue
-                  ? formatValue(total)
-                  : total}
-            </span>
-            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider mt-1 leading-tight text-center max-w-[120px]">
-              {hoveredIdx !== null && data[hoveredIdx] ? data[hoveredIdx].label : centerTitle}
-            </span>
-          </div>
+          {/* Hover Tooltip (replacing central text) */}
+          {hoveredIdx !== null && data[hoveredIdx] && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 transition-opacity duration-200">
+              <div className="bg-[#0C1017]/90 backdrop-blur-md border border-white/10 px-3 py-2 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.5)] flex flex-col items-center min-w-[100px]">
+                <span className="text-white text-lg font-black font-mono">
+                  {formatValue ? formatValue(data[hoveredIdx].value) : data[hoveredIdx].value}
+                </span>
+                <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider text-center">
+                  {data[hoveredIdx].label}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Legend list - Full readable names without truncation */}
