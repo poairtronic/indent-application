@@ -12,6 +12,7 @@ import {
 import { useDashboardOverview } from '../modules/analytics/hooks/useAnalytics';
 import { useAuditLogs } from '../api/services/audit/hooks';
 import { indentService } from '../api/services/indents/service';
+import { useIndents } from '../api/services/indents/hooks';
 import { useQuery } from '@tanstack/react-query';
 import { QuickActionCard } from '../components/ui/Cards';
 import { ActivityTimeline, WorkflowTimeline } from '../components/ui/DataTimeline';
@@ -81,6 +82,7 @@ export const DashboardPage: React.FC = () => {
 
   const { data: dashboardOverview, isError: isDashboardError } =
     useDashboardOverview(hasAnalyticsAccess);
+  const { data: recentIndentsData, isLoading: isRecentIndentsLoading } = useIndents({ page: 1, limit: 5 });
   const { data: operationalSummary, isError: isOperationalError } = useQuery({
     queryKey: ['business-transactions', 'operational-summary'],
     queryFn: () => indentService.getOperationalSummary(),
@@ -592,67 +594,38 @@ export const DashboardPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-default/50 font-medium">
-                {[
-                  {
-                    id: 'AGIPL-IND-2026-005',
-                    product: 'Base Plate',
-                    dept: 'Production',
-                    status: 'Stores Processing',
-                    date: '25 Aug 2026',
-                    color: 'bg-info/15 text-info border-info/30',
-                  },
-                  {
-                    id: 'AGIPL-IND-2026-004',
-                    product: 'Hydraulic Bracket',
-                    dept: 'Design',
-                    status: 'Design Completed',
-                    date: '24 Aug 2026',
-                    color: 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/30',
-                  },
-                  {
-                    id: 'AGIPL-IND-2026-003',
-                    product: 'Support Frame',
-                    dept: 'Production',
-                    status: 'In Production',
-                    date: '24 Aug 2026',
-                    color: 'bg-status-warning/15 text-status-warning border-status-warning/30',
-                  },
-                  {
-                    id: 'AGIPL-IND-2026-002',
-                    product: 'Gear Housing',
-                    dept: 'Maintenance',
-                    status: 'Accounts Verification',
-                    date: '23 Aug 2026',
-                    color: 'bg-status-success/15 text-status-success border-status-success/30',
-                  },
-                  {
-                    id: 'AGIPL-IND-2026-001',
-                    product: 'Side Panel',
-                    dept: 'Production',
-                    status: 'Completed',
-                    date: '22 Aug 2026',
-                    color: 'bg-text-disabled/15 text-text-muted border-text-disabled/30',
-                  },
-                ].map((row) => (
-                  <tr key={row.id} className="hover:bg-surface-hover/50 transition-colors">
-                    <td
-                      className="py-3 px-3 font-mono font-bold text-[#8B5CF6] cursor-pointer hover:underline"
-                      onClick={() => navigate('/indents')}
-                    >
-                      {row.id}
-                    </td>
-                    <td className="py-3 px-3 text-text-primary font-semibold">{row.product}</td>
-                    <td className="py-3 px-3 text-text-muted">{row.dept}</td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${row.color}`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-text-muted font-mono text-[11px]">{row.date}</td>
+                {isRecentIndentsLoading ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-text-muted">Loading recent indents...</td>
                   </tr>
-                ))}
+                ) : !recentIndentsData?.items || recentIndentsData.items.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-text-muted">No recent indents found.</td>
+                  </tr>
+                ) : (
+                  recentIndentsData.items.map((row) => (
+                    <tr key={row.id} className="hover:bg-surface-hover/50 transition-colors">
+                      <td
+                        className="py-3 px-3 font-mono font-bold text-[#8B5CF6] cursor-pointer hover:underline"
+                        onClick={() => navigate(`/indents/${row.id}`)}
+                      >
+                        {row.indentNumber}
+                      </td>
+                      <td className="py-3 px-3 text-text-primary font-semibold">{row.productName || 'N/A'}</td>
+                      <td className="py-3 px-3 text-text-muted">{row.departmentName || 'N/A'}</td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-surface-elevated text-text-primary border-border-default`}
+                        >
+                          {formatWorkflowState(row.currentState)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-text-muted font-mono text-[11px]">
+                        {new Date(row.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
