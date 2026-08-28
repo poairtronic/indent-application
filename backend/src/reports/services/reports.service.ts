@@ -802,8 +802,8 @@ export class ReportsService {
           AND ($1::text IS NULL OR ci."materialId" = $1)
           AND ($2::text IS NULL OR m."category" = $2)
           AND ($3::text IS NULL OR m."materialName" ILIKE $3 OR m."materialCode" ILIKE $3)
-          AND ($4::timestamp IS NULL OR cs."createdAt" >= $4)
-          AND ($5::timestamp IS NULL OR cs."createdAt" <= $5)
+          ${dateFrom || dateTo ? 'AND ($4::timestamp IS NULL OR cs."createdAt" >= $4)' : ''}
+          ${dateFrom || dateTo ? 'AND ($5::timestamp IS NULL OR cs."createdAt" <= $5)' : ''}
       `,
       matQuery,
       statusQuery,
@@ -841,8 +841,8 @@ export class ReportsService {
           AND ($1::text IS NULL OR ci."materialId" = $1)
           AND ($2::text IS NULL OR m."category" = $2)
           AND ($3::text IS NULL OR m."materialName" ILIKE $3 OR m."materialCode" ILIKE $3)
-          AND ($4::timestamp IS NULL OR cs."createdAt" >= $4)
-          AND ($5::timestamp IS NULL OR cs."createdAt" <= $5)
+          ${dateFrom || dateTo ? 'AND ($4::timestamp IS NULL OR cs."createdAt" >= $4)' : ''}
+          ${dateFrom || dateTo ? 'AND ($5::timestamp IS NULL OR cs."createdAt" <= $5)' : ''}
         GROUP BY m."id", m."materialCode", m."materialName", m."category"
         ORDER BY ${sqlOrderBy} NULLS LAST, m."materialCode" ASC
         LIMIT $6 OFFSET $7
