@@ -6,7 +6,7 @@ import { Button } from '../../../components/ui/Button';
 import { Download, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { toast } from '../../../components/ui/toast';
+import { useToasts } from '../../../components/ui/toast';
 import { getWorkflowAccess } from '../../../constants/workflow';
 import {
   useIssueMaterialItem,
@@ -53,19 +53,20 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const { mutateAsync: downloadAttachment } = useDownloadAttachment();
   const { mutateAsync: deleteIndent, isPending: isDeleting } = useDeleteIndent();
   const navigate = useNavigate();
+  const { show } = useToasts();
 
   const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.role?.name === 'System Admin';
+  const isAdmin = user?.role?.roleName === 'System Admin';
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDelete = async () => {
     try {
       await deleteIndent(indent.id);
-      toast.success('Indent deleted successfully');
+      show('success', 'Indent deleted successfully');
       setShowDeleteConfirm(false);
       navigate('/indents');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to delete indent');
+      show('error', error.response?.data?.message || 'Failed to delete indent');
     }
   };
 
@@ -193,11 +194,10 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
           {isAdmin && (
             <Button
               variant="secondary"
-              tone="red"
               size="sm"
               icon={<Trash2 className="w-4 h-4" />}
               onClick={() => setShowDeleteConfirm(true)}
-              className="ml-2"
+              className="ml-2 text-red-500 hover:bg-red-50 hover:border-red-200"
             >
               Delete
             </Button>
@@ -555,15 +555,15 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
       </div>
 
       <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
+        open={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
         title="Delete Indent"
         message="Deleted items cannot be recovered and this is not be stored in my appliucation also."
-        confirmText="Delete"
-        cancelText="Cancel"
-        isDangerous
-        isLoading={isDeleting}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        tone="danger"
+        loading={isDeleting}
       />
     </div>
   );

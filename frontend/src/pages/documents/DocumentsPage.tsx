@@ -145,14 +145,14 @@ export const DocumentsPage: React.FC = () => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.role?.name === 'System Admin';
+  const isAdmin = user?.role?.roleName === 'System Admin';
   const [deleteDoc, setDeleteDoc] = useState<{ id: string; indentId: string } | null>(null);
 
   const handleDeleteConfirm = async () => {
     if (!deleteDoc) return;
     try {
       await removeAttachment({
-        indentId: deleteDoc.indentId,
+        id: deleteDoc.indentId,
         attachmentId: deleteDoc.id,
       });
       show('success', 'Document deleted successfully.');
@@ -856,13 +856,12 @@ export const DocumentsPage: React.FC = () => {
                             {isAdmin && (
                               <Button
                                 variant="secondary"
-                                tone="red"
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDeleteDoc({ id: doc.id, indentId: doc.indentId });
                                 }}
-                                className="h-8 px-2 text-xs flex items-center justify-center gap-1.5"
+                                className="h-8 px-2 text-xs flex items-center justify-center gap-1.5 text-red-500 hover:bg-red-50 hover:border-red-200"
                                 title="Delete document"
                               >
                                 <Trash2 size={14} />
@@ -1022,13 +1021,12 @@ export const DocumentsPage: React.FC = () => {
                           {isAdmin && (
                             <Button
                               variant="secondary"
-                              tone="red"
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDeleteDoc({ id: doc.id, indentId: doc.indentId });
                               }}
-                              className="h-8 px-2.5 text-xs flex items-center gap-1"
+                              className="h-8 px-2.5 text-xs flex items-center gap-1 text-red-500 hover:bg-red-50 hover:border-red-200"
                               title="Delete document"
                             >
                               <Trash2 size={14} />
@@ -1280,15 +1278,15 @@ export const DocumentsPage: React.FC = () => {
       )}
 
       <ConfirmDialog
-        isOpen={!!deleteDoc}
-        onClose={() => setDeleteDoc(null)}
+        open={!!deleteDoc}
+        onCancel={() => setDeleteDoc(null)}
         onConfirm={handleDeleteConfirm}
         title="Delete Document"
         message="Deleted items cannot be recovered and this is not be stored in my appliucation also."
-        confirmText="Delete"
-        cancelText="Cancel"
-        isDangerous
-        isLoading={isRemoving}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        tone="danger"
+        loading={isRemoving}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import { Trash2 } from 'lucide-react';
 import { useAuthStore } from '../../../store/authStore';
 import { useDeleteIndent } from '../../../api/services/indents/hooks';
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog';
-import { toast } from '../../../components/ui/toast';
+import { useToasts } from '../../../components/ui/toast';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { Pagination } from '../../../components/ui/Pagination';
 import { Badge } from '../../../components/ui/Badge';
@@ -55,8 +55,9 @@ export const IndentList: React.FC<IndentListProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const isAdmin = user?.role?.name === 'System Admin';
+  const isAdmin = user?.role?.roleName === 'System Admin';
   const { mutateAsync: deleteIndent, isPending: isDeleting } = useDeleteIndent();
+  const { show } = useToasts();
   
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -64,11 +65,10 @@ export const IndentList: React.FC<IndentListProps> = ({
     if (!deleteId) return;
     try {
       await deleteIndent(deleteId);
-      toast.success('Indent deleted successfully');
+      show('success', 'Indent deleted successfully');
       setDeleteId(null);
-      onRefresh();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to delete indent');
+      show('error', error.response?.data?.message || 'Failed to delete indent');
     }
   };
 
@@ -319,15 +319,15 @@ export const IndentList: React.FC<IndentListProps> = ({
             </div>
           )}
           <ConfirmDialog
-            isOpen={!!deleteId}
-            onClose={() => setDeleteId(null)}
+            open={!!deleteId}
+            onCancel={() => setDeleteId(null)}
             onConfirm={handleDelete}
             title="Delete Indent"
             message="Deleted items cannot be recovered and this is not be stored in my appliucation also."
-            confirmText="Delete"
-            cancelText="Cancel"
-            isDangerous
-            isLoading={isDeleting}
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+            tone="danger"
+            loading={isDeleting}
           />
         </>
       ) : (

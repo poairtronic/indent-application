@@ -3479,7 +3479,7 @@ export class BusinessTransactionService {
     });
 
     if (!indent) {
-      throw new NotFoundException(INDENT_MESSAGES.NOT_FOUND);
+      throw new NotFoundException('Indent not found.');
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -3517,10 +3517,11 @@ export class BusinessTransactionService {
       });
 
       // 4. Timeline Event
-      await tx.timelineEvent.create({
+      await tx.timeline.create({
         data: {
-          indentId: id,
-          action: 'DELETED',
+          module: 'Indent',
+          recordId: id,
+          title: 'Indent Deleted',
           description: 'Indent was deleted by Administrator',
           performedBy: performingUserId,
         },
