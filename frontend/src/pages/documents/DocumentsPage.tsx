@@ -145,7 +145,7 @@ export const DocumentsPage: React.FC = () => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.role?.roleName === 'System Admin';
+  const isAdmin = user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' || user?.role?.roleName?.toUpperCase() === 'ADMIN' || user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
   const [deleteDoc, setDeleteDoc] = useState<{ id: string; indentId: string } | null>(null);
 
   const handleDeleteConfirm = async () => {

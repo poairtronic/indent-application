@@ -2823,7 +2823,7 @@ export class BusinessTransactionService {
     }
 
     const departmentCode = user.department.departmentCode;
-    const isAdmin = user.role?.roleName === 'System Admin';
+    const isAdmin = user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' || user?.role?.roleName?.toUpperCase() === 'ADMIN' || user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
 
     let storageFileName = attachment.fileName;
     try {

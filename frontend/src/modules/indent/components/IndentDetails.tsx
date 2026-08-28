@@ -56,7 +56,7 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const { show } = useToasts();
 
   const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.role?.roleName === 'System Admin';
+  const isAdmin = user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' || user?.role?.roleName?.toUpperCase() === 'ADMIN' || user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDelete = async () => {
