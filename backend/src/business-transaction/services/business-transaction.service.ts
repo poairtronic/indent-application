@@ -858,7 +858,6 @@ export class BusinessTransactionService {
             status: true,
             amount: true,
             actualAmount: true,
-            remarks: true,
             issuedQuantity: true,
           },
         },
