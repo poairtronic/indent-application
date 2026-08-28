@@ -38,7 +38,7 @@ export class CommunicationConfig {
     const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '';
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
     const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'adminairtronic@gmail.com';
-    const fromName = process.env.SMTP_FROM_NAME || process.env.EMAIL_FROM_NAME || 'MERC';
+    const fromName = 'MERC';
     const timeout = parseInt(process.env.SMTP_TIMEOUT || '30000', 10);
     const pool = process.env.SMTP_POOL !== 'false'; // Default to true to prevent SMTP login rate limits
     const maxConnections = parseInt(process.env.SMTP_MAX_CONNECTIONS || '5', 10);

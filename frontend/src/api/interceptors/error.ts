@@ -107,7 +107,16 @@ export function createErrorInterceptor(
       if (Array.isArray(finalMessage)) {
         finalMessage = finalMessage.join(', ');
       }
-      throw createApiError(status, finalMessage, data?.errors, originalRequest.url ?? undefined);
+
+      const apiError = createApiError(status, finalMessage, data?.errors, originalRequest.url ?? undefined);
+
+      // If it is a 401 error but we already retried (meaning the new token was still rejected),
+      // or we are missing refresh functions, we must log the user out to prevent them from being stuck.
+      if (status === 401 && onLogout) {
+        onLogout();
+      }
+
+      throw apiError;
     }
 
     // 4. Do not refresh for auth/login or auth/refresh endpoints

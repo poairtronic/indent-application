@@ -411,6 +411,22 @@ export class BusinessTransactionService {
             },
           },
         },
+        broughtMaterials: {
+          where: { isDeleted: false },
+          select: {
+            id: true,
+            indentId: true,
+            name: true,
+            quantity: true,
+            issuedQuantity: true,
+            status: true,
+            specification: true,
+            amount: true,
+            actualAmount: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         attachments: {
           where: { isDeleted: false },
           select: {
@@ -535,6 +551,7 @@ export class BusinessTransactionService {
       createdAt: indent.createdAt,
       updatedAt: indent.updatedAt,
       items: indent.indentItems,
+      broughtMaterials: indent.broughtMaterials,
       attachments: indent.attachments.map((att: any) => {
         try {
           const meta = JSON.parse(att.fileName);
@@ -619,6 +636,22 @@ export class BusinessTransactionService {
                 process: { select: { id: true, processName: true } },
               },
             },
+          },
+        },
+        broughtMaterials: {
+          where: { isDeleted: false },
+          select: {
+            id: true,
+            indentId: true,
+            name: true,
+            quantity: true,
+            issuedQuantity: true,
+            status: true,
+            specification: true,
+            amount: true,
+            actualAmount: true,
+            createdAt: true,
+            updatedAt: true,
           },
         },
         attachments: {
@@ -745,6 +778,7 @@ export class BusinessTransactionService {
       createdAt: indent.createdAt,
       updatedAt: indent.updatedAt,
       items: indent.indentItems,
+      broughtMaterials: indent.broughtMaterials,
       attachments: indent.attachments.map((att: any) => {
         try {
           const meta = JSON.parse(att.fileName);
@@ -814,6 +848,20 @@ export class BusinessTransactionService {
             material: { select: { materialName: true } },
           },
         },
+        broughtMaterials: {
+          where: { isDeleted: false },
+          select: {
+            id: true,
+            name: true,
+            specification: true,
+            quantity: true,
+            status: true,
+            amount: true,
+            actualAmount: true,
+            remarks: true,
+            issuedQuantity: true,
+          },
+        },
         costSheet: {
           select: {
             id: true,
@@ -850,6 +898,7 @@ export class BusinessTransactionService {
       createdAt: indent.createdAt,
       updatedAt: indent.updatedAt,
       items: indent.indentItems,
+      broughtMaterials: indent.broughtMaterials,
       attachments: [],
       costSheet: indent.costSheet,
       productionReceipt: null,
@@ -1190,8 +1239,8 @@ export class BusinessTransactionService {
                   name: bm.name,
                   quantity: roundTo4Decimals(bm.quantity),
                   specification: bm.specification || null,
-                  amount: bm.amount || null,
-                  actualAmount: bm.actualAmount || null,
+                  amount: bm.amount !== undefined && bm.amount !== null ? bm.amount : null,
+                  actualAmount: bm.actualAmount !== undefined && bm.actualAmount !== null ? bm.actualAmount : null,
                   createdBy: userId,
                 })),
               });
@@ -1600,68 +1649,95 @@ export class BusinessTransactionService {
   public async issueSingleMaterialItem(id: string, itemId: string, userId: string): Promise<any> {
     const txData = await this.getTransactionContext(id);
 
-    const item = txData.items.find((i: any) => i.id === itemId);
+    let isBroughtMaterial = false;
+    let item = txData.items?.find((i: any) => i.id === itemId);
+    
     if (!item) {
-      throw new NotFoundException(`Material item with ID '${itemId}' not found in indent '${id}'.`);
+      item = txData.broughtMaterials?.find((i: any) => i.id === itemId);
+      if (item) {
+        isBroughtMaterial = true;
+      } else {
+        throw new NotFoundException(`Material item with ID '${itemId}' not found in indent '${id}'.`);
+      }
     }
 
     if (item.status === 'ISSUED') {
       throw new BadRequestException(
-        `Material item '${item.material?.materialName || itemId}' has already been issued.`,
+        `Material item '${item.material?.materialName || item.name || itemId}' has already been issued.`,
       );
     }
 
     await this.prisma.$transaction(async (prisma) => {
-      const material = await prisma.material.findUnique({
-        where: { id: item.materialId },
-      });
+      let requiredQty = Number(item.quantity);
 
-      if (!material) {
-        throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
+      if (isBroughtMaterial) {
+        // No material stock to check/decrement for bought-out materials
+        await prisma.indentBroughtMaterial.update({
+          where: { id: itemId },
+          data: { 
+            status: 'ISSUED',
+            issuedQuantity: requiredQty,
+            updatedBy: userId 
+          },
+        });
+      } else {
+        const material = await prisma.material.findUnique({
+          where: { id: item.materialId },
+        });
+
+        if (!material) {
+          throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
+        }
+
+        const currentStock = Number(material.currentStock);
+
+        if (requiredQty <= 0) {
+          throw new BadRequestException(
+            `Invalid quantity for material '${material.materialName}'. Quantity must be greater than zero.`,
+          );
+        }
+
+        if (currentStock < requiredQty) {
+          throw new BadRequestException(
+            `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Required: ${requiredQty}`,
+          );
+        }
+
+        const updatedMaterial = await prisma.material.update({
+          where: { id: material.id },
+          data: {
+            currentStock: { decrement: requiredQty },
+            updatedBy: userId,
+          },
+        });
+
+        if (Number(updatedMaterial.currentStock) < 0) {
+          throw new BadRequestException(
+            `Stock cannot be negative for material '${material.materialName}'.`,
+          );
+        }
+
+        // Update item status to ISSUED
+        await prisma.indentItem.update({
+          where: { id: itemId },
+          data: { 
+            status: 'ISSUED',
+            issuedQuantity: requiredQty,
+            updatedBy: userId
+          },
+        });
       }
-
-      const currentStock = Number(material.currentStock);
-      const requiredQty = Number(item.quantity);
-
-      if (requiredQty <= 0) {
-        throw new BadRequestException(
-          `Invalid quantity for material '${material.materialName}'. Quantity must be greater than zero.`,
-        );
-      }
-
-      if (currentStock < requiredQty) {
-        throw new BadRequestException(
-          `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Required: ${requiredQty}`,
-        );
-      }
-
-      const updatedMaterial = await prisma.material.update({
-        where: { id: material.id },
-        data: {
-          currentStock: { decrement: item.quantity },
-          updatedBy: userId,
-        },
-      });
-
-      if (Number(updatedMaterial.currentStock) < 0) {
-        throw new BadRequestException(
-          `Stock cannot be negative for material '${material.materialName}'.`,
-        );
-      }
-
-      // Update item status to ISSUED
-      await prisma.indentItem.update({
-        where: { id: itemId },
-        data: { status: 'ISSUED' },
-      });
     });
 
     // Check completion status using lightweight COUNT queries instead of fetching all items
-    const unissuedCount = await this.prisma.indentItem.count({
+    const unissuedItemsCount = await this.prisma.indentItem.count({
+      where: { indentId: id, isDeleted: false, status: { not: 'ISSUED' } },
+    });
+    const unissuedBroughtCount = await this.prisma.indentBroughtMaterial.count({
       where: { indentId: id, isDeleted: false, status: { not: 'ISSUED' } },
     });
 
-    const allIssued = unissuedCount === 0;
+    const allIssued = (unissuedItemsCount + unissuedBroughtCount) === 0;
 
     if (allIssued) {
       // All items issued — inline the final transition (avoids redundant storesIssueMaterials delegation)

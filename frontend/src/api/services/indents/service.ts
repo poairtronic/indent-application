@@ -53,6 +53,8 @@ export interface IndentBroughtMaterialData {
   id: string;
   name: string;
   quantity: number;
+  issuedQuantity?: number;
+  status?: string;
   specification?: string | null;
   amount?: number | null;
   actualAmount?: number | null;

@@ -196,19 +196,6 @@ const indentSchema = z
         }),
       ),
     }),
-  })
-  .superRefine((data, ctx) => {
-    const totalProcesses = data.indent.items.reduce(
-      (sum, item) => sum + (item.processes?.length || 0),
-      0,
-    );
-    if (totalProcesses === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'At least one manufacturing process is required across all items.',
-        path: ['indent', 'items'],
-      });
-    }
   });
 
 type IndentFormData = z.infer<typeof indentSchema>;
@@ -914,6 +901,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const vendorsList = vendorsRes?.items ?? [];
 
   const watchedItems = useWatch({ control, name: 'indent.items' });
+  const watchedBroughtMaterials = useWatch({ control, name: 'broughtMaterials' });
   const watchedCostItems = useWatch({ control, name: 'costSheet.costItems' });
   const watchedDesignCost = useWatch({ control, name: 'costSheet.designCost' });
   const watchedOverheadCost = useWatch({ control, name: 'costSheet.overheadCost' });
@@ -967,6 +955,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const totalMaterialCost = (watchedCostItems || []).reduce(
     (sum, ci) => sum + (Number(ci?.predictedAmount) || 0),
     0,
+  ) + (watchedBroughtMaterials || []).reduce(
+    (sum, bm) => sum + (Number(bm?.amount) || 0),
+    0,
   );
   const totalProcessCost = (watchedItems || []).reduce(
     (sum, item) =>
@@ -980,7 +971,10 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     const qty = Number(item?.quantity) || 0;
     const actualAmt = actualRate * qty;
     return sum + (Number(actualAmt) || 0);
-  }, 0);
+  }, 0) + (watchedBroughtMaterials || []).reduce(
+    (sum, bm) => sum + (Number(bm?.actualAmount) || 0),
+    0,
+  );
 
   const actualTotalProcessCost = (watchedItems || []).reduce((sum, item) => {
     const procActual = (item?.processes || []).reduce(
@@ -1083,6 +1077,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
         departmentName: user?.department?.departmentName || 'Design',
         remarks: restIndent.remarks || '',
         items: formattedItems,
+        broughtMaterials: data.broughtMaterials,
       },
       costSheet: {
         predictedTotal: grandTotal,
@@ -1691,37 +1686,6 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         Prod. Vendor
                       </div>
                       <div className="md:col-span-6">
-                        <label
-                          htmlFor={`production-vendor-list-${index}`}
-                          className="block text-[10px] font-extrabold uppercase tracking-wider text-text-muted mb-1.5"
-                        >
-                          Vendor List
-                        </label>
-                        <select
-                          id={`production-vendor-list-${index}`}
-                          disabled={!isProductionMode}
-                          value={
-                            vendorsList.some((v) => v.vendorName === selectedProdVendorName)
-                              ? selectedProdVendorName
-                              : ''
-                          }
-                          onChange={(e) => {
-                            const vName = e.target.value;
-                            setValue(
-                              `indent.items.${index}.productionSource`,
-                              vName ? `Vendor: ${vName}` : 'Vendor',
-                            );
-                          }}
-                          className="w-full h-10 rounded-xl border border-border-default bg-surface-card px-3 text-sm text-text-primary mb-2"
-                        >
-                          <option value="">Choose a vendor from the list</option>
-                          {vendorsList.map((v) => (
-                            <option key={v.id} value={v.vendorName}>
-                              {v.vendorName}
-                              {v.vendorCode ? ` (${v.vendorCode})` : ''}
-                            </option>
-                          ))}
-                        </select>
                         <Input
                           label="Select Production Vendor"
                           placeholder="Type or select production vendor..."
@@ -1788,7 +1752,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
           <h3 className="text-sm font-bold text-text-primary">
             Brought Material (Bought Out Items)
           </h3>
-          {!isReadOnly && !isProductionMode && (
+          {!isReadOnly && !isProductionMode && !isAccountsMode && (
             <Button
               type="button"
               variant="outline"

@@ -597,6 +597,8 @@ model IndentBroughtMaterial {
   indentId      String   @db.Uuid
   name          String   @db.VarChar(150)
   quantity      Decimal  @db.Decimal(18, 4)
+  issuedQuantity Decimal @default(0) @db.Decimal(18, 4)
+  status        String?  @db.VarChar(50) // e.g., AVAILABLE, ISSUED
   specification String?  @db.Text
   amount        Decimal? @db.Decimal(18, 4)
   actualAmount  Decimal? @db.Decimal(18, 4)
