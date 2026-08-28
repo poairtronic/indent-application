@@ -6,6 +6,7 @@ import type {
   CostAnalytics,
   ProductAnalytics,
   VendorAnalytics,
+  IVendorProcessAllocation,
   KpiData,
 } from '../../types/analytics';
 
@@ -81,6 +82,12 @@ class AnalyticsService extends BaseService {
   }> {
     return this.getRaw('/analytics/dashboard-overview');
   }
+  async getVendorProcessAllocations(params?: any): Promise<IVendorProcessAllocation[]> {
+    const query = cleanQueryParams(params);
+    return this.getRaw<IVendorProcessAllocation[]>('/analytics/vendors/process-allocations', query);
+  }
 }
 
 export const analyticsService = new AnalyticsService();
+
+

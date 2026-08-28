@@ -10,7 +10,9 @@ export {
   useCostAnalytics,
   useProductAnalytics,
   useVendorAnalytics,
+  useVendorProcessAllocations,
   useKpis,
   useInsights,
   useDashboardOverview,
 } from '../../../api/services/analytics/hooks';
+

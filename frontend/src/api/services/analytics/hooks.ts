@@ -82,3 +82,12 @@ export function useDashboardOverview(enabled?: boolean) {
     enabled: enabled !== undefined ? enabled : true,
   });
 }
+
+export function useVendorProcessAllocations(params?: any, enabled?: boolean) {
+  return useQuery({
+    queryKey: ['analytics', 'vendors', 'process-allocations', params],
+    queryFn: () => analyticsService.getVendorProcessAllocations(params),
+    staleTime: 60 * 1000,
+    enabled: enabled !== undefined ? enabled : true,
+  });
+}

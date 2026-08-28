@@ -194,3 +194,13 @@ export interface IInsightsSummary {
   summaryText: string;
   generatedAt: Date;
 }
+
+export interface IVendorProcessAllocation {
+  vendorName: string;
+  processName: string;
+  indentsCount: number;
+  totalPredictedCost: number;
+  totalActualCost: number;
+  variance: number;
+}
+

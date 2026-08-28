@@ -101,3 +101,13 @@ export interface KpiData {
   comparisonPeriod: string;
   status: 'normal' | 'warning' | 'critical';
 }
+
+export interface IVendorProcessAllocation {
+  vendorName: string;
+  processName: string;
+  indentsCount: number;
+  totalPredictedCost: number;
+  totalActualCost: number;
+  variance: number;
+}
+
