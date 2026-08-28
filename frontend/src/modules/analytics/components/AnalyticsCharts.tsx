@@ -33,9 +33,7 @@ const DEFAULT_CHART_COLORS = [
 export interface DonutChartProps {
   data: { label: string; value: number; color?: string }[];
   size?: number;
-  thickness?: number;
   formatValue?: (val: number) => string;
-  centerTitle?: string;
   layout?: 'horizontal' | 'vertical' | 'auto';
 }
 
@@ -43,9 +41,7 @@ export const DonutChart: React.FC<DonutChartProps> = React.memo(
   ({
     data,
     size = 160,
-    thickness = 20,
     formatValue,
-    centerTitle = 'Total Indents',
     layout = 'vertical',
   }) => {
     const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);

@@ -618,7 +618,7 @@ export const SummaryPage: React.FC = () => {
               Distribution of indents across all statuses in the system.
             </p>
             {chartData.length > 0 ? (
-              <DonutChart data={chartData} centerTitle="Total Indents" />
+              <DonutChart data={chartData} />
             ) : (
               <EmptyState title="No Data" description="No status records found." />
             )}

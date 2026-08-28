@@ -399,8 +399,6 @@ export const DashboardPage: React.FC = () => {
             <DonutChart
               data={indentStatusDonutData}
               size={160}
-              thickness={20}
-              centerTitle="Total Indents"
               layout="vertical"
             />
           </div>

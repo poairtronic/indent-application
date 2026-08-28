@@ -99,7 +99,7 @@ export const WorkflowPage: React.FC = () => {
               <p className="text-text-muted text-xs">Relative balance of active indents</p>
             </div>
             {donutData.length > 0 ? (
-              <DonutChart data={donutData} centerTitle="Active Indents" size={170} />
+              <DonutChart data={donutData} size={170} />
             ) : (
               <EmptyState title="No data" description="No active workflow indents recorded." />
             )}
