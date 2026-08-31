@@ -110,9 +110,10 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
     const config = CommunicationConfig.getSmtpConfig();
     const appConfig = CommunicationConfig.getAppMailConfig();
     const fromName = config.fromName || appConfig.appName || 'MERC';
-    const fromEmail = payload.meta?.from || config.from || 'adminairtronic@gmail.com';
+    const fromEmail = payload.meta?.from || config.from || 'posuppportairtronic@gmail.com';
     const senderAddress = fromName ? `${fromName} <${fromEmail}>` : fromEmail;
-    const replyTo = payload.replyTo || appConfig.replyTo || fromEmail || 'adminairtronic@gmail.com';
+    const replyTo =
+      payload.replyTo || appConfig.replyTo || fromEmail || 'posuppportairtronic@gmail.com';
 
     const mailOptions: nodemailer.SendMailOptions = {
       from: senderAddress,

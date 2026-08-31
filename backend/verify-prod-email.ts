@@ -18,10 +18,10 @@ async function bootstrap() {
   console.log("\n=== STEP 4: SEND ONE REAL TEST EMAIL ===");
   console.log("Queueing test email via CommunicationService...");
   const result = await commService.sendEmail({
-    to: 'adminairtronic@gmail.com',
+    to: 'posuppportairtronic@gmail.com',
     subject: 'MERC SMTP Production Verification',
     templateName: 'welcome',
-    templateContext: { name: 'Admin Verification User' }
+    templateContext: { name: 'PO Support Verification User' }
   });
   
   if (!result.success || !result.jobId) {

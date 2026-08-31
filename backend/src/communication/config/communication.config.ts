@@ -37,8 +37,8 @@ export class CommunicationConfig {
     const user = process.env.SMTP_USER || '';
     const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '';
     const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-    const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'adminairtronic@gmail.com';
-    const fromName = 'MERC';
+    const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'posuppportairtronic@gmail.com';
+    const fromName = 'PO Support';
     const timeout = parseInt(process.env.SMTP_TIMEOUT || '30000', 10);
     const pool = process.env.SMTP_POOL !== 'false'; // Default to true to prevent SMTP login rate limits
     const maxConnections = parseInt(process.env.SMTP_MAX_CONNECTIONS || '5', 10);
@@ -90,7 +90,7 @@ export class CommunicationConfig {
   }
 
   public static getAppMailConfig(): IAppMailConfig {
-    const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'adminairtronic@gmail.com';
+    const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || 'posuppportairtronic@gmail.com';
     return {
       appName: process.env.APP_NAME || 'MERC',
       appUrl: process.env.APP_URL || 'http://localhost:3000',
@@ -98,9 +98,9 @@ export class CommunicationConfig {
         process.env.EMAIL_REPLY_TO ||
         process.env.MAIL_REPLY_TO ||
         from ||
-        'adminairtronic@gmail.com',
+        'posuppportairtronic@gmail.com',
       supportEmail:
-        process.env.SUPPORT_EMAIL || process.env.MAIL_SUPPORT || 'adminairtronic@gmail.com',
+        process.env.SUPPORT_EMAIL || process.env.MAIL_SUPPORT || 'posuppportairtronic@gmail.com',
     };
   }
 
