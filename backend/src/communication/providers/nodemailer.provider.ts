@@ -154,6 +154,7 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
    * D4: SMTP health verification using transporter.verify().
    * Never sends an actual email. Returns connectivity status only.
    * Does NOT expose SMTP credentials.
+   * Includes a 3-second timeout to prevent API hangs.
    */
   public async verifySmtp(): Promise<'ok' | 'degraded' | 'unavailable'> {
     if (!this.transporter) {
@@ -163,7 +164,11 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
       return 'unavailable';
     }
     try {
-      await this.transporter.verify();
+      // Prevent verify() from hanging the entire health check API indefinitely
+      await Promise.race([
+        this.transporter.verify(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP verify timeout (3s)')), 3000))
+      ]);
       return 'ok';
     } catch (err) {
       this.logger.warn(`SMTP verification failed: ${(err as any)?.message || err}`);

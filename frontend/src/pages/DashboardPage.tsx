@@ -436,7 +436,9 @@ export const DashboardPage: React.FC = () => {
                   Average Cycle Time
                 </span>
                 <span className="text-xl font-black text-text-primary font-mono mt-1 block">
-                  {workflowData?.averageCycleDays?.toFixed(1) ?? 1.5} Days
+                  {workflowData?.averageCycleDays !== null && workflowData?.averageCycleDays !== undefined 
+                    ? `${workflowData.averageCycleDays.toFixed(1)} Days` 
+                    : '-'}
                 </span>
                 <span className="text-[11px] text-text-muted mt-0.5 block">
                   From submission to delivery
