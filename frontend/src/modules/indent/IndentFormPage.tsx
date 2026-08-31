@@ -38,7 +38,14 @@ export const IndentFormPage: React.FC = () => {
             navigate(`/indents/${id}`);
           },
           onError: (err: any) => {
-            const errMsg = err.errors ? err.errors.join('\n') : err.message;
+            let errMsg = 'An unknown error occurred';
+            if (err.errors && Array.isArray(err.errors)) {
+              errMsg = err.errors.join('\n');
+            } else if (Array.isArray(err.message)) {
+              errMsg = err.message.join('\n');
+            } else if (err.message) {
+              errMsg = err.message;
+            }
             show('error', `Update Failed: ${errMsg}`);
             console.error('Update failed:', err);
           },
@@ -63,7 +70,14 @@ export const IndentFormPage: React.FC = () => {
           navigate(`/indents/${targetId}`);
         },
         onError: (err: any) => {
-          const errMsg = err.errors ? err.errors.join('\n') : err.message;
+          let errMsg = 'An unknown error occurred';
+          if (err.errors && Array.isArray(err.errors)) {
+            errMsg = err.errors.join('\n');
+          } else if (Array.isArray(err.message)) {
+            errMsg = err.message.join('\n');
+          } else if (err.message) {
+            errMsg = err.message;
+          }
           show('error', `Validation Error: ${errMsg}`);
           console.error('Backend validation failed:', err);
         },
