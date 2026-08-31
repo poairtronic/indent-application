@@ -400,7 +400,9 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
       systemHealth: {
         app: 'UP',
         database: this.dbConnected ? 'UP' : 'DOWN',
-        redis: this.redisConnected ? 'UP' : 'DOWN',
+        // Redis is intentionally not part of this architecture (PostgreSQL-only).
+        // Queue health is tracked via the PostgreSQL email_jobs table.
+        queue: this.dbConnected ? 'UP' : 'DOWN',
       },
       apiMetrics: {
         totalRequests: this.totalApiRequests,

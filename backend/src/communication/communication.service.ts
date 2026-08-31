@@ -33,8 +33,9 @@ export class CommunicationService {
   ) {}
 
   /**
-   * Main entrypoint to dispatch emails asynchronously via the BullMQ/Redis pipeline.
-   * Resolves target addresses, logs transactions as QUEUED in DB, constructs job payload, and pushes to redis queue.
+   * Main entrypoint to dispatch emails asynchronously via the PostgreSQL queue pipeline.
+   * Resolves target addresses, logs transactions as QUEUED in DB, constructs job payload,
+   * and persists to the email_jobs table for async pickup by the PostgresMailWorker.
    */
   public async sendEmail(
     options: ISendEmailOptions,

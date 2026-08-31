@@ -246,10 +246,24 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`Job ${job.id} processed successfully in ${duration}ms`);
       observabilityEventBus.emit('notification.event', { action: 'delivered', success: true });
     } catch (error: any) {
-      try {
-        const attempts = (job.attempts || 0) + 1;
-        const errorMessage = error?.message || String(error);
+      const errorMessage = error?.message || String(error);
+      const attempts = (job.attempts || 0) + 1;
+      // ERR-L2-010: Rich structured error context for every worker failure.
+      // Includes all required diagnostic fields for actionable incident response.
+      const errorContext = {
+        jobId: job.id,
+        jobType: payload.template || 'unknown',
+        attempt: attempts,
+        maxAttempts: job.maxAttempts || 4,
+        failureReason: errorMessage,
+        timestamp: new Date().toISOString(),
+        correlationId: payload.correlationId || null,
+        relatedEntity: payload.payload?.indentId || payload.payload?.entityId || null,
+        recipients: payload.recipients?.length || 0,
+        isDead: attempts >= (job.maxAttempts || 4),
+      };
 
+      try {
         if (attempts >= (job.maxAttempts || 4)) {
           await this.prisma.emailJob.updateMany({
             where: { id: job.id },
@@ -267,7 +281,10 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
               data: { status: EmailState.DEAD_LETTER, errorMessage },
             });
           }
-          this.logger.warn(`Max retries reached. Job ${job.id} moved to DLQ.`);
+          // ERR-L2-010: Log DEAD_LETTER with full context including final reason
+          this.logger.error(
+            `[DEAD_LETTER] Job permanently failed after max retries. Context: ${JSON.stringify(errorContext)}`,
+          );
           observabilityEventBus.emit('notification.event', {
             action: 'failed',
             success: false,
@@ -297,7 +314,11 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
             });
           }
 
-          this.logger.log(`Job ${job.id} failed attempt ${attempts}. Scheduled for retry.`);
+          // ERR-L2-010: Log retry with full structured context
+          this.logger.warn(
+            `[RETRY] Job failed attempt ${attempts}/${errorContext.maxAttempts}. ` +
+              `Retry in ${Math.round(backoffDelay / 1000)}s. Context: ${JSON.stringify(errorContext)}`,
+          );
           observabilityEventBus.emit('notification.event', {
             action: 'retried',
             success: false,
@@ -305,8 +326,12 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
             error: errorMessage,
           });
         }
-      } catch (innerErr) {
-        this.logger.error(`Error updating email job ${job.id} retry status:`, innerErr);
+      } catch (innerErr: any) {
+        // ERR-L2-010: Inner error (DB update failure during error handling) also logged with context
+        this.logger.error(
+          `[WORKER_INNER_ERROR] Failed to update job status after error. ` +
+            `Job: ${job.id}, innerError: ${innerErr.message}, outerContext: ${JSON.stringify(errorContext)}`,
+        );
       }
       throw error;
     }

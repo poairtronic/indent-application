@@ -91,13 +91,14 @@ export const WORKFLOW_STAGE_DEFINITIONS: Record<WorkflowState, StageDefinition> 
     loop: WorkflowLoop.FINANCIAL_LOOP,
     owningDepartmentCode: 'ACCOUNTS',
     requiredPermissionCode: 'accounts.verify',
-    allowedNextStates: [
-      WorkflowState.ACTUAL_COST_UPDATED,
-      WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE,
-    ],
+    // BIZ-001: Financial closure MUST go through ACTUAL_COST_UPDATED first.
+    // Direct transition to ACCOUNTS_FINANCIAL_CLOSURE is intentionally blocked
+    // to enforce the two-step financial workflow: enter costs → finalize closure.
+    allowedNextStates: [WorkflowState.ACTUAL_COST_UPDATED],
     isLoopBoundary: false,
     isTerminalState: false,
-    description: 'Accounts collecting vendor bills, entering actual costs, and computing variance.',
+    description:
+      'Accounts collecting vendor bills, entering actual costs, and computing variance. Must enter actual costs before financial closure.',
   },
 
   [WorkflowState.ACTUAL_COST_UPDATED]: {

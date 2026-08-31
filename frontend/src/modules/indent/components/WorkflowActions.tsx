@@ -234,28 +234,12 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
         break;
 
       case 'ACCOUNTS_COST_VERIFICATION':
-        if (hasPermission(AppPermission.ACCOUNTS_CLOSE)) {
-          actions.push({
-            label: 'Finalize Financial Closure',
-            icon: <DollarSign size={16} />,
-            variant: 'primary',
-            permission: AppPermission.ACCOUNTS_CLOSE,
-            confirmTitle: `Financial Closure: ${indentNumber}`,
-            confirmMessage:
-              'Finalize the financial record and close the cost sheet. This will move the workflow to Financial Closure.',
-            requiresInput: true,
-            inputLabel: 'Closure Notes (optional)',
-            action: async (r) => {
-              await financialClose({
-                id: indentId,
-                data: { closureNotes: r || 'Financial closure approved', remarks: r },
-              });
-              onSuccess?.();
-            },
-            isPending: isClosing,
-          });
-        }
+        // BIZ-001: Financial closure is not allowed directly from cost verification.
+        // Accounts MUST submit actual costs first (→ ACTUAL_COST_UPDATED) before
+        // the 'Finalize Financial Closure' action becomes available.
+        // No workflow action button here — the Accounts cost entry form handles this state.
         break;
+
 
       case 'ACTUAL_COST_UPDATED':
         if (hasPermission(AppPermission.ACCOUNTS_CLOSE)) {

@@ -1166,7 +1166,11 @@ export class BusinessTransactionService {
         });
 
         const resolvedMaterialIds: string[] = [];
-        // 2. Resolve materials and recreate items if provided
+        // 2. PRF-DB-002: Differential update for indent items instead of delete+recreate.
+        // Strategy: compare existing DB items with incoming DTO items by index.
+        //   - Overlap: update in place (preserve UUID, no orphaned references)
+        //   - New items (DTO longer): createMany the extra
+        //   - Removed items (DB longer): deleteMany the excess
         if (dto.indent?.items) {
           if (existing.currentState === WorkflowState.PRODUCTION_PROCESSING) {
             // In PRODUCTION_PROCESSING, Production is only updating production source and process details on existing items
@@ -1184,28 +1188,23 @@ export class BusinessTransactionService {
               }
             }
           } else {
-            const itemIds = existing.items.map((item: any) => item.id);
+            const existingItems = existing.items as any[];
+            const newItems = dto.indent.items;
+            const overlapCount = Math.min(existingItems.length, newItems.length);
 
-            // Delete all old processes for the items of this indent
-            await tx.indentProcess.deleteMany({
-              where: { indentItemId: { in: itemIds } },
-            });
-
-            // Delete all old items of this indent
-            await tx.indentItem.deleteMany({
-              where: { indentId: id },
-            });
-
+            // Resolve materials for all new/updated items
             const resolvedMaterials = await Promise.all(
-              dto.indent.items.map((item, i) =>
+              newItems.map((item, i) =>
                 this.resolveMaterial(tx, item.materialName, item.unitId, userId, i),
               ),
             );
             resolvedMaterialIds.push(...resolvedMaterials.map((m) => m.id));
-            // Recreate items
-            const createdItems = [];
-            for (let i = 0; i < dto.indent.items.length; i++) {
-              const item = dto.indent.items[i];
+
+            // UPDATE overlapping items in parallel
+            const itemUpdatePromises: Promise<any>[] = [];
+            for (let i = 0; i < overlapCount; i++) {
+              const item = newItems[i];
+              const existingItem = existingItems[i];
               const material = resolvedMaterials[i];
               const unitWeightKg = calculateMaterialWeight({
                 shape: item.shape || '',
@@ -1217,70 +1216,161 @@ export class BusinessTransactionService {
               });
               const totalWeightKg = safeMultiply(unitWeightKg, item.quantity);
 
-              const createdItem = await tx.indentItem.create({
-                data: {
-                  indentId: id,
-                  materialId: material.id,
-                  quantity: item.quantity,
-                  unitId: item.unitId,
-                  shape: item.shape || null,
-                  diameterMm: item.diameterMm || null,
-                  lengthMm: item.lengthMm || null,
-                  widthMm: item.widthMm || null,
-                  heightMm: item.heightMm || null,
-                  unitWeightKg,
-                  totalWeightKg,
-                  remarks: item.remarks || null,
-                  status: 'DRAFT',
-                },
-              });
-              createdItems.push(createdItem);
+              itemUpdatePromises.push(
+                tx.indentItem.update({
+                  where: { id: existingItem.id },
+                  data: {
+                    materialId: material.id,
+                    quantity: item.quantity,
+                    unitId: item.unitId,
+                    shape: item.shape || null,
+                    diameterMm: item.diameterMm || null,
+                    lengthMm: item.lengthMm || null,
+                    widthMm: item.widthMm || null,
+                    heightMm: item.heightMm || null,
+                    unitWeightKg,
+                    totalWeightKg,
+                    remarks: item.remarks || null,
+                    updatedBy: userId,
+                  },
+                }),
+              );
+
+              // Differential update processes for this item:
+              // Delete old processes and recreate (processes don't have stable business keys)
+              itemUpdatePromises.push(
+                tx.indentProcess
+                  .deleteMany({ where: { indentItemId: existingItem.id } })
+                  .then(async () => {
+                    if (item.processes && item.processes.length > 0) {
+                      await tx.indentProcess.createMany({
+                        data: item.processes.map((proc, idx) => ({
+                          indentItemId: existingItem.id,
+                          processId: proc.processId,
+                          sequence: idx + 1,
+                          estimatedHours: proc.estimatedHours ?? 0,
+                        })),
+                      });
+                    }
+                  }),
+              );
+            }
+            await Promise.all(itemUpdatePromises);
+
+            // CREATE new items (DTO has more than existing)
+            if (newItems.length > existingItems.length) {
+              const createdItems: any[] = [];
+              for (let i = overlapCount; i < newItems.length; i++) {
+                const item = newItems[i];
+                const material = resolvedMaterials[i];
+                const unitWeightKg = calculateMaterialWeight({
+                  shape: item.shape || '',
+                  densityKgPerDm3: Number(material.densityKgPerDm3 || 0),
+                  diameterMm: item.diameterMm,
+                  lengthMm: item.lengthMm,
+                  widthMm: item.widthMm,
+                  heightMm: item.heightMm,
+                });
+                const totalWeightKg = safeMultiply(unitWeightKg, item.quantity);
+
+                const createdItem = await tx.indentItem.create({
+                  data: {
+                    indentId: id,
+                    materialId: material.id,
+                    quantity: item.quantity,
+                    unitId: item.unitId,
+                    shape: item.shape || null,
+                    diameterMm: item.diameterMm || null,
+                    lengthMm: item.lengthMm || null,
+                    widthMm: item.widthMm || null,
+                    heightMm: item.heightMm || null,
+                    unitWeightKg,
+                    totalWeightKg,
+                    remarks: item.remarks || null,
+                    status: 'DRAFT',
+                  },
+                });
+                createdItems.push({ item, createdItem });
+              }
+
+              // Create processes for new items in parallel
+              const processCreatePromises = createdItems
+                .filter(({ item }) => item.processes && item.processes.length > 0)
+                .map(({ item, createdItem }) =>
+                  tx.indentProcess.createMany({
+                    data: item.processes.map((proc: any, idx: number) => ({
+                      indentItemId: createdItem.id,
+                      processId: proc.processId,
+                      sequence: idx + 1,
+                      estimatedHours: proc.estimatedHours ?? 0,
+                    })),
+                  }),
+                );
+              if (processCreatePromises.length > 0) {
+                await Promise.all(processCreatePromises);
+              }
             }
 
-            // Recreate processes
-            for (let i = 0; i < dto.indent.items.length; i++) {
-              const itemDto = dto.indent.items[i];
-              const createdItem = createdItems[i];
-              if (itemDto.processes && itemDto.processes.length > 0 && createdItem) {
-                await tx.indentProcess.createMany({
-                  data: itemDto.processes.map((proc, idx) => ({
-                    indentItemId: createdItem.id,
-                    processId: proc.processId,
-                    sequence: idx + 1,
-                    estimatedHours: proc.estimatedHours ?? 0,
-                  })),
-                });
-              }
+            // DELETE removed items (existing has more than DTO)
+            if (existingItems.length > newItems.length) {
+              const excessItems = existingItems.slice(overlapCount);
+              const excessIds = excessItems.map((i: any) => i.id);
+              await tx.indentProcess.deleteMany({ where: { indentItemId: { in: excessIds } } });
+              await tx.indentItem.deleteMany({ where: { id: { in: excessIds } } });
             }
           }
         }
 
-        // 2b. Recreate brought materials if provided
+        // 2b. PRF-DB-002: Differential update for broughtMaterials
         if (dto.indent?.broughtMaterials !== undefined) {
           if (existing.currentState !== WorkflowState.PRODUCTION_PROCESSING) {
-            await tx.indentBroughtMaterial.deleteMany({
-              where: { indentId: id },
-            });
+            const existingBMs = (existing as any).broughtMaterials || [];
+            const newBMs = dto.indent.broughtMaterials;
+            const overlapBM = Math.min(existingBMs.length, newBMs.length);
 
-            if (dto.indent.broughtMaterials.length > 0) {
+            // UPDATE overlapping brought materials in parallel
+            const bmUpdatePromises: Promise<any>[] = [];
+            for (let i = 0; i < overlapBM; i++) {
+              const bm = newBMs[i];
+              const existingBM = existingBMs[i];
+              bmUpdatePromises.push(
+                tx.indentBroughtMaterial.update({
+                  where: { id: existingBM.id },
+                  data: {
+                    name: bm.name,
+                    quantity: roundTo4Decimals(bm.quantity),
+                    specification: bm.specification || null,
+                    amount: bm.amount !== undefined && bm.amount !== null ? bm.amount : null,
+                    // BIZ-003: actualAmount NOT updated here — financial data protected.
+                  },
+                }),
+              );
+            }
+            if (bmUpdatePromises.length > 0) await Promise.all(bmUpdatePromises);
+
+            // CREATE new brought materials
+            if (newBMs.length > existingBMs.length) {
               await tx.indentBroughtMaterial.createMany({
-                data: dto.indent.broughtMaterials.map((bm) => ({
+                data: newBMs.slice(overlapBM).map((bm) => ({
                   indentId: id,
                   name: bm.name,
                   quantity: roundTo4Decimals(bm.quantity),
                   specification: bm.specification || null,
                   amount: bm.amount !== undefined && bm.amount !== null ? bm.amount : null,
-                  actualAmount:
-                    bm.actualAmount !== undefined && bm.actualAmount !== null
-                      ? bm.actualAmount
-                      : null,
+                  // BIZ-003: actualAmount NOT set here.
                 })),
               });
+            }
+
+            // DELETE removed brought materials
+            if (existingBMs.length > newBMs.length) {
+              const excessBMIds = existingBMs.slice(overlapBM).map((bm: any) => bm.id);
+              await tx.indentBroughtMaterial.deleteMany({ where: { id: { in: excessBMIds } } });
             }
           }
         }
 
-        // 3. Update CostSheet if provided
+        // 3. Update CostSheet if provided — PRF-DB-002 differential update
         if (dto.costSheet && existingCostSheet) {
           await tx.costSheet.update({
             where: { id: existingCostSheet.id },
@@ -1301,40 +1391,103 @@ export class BusinessTransactionService {
             },
           });
 
-          // Delete all old cost items and process costs
-          await tx.costItem.deleteMany({
-            where: { costSheetId: existingCostSheet.id },
-          });
-          await tx.processCost.deleteMany({
-            where: { costSheetId: existingCostSheet.id },
-          });
-
-          // Recreate cost items
+          // PRF-DB-002: Differential update for costItems
           if (dto.costSheet.costItems) {
-            await tx.costItem.createMany({
-              data: dto.costSheet.costItems.map((ci, index) => ({
-                costSheetId: existingCostSheet.id,
-                materialId: resolvedMaterialIds[index] || (ci as any).materialId,
-                vendorId: ci.vendorId || null,
-                predictedRate: roundTo4Decimals(ci.predictedRate),
-                predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
-                // User requirement: Design team enters total directly, so use DTO predictedAmount
-                predictedAmount: roundTo4Decimals(ci.predictedAmount ?? ci.predictedRate),
-                remarks: ci.remarks || null,
-              })),
+            const existingCostItems = await tx.costItem.findMany({
+              where: { costSheetId: existingCostSheet.id },
+              orderBy: { createdAt: 'asc' },
             });
+            const newCostItems = dto.costSheet.costItems;
+            const overlapCI = Math.min(existingCostItems.length, newCostItems.length);
+
+            // UPDATE overlapping cost items in parallel
+            const ciUpdatePromises: Promise<any>[] = [];
+            for (let i = 0; i < overlapCI; i++) {
+              const ci = newCostItems[i];
+              const existingCI = existingCostItems[i];
+              ciUpdatePromises.push(
+                tx.costItem.update({
+                  where: { id: existingCI.id },
+                  data: {
+                    materialId: resolvedMaterialIds[i] || (ci as any).materialId || existingCI.materialId,
+                    vendorId: ci.vendorId || null,
+                    predictedRate: roundTo4Decimals(ci.predictedRate),
+                    predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
+                    predictedAmount: roundTo4Decimals(ci.predictedAmount ?? ci.predictedRate),
+                    remarks: ci.remarks || null,
+                  },
+                }),
+              );
+            }
+            if (ciUpdatePromises.length > 0) await Promise.all(ciUpdatePromises);
+
+            // CREATE new cost items
+            if (newCostItems.length > existingCostItems.length) {
+              await tx.costItem.createMany({
+                data: newCostItems.slice(overlapCI).map((ci, idx) => ({
+                  costSheetId: existingCostSheet.id,
+                  materialId:
+                    resolvedMaterialIds[overlapCI + idx] || (ci as any).materialId,
+                  vendorId: ci.vendorId || null,
+                  predictedRate: roundTo4Decimals(ci.predictedRate),
+                  predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
+                  predictedAmount: roundTo4Decimals(ci.predictedAmount ?? ci.predictedRate),
+                  remarks: ci.remarks || null,
+                })),
+              });
+            }
+
+            // DELETE removed cost items
+            if (existingCostItems.length > newCostItems.length) {
+              const excessCIIds = existingCostItems.slice(overlapCI).map((ci) => ci.id);
+              await tx.costItem.deleteMany({ where: { id: { in: excessCIIds } } });
+            }
           }
 
-          // Recreate process costs
+          // PRF-DB-002: Differential update for processCosts
           if (dto.costSheet.processCosts) {
-            await tx.processCost.createMany({
-              data: dto.costSheet.processCosts.map((pc) => ({
-                costSheetId: existingCostSheet.id,
-                processId: pc.processId,
-                predictedCost: roundTo4Decimals(pc.predictedCost),
-                estimatedHours: pc.estimatedHours ?? 0,
-              })),
+            const existingPCs = await tx.processCost.findMany({
+              where: { costSheetId: existingCostSheet.id },
+              orderBy: { createdAt: 'asc' },
             });
+            const newPCs = dto.costSheet.processCosts;
+            const overlapPC = Math.min(existingPCs.length, newPCs.length);
+
+            // UPDATE overlapping process costs in parallel
+            const pcUpdatePromises: Promise<any>[] = [];
+            for (let i = 0; i < overlapPC; i++) {
+              const pc = newPCs[i];
+              const existingPC = existingPCs[i];
+              pcUpdatePromises.push(
+                tx.processCost.update({
+                  where: { id: existingPC.id },
+                  data: {
+                    processId: pc.processId,
+                    predictedCost: roundTo4Decimals(pc.predictedCost),
+                    estimatedHours: pc.estimatedHours ?? 0,
+                  },
+                }),
+              );
+            }
+            if (pcUpdatePromises.length > 0) await Promise.all(pcUpdatePromises);
+
+            // CREATE new process costs
+            if (newPCs.length > existingPCs.length) {
+              await tx.processCost.createMany({
+                data: newPCs.slice(overlapPC).map((pc) => ({
+                  costSheetId: existingCostSheet.id,
+                  processId: pc.processId,
+                  predictedCost: roundTo4Decimals(pc.predictedCost),
+                  estimatedHours: pc.estimatedHours ?? 0,
+                })),
+              });
+            }
+
+            // DELETE removed process costs
+            if (existingPCs.length > newPCs.length) {
+              const excessPCIds = existingPCs.slice(overlapPC).map((pc) => pc.id);
+              await tx.processCost.deleteMany({ where: { id: { in: excessPCIds } } });
+            }
           }
         }
       },
@@ -2181,7 +2334,16 @@ export class BusinessTransactionService {
     });
 
     await this.prisma.$transaction(async (tx) => {
-      // 1. Update CostItems in DB and memory
+      // PRF-DB-001: Collect all update promises and execute concurrently.
+      // Previously these were sequential await loops — N+1 DB roundtrips.
+      // Now all updates for costItems, processCosts, and broughtMaterials run
+      // in parallel within the transaction, reducing roundtrips to 1 batch.
+
+      const costItemUpdates: Promise<any>[] = [];
+      const processCostUpdates: Promise<any>[] = [];
+      const broughtMaterialUpdates: Promise<any>[] = [];
+
+      // 1. Prepare CostItem updates
       if (dto.costItems && Array.isArray(dto.costItems)) {
         for (const cDto of dto.costItems) {
           const actualRate = roundTo4Decimals(cDto.actualRate ?? 0);
@@ -2190,25 +2352,25 @@ export class BusinessTransactionService {
 
           const cItem = currentCostItems.find((i) => i.id === cDto.costItemId);
           if (cItem) {
-            // Update in DB
-            await tx.costItem.update({
-              where: { id: cDto.costItemId },
-              data: {
-                actualRate,
-                actualQuantity,
-                actualAmount,
-
-                remarks: cDto.remarks,
-                updatedBy: userId,
-              },
-            });
-            // Update in memory for total calculation
+            // Update in memory for total calculation (synchronous, before promise fires)
             cItem.actualAmount = actualAmount as any;
+            costItemUpdates.push(
+              tx.costItem.update({
+                where: { id: cDto.costItemId },
+                data: {
+                  actualRate,
+                  actualQuantity,
+                  actualAmount,
+                  remarks: cDto.remarks,
+                  updatedBy: userId,
+                },
+              }),
+            );
           }
         }
       }
 
-      // 2. Update ProcessCosts in DB and memory
+      // 2. Prepare ProcessCost updates
       if (dto.processCosts && Array.isArray(dto.processCosts)) {
         for (const pDto of dto.processCosts) {
           const actualCost = roundTo4Decimals(pDto.actualCost ?? 0);
@@ -2219,41 +2381,43 @@ export class BusinessTransactionService {
           if (pItem) {
             const predictedAmount = roundTo4Decimals(Number(pItem.predictedCost));
             const varianceAmount = safeSubtract(actualAmount, predictedAmount);
-
-            // Update in DB
-            await tx.processCost.update({
-              where: { id: pDto.processCostId },
-              data: {
-                actualHours,
-                actualCost: actualAmount,
-                variance: varianceAmount,
-
-                updatedBy: userId,
-              },
-            });
             // Update in memory for total calculation
             pItem.actualCost = actualAmount as any;
+            processCostUpdates.push(
+              tx.processCost.update({
+                where: { id: pDto.processCostId },
+                data: {
+                  actualHours,
+                  actualCost: actualAmount,
+                  variance: varianceAmount,
+                  updatedBy: userId,
+                },
+              }),
+            );
           }
         }
       }
 
-      // 2b. Update BroughtMaterials in DB and memory
+      // 2b. Prepare BroughtMaterial updates
       if (dto.broughtMaterials && Array.isArray(dto.broughtMaterials)) {
         for (const bmDto of dto.broughtMaterials) {
           const actualAmount = roundTo4Decimals(bmDto.actualAmount ?? 0);
 
           const bmItem = currentBroughtMaterials.find((i) => i.id === bmDto.broughtMaterialId);
           if (bmItem) {
-            await tx.indentBroughtMaterial.update({
-              where: { id: bmDto.broughtMaterialId },
-              data: {
-                actualAmount,
-              },
-            });
             bmItem.actualAmount = actualAmount as any;
+            broughtMaterialUpdates.push(
+              tx.indentBroughtMaterial.update({
+                where: { id: bmDto.broughtMaterialId },
+                data: { actualAmount },
+              }),
+            );
           }
         }
       }
+
+      // Execute all updates concurrently within the transaction
+      await Promise.all([...costItemUpdates, ...processCostUpdates, ...broughtMaterialUpdates]);
 
       // Compute totals from memory (including items not updated in this request)
       const totalMaterialActual = safeAdd([
@@ -2786,11 +2950,23 @@ export class BusinessTransactionService {
           createdBy: userId,
         },
       });
-    } catch (error) {
-      // Do not leave an orphaned Supabase object when the Neon metadata write
-      // fails (for example, because of a schema mismatch or transient DB error).
-      await this.attachmentStorage.deleteFile(saved.fileName);
-      throw error;
+    } catch (dbError: any) {
+      // ERR-L2-002: DB creation failed after successful storage upload.
+      // Attempt to clean up the orphaned storage object. If the cleanup itself
+      // fails (e.g., storage is flapping), log the orphaned key explicitly so
+      // it can be reconciled manually. Never silently lose this information.
+      this.logger.error(
+        `DB record creation failed for attachment upload (indent: ${id}). ` +
+          `Attempting cleanup of orphaned storage file: '${saved.fileName}'.`,
+      );
+      const cleaned = await this.attachmentStorage.deleteFile(saved.fileName);
+      if (!cleaned) {
+        this.logger.error(
+          `[ORPHAN] Storage file '${saved.fileName}' could not be deleted after DB failure. ` +
+            `Manual reconciliation required. Indent: ${id}, User: ${userId}`,
+        );
+      }
+      throw dbError;
     }
 
     await this.eventService.logAudit(AuditEventType.PRODUCTION_UPDATE, id, userId, null, {
@@ -2939,8 +3115,13 @@ export class BusinessTransactionService {
       }
     }
 
-    await this.attachmentStorage.deleteFile(storageFileName);
-
+    // ERR-L2-003: DB soft-delete FIRST, physical storage deletion second.
+    // Ordering rationale:
+    //   1. If DB succeeds but storage delete fails → record is marked deleted (good),
+    //      orphaned storage file is logged for manual cleanup.
+    //   2. If DB fails → nothing is deleted (consistent, caller retries safely).
+    //   Old ordering (storage first, DB second) caused: storage deleted, DB fails →
+    //   file permanently gone but DB showed it as still active.
     await this.prisma.indentAttachment.update({
       where: { id: attachmentId },
       data: {
@@ -2949,6 +3130,17 @@ export class BusinessTransactionService {
         deletedBy: userId,
       },
     });
+
+    // Attempt physical storage deletion after DB is consistent
+    const physicallyDeleted = await this.attachmentStorage.deleteFile(storageFileName);
+    if (!physicallyDeleted) {
+      this.logger.warn(
+        `[ORPHAN] Physical storage file '${storageFileName}' could not be deleted ` +
+          `for attachment '${attachmentId}' (indent: ${id}). ` +
+          `DB record is already soft-deleted — manual storage cleanup required.`,
+      );
+    }
+
 
     await this.eventService.logAudit(
       AuditEventType.PRODUCTION_UPDATE,
@@ -3440,8 +3632,14 @@ export class BusinessTransactionService {
       throw new BadRequestException(`Extension '${ext}' not supported for Accounts replace.`);
     }
 
-    await this.attachmentStorage.deleteFile(oldMeta.storageFileName || attachment.fileName);
+    // ERR-L2-002 / ERR-L2-003: Safe replace ordering:
+    //   Step 1: Upload new file to storage (if this fails, old file is still intact, no data loss)
+    //   Step 2: Update DB record to reference new file (if this fails, delete new upload and abort)
+    //   Step 3: Delete old file from storage (deferred — if this fails, old file is orphaned
+    //           but the DB is consistent; log for reconciliation)
+    const oldStorageFileName = oldMeta.storageFileName || attachment.fileName;
 
+    // Step 1: Upload new file
     const saved = await this.attachmentStorage.saveFile(file);
 
     const newMeta = {
@@ -3454,14 +3652,41 @@ export class BusinessTransactionService {
       storageFileName: saved.fileName,
     };
 
-    await this.prisma.indentAttachment.update({
-      where: { id: attachmentId },
-      data: {
-        fileName: JSON.stringify(newMeta),
-        fileUrl: saved.fileUrl,
-        uploadedBy: userId,
-      },
-    });
+    // Step 2: Update DB record
+    try {
+      await this.prisma.indentAttachment.update({
+        where: { id: attachmentId },
+        data: {
+          fileName: JSON.stringify(newMeta),
+          fileUrl: saved.fileUrl,
+          uploadedBy: userId,
+        },
+      });
+    } catch (dbError: any) {
+      // DB failed: roll back by deleting the newly uploaded file
+      this.logger.error(
+        `DB update failed during attachment replace (indent: ${id}, attachment: ${attachmentId}). ` +
+          `Rolling back: attempting to delete newly uploaded file '${saved.fileName}'.`,
+      );
+      const rolledBack = await this.attachmentStorage.deleteFile(saved.fileName);
+      if (!rolledBack) {
+        this.logger.error(
+          `[ORPHAN] Rollback failed: new storage file '${saved.fileName}' could not be deleted. ` +
+            `Manual reconciliation required. Indent: ${id}`,
+        );
+      }
+      throw dbError;
+    }
+
+    // Step 3: Delete old file (deferred — DB is already consistent)
+    const oldDeleted = await this.attachmentStorage.deleteFile(oldStorageFileName);
+    if (!oldDeleted) {
+      this.logger.warn(
+        `[ORPHAN] Old storage file '${oldStorageFileName}' could not be deleted after successful replace. ` +
+          `DB record now points to '${saved.fileName}'. Manual cleanup of old file required.`,
+      );
+    }
+
 
     await this.eventService.logAudit(
       AuditEventType.PRODUCTION_UPDATE,
@@ -3578,7 +3803,53 @@ export class BusinessTransactionService {
             deletedBy: performingUserId,
           },
         });
+
+        await tx.costItem.updateMany({
+          where: { costSheetId: indent.costSheet.id },
+          data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedBy: performingUserId,
+          },
+        });
+
+        await tx.processCost.updateMany({
+          where: { costSheetId: indent.costSheet.id },
+          data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedBy: performingUserId,
+          },
+        });
       }
+
+      // 2.5 Soft delete Indent children
+      await tx.indentItem.updateMany({
+        where: { indentId: id },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: performingUserId,
+        },
+      });
+
+      await tx.indentBroughtMaterial.updateMany({
+        where: { indentId: id },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: performingUserId,
+        },
+      });
+
+      await tx.indentAttachment.updateMany({
+        where: { indentId: id },
+        data: {
+          isDeleted: true,
+          deletedAt: new Date(),
+          deletedBy: performingUserId,
+        },
+      });
 
       // 3. Audit Log
       await tx.auditLog.create({

@@ -8,7 +8,6 @@ import {
   RefreshCw,
   AlertOctagon,
   Clock,
-  Zap,
   Mail,
   Shield,
   History,
@@ -18,7 +17,7 @@ interface MetricData {
   systemHealth: {
     app: string;
     database: string;
-    redis: string;
+    queue: string; // PostgreSQL-backed queue (replaces Redis)
   };
   apiMetrics: {
     totalRequests: number;
@@ -212,10 +211,8 @@ export const MonitoringDashboardPage: React.FC = () => {
               <div className="space-y-2">
                 {renderHealthIndicator('Core Node', metrics.systemHealth.app)}
                 {renderHealthIndicator('Database Engine', metrics.systemHealth.database)}
-                {renderHealthIndicator(
-                  'Cache Cluster',
-                  metrics.redisMetrics.connected ? 'UP' : 'DOWN',
-                )}
+                {/* Queue is PostgreSQL-backed; no Redis in this architecture */}
+                {renderHealthIndicator('Email Queue (PG)', metrics.systemHealth.queue)}
               </div>
             </div>
 
@@ -266,41 +263,57 @@ export const MonitoringDashboardPage: React.FC = () => {
             </div>
 
             {/* Cache cluster metrics */}
+            {/* Email Queue (PostgreSQL-backed — Redis removed) */}
             <div className="bg-surface-card border border-border-default rounded-xl p-5 shadow-sm space-y-4">
               <div className="flex items-center gap-2 text-teal-500">
-                <Zap size={20} />
+                <Mail size={20} />
                 <h3 className="font-bold text-text-primary text-sm uppercase tracking-wider">
-                  Cache Cluster
+                  Email Queue (PG)
                 </h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-background-primary/45 p-3 border border-border-default/50 rounded-xl col-span-2 flex justify-between items-center">
                   <div>
                     <span className="text-[10px] text-text-muted uppercase font-bold">
-                      Cache Hit Rate
+                      Delivery Rate
                     </span>
                     <span className="block text-2xl font-mono font-bold text-teal-400 mt-1">
-                      {metrics.redisMetrics.hitRatePercentage}%
+                      {metrics.notificationMetrics.created > 0
+                        ? Math.round(
+                            (metrics.notificationMetrics.delivered /
+                              metrics.notificationMetrics.created) *
+                              100,
+                          )
+                        : 100}
+                      %
                     </span>
                   </div>
-                  <Badge tone={metrics.redisMetrics.hitRatePercentage > 50 ? 'green' : 'gray'}>
-                    {metrics.redisMetrics.hitRatePercentage > 50 ? 'Optimal' : 'Low Hit'}
+                  <Badge
+                    tone={
+                      metrics.notificationMetrics.failed > 0
+                        ? 'yellow'
+                        : 'green'
+                    }
+                  >
+                    {metrics.notificationMetrics.failed > 0 ? 'Degraded' : 'Healthy'}
                   </Badge>
                 </div>
                 <div className="bg-background-primary/45 p-3 border border-border-default/50 rounded-xl">
                   <span className="text-[10px] text-text-muted uppercase font-bold">
-                    Cache Hits
+                    Delivered
                   </span>
-                  <span className="block text-lg font-mono font-bold text-text-primary mt-1">
-                    {metrics.redisMetrics.cacheHits}
+                  <span className="block text-lg font-mono font-bold text-status-success mt-1">
+                    {metrics.notificationMetrics.delivered}
                   </span>
                 </div>
                 <div className="bg-background-primary/45 p-3 border border-border-default/50 rounded-xl">
                   <span className="text-[10px] text-text-muted uppercase font-bold">
-                    Cache Misses
+                    Failed
                   </span>
-                  <span className="block text-lg font-mono font-bold text-text-primary mt-1">
-                    {metrics.redisMetrics.cacheMisses}
+                  <span
+                    className={`block text-lg font-mono font-bold mt-1 ${metrics.notificationMetrics.failed > 0 ? 'text-status-error' : 'text-text-primary'}`}
+                  >
+                    {metrics.notificationMetrics.failed}
                   </span>
                 </div>
               </div>
