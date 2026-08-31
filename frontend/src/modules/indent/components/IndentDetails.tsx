@@ -86,10 +86,11 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
 
   const isAccountsMode = React.useMemo(() => {
     return (
-      indent.currentState === 'ACCOUNTS_COST_VERIFICATION' &&
+      (indent.currentState === 'ACCOUNTS_COST_VERIFICATION' ||
+        indent.currentState === 'ACTUAL_COST_UPDATED') &&
       getWorkflowAccess(indent.currentState as any, user).canEdit
     );
-  }, [indent.currentState, user]);
+  }, [indent, user]);
 
   const isProductionMode = React.useMemo(() => {
     return (
