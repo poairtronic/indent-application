@@ -143,7 +143,8 @@ export const CostSheetDetailsPage: React.FC = () => {
   const [actuals, setActuals] = useState<{
     materials: Record<string, { actualRate: number; actualQuantity: number }>;
     processes: Record<string, { actualCost: number; actualHours: number }>;
-  }>({ materials: {}, processes: {} });
+    broughtMaterials: Record<string, { actualAmount: number }>;
+  }>({ materials: {}, processes: {}, broughtMaterials: {} });
 
   const isAccountsStage =
     indent?.currentState === 'ACCOUNTS_COST_VERIFICATION' ||
@@ -153,6 +154,7 @@ export const CostSheetDetailsPage: React.FC = () => {
     if (indent?.costSheet && isAccountsStage) {
       const matActuals: Record<string, { actualRate: number; actualQuantity: number }> = {};
       const procActuals: Record<string, { actualCost: number; actualHours: number }> = {};
+      const bmActuals: Record<string, { actualAmount: number }> = {};
       indent.costSheet.costItems?.forEach((item) => {
         matActuals[item.id] = {
           actualRate: item.actualRate || item.predictedRate || 0,
@@ -165,7 +167,12 @@ export const CostSheetDetailsPage: React.FC = () => {
           actualHours: pc.actualHours || pc.estimatedHours || 0,
         };
       });
-      setActuals({ materials: matActuals, processes: procActuals });
+      indent.broughtMaterials?.forEach((bm) => {
+        bmActuals[bm.id] = {
+          actualAmount: bm.actualAmount || bm.amount || 0,
+        };
+      });
+      setActuals({ materials: matActuals, processes: procActuals, broughtMaterials: bmActuals });
     }
   }, [indent, isAccountsStage]);
 
@@ -186,6 +193,11 @@ export const CostSheetDetailsPage: React.FC = () => {
         processCostId,
         actualCost: vals.actualCost,
         actualHours: vals.actualHours,
+      })),
+      broughtMaterials: Object.entries(actuals.broughtMaterials).map(([broughtMaterialId, vals]) => ({
+        broughtMaterialId,
+        actualAmount: vals.actualAmount,
+        remarks: 'Actual costs updated via cost sheet',
       })),
       remarks: 'Actual costs updated',
     };
@@ -232,9 +244,11 @@ export const CostSheetDetailsPage: React.FC = () => {
 
   const cs = indent.costSheet;
   const plannedMaterialCost =
-    cs.costItems?.reduce((a, c) => a + (Number(c.predictedAmount) || 0), 0) || 0;
+    (cs.costItems?.reduce((a, c) => a + (Number(c.predictedAmount) || 0), 0) || 0) +
+    (indent.broughtMaterials?.reduce((a, c) => a + (Number(c.amount) || 0), 0) || 0);
   const actualMaterialCost =
-    cs.costItems?.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) || 0;
+    (cs.costItems?.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) || 0) +
+    (indent.broughtMaterials?.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) || 0);
   const materialVariance = actualMaterialCost - plannedMaterialCost;
   const plannedProcessCost =
     cs.processCosts?.reduce((a, c) => a + (Number(c.predictedCost) || 0), 0) || 0;
@@ -561,6 +575,79 @@ export const CostSheetDetailsPage: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {indent.broughtMaterials && indent.broughtMaterials.length > 0 && (
+        <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText size={18} className="text-teal-500" />
+            <h3 className="text-lg font-bold text-text-primary">Brought Material Costs (Bought Out Items)</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
+                  <th className="py-3 px-4">Name</th>
+                  <th className="py-3 px-4">Specification</th>
+                  <th className="py-3 px-4">Quantity</th>
+                  <th className="py-3 px-4">Estimated Amount</th>
+                  <th className="py-3 px-4 bg-surface-elevated/50">Actual Amount</th>
+                  <th className="py-3 px-4 bg-surface-elevated/50 rounded-tr-md">Variance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {indent.broughtMaterials.map((item) => {
+                  const bmVariance = (Number(item.actualAmount) || 0) - (Number(item.amount) || 0);
+                  return (
+                    <tr
+                      key={item.id}
+                      className="border-b border-border-default/50 hover:bg-background-primary/50 text-sm"
+                    >
+                      <td className="py-3 px-4 font-medium text-text-primary">
+                        {item.name}
+                      </td>
+                      <td className="py-3 px-4">{item.specification || '—'}</td>
+                      <td className="py-3 px-4">{item.quantity}</td>
+                      <td className="py-3 px-4">Rs.{(Number(item.amount) || 0).toLocaleString()}</td>
+                      <td className="py-2 px-4 bg-surface-elevated/20">
+                        {isEditable ? (
+                          <Input
+                            type="number"
+                            className="w-32 text-sm h-8"
+                            value={actuals.broughtMaterials[item.id]?.actualAmount || ''}
+                            onChange={(e) =>
+                              setActuals((prev) => ({
+                                ...prev,
+                                broughtMaterials: {
+                                  ...prev.broughtMaterials,
+                                  [item.id]: {
+                                    ...prev.broughtMaterials[item.id],
+                                    actualAmount: parseFloat(e.target.value) || 0,
+                                  },
+                                },
+                              }))
+                            }
+                          />
+                        ) : (
+                          <span className="font-medium text-teal-500">
+                            {item.actualAmount ? `Rs.${Number(item.actualAmount).toLocaleString()}` : '--'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 bg-surface-elevated/20">
+                        {item.actualAmount !== undefined && item.actualAmount !== null ? (
+                          <VarianceIndicator value={bmVariance} />
+                        ) : (
+                          '--'
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {canViewWorkflow && indent.workflowHistory && indent.workflowHistory.length > 0 && (
         <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">

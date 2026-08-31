@@ -28,6 +28,20 @@ export class ActualCostItemDto {
   remarks?: string;
 }
 
+export class ActualBroughtMaterialDto {
+  @IsUUID()
+  @IsNotEmpty()
+  broughtMaterialId: string;
+
+  @IsNumber()
+  @Min(0)
+  actualAmount: number;
+
+  @IsString()
+  @IsOptional()
+  remarks?: string;
+}
+
 export class ActualProcessCostDto {
   @IsUUID()
   @IsNotEmpty()
@@ -54,6 +68,12 @@ export class ActualCostEntryDto {
   @ValidateNested({ each: true })
   @Type(() => ActualProcessCostDto)
   processCosts: ActualProcessCostDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ActualBroughtMaterialDto)
+  broughtMaterials?: ActualBroughtMaterialDto[];
 
   @IsNumber()
   @Min(0)

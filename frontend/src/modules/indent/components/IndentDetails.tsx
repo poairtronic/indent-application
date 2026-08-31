@@ -173,6 +173,14 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
         actualDesignCost: data.costSheet.actualDesignCost || 0,
         actualOverheadCost: data.costSheet.actualOverheadCost || 0,
         actualContingencyCost: data.costSheet.actualContingencyCost || 0,
+        broughtMaterials: (indent.broughtMaterials || []).map((bm: any, index: number) => {
+          const matched = data.broughtMaterials?.[index];
+          return {
+            broughtMaterialId: bm.id,
+            actualAmount: matched?.actualAmount ?? 0,
+            remarks: matched?.remarks ?? '',
+          };
+        }),
       };
 
       await enterActualCosts({ id: indent.id, data: payload });

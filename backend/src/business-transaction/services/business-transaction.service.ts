@@ -2176,6 +2176,9 @@ export class BusinessTransactionService {
     const currentProcessCosts = await this.prisma.processCost.findMany({
       where: { costSheetId },
     });
+    const currentBroughtMaterials = await this.prisma.indentBroughtMaterial.findMany({
+      where: { indentId: id },
+    });
 
     await this.prisma.$transaction(async (tx) => {
       // 1. Update CostItems in DB and memory
@@ -2234,8 +2237,29 @@ export class BusinessTransactionService {
         }
       }
 
+      // 2b. Update BroughtMaterials in DB and memory
+      if (dto.broughtMaterials && Array.isArray(dto.broughtMaterials)) {
+        for (const bmDto of dto.broughtMaterials) {
+          const actualAmount = roundTo4Decimals(bmDto.actualAmount ?? 0);
+
+          const bmItem = currentBroughtMaterials.find((i) => i.id === bmDto.broughtMaterialId);
+          if (bmItem) {
+            await tx.indentBroughtMaterial.update({
+              where: { id: bmDto.broughtMaterialId },
+              data: {
+                actualAmount,
+              },
+            });
+            bmItem.actualAmount = actualAmount as any;
+          }
+        }
+      }
+
       // Compute totals from memory (including items not updated in this request)
-      const totalMaterialActual = safeAdd(currentCostItems.map((i) => Number(i.actualAmount) || 0));
+      const totalMaterialActual = safeAdd([
+        ...currentCostItems.map((i) => Number(i.actualAmount) || 0),
+        ...currentBroughtMaterials.map((i) => Number(i.actualAmount) || 0),
+      ]);
       const totalProcessActual = safeAdd(currentProcessCosts.map((i) => Number(i.actualCost) || 0));
 
       // 3. Overall CostSheet updates
