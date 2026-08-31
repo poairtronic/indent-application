@@ -194,11 +194,13 @@ export const CostSheetDetailsPage: React.FC = () => {
         actualCost: vals.actualCost,
         actualHours: vals.actualHours,
       })),
-      broughtMaterials: Object.entries(actuals.broughtMaterials).map(([broughtMaterialId, vals]) => ({
-        broughtMaterialId,
-        actualAmount: vals.actualAmount,
-        remarks: 'Actual costs updated via cost sheet',
-      })),
+      broughtMaterials: Object.entries(actuals.broughtMaterials).map(
+        ([broughtMaterialId, vals]) => ({
+          broughtMaterialId,
+          actualAmount: vals.actualAmount,
+          remarks: 'Actual costs updated via cost sheet',
+        }),
+      ),
       remarks: 'Actual costs updated',
     };
     try {
@@ -580,7 +582,9 @@ export const CostSheetDetailsPage: React.FC = () => {
         <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
           <div className="flex items-center gap-2 mb-4">
             <FileText size={18} className="text-teal-500" />
-            <h3 className="text-lg font-bold text-text-primary">Brought Material Costs (Bought Out Items)</h3>
+            <h3 className="text-lg font-bold text-text-primary">
+              Brought Material Costs (Bought Out Items)
+            </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
@@ -602,12 +606,12 @@ export const CostSheetDetailsPage: React.FC = () => {
                       key={item.id}
                       className="border-b border-border-default/50 hover:bg-background-primary/50 text-sm"
                     >
-                      <td className="py-3 px-4 font-medium text-text-primary">
-                        {item.name}
-                      </td>
+                      <td className="py-3 px-4 font-medium text-text-primary">{item.name}</td>
                       <td className="py-3 px-4">{item.specification || '—'}</td>
                       <td className="py-3 px-4">{item.quantity}</td>
-                      <td className="py-3 px-4">Rs.{(Number(item.amount) || 0).toLocaleString()}</td>
+                      <td className="py-3 px-4">
+                        Rs.{(Number(item.amount) || 0).toLocaleString()}
+                      </td>
                       <td className="py-2 px-4 bg-surface-elevated/20">
                         {isEditable ? (
                           <Input
@@ -629,7 +633,9 @@ export const CostSheetDetailsPage: React.FC = () => {
                           />
                         ) : (
                           <span className="font-medium text-teal-500">
-                            {item.actualAmount ? `Rs.${Number(item.actualAmount).toLocaleString()}` : '--'}
+                            {item.actualAmount
+                              ? `Rs.${Number(item.actualAmount).toLocaleString()}`
+                              : '--'}
                           </span>
                         )}
                       </td>
