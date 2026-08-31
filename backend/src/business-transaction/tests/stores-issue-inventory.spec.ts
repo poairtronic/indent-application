@@ -51,7 +51,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         update: jest.fn(),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-      indentItem: {
+      indentBroughtMaterial: { count: jest.fn().mockResolvedValue(0) }, indentItem: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
         count: jest.fn(),
@@ -62,6 +62,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         findUnique: jest.fn(),
         findMany: jest.fn(),
         update: jest.fn().mockResolvedValue({ currentStock: 70 }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       workflowHistory: {
         create: jest.fn(),
@@ -129,16 +130,13 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           currentStock: 100,
         },
       ]);
-      mockPrisma.material.update.mockResolvedValue({
-        id: 'mat-1',
-        currentStock: 70,
-      });
+      mockPrisma.material.updateMany.mockResolvedValue({ count: 1 });
       mockPrisma.indent.updateMany.mockResolvedValue({ count: 1 });
 
       await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Issue 30kg' });
 
-      expect(mockPrisma.material.update).toHaveBeenCalledWith({
-        where: { id: 'mat-1' },
+      expect(mockPrisma.material.updateMany).toHaveBeenCalledWith({
+        where: { id: 'mat-1', currentStock: { gte: 30 } },
         data: {
           currentStock: { decrement: 30 },
           updatedBy: 'user-1',
@@ -164,16 +162,13 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           currentStock: 30,
         },
       ]);
-      mockPrisma.material.update.mockResolvedValue({
-        id: 'mat-1',
-        currentStock: 0,
-      });
+      mockPrisma.material.updateMany.mockResolvedValue({ count: 1 });
       mockPrisma.indent.updateMany.mockResolvedValue({ count: 1 });
 
       await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Issue exact stock' });
 
-      expect(mockPrisma.material.update).toHaveBeenCalledWith({
-        where: { id: 'mat-1' },
+      expect(mockPrisma.material.updateMany).toHaveBeenCalledWith({
+        where: { id: 'mat-1', currentStock: { gte: 30 } },
         data: {
           currentStock: { decrement: 30 },
           updatedBy: 'user-1',
@@ -203,7 +198,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Over issue' }),
       ).rejects.toThrow(BadRequestException);
 
-      expect(mockPrisma.material.update).not.toHaveBeenCalled();
+      expect(mockPrisma.material.updateMany).not.toHaveBeenCalled();
       expect(mockPrisma.indentItem.updateMany).not.toHaveBeenCalled();
     });
 
@@ -222,7 +217,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
       await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Repeat issue' });
 
       // No material stock decrement should happen for already issued items
-      expect(mockPrisma.material.update).not.toHaveBeenCalled();
+      expect(mockPrisma.material.updateMany).not.toHaveBeenCalled();
     });
 
     it('Test E: concurrent issue resulting in negative stock should fail safely', async () => {
@@ -243,10 +238,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         },
       ]);
       // Simultaneous update drove stock negative
-      mockPrisma.material.update.mockResolvedValue({
-        id: 'mat-1',
-        currentStock: -60,
-      });
+      mockPrisma.material.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
         service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Concurrent issue' }),
@@ -270,13 +262,10 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           currentStock: 10,
         },
       ]);
-      mockPrisma.material.update.mockResolvedValue({
-        id: 'mat-1',
-        currentStock: 10,
-      });
+      mockPrisma.material.updateMany.mockResolvedValue({ count: 1 });
 
       await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Zero qty' });
-      expect(mockPrisma.material.update).not.toHaveBeenCalled();
+      expect(mockPrisma.material.updateMany).not.toHaveBeenCalled();
     });
 
     it('Test G: should reject if material quantity is negative', async () => {
@@ -296,13 +285,10 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
           currentStock: 100,
         },
       ]);
-      mockPrisma.material.update.mockResolvedValue({
-        id: 'mat-1',
-        currentStock: 110,
-      });
+      mockPrisma.material.updateMany.mockResolvedValue({ count: 1 });
 
       await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Negative qty' });
-      expect(mockPrisma.material.update).not.toHaveBeenCalled();
+      expect(mockPrisma.material.updateMany).not.toHaveBeenCalled();
     });
 
     it('Test H: should process multiple material lines atomically', async () => {
@@ -317,12 +303,12 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         if (ids.includes('mat-2')) results.push({ id: 'mat-2', currentStock: 50 });
         return Promise.resolve(results);
       });
-      mockPrisma.material.update.mockResolvedValue({ id: 'mat-1', currentStock: 40 }); // Mock response not strictly checked
+      mockPrisma.material.updateMany.mockResolvedValue({ count: 1 }); // Mock response not strictly checked
       mockPrisma.indent.updateMany.mockResolvedValue({ count: 1 });
 
       await service.storesIssueMaterials('indent-123', 'user-1', { remarks: 'Multi line issue' });
 
-      expect(mockPrisma.material.update).toHaveBeenCalledTimes(2);
+      expect(mockPrisma.material.updateMany).toHaveBeenCalledTimes(2);
       expect(mockPrisma.indentItem.update).toHaveBeenCalledTimes(2);
     });
 
@@ -361,17 +347,14 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         materialName: 'Stainless Steel Rod',
         currentStock: 50,
       });
-      mockPrisma.material.update.mockResolvedValue({
-        id: 'mat-1',
-        currentStock: 20,
-      });
+      mockPrisma.material.updateMany.mockResolvedValue({ count: 1 });
       // COUNT query: 0 unissued items remaining (all issued)
       mockPrisma.indentItem.count.mockResolvedValue(0);
 
       await service.issueSingleMaterialItem('indent-123', 'item-1', 'user-1');
 
-      expect(mockPrisma.material.update).toHaveBeenCalledWith({
-        where: { id: 'mat-1' },
+      expect(mockPrisma.material.updateMany).toHaveBeenCalledWith({
+        where: { id: 'mat-1', currentStock: { gte: 30 } },
         data: {
           currentStock: { decrement: 30 },
           updatedBy: 'user-1',
@@ -379,7 +362,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
       });
       expect(mockPrisma.indentItem.update).toHaveBeenCalledWith({
         where: { id: 'item-1' },
-        data: { status: 'ISSUED' },
+        data: { status: 'ISSUED', issuedQuantity: 30, updatedBy: 'user-1' },
       });
     });
 
@@ -399,7 +382,7 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         service.issueSingleMaterialItem('indent-123', 'item-1', 'user-1'),
       ).rejects.toThrow(BadRequestException);
 
-      expect(mockPrisma.material.update).not.toHaveBeenCalled();
+      expect(mockPrisma.material.updateMany).not.toHaveBeenCalled();
     });
   });
 });

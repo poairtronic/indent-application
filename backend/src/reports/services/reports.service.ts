@@ -972,16 +972,16 @@ export class ReportsService {
       ];
     }
 
-    // 1. Get total count of matching vendors for pagination metadata
-    const total = await this.prisma.vendor.count({ where: vendorWhere });
-
-    // 2. Fetch only the paginated vendors
-    const vendors = await this.prisma.vendor.findMany({
-      where: vendorWhere,
-      orderBy: { vendorCode: 'asc' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    // 1 & 2. Get total count and fetch paginated vendors in parallel
+    const [total, vendors] = await Promise.all([
+      this.prisma.vendor.count({ where: vendorWhere }),
+      this.prisma.vendor.findMany({
+        where: vendorWhere,
+        orderBy: { vendorCode: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
 
     if (vendors.length === 0) {
       return {

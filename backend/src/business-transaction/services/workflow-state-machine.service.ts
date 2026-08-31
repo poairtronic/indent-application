@@ -42,12 +42,14 @@ export class WorkflowStateMachineService {
     currentState: WorkflowState,
     targetState: WorkflowState,
     userDepartmentCode: string,
+    userPermissions?: string[],
   ): IBusinessValidationResult {
     const startTime = Date.now();
     const result = this.transitionValidator.validateTransition(
       currentState,
       targetState,
       userDepartmentCode,
+      userPermissions,
     );
     const duration = Date.now() - startTime;
 

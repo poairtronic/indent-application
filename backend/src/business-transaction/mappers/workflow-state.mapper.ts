@@ -45,30 +45,9 @@ export class WorkflowStateMapper {
     if (indent?.currentState && Object.values(WorkflowState).includes(indent.currentState)) {
       return indent.currentState as WorkflowState;
     }
-    if (
-      status === IndentStatus.PENDING_STORES &&
-      indent &&
-      indent.remarks &&
-      indent.remarks.includes('[MATERIALS_ISSUED]')
-    ) {
-      return WorkflowState.MATERIALS_ISSUED;
-    }
-    if (
-      status === IndentStatus.IN_PRODUCTION &&
-      indent &&
-      indent.remarks &&
-      indent.remarks.includes('[PRODUCTION_COMPLETED]')
-    ) {
-      return WorkflowState.PRODUCTION_COMPLETED;
-    }
-    if (
-      status === IndentStatus.PENDING_ACCOUNTS &&
-      indent &&
-      indent.remarks &&
-      indent.remarks.includes('[ACTUAL_COST_UPDATED]')
-    ) {
-      return WorkflowState.ACTUAL_COST_UPDATED;
-    }
+
+    // For recovered REJECTED/CANCELLED states, rely on WorkflowHistory rather than
+    // falling back to DRAFT, but here we just map the PRISMA_TO_DOMAIN_MAP
     return this.PRISMA_TO_DOMAIN_MAP[status] || WorkflowState.DRAFT;
   }
 }

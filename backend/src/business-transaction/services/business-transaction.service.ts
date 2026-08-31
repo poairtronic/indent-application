@@ -366,7 +366,22 @@ export class BusinessTransactionService {
   public async findTransactionById(id: string): Promise<any> {
     const indent = await this.prisma.indent.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        indentNumber: true,
+        customerName: true,
+        layoutNumber: true,
+        productId: true,
+        departmentId: true,
+        priority: true,
+        status: true,
+        currentState: true,
+        requiredDate: true,
+        requiredDeliveryDate: true,
+        purpose: true,
+        remarks: true,
+        createdAt: true,
+        updatedAt: true,
         product: { select: { productName: true } },
         department: { select: { departmentName: true } },
         creator: {
@@ -593,7 +608,22 @@ export class BusinessTransactionService {
   public async findTransactionForResponse(id: string): Promise<any> {
     const indent = await this.prisma.indent.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        indentNumber: true,
+        customerName: true,
+        layoutNumber: true,
+        productId: true,
+        departmentId: true,
+        priority: true,
+        status: true,
+        currentState: true,
+        requiredDate: true,
+        requiredDeliveryDate: true,
+        purpose: true,
+        remarks: true,
+        createdAt: true,
+        updatedAt: true,
         product: { select: { productName: true } },
         department: { select: { departmentName: true } },
         creator: {
@@ -1239,7 +1269,10 @@ export class BusinessTransactionService {
                   quantity: roundTo4Decimals(bm.quantity),
                   specification: bm.specification || null,
                   amount: bm.amount !== undefined && bm.amount !== null ? bm.amount : null,
-                  actualAmount: bm.actualAmount !== undefined && bm.actualAmount !== null ? bm.actualAmount : null,
+                  actualAmount:
+                    bm.actualAmount !== undefined && bm.actualAmount !== null
+                      ? bm.actualAmount
+                      : null,
                   createdBy: userId,
                 })),
               });
@@ -1549,17 +1582,17 @@ export class BusinessTransactionService {
         // Queue material stock decrement
         materialUpdates.push(
           prisma.material
-            .update({
-              where: { id: material.id },
+            .updateMany({
+              where: { id: material.id, currentStock: { gte: issueQty } },
               data: { currentStock: { decrement: issueQty }, updatedBy: userId },
             })
-            .then((updated) => {
-              if (Number(updated.currentStock) < 0) {
+            .then((res) => {
+              if (res.count === 0) {
                 throw new BadRequestException(
-                  `Stock cannot be negative for material '${material.materialName}'.`,
+                  `Insufficient stock for material '${material.materialName}'. Concurrent update detected.`,
                 );
               }
-              return updated;
+              return res;
             }),
         );
 
@@ -1650,13 +1683,15 @@ export class BusinessTransactionService {
 
     let isBroughtMaterial = false;
     let item = txData.items?.find((i: any) => i.id === itemId);
-    
+
     if (!item) {
       item = txData.broughtMaterials?.find((i: any) => i.id === itemId);
       if (item) {
         isBroughtMaterial = true;
       } else {
-        throw new NotFoundException(`Material item with ID '${itemId}' not found in indent '${id}'.`);
+        throw new NotFoundException(
+          `Material item with ID '${itemId}' not found in indent '${id}'.`,
+        );
       }
     }
 
@@ -1667,16 +1702,16 @@ export class BusinessTransactionService {
     }
 
     await this.prisma.$transaction(async (prisma) => {
-      let requiredQty = Number(item.quantity);
+      const requiredQty = Number(item.quantity);
 
       if (isBroughtMaterial) {
         // No material stock to check/decrement for bought-out materials
         await prisma.indentBroughtMaterial.update({
           where: { id: itemId },
-          data: { 
+          data: {
             status: 'ISSUED',
             issuedQuantity: requiredQty,
-            updatedBy: userId 
+            updatedBy: userId,
           },
         });
       } else {
@@ -1702,27 +1737,30 @@ export class BusinessTransactionService {
           );
         }
 
-        const updatedMaterial = await prisma.material.update({
-          where: { id: material.id },
+        const updateResult = await prisma.material.updateMany({
+          where: {
+            id: material.id,
+            currentStock: { gte: requiredQty },
+          },
           data: {
             currentStock: { decrement: requiredQty },
             updatedBy: userId,
           },
         });
 
-        if (Number(updatedMaterial.currentStock) < 0) {
+        if (updateResult.count === 0) {
           throw new BadRequestException(
-            `Stock cannot be negative for material '${material.materialName}'.`,
+            `Insufficient stock for material '${material.materialName}'. Concurrent update detected or stock is too low.`,
           );
         }
 
         // Update item status to ISSUED
         await prisma.indentItem.update({
           where: { id: itemId },
-          data: { 
+          data: {
             status: 'ISSUED',
             issuedQuantity: requiredQty,
-            updatedBy: userId
+            updatedBy: userId,
           },
         });
       }
@@ -1736,7 +1774,7 @@ export class BusinessTransactionService {
       where: { indentId: id, isDeleted: false, status: { not: 'ISSUED' } },
     });
 
-    const allIssued = (unissuedItemsCount + unissuedBroughtCount) === 0;
+    const allIssued = unissuedItemsCount + unissuedBroughtCount === 0;
 
     if (allIssued) {
       // All items issued — inline the final transition (avoids redundant storesIssueMaterials delegation)
@@ -2315,6 +2353,13 @@ export class BusinessTransactionService {
       const actualRate = roundTo4Decimals(dto.actualRate);
       const actualQuantity = roundTo4Decimals(dto.actualQuantity);
       const actualAmount = safeMultiply(actualRate, actualQuantity);
+      const existingItem = await tx.costItem.findFirst({
+        where: { id: dto.costItemId, costSheetId },
+      });
+      if (!existingItem) {
+        throw new BadRequestException('Invalid Cost Item for Cost Sheet');
+      }
+
       await tx.costItem.update({
         where: { id: dto.costItemId },
         data: {
@@ -2823,7 +2868,10 @@ export class BusinessTransactionService {
     }
 
     const departmentCode = user.department.departmentCode;
-    const isAdmin = user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' || user?.role?.roleName?.toUpperCase() === 'ADMIN' || user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
+    const isAdmin =
+      user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' ||
+      user?.role?.roleName?.toUpperCase() === 'ADMIN' ||
+      user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
 
     let storageFileName = attachment.fileName;
     try {
@@ -3472,7 +3520,10 @@ export class BusinessTransactionService {
   /**
    * Soft deletes an Indent and its associated CostSheet.
    */
-  async deleteIndent(id: string, performingUserId: string): Promise<{ success: boolean; message: string }> {
+  async deleteIndent(
+    id: string,
+    performingUserId: string,
+  ): Promise<{ success: boolean; message: string }> {
     const indent = await this.prisma.indent.findFirst({
       where: { id, isDeleted: false },
       include: { costSheet: true },

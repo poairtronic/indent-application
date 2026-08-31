@@ -136,6 +136,4 @@ export class AnalyticsController {
   async getVendorProcessAllocations(@Query() query: VendorAnalyticsQueryDto) {
     return this.analyticsService.getVendorProcessAllocations(query.limit ?? 100);
   }
-
 }
-

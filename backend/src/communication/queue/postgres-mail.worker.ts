@@ -308,6 +308,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       } catch (innerErr) {
         this.logger.error(`Error updating email job ${job.id} retry status:`, innerErr);
       }
+      throw error;
     }
   }
 

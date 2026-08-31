@@ -9,6 +9,7 @@ export class WorkflowStateTransitionValidator {
     currentState: WorkflowState,
     targetState: WorkflowState,
     userDepartmentCode: string,
+    userPermissions?: string[],
   ): IBusinessValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -38,13 +39,14 @@ export class WorkflowStateTransitionValidator {
     }
 
     // Validate department ownership (except SYSTEM automated states)
-    if (
-      targetDef.owningDepartmentCode !== 'SYSTEM' &&
-      targetDef.owningDepartmentCode !== userDepartmentCode
-    ) {
-      errors.push(
-        `Department ${userDepartmentCode} is not authorized to trigger transition from ${currentState}. Required department: ${targetDef.owningDepartmentCode}.`,
-      );
+    if (targetDef.owningDepartmentCode !== 'SYSTEM') {
+      const hasPermission =
+        userPermissions && userPermissions.includes(targetDef.requiredPermissionCode);
+      if (!hasPermission && targetDef.owningDepartmentCode !== userDepartmentCode) {
+        errors.push(
+          `Department ${userDepartmentCode} is not authorized to trigger transition from ${currentState}. Required department: ${targetDef.owningDepartmentCode}. User also lacks permission '${targetDef.requiredPermissionCode}'.`,
+        );
+      }
     }
 
     return {

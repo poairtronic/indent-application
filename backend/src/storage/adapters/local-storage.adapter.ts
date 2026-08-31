@@ -20,7 +20,13 @@ export class LocalStorageAdapter implements IStorageAdapter {
   }
 
   async getDownloadStream(fileName: string): Promise<StorageStreamInfo> {
-    const filePath = path.join(this.uploadDir, fileName);
+    const filePath = path.normalize(path.join(this.uploadDir, fileName));
+    const normalizedUploadDir = path.normalize(this.uploadDir);
+
+    if (!filePath.startsWith(normalizedUploadDir)) {
+      throw new NotFoundException(`Invalid filename: '${fileName}'. Path traversal detected.`);
+    }
+
     if (!fs.existsSync(filePath)) {
       throw new NotFoundException(`File '${fileName}' not found in local storage.`);
     }
@@ -46,7 +52,10 @@ export class LocalStorageAdapter implements IStorageAdapter {
   }
 
   async delete(fileName: string): Promise<void> {
-    const filePath = path.join(this.uploadDir, fileName);
+    const filePath = path.normalize(path.join(this.uploadDir, fileName));
+    if (!filePath.startsWith(path.normalize(this.uploadDir))) {
+      return; // Do nothing if path traversal is attempted
+    }
     if (fs.existsSync(filePath)) {
       await fs.promises.unlink(filePath);
     }

@@ -11,7 +11,7 @@ async function bootstrap() {
     limit: '10',
     status: 'RAW_MATERIAL',
     sortBy: 'materialCode',
-    sortOrder: 'asc'
+    sortOrder: 'asc',
   };
   const dto = plainToInstance(ReportQueryDto, query);
   const errors = await validate(dto, { whitelist: true, forbidNonWhitelisted: true });

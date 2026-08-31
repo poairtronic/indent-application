@@ -70,9 +70,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message = 'An unexpected database error occurred. Please try again later.';
       errors = [];
     } else if (exception instanceof Error) {
-      message = exception.message || 'Internal server error';
-      errors = [];
       this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
+      message = 'Internal server error';
+      errors = [];
     } else {
       this.logger.error(`Unknown exception: ${JSON.stringify(exception)}`);
     }
