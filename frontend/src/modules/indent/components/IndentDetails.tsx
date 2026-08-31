@@ -56,7 +56,10 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const { show } = useToasts();
 
   const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' || user?.role?.roleName?.toUpperCase() === 'ADMIN' || user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
+  const isAdmin =
+    user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' ||
+    user?.role?.roleName?.toUpperCase() === 'ADMIN' ||
+    user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDelete = async () => {
@@ -321,7 +324,8 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
           {!isDesignTeam && (
             <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
               <h3 className="text-sm font-bold text-text-primary mb-4">Component Issue Status</h3>
-              {(indent.items && indent.items.length > 0) || (indent.broughtMaterials && indent.broughtMaterials.length > 0) ? (
+              {(indent.items && indent.items.length > 0) ||
+              (indent.broughtMaterials && indent.broughtMaterials.length > 0) ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
@@ -388,13 +392,11 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
                       {indent.broughtMaterials?.map((bm, index) => {
                         return (
                           <tr key={bm.id} className="hover:bg-background-primary/40 text-sm">
-                            <td className="py-3 px-4 text-text-muted font-mono">{(indent.items?.length || 0) + index + 1}</td>
-                            <td className="py-3 px-4 font-medium text-text-primary">
-                              {bm.name}
+                            <td className="py-3 px-4 text-text-muted font-mono">
+                              {(indent.items?.length || 0) + index + 1}
                             </td>
-                            <td className="py-3 px-4 text-text-tertiary">
-                              [Bought Out Item]
-                            </td>
+                            <td className="py-3 px-4 font-medium text-text-primary">{bm.name}</td>
+                            <td className="py-3 px-4 text-text-tertiary">[Bought Out Item]</td>
                             <td className="py-3 px-4 font-medium">{bm.quantity}</td>
                             <td className="py-3 px-4">
                               {bm.status && (
