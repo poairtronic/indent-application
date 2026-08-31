@@ -167,7 +167,9 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
       // Prevent verify() from hanging the entire health check API indefinitely
       await Promise.race([
         this.transporter.verify(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP verify timeout (3s)')), 3000))
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('SMTP verify timeout (3s)')), 3000),
+        ),
       ]);
       return 'ok';
     } catch (err) {

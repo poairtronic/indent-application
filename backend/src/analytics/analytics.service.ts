@@ -170,7 +170,10 @@ export class AnalyticsService {
       }),
       this.prisma.indent.count({ where: { isDeleted: false } }),
       this.prisma.$queryRaw<{ avgCycleDays: number | null }[]>`
-        SELECT AVG(EXTRACT(EPOCH FROM ("updatedAt" - "createdAt")) / 86400.0) as "avgCycleDays"
+        SELECT AVG(EXTRACT(EPOCH FROM ("updatedAt" - COALESCE(
+          (SELECT MIN("movedAt") FROM "workflow_history" WHERE "indentId" = "indents".id AND "isDeleted" = false),
+          "createdAt"
+        ))) / 86400.0) as "avgCycleDays"
         FROM "indents"
         WHERE "isDeleted" = false AND "status" = 'COMPLETED'
       `,
