@@ -353,7 +353,7 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
 
     let queue: 'UP' | 'DOWN' = 'DOWN';
     try {
-      await this.prismaService.$queryRaw`SELECT 1 FROM "EmailJob" LIMIT 1`;
+      await this.prismaService.$queryRaw`SELECT 1 FROM "email_jobs" LIMIT 1`;
       queue = 'UP';
     } catch {
       queue = 'DOWN';
