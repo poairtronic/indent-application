@@ -9,10 +9,13 @@ import { useIndent, useCreateIndent, useUpdateIndent } from '../../api/services/
 import { IndentForm } from './components/IndentForm';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { useToasts } from '../../components/ui/toast';
+
 export const IndentFormPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
+  const { show } = useToasts();
 
   const { data: indent, isLoading: isFetching } = useIndent(id || '');
 
@@ -30,7 +33,15 @@ export const IndentFormPage: React.FC = () => {
       updateIndent(
         { id, payload: data },
         {
-          onSuccess: () => navigate(`/indents/${id}`),
+          onSuccess: () => {
+            show('success', 'Indent updated successfully!');
+            navigate(`/indents/${id}`);
+          },
+          onError: (err: any) => {
+            const errMsg = err.errors ? err.errors.join('\n') : err.message;
+            show('error', `Update Failed: ${errMsg}`);
+            console.error('Update failed:', err);
+          },
         },
       );
     } else {
@@ -48,11 +59,12 @@ export const IndentFormPage: React.FC = () => {
             console.error('Create transaction succeeded but no valid transaction ID was returned.');
             return;
           }
+          show('success', 'Indent created successfully!');
           navigate(`/indents/${targetId}`);
         },
         onError: (err: any) => {
           const errMsg = err.errors ? err.errors.join('\n') : err.message;
-          alert(`Validation Error: ${errMsg}`);
+          show('error', `Validation Error: ${errMsg}`);
           console.error('Backend validation failed:', err);
         },
       });
