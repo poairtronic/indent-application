@@ -1007,7 +1007,7 @@ export class BusinessTransactionService {
           product: { select: { productName: true, productCode: true } },
           department: { select: { departmentName: true, departmentCode: true } },
           creator: { select: { firstName: true, lastName: true } },
-          costSheet: { select: { predictedTotal: true, costNumber: true } },
+          costSheet: { select: { predictedTotal: true, costNumber: true, actualTotal: true } },
           indentItems: { select: { status: true } },
         },
       }),
@@ -1028,6 +1028,7 @@ export class BusinessTransactionService {
         currentState: domainState,
         currentLoop: stageDef ? stageDef.loop : WorkflowLoop.MANUFACTURING_LOOP,
         predictedTotal: indent.costSheet?.predictedTotal || 0,
+        costSheet: { actualTotal: indent.costSheet?.actualTotal },
         creatorName: indent.creator
           ? `${indent.creator.firstName} ${indent.creator.lastName}`
           : 'N/A',
@@ -1273,7 +1274,6 @@ export class BusinessTransactionService {
                     bm.actualAmount !== undefined && bm.actualAmount !== null
                       ? bm.actualAmount
                       : null,
-                  createdBy: userId,
                 })),
               });
             }
