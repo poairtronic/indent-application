@@ -286,6 +286,7 @@ export const CostSheetDetailsPage: React.FC = () => {
         </div>
         {isEditable && (
           <div className="flex items-center gap-2">
+            {/* BIZ-001: Save Actuals button is available in both cost-entry states */}
             <Button
               variant="outline"
               size="sm"
@@ -293,17 +294,22 @@ export const CostSheetDetailsPage: React.FC = () => {
               loading={isSaving}
               className="flex items-center gap-2"
             >
-              <Save size={16} /> Save Draft
+              <Save size={16} /> Save Actuals
             </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleFinancialClose}
-              loading={isClosing}
-              className="flex items-center gap-2"
-            >
-              <CheckCircle size={16} /> Finalize Closure
-            </Button>
+            {/* BIZ-001: Financial Closure is ONLY available after actual costs have been
+                submitted (ACTUAL_COST_UPDATED). It must NOT appear during
+                ACCOUNTS_COST_VERIFICATION to prevent bypassing the cost-entry step. */}
+            {indent?.currentState === 'ACTUAL_COST_UPDATED' && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleFinancialClose}
+                loading={isClosing}
+                className="flex items-center gap-2"
+              >
+                <CheckCircle size={16} /> Finalize Closure
+              </Button>
+            )}
           </div>
         )}
       </div>
