@@ -1,5 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import * as dns from 'dns';
+dns.setDefaultResultOrder('ipv4first');
 import { IEmailProvider, IEmailPayload } from '../interfaces/provider.interface';
 import { CommunicationConfig } from '../config/communication.config';
 import {
