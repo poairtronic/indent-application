@@ -1775,7 +1775,23 @@ export class BusinessTransactionService {
         await Promise.all(itemUpdates);
       }
 
-      isFullyIssued = allItemsComplete;
+      // Check completion status across both raw materials and brought out materials
+      const unissuedItemsCount = await prisma.indentItem.count({
+        where: { 
+          indentId: id, 
+          isDeleted: false, 
+          OR: [{ status: { not: 'ISSUED' } }, { status: null }]
+        },
+      });
+      const unissuedBroughtCount = await prisma.indentBroughtMaterial.count({
+        where: { 
+          indentId: id, 
+          isDeleted: false, 
+          OR: [{ status: { not: 'ISSUED' } }, { status: null }]
+        },
+      });
+
+      isFullyIssued = (unissuedItemsCount + unissuedBroughtCount === 0);
 
       if (isFullyIssued) {
         // 5. State transition with optimistic lock protection
@@ -1921,10 +1937,18 @@ export class BusinessTransactionService {
 
     // Check completion status using lightweight COUNT queries instead of fetching all items
     const unissuedItemsCount = await this.prisma.indentItem.count({
-      where: { indentId: id, isDeleted: false, status: { not: 'ISSUED' } },
+      where: { 
+        indentId: id, 
+        isDeleted: false, 
+        OR: [{ status: { not: 'ISSUED' } }, { status: null }]
+      },
     });
     const unissuedBroughtCount = await this.prisma.indentBroughtMaterial.count({
-      where: { indentId: id, isDeleted: false, status: { not: 'ISSUED' } },
+      where: { 
+        indentId: id, 
+        isDeleted: false, 
+        OR: [{ status: { not: 'ISSUED' } }, { status: null }]
+      },
     });
 
     const allIssued = unissuedItemsCount + unissuedBroughtCount === 0;
