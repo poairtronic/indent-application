@@ -124,44 +124,41 @@ const indentSchema = z.object({
   indent: z.object({
     productName: z.string().optional(),
     departmentName: z.string().optional(),
-    priority: z.nativeEnum(Priority),
+    priority: z.nativeEnum(Priority).optional().default(Priority.MEDIUM),
     requiredDate: z.string().min(1, 'Required date is required'),
     purpose: z.string().trim().min(1, 'PO number is required'), // Labeled as PO Number in UI
-    layoutNumber: z.string().trim().min(1, 'Layout number is required'),
-    customerName: z.string().trim().min(1, 'Customer name is required'),
+    layoutNumber: z.string().trim().optional().default(''),
+    customerName: z.string().trim().optional().default(''),
     remarks: z.string().optional(),
     items: z
       .array(
         z.object({
           product: z.string().trim().optional().default(''),
           materialName: z.string().trim().min(1, 'Material is required'),
-          shape: z.nativeEnum(MaterialShape).optional(),
-          diameterMm: z.coerce.number().optional().or(z.literal('')),
-          lengthMm: z.coerce.number().optional().or(z.literal('')),
-          widthMm: z.coerce.number().optional().or(z.literal('')),
-          heightMm: z.coerce.number().optional().or(z.literal('')),
-          quantity: z.coerce.number().min(0.01, 'Quantity must be greater than 0'),
-          unitId: z.string().uuid('Please select a valid unit'),
-          source: z.string().trim().optional(),
-          productionSource: z.string().trim().optional(),
-          remarks: z.string().trim().optional(),
+          shape: z.nativeEnum(MaterialShape).optional().or(z.literal('')),
+          diameterMm: z.coerce.number().optional().or(z.literal('')).or(z.nan()),
+          lengthMm: z.coerce.number().optional().or(z.literal('')).or(z.nan()),
+          widthMm: z.coerce.number().optional().or(z.literal('')).or(z.nan()),
+          heightMm: z.coerce.number().optional().or(z.literal('')).or(z.nan()),
+          quantity: z.coerce.number().min(0.0001, 'Quantity must be greater than 0'),
+          unitId: z.string().min(1, 'Please select a valid unit'),
+          source: z.string().trim().optional().default(''),
+          productionSource: z.string().trim().optional().default(''),
+          remarks: z.string().trim().optional().default(''),
           processes: z
             .array(
               z.object({
-                processId: z.string().uuid('Please select an existing process'),
-                predictedCost: z.number().min(0, 'Cost must be >= 0'),
-                estimatedHours: z.coerce
-                  .number()
-                  .min(0, 'Hours must be >= 0')
-                  .optional()
-                  .or(z.nan()),
-                actualCost: z.number().min(0).optional(),
-                actualHours: z.number().min(0).optional(),
-                vendorType: z.string().optional(),
-                productionSource: z.string().optional(),
+                processId: z.string().optional().default(''),
+                predictedCost: z.coerce.number().min(0).optional().default(0),
+                estimatedHours: z.coerce.number().optional().default(0),
+                actualCost: z.coerce.number().optional(),
+                actualHours: z.coerce.number().optional(),
+                vendorType: z.string().optional().default(''),
+                productionSource: z.string().optional().default(''),
               }),
             )
-            .optional(),
+            .optional()
+            .default([]),
         }),
       )
       .min(1, 'At least one material is required'),
@@ -171,31 +168,35 @@ const indentSchema = z.object({
       z.object({
         name: z.string().trim().min(1, 'Name is required'),
         quantity: z.coerce.number().min(0.0001, 'Quantity is required'),
-        specification: z.string().optional(),
-        amount: z.coerce.number().optional(),
-        actualAmount: z.coerce.number().optional(),
+        specification: z.string().optional().default(''),
+        amount: z.coerce.number().optional().default(0),
+        actualAmount: z.coerce.number().optional().default(0),
       }),
     )
-    .optional(),
+    .optional()
+    .default([]),
   costSheet: z.object({
-    predictedTotal: z.number(),
-    designCost: z.number().min(0).optional(),
-    overheadCost: z.number().min(0).optional(),
-    contingencyCost: z.number().min(0).optional(),
-    actualDesignCost: z.number().min(0).optional(),
-    actualOverheadCost: z.number().min(0).optional(),
-    actualContingencyCost: z.number().min(0).optional(),
-    actualTotal: z.number().optional(),
-    costItems: z.array(
-      z.object({
-        materialName: z.string(),
-        predictedRate: z.number().min(0, 'Rate must be >= 0'),
-        predictedQuantity: z.number(),
-        predictedAmount: z.number(),
-        actualRate: z.number().min(0).optional(),
-        actualAmount: z.number().optional(),
-      }),
-    ),
+    predictedTotal: z.coerce.number().optional().default(0),
+    designCost: z.coerce.number().min(0).optional().default(0),
+    overheadCost: z.coerce.number().min(0).optional().default(0),
+    contingencyCost: z.coerce.number().min(0).optional().default(0),
+    actualDesignCost: z.coerce.number().min(0).optional(),
+    actualOverheadCost: z.coerce.number().min(0).optional(),
+    actualContingencyCost: z.coerce.number().min(0).optional(),
+    actualTotal: z.coerce.number().optional(),
+    costItems: z
+      .array(
+        z.object({
+          materialName: z.string().optional().default(''),
+          predictedRate: z.coerce.number().min(0).optional().default(0),
+          predictedQuantity: z.coerce.number().optional().default(1),
+          predictedAmount: z.coerce.number().optional().default(0),
+          actualRate: z.coerce.number().min(0).optional(),
+          actualAmount: z.coerce.number().optional(),
+        }),
+      )
+      .optional()
+      .default([]),
   }),
 });
 
@@ -1094,7 +1095,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
         e.stopPropagation();
         try {
           handleSubmit(handleFormSubmit, (formErrors) => {
-            console.error('Form validation failed:', JSON.stringify(formErrors, null, 2));
+            console.error('Form validation failed:', formErrors);
 
             // Extract top level errors
             const errorMessages: string[] = [];
