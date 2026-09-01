@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,58 +22,26 @@ const requiredString = (label: string, max: number) =>
     .min(1, `${label} is required`)
     .max(max, `${label} cannot exceed ${max} characters`);
 
-const emailField = z
-  .string()
-  .trim()
-  .email('Enter a valid email address')
-  .max(150, 'Email cannot exceed 150 characters');
+const baseSchema = z.object({
+  employeeCode: requiredString('Employee Code', 50),
+  firstName: requiredString('First Name', 100),
+  lastName: requiredString('Last Name', 100),
+  email: z.string().trim().min(1, 'Email is required').email('Invalid email address'),
+  phone: z.string().max(20, 'Phone cannot exceed 20 characters').optional(),
+  departmentId: requiredString('Department', 36),
+  roleId: requiredString('Role', 36),
+  status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const),
+});
 
-const phoneField = z
-  .string()
-  .trim()
-  .max(20, 'Phone cannot exceed 20 characters')
-  .optional()
-  .or(z.literal(''));
+const profileImageField = z.string().url('Invalid URL format for profile image').optional().or(z.literal(''));
 
-const profileImageField = z
-  .string()
-  .trim()
-  .max(255, 'Profile image URL cannot exceed 255 characters')
-  .url('Enter a valid URL')
-  .or(z.literal(''));
-
-const statusField = z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
-
-const createSchema = z.object({
-  employeeCode: requiredString('Employee code', 50),
-  firstName: requiredString('First name', 100),
-  lastName: requiredString('Last name', 100),
-  email: emailField,
-  phone: phoneField,
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password cannot exceed 100 characters'),
-  departmentId: z.uuid('Select a valid department'),
-  roleId: z.uuid('Select a valid role'),
-  status: statusField.optional(),
+const createSchema = baseSchema.extend({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   profileImage: profileImageField,
 });
 
-const editSchema = z.object({
-  firstName: requiredString('First name', 100),
-  lastName: requiredString('Last name', 100),
-  email: emailField,
-  phone: phoneField,
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .max(100, 'Password cannot exceed 100 characters')
-    .optional()
-    .or(z.literal('')),
-  departmentId: z.uuid('Select a valid department'),
-  roleId: z.uuid('Select a valid role'),
-  status: statusField,
+const editSchema = baseSchema.extend({
+  password: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal('')),
   profileImage: profileImageField,
 });
 
@@ -114,7 +82,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   const isCreate = mode === 'create';
   const schema = isCreate ? createSchema : editSchema;
 
-  const defaultValues: UserFormValues = user
+  const defaultValues = useMemo<UserFormValues>(() => user
     ? {
         employeeCode: user.employeeCode,
         firstName: user.firstName,
@@ -138,16 +106,23 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         roleId: '',
         status: 'ACTIVE',
         profileImage: '',
-      };
+      }, [user]);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<UserFormValues>({
     resolver: zodResolver(schema) as Resolver<UserFormValues>,
     defaultValues,
   });
+
+  useEffect(() => {
+    if (open) {
+      reset(defaultValues);
+    }
+  }, [open, defaultValues, reset]);
 
   const handleFormSubmit = (values: UserFormValues) => {
     if (isCreate) {
