@@ -287,8 +287,18 @@ export class BusinessTransactionService {
           const itemDto = dto.indent.items[i];
           const createdItem = createdIndent.indentItems[i];
           if (itemDto.processes && itemDto.processes.length > 0 && createdItem) {
+            // Deduplicate processes by processId to prevent Prisma @@unique([indentItemId, processId]) conflict
+            const uniqueProcesses = [];
+            const seenProcessIds = new Set();
+            for (const proc of itemDto.processes) {
+              if (!seenProcessIds.has(proc.processId)) {
+                seenProcessIds.add(proc.processId);
+                uniqueProcesses.push(proc);
+              }
+            }
+            
             await tx.indentProcess.createMany({
-              data: itemDto.processes.map((proc) => ({
+              data: uniqueProcesses.map((proc) => ({
                 indentItemId: createdItem.id,
                 processId: proc.processId,
                 sequence: proc.sequence,
@@ -1243,8 +1253,16 @@ export class BusinessTransactionService {
                   .deleteMany({ where: { indentItemId: existingItem.id } })
                   .then(async () => {
                     if (item.processes && item.processes.length > 0) {
+                      const uniqueProcesses = [];
+                      const seenProcessIds = new Set();
+                      for (const proc of item.processes) {
+                        if (!seenProcessIds.has(proc.processId)) {
+                          seenProcessIds.add(proc.processId);
+                          uniqueProcesses.push(proc);
+                        }
+                      }
                       await tx.indentProcess.createMany({
-                        data: item.processes.map((proc, idx) => ({
+                        data: uniqueProcesses.map((proc, idx) => ({
                           indentItemId: existingItem.id,
                           processId: proc.processId,
                           sequence: idx + 1,
@@ -1296,16 +1314,24 @@ export class BusinessTransactionService {
               // Create processes for new items in parallel
               const processCreatePromises = createdItems
                 .filter(({ item }) => item.processes && item.processes.length > 0)
-                .map(({ item, createdItem }) =>
-                  tx.indentProcess.createMany({
-                    data: item.processes.map((proc: any, idx: number) => ({
+                .map(({ item, createdItem }) => {
+                  const uniqueProcesses = [];
+                  const seenProcessIds = new Set();
+                  for (const proc of item.processes) {
+                    if (!seenProcessIds.has(proc.processId)) {
+                      seenProcessIds.add(proc.processId);
+                      uniqueProcesses.push(proc);
+                    }
+                  }
+                  return tx.indentProcess.createMany({
+                    data: uniqueProcesses.map((proc: any, idx: number) => ({
                       indentItemId: createdItem.id,
                       processId: proc.processId,
                       sequence: idx + 1,
                       estimatedHours: proc.estimatedHours ?? 0,
                     })),
-                  }),
-                );
+                  });
+                });
               if (processCreatePromises.length > 0) {
                 await Promise.all(processCreatePromises);
               }
