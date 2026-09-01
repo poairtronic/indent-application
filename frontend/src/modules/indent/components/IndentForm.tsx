@@ -1103,19 +1103,28 @@ export const IndentForm: React.FC<IndentFormProps> = ({
           if (isAccountsMode) {
             console.error('Actual cost form validation failed', formErrors);
           }
-          
+
           // Extract top level errors
           const errorMessages: string[] = [];
-          if (formErrors.indent?.purpose) errorMessages.push(formErrors.indent.purpose.message as string);
-          if (formErrors.indent?.requiredDate) errorMessages.push(formErrors.indent.requiredDate.message as string);
-          if (formErrors.indent?.layoutNumber) errorMessages.push(formErrors.indent.layoutNumber.message as string);
-          if (formErrors.indent?.customerName) errorMessages.push(formErrors.indent.customerName.message as string);
-          if (formErrors.indent?.items) errorMessages.push('Please check the material items section for errors.');
+          if (formErrors.indent?.purpose)
+            errorMessages.push(formErrors.indent.purpose.message as string);
+          if (formErrors.indent?.requiredDate)
+            errorMessages.push(formErrors.indent.requiredDate.message as string);
+          if (formErrors.indent?.layoutNumber)
+            errorMessages.push(formErrors.indent.layoutNumber.message as string);
+          if (formErrors.indent?.customerName)
+            errorMessages.push(formErrors.indent.customerName.message as string);
+          if (formErrors.indent?.items)
+            errorMessages.push('Please check the material items section for errors.');
           if (formErrors.costSheet) errorMessages.push('Please check the cost section for errors.');
-          if (formErrors.broughtMaterials) errorMessages.push('Please check the brought materials section for errors.');
-          
-          show('error', `Validation Failed. Please fill all required fields.\n${errorMessages.join('\n')}`);
-          
+          if (formErrors.broughtMaterials)
+            errorMessages.push('Please check the brought materials section for errors.');
+
+          show(
+            'error',
+            `Validation Failed. Please fill all required fields.\n${errorMessages.join('\n')}`,
+          );
+
           // Scroll up so the user can see the highlighted errors
           window.scrollTo({ top: 0, behavior: 'smooth' });
         })(e);

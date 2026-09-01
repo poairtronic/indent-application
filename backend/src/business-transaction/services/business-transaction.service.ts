@@ -296,7 +296,7 @@ export class BusinessTransactionService {
                 uniqueProcesses.push(proc);
               }
             }
-            
+
             await tx.indentProcess.createMany({
               data: uniqueProcesses.map((proc) => ({
                 indentItemId: createdItem.id,
