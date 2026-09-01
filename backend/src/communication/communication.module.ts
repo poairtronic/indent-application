@@ -3,6 +3,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { CommunicationService } from './communication.service';
 import { CommunicationController } from './communication.controller';
 import { NodemailerProvider } from './providers/nodemailer.provider';
+import { ResendProvider } from './providers/resend.provider';
+import { BrevoProvider } from './providers/brevo.provider';
+import { SendGridProvider } from './providers/sendgrid.provider';
+import { EmailProviderFactory } from './providers/email-provider.factory';
 import { TemplateEngine } from './templates/template.engine';
 import { RecipientResolver } from './resolver/recipient.resolver';
 import { CommunicationEventBus } from './events/communication-event.bus';
@@ -17,6 +21,10 @@ import { PostgresMailWorker } from './queue/postgres-mail.worker';
   providers: [
     CommunicationService,
     NodemailerProvider,
+    ResendProvider,
+    BrevoProvider,
+    SendGridProvider,
+    EmailProviderFactory,
     TemplateEngine,
     RecipientResolver,
     CommunicationEventBus,
@@ -24,6 +32,16 @@ import { PostgresMailWorker } from './queue/postgres-mail.worker';
     PostgresQueueService,
     PostgresMailWorker,
   ],
-  exports: [CommunicationService, CommunicationEventBus, PostgresQueueService],
+  exports: [
+    CommunicationService,
+    CommunicationEventBus,
+    PostgresQueueService,
+    EmailProviderFactory,
+    NodemailerProvider,
+    ResendProvider,
+    BrevoProvider,
+    SendGridProvider,
+  ],
 })
 export class CommunicationModule {}
+

@@ -185,13 +185,21 @@ export const CommunicationPage: React.FC = () => {
             {isHealthLoading ? (
               <div className="h-6 bg-background-primary/80 rounded animate-pulse" />
             ) : (
-              <div className="flex items-baseline gap-2">
-                <span
-                  className={`text-lg font-bold ${health?.status === 'UP' ? 'text-status-success' : 'text-status-warning'}`}
-                >
-                  {health?.status || 'UNKNOWN'}
+              <div className="flex flex-col">
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className={`text-lg font-bold ${health?.status === 'UP' ? 'text-status-success' : 'text-status-warning'}`}
+                  >
+                    {health?.status || 'UNKNOWN'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-text-muted font-medium mt-0.5">
+                  Provider:{' '}
+                  <span className="text-text-primary uppercase font-bold">
+                    {health?.provider || 'SMTP'}
+                  </span>{' '}
+                  ({health?.providerStatus || health?.smtp || '-'})
                 </span>
-                <span className="text-[10px] text-text-muted">Redis: {health?.redis || '-'}</span>
               </div>
             )}
           </div>

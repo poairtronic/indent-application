@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationService } from './communication.service';
 import { CommunicationConfig } from './config/communication.config';
 import { PostgresQueueService } from './queue/postgres-queue.service';
-import { NodemailerProvider } from './providers/nodemailer.provider';
+import { EmailProviderFactory } from './providers/email-provider.factory';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 import { CommunicationQueryDto } from '../common/dto/pagination-query.dto';
@@ -25,7 +25,7 @@ export class CommunicationController {
     private readonly prisma: PrismaService,
     private readonly communicationService: CommunicationService,
     private readonly queueService: PostgresQueueService,
-    private readonly nodemailerProvider: NodemailerProvider,
+    private readonly emailProviderFactory: EmailProviderFactory,
   ) {}
 
   /**
@@ -71,7 +71,7 @@ export class CommunicationController {
 
   /**
    * POST /communication/test
-   * Dispatches a test layout email to verify SMTP transporter configurations.
+   * Dispatches a test layout email to verify email provider configurations.
    * Gated: settings.manage permission
    */
   @Post('test')
@@ -99,31 +99,88 @@ export class CommunicationController {
   }
 
   /**
+   * POST /communication/retry-failed
+   * Re-queues all failed, retrying, and dead-letter email jobs for immediate processing.
+   * Gated: settings.manage permission
+   */
+  @Post('retry-failed')
+  @Permissions('settings.manage')
+  async retryFailedEmails() {
+    const updatedJobs = await this.prisma.emailJob.updateMany({
+      where: {
+        status: { in: ['DEAD_LETTER', 'PROCESSING'] },
+      },
+      data: {
+        status: 'PENDING',
+        attempts: 0,
+        availableAt: new Date(),
+        lastError: null,
+        lockedAt: null,
+        lockedBy: null,
+      },
+    });
+
+    // Also reset PENDING jobs that have delayed availableAt due to backoff
+    const resetBackoffJobs = await this.prisma.emailJob.updateMany({
+      where: {
+        status: 'PENDING',
+        availableAt: { gt: new Date() },
+      },
+      data: {
+        availableAt: new Date(),
+        attempts: 0,
+        lastError: null,
+        lockedAt: null,
+        lockedBy: null,
+      },
+    });
+
+    const updatedLogs = await this.prisma.emailLog.updateMany({
+      where: {
+        status: { in: ['DEAD_LETTER', 'FAILED', 'RETRYING'] },
+      },
+      data: {
+        status: 'QUEUED',
+        errorMessage: null,
+      },
+    });
+
+    const totalJobs = updatedJobs.count + resetBackoffJobs.count;
+
+    return {
+      success: true,
+      message: `Re-queued ${totalJobs} email jobs and ${updatedLogs.count} email logs for processing.`,
+      jobsRequeued: totalJobs,
+      logsRequeued: updatedLogs.count,
+    };
+  }
+
+  /**
    * GET /communication/health
-   * Connectivity diagnostics for SMTP and Redis.
+   * Connectivity diagnostics for active email provider and Redis.
    */
   @Get('health')
   @Permissions('settings.manage')
   async getHealth() {
-    const [redisStatus, smtpStatus] = await Promise.all([
+    const [redisStatus, providerHealth] = await Promise.all([
       this.queueService.checkRedisHealth(),
-      this.nodemailerProvider.verifySmtp(),
+      this.emailProviderFactory.verifyActiveProvider(),
     ]);
 
-    // Overall status: UP only if both are healthy. SMTP degraded = DEGRADED overall.
-    // SMTP failure does NOT kill core business APIs — it only degrades the notification subsystem.
     let overall: string = 'UP';
-    if (redisStatus !== 'UP' || smtpStatus !== 'ok') {
+    if (redisStatus !== 'UP' || providerHealth.status !== 'ok') {
       overall = 'DEGRADED';
     }
-    if (redisStatus === 'DOWN' && smtpStatus === 'unavailable') {
+    if (redisStatus === 'DOWN' && providerHealth.status === 'unavailable') {
       overall = 'DOWN';
     }
 
     return {
       status: overall,
       redis: redisStatus,
-      smtp: smtpStatus,
+      provider: providerHealth.provider,
+      smtp: providerHealth.status,
+      providerStatus: providerHealth.status,
       timestamp: new Date().toISOString(),
     };
   }

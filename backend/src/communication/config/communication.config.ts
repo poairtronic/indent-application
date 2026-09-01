@@ -115,4 +115,27 @@ export class CommunicationConfig {
     }
     return process.env.FRONTEND_URL || 'http://localhost:5173';
   }
+
+  public static getResendApiKey(): string | undefined {
+    return process.env.RESEND_API_KEY?.trim() || undefined;
+  }
+
+  public static getBrevoApiKey(): string | undefined {
+    return (
+      process.env.BREVO_API_KEY?.trim() ||
+      process.env.SENDINBLUE_API_KEY?.trim() ||
+      undefined
+    );
+  }
+
+  public static getSendGridApiKey(): string | undefined {
+    return process.env.SENDGRID_API_KEY?.trim() || undefined;
+  }
+
+  public static getActiveProviderType(): 'resend' | 'brevo' | 'sendgrid' | 'smtp' {
+    if (this.getResendApiKey()) return 'resend';
+    if (this.getBrevoApiKey()) return 'brevo';
+    if (this.getSendGridApiKey()) return 'sendgrid';
+    return 'smtp';
+  }
 }

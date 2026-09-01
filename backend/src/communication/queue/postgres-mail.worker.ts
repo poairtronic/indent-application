@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NodemailerProvider } from '../providers/nodemailer.provider';
+import { EmailProviderFactory } from '../providers/email-provider.factory';
 import { TemplateEngine } from '../templates/template.engine';
 import { IJobPayload, EmailState } from './queue.constants';
 import { observabilityEventBus } from '../../observability/observability-event-bus';
@@ -20,7 +20,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly nodemailerProvider: NodemailerProvider,
+    private readonly emailProviderFactory: EmailProviderFactory,
     private readonly templateEngine: TemplateEngine,
   ) {
     this.workerId = crypto.randomUUID();
@@ -220,7 +220,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
         attachments: payload.attachments,
       };
 
-      const result = await this.nodemailerProvider.sendEmail(mailPayload);
+      const result = await this.emailProviderFactory.sendEmail(mailPayload);
       const duration = Date.now() - startTime;
 
       try {

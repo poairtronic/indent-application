@@ -191,4 +191,74 @@ describe('Enterprise Communication Module', () => {
       dispatcher.onModuleDestroy();
     });
   });
+
+  // ─────────────────────────────────────────────
+  // 5. Multi-Provider Factory Tests
+  // ─────────────────────────────────────────────
+
+  describe('EmailProviderFactory & HTTP Providers', () => {
+    it('should select ResendProvider when RESEND_API_KEY is present', () => {
+      const origKey = process.env.RESEND_API_KEY;
+      process.env.RESEND_API_KEY = 're_test_123';
+
+      const mockNodemailer: any = { sendEmail: jest.fn() };
+      const mockResend: any = { sendEmail: jest.fn() };
+      const mockBrevo: any = { sendEmail: jest.fn() };
+      const mockSendGrid: any = { sendEmail: jest.fn() };
+
+      const { EmailProviderFactory } = require('../providers/email-provider.factory');
+      const factory = new EmailProviderFactory(mockNodemailer, mockResend, mockBrevo, mockSendGrid);
+
+      expect(factory.getActiveProviderType()).toBe('resend');
+      expect(factory.getActiveProvider()).toBe(mockResend);
+
+      process.env.RESEND_API_KEY = origKey;
+    });
+
+    it('should select BrevoProvider when BREVO_API_KEY is present', () => {
+      const origResend = process.env.RESEND_API_KEY;
+      const origBrevo = process.env.BREVO_API_KEY;
+      delete process.env.RESEND_API_KEY;
+      process.env.BREVO_API_KEY = 'xkeysib-test';
+
+      const mockNodemailer: any = { sendEmail: jest.fn() };
+      const mockResend: any = { sendEmail: jest.fn() };
+      const mockBrevo: any = { sendEmail: jest.fn() };
+      const mockSendGrid: any = { sendEmail: jest.fn() };
+
+      const { EmailProviderFactory } = require('../providers/email-provider.factory');
+      const factory = new EmailProviderFactory(mockNodemailer, mockResend, mockBrevo, mockSendGrid);
+
+      expect(factory.getActiveProviderType()).toBe('brevo');
+      expect(factory.getActiveProvider()).toBe(mockBrevo);
+
+      process.env.RESEND_API_KEY = origResend;
+      process.env.BREVO_API_KEY = origBrevo;
+    });
+
+    it('should default to NodemailerProvider when no API keys are present', () => {
+      const origResend = process.env.RESEND_API_KEY;
+      const origBrevo = process.env.BREVO_API_KEY;
+      const origSendGrid = process.env.SENDGRID_API_KEY;
+      delete process.env.RESEND_API_KEY;
+      delete process.env.BREVO_API_KEY;
+      delete process.env.SENDGRID_API_KEY;
+
+      const mockNodemailer: any = { sendEmail: jest.fn() };
+      const mockResend: any = { sendEmail: jest.fn() };
+      const mockBrevo: any = { sendEmail: jest.fn() };
+      const mockSendGrid: any = { sendEmail: jest.fn() };
+
+      const { EmailProviderFactory } = require('../providers/email-provider.factory');
+      const factory = new EmailProviderFactory(mockNodemailer, mockResend, mockBrevo, mockSendGrid);
+
+      expect(factory.getActiveProviderType()).toBe('smtp');
+      expect(factory.getActiveProvider()).toBe(mockNodemailer);
+
+      process.env.RESEND_API_KEY = origResend;
+      process.env.BREVO_API_KEY = origBrevo;
+      process.env.SENDGRID_API_KEY = origSendGrid;
+    });
+  });
 });
+

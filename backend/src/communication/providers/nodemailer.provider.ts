@@ -144,9 +144,17 @@ export class NodemailerProvider implements IEmailProvider, OnModuleInit, OnModul
         success: true,
         messageId: info.messageId,
       };
-    } catch (error) {
-      this.logger.error(`SMTP delivery failed: ${error?.message || error}`, error?.stack);
-      throw new SMTPException(error);
+    } catch (error: any) {
+      let failureReason = error?.message || String(error);
+      if (
+        failureReason.includes('Connection timeout') ||
+        failureReason.includes('ETIMEDOUT') ||
+        error?.code === 'ETIMEDOUT'
+      ) {
+        failureReason = `SMTP connection timed out. Render Free tier blocks outbound SMTP ports (25, 465, 587). Set RESEND_API_KEY or BREVO_API_KEY to send via HTTPS Port 443. Original error: ${failureReason}`;
+      }
+      this.logger.error(`SMTP delivery failed: ${failureReason}`, error?.stack);
+      throw new SMTPException(new Error(failureReason));
     }
   }
 

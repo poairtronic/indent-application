@@ -71,6 +71,8 @@ export interface CommunicationHealth {
   status: string;
   /** @deprecated Redis is removed; this field is always 'UP' (PostgreSQL queue is healthy). */
   redis?: string;
+  provider?: string;
+  providerStatus?: string;
   smtp?: string;
   timestamp: string;
 }
