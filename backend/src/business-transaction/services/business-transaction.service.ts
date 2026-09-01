@@ -333,9 +333,7 @@ export class BusinessTransactionService {
             processCosts: {
               create: (dto.costSheet.processCosts || [])
                 .filter(
-                  (pc) =>
-                    pc.processId &&
-                    pc.processId !== '00000000-0000-0000-0000-000000000000',
+                  (pc) => pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000',
                 )
                 .map((pc) => ({
                   processId: pc.processId,
@@ -1482,9 +1480,7 @@ export class BusinessTransactionService {
               orderBy: { createdAt: 'asc' },
             });
             const newPCs = dto.costSheet.processCosts.filter(
-              (pc) =>
-                pc.processId &&
-                pc.processId !== '00000000-0000-0000-0000-000000000000',
+              (pc) => pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000',
             );
             const overlapPC = Math.min(existingPCs.length, newPCs.length);
 
