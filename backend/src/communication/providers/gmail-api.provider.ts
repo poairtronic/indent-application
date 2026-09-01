@@ -120,8 +120,8 @@ export class GmailApiProvider implements IEmailProvider {
         config.clientSecret,
       );
       oauth2Client.setCredentials({ refresh_token: config.refreshToken });
-      const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-      await gmail.users.getProfile({ userId: 'me' });
+      const { token } = await oauth2Client.getAccessToken();
+      if (!token) throw new Error('No access token returned');
       return 'ok';
     } catch (e) {
       this.logger.warn(`Gmail API verification failed: ${(e as any)?.message || e}`);

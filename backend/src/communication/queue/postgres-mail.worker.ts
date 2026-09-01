@@ -145,8 +145,9 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
   private async processJob(job: any) {
     const payload: IJobPayload = job.payload || {};
     const rawLogIds = payload.emailLogIds || (payload.jobId ? [payload.jobId] : []);
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const logIds = (Array.isArray(rawLogIds) ? rawLogIds : [rawLogIds]).filter(
-      (id): id is string => typeof id === 'string' && id.trim().length > 0,
+      (id): id is string => typeof id === 'string' && uuidRegex.test(id),
     );
     const startTime = Date.now();
 

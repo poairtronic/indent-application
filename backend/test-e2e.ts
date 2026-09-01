@@ -19,40 +19,55 @@ async function runE2E() {
   const jobIdStr = 'e2e-job-' + Date.now();
   console.log(`[1] Inserting job ${jobIdStr} into PostgreSQL queue...`);
   
-  await queue.addJob({
-    jobId: jobIdStr,
-    recipient: 'test@example.com',
-    recipients: ['test@example.com'],
-    template: 'TEST_TEMPLATE',
-    subject: 'IMCMS Phase 8 E2E Test',
-    body: 'Test body',
-    html: '<p>End-to-end integration test.</p>',
-    businessEvent: 'TEST_EVENT',
-    payload: {},
-    priority: 1,
-    retryCount: 0,
-    createdTime: new Date().toISOString(),
-    requestedBy: 'SYSTEM',
-    correlationId: 'corr-' + Date.now()
+  // Insert with status PROCESSING so the remote worker doesn't steal it
+  await prisma.emailJob.create({
+    data: {
+      id: jobIdStr,
+      payload: {
+        jobId: jobIdStr,
+        recipient: 'posuppportairtronic@gmail.com',
+        recipients: ['posuppportairtronic@gmail.com'],
+        template: 'TEST_TEMPLATE',
+        subject: 'IMCMS Gmail API Local Test',
+        body: 'This is a controlled local Gmail API production-provider test.',
+        html: '<p>This is a controlled local Gmail API production-provider test.</p>',
+        businessEvent: 'TEST_EVENT',
+        payload: {},
+        priority: 1,
+        retryCount: 0,
+        createdTime: new Date().toISOString(),
+        requestedBy: 'SYSTEM',
+        correlationId: 'corr-' + Date.now()
+      },
+      status: 'PROCESSING',
+      priority: 1,
+      availableAt: new Date(),
+      lockedAt: new Date(),
+      lockedBy: worker['workerId'],
+      attempts: 0,
+      maxAttempts: 4
+    }
   });
   
-  // Also force update availableAt to 1 hour ago just in case of clock skew
-  await prisma.$executeRaw`UPDATE email_jobs SET "availableAt" = NOW() - INTERVAL '1 hour' WHERE id = ${jobIdStr}`;
-  
-  let job = await prisma.emailJob.findUnique({ where: { id: jobIdStr }});
-  console.log(`[2] Job queued, initial status: ${job?.status}`);
+  console.log(`[2] Job inserted with status PROCESSING and locked to local worker`);
 
-  console.log('[3] Triggering worker poll manually...');
-  const claimedCount = await (worker as any).poll();
-  console.log(`[4] Worker claimed ${claimedCount} job(s).`);
+  console.log('[3] Triggering worker.processJob manually...');
+  // Type casting to bypass private method for testing purpose
+  const job = {
+    id: jobIdStr,
+    payload: (await prisma.emailJob.findUnique({ where: { id: jobIdStr } }))?.payload,
+    attempts: 0,
+    maxAttempts: 4
+  };
+
+  await (worker as any).processJob(job);
+  console.log(`[4] processJob returned.`);
   
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  
-  job = await prisma.emailJob.findUnique({ where: { id: jobIdStr }});
-  if (!job) {
+  const updatedJob = await prisma.emailJob.findUnique({ where: { id: jobIdStr }});
+  if (!updatedJob) {
      console.log('[5] Job is no longer in emailJob table (successfully deleted after SENT).');
   } else {
-     console.log(`[5] Job status after poll: ${job?.status}, error: ${job?.lastError}`);
+     console.log(`[5] Job status after poll: ${updatedJob?.status}, error: ${updatedJob?.lastError}`);
   }
 }
 
