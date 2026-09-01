@@ -36,7 +36,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       switch (exception.code) {
         case 'P2002':
           status = HttpStatus.CONFLICT;
-          message = 'A resource with these unique details already exists.';
+          const target = (exception as any).meta?.target;
+          message = `A resource with these unique details already exists. (Target: ${target ? JSON.stringify(target) : 'unknown'})`;
           break;
         case 'P2025':
           status = HttpStatus.NOT_FOUND;
