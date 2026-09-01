@@ -1726,25 +1726,15 @@ export class BusinessTransactionService {
         }
 
         const currentStock = Number(material.currentStock);
-        if (currentStock < issueQty) {
-          throw new BadRequestException(
-            `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Trying to issue: ${issueQty}`,
-          );
-        }
 
-        // Queue material stock decrement
+        // Queue material stock decrement (No stock bounds enforced per user request)
         materialUpdates.push(
           prisma.material
             .updateMany({
-              where: { id: material.id, currentStock: { gte: issueQty } },
+              where: { id: material.id },
               data: { currentStock: { decrement: issueQty }, updatedBy: userId },
             })
             .then((res) => {
-              if (res.count === 0) {
-                throw new BadRequestException(
-                  `Insufficient stock for material '${material.materialName}'. Concurrent update detected.`,
-                );
-              }
               return res;
             }),
         );
@@ -1900,16 +1890,9 @@ export class BusinessTransactionService {
           );
         }
 
-        if (currentStock < requiredQty) {
-          throw new BadRequestException(
-            `Insufficient stock for material '${material.materialName}'. Available: ${currentStock}, Required: ${requiredQty}`,
-          );
-        }
-
         const updateResult = await prisma.material.updateMany({
           where: {
             id: material.id,
-            currentStock: { gte: requiredQty },
           },
           data: {
             currentStock: { decrement: requiredQty },
@@ -1919,7 +1902,7 @@ export class BusinessTransactionService {
 
         if (updateResult.count === 0) {
           throw new BadRequestException(
-            `Insufficient stock for material '${material.materialName}'. Concurrent update detected or stock is too low.`,
+            `Material '${material.materialName}' not found or concurrently deleted.`,
           );
         }
 
