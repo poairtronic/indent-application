@@ -423,10 +423,7 @@ const NestedProcessArray: React.FC<{
                             if (selectedType === 'In-house') {
                               vField.onChange('In-house');
                             } else if (selectedType === 'Vendor') {
-                              const defaultVendor = vendorsList[0]?.vendorName || '';
-                              vField.onChange(
-                                defaultVendor ? `Vendor: ${defaultVendor}` : 'Vendor',
-                              );
+                              vField.onChange('Vendor');
                             } else {
                               vField.onChange('');
                             }
@@ -476,10 +473,7 @@ const NestedProcessArray: React.FC<{
                             if (selectedType === 'In-house') {
                               psField.onChange('In-house');
                             } else if (selectedType === 'Vendor') {
-                              const defaultVendor = vendorsList[0]?.vendorName || '';
-                              psField.onChange(
-                                defaultVendor ? `Vendor: ${defaultVendor}` : 'Vendor',
-                              );
+                              psField.onChange('Vendor');
                             } else {
                               psField.onChange('');
                             }
@@ -1331,11 +1325,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         if (selectedType === 'In-house') {
                           setValue(`indent.items.${index}.source`, 'In-house');
                         } else if (selectedType === 'Vendor') {
-                          const defaultVendor = vendorsList[0]?.vendorName || '';
-                          setValue(
-                            `indent.items.${index}.source`,
-                            defaultVendor ? `Vendor: ${defaultVendor}` : 'Vendor',
-                          );
+                          setValue(`indent.items.${index}.source`, 'Vendor');
                         } else {
                           setValue(`indent.items.${index}.source`, '');
                         }
@@ -1570,10 +1560,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                               if (selectedType === 'In-house') {
                                 psField.onChange('In-house');
                               } else if (selectedType === 'Vendor') {
-                                const defaultVendor = vendorsList[0]?.vendorName || '';
-                                psField.onChange(
-                                  defaultVendor ? `Vendor: ${defaultVendor}` : 'Vendor',
-                                );
+                                psField.onChange('Vendor');
                               } else {
                                 psField.onChange('');
                               }
