@@ -133,7 +133,7 @@ const indentSchema = z.object({
     items: z
       .array(
         z.object({
-          product: z.string().trim().min(1, 'Part Name / Product is required'),
+          product: z.string().trim().optional().default(''),
           materialName: z.string().trim().min(1, 'Material is required'),
           shape: z.nativeEnum(MaterialShape).optional(),
           diameterMm: z.coerce.number().optional().or(z.literal('')),
@@ -1079,15 +1079,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
             ? data.costSheet.actualContingencyCost
             : undefined,
         costItems: data.costSheet.costItems,
-        processCosts: allProcessCosts.length
-          ? allProcessCosts
-          : [
-              {
-                processId: '00000000-0000-0000-0000-000000000000',
-                predictedCost: 0,
-                estimatedHours: 0,
-              },
-            ],
+        processCosts: allProcessCosts,
       },
     };
 
@@ -1099,35 +1091,38 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       onSubmit={(e) => {
         // Prevent default native form submission immediately to avoid browser extension crashes
         e.preventDefault();
-        handleSubmit(handleFormSubmit, (formErrors) => {
-          if (isAccountsMode) {
-            console.error('Actual cost form validation failed', formErrors);
-          }
+        e.stopPropagation();
+        try {
+          handleSubmit(handleFormSubmit, (formErrors) => {
+            console.error('Form validation failed:', JSON.stringify(formErrors, null, 2));
 
-          // Extract top level errors
-          const errorMessages: string[] = [];
-          if (formErrors.indent?.purpose)
-            errorMessages.push(formErrors.indent.purpose.message as string);
-          if (formErrors.indent?.requiredDate)
-            errorMessages.push(formErrors.indent.requiredDate.message as string);
-          if (formErrors.indent?.layoutNumber)
-            errorMessages.push(formErrors.indent.layoutNumber.message as string);
-          if (formErrors.indent?.customerName)
-            errorMessages.push(formErrors.indent.customerName.message as string);
-          if (formErrors.indent?.items)
-            errorMessages.push('Please check the material items section for errors.');
-          if (formErrors.costSheet) errorMessages.push('Please check the cost section for errors.');
-          if (formErrors.broughtMaterials)
-            errorMessages.push('Please check the brought materials section for errors.');
+            // Extract top level errors
+            const errorMessages: string[] = [];
+            if (formErrors.indent?.purpose)
+              errorMessages.push(formErrors.indent.purpose.message as string);
+            if (formErrors.indent?.requiredDate)
+              errorMessages.push(formErrors.indent.requiredDate.message as string);
+            if (formErrors.indent?.layoutNumber)
+              errorMessages.push(formErrors.indent.layoutNumber.message as string);
+            if (formErrors.indent?.customerName)
+              errorMessages.push(formErrors.indent.customerName.message as string);
+            if (formErrors.indent?.items)
+              errorMessages.push('Please check the material items section for errors.');
+            if (formErrors.costSheet) errorMessages.push('Please check the cost section for errors.');
+            if (formErrors.broughtMaterials)
+              errorMessages.push('Please check the brought materials section for errors.');
 
-          show(
-            'error',
-            `Validation Failed. Please fill all required fields.\n${errorMessages.join('\n')}`,
-          );
+            show(
+              'error',
+              `Validation Failed. Please fill all required fields.\n${errorMessages.join('\n')}`,
+            );
 
-          // Scroll up so the user can see the highlighted errors
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        })(e);
+            // Scroll up so the user can see the highlighted errors
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          })();
+        } catch (err) {
+          console.error('Form submission error (likely browser extension):', err);
+        }
       }}
       className="space-y-6 w-full"
     >

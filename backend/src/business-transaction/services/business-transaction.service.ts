@@ -331,11 +331,17 @@ export class BusinessTransactionService {
               })),
             },
             processCosts: {
-              create: dto.costSheet.processCosts.map((pc) => ({
-                processId: pc.processId,
-                predictedCost: roundTo4Decimals(pc.predictedCost),
-                estimatedHours: pc.estimatedHours ?? 0,
-              })),
+              create: (dto.costSheet.processCosts || [])
+                .filter(
+                  (pc) =>
+                    pc.processId &&
+                    pc.processId !== '00000000-0000-0000-0000-000000000000',
+                )
+                .map((pc) => ({
+                  processId: pc.processId,
+                  predictedCost: roundTo4Decimals(pc.predictedCost),
+                  estimatedHours: pc.estimatedHours ?? 0,
+                })),
             },
           },
         });
@@ -1475,7 +1481,11 @@ export class BusinessTransactionService {
               where: { costSheetId: existingCostSheet.id },
               orderBy: { createdAt: 'asc' },
             });
-            const newPCs = dto.costSheet.processCosts;
+            const newPCs = dto.costSheet.processCosts.filter(
+              (pc) =>
+                pc.processId &&
+                pc.processId !== '00000000-0000-0000-0000-000000000000',
+            );
             const overlapPC = Math.min(existingPCs.length, newPCs.length);
 
             // UPDATE overlapping process costs in parallel

@@ -121,10 +121,10 @@ export class CreateProcessCostSheetDto {
   costItems: CostItemDto[];
 
   @IsArray()
-  @IsNotEmpty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => ProcessCostDto)
-  processCosts: ProcessCostDto[];
+  processCosts?: ProcessCostDto[];
 }
 
 export class UpdateProcessCostSheetDto {
