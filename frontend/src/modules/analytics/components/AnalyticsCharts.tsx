@@ -38,12 +38,7 @@ export interface DonutChartProps {
 }
 
 export const DonutChart: React.FC<DonutChartProps> = React.memo(
-  ({
-    data,
-    size = 160,
-    formatValue,
-    layout = 'vertical',
-  }) => {
+  ({ data, size = 160, formatValue, layout = 'vertical' }) => {
     const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
     const total = data.reduce(
       (sum, item) => sum + (Number.isFinite(item.value) ? item.value : 0),
@@ -81,13 +76,13 @@ export const DonutChart: React.FC<DonutChartProps> = React.memo(
               data.map((item, idx) => {
                 const color = item.color || DEFAULT_CHART_COLORS[idx % DEFAULT_CHART_COLORS.length];
                 const pct = total > 0 ? item.value / total : 0;
-                
+
                 // For proper pie chart slicing:
                 const strokeLength = pct * circumference;
                 const dasharray = `${strokeLength} ${circumference - strokeLength}`;
                 // To rotate clockwise, we use negative offset
                 const dashoffset = -accumulatedPercentage * circumference;
-                
+
                 accumulatedPercentage += pct;
 
                 const isHovered = hoveredIdx === idx;
@@ -109,7 +104,9 @@ export const DonutChart: React.FC<DonutChartProps> = React.memo(
                     onMouseLeave={() => setHoveredIdx(null)}
                     style={{
                       opacity: isOtherHovered ? 0.3 : 1,
-                      filter: isHovered ? `drop-shadow(0 0 12px ${color})` : 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))',
+                      filter: isHovered
+                        ? `drop-shadow(0 0 12px ${color})`
+                        : 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))',
                       transform: isHovered ? 'scale(1.02)' : 'scale(1)',
                     }}
                   />

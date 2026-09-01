@@ -13,7 +13,7 @@ export const VendorsPage: React.FC = () => {
   const [filters, setFilters] = useState<IAnalyticsFilters>({ limit: 50 });
   const { data, isLoading, error, refetch } = useVendorAnalytics(filters);
   const { data: processData, isLoading: isProcessLoading } = useVendorProcessAllocations(filters);
-  
+
   const formatCurrency = useCurrencyFormatter({ maximumFractionDigits: 0 });
 
   const handleApply = useCallback((newFilters: IAnalyticsFilters) => {
@@ -162,7 +162,8 @@ export const VendorsPage: React.FC = () => {
               Manufacturing Process Vendor Allocations
             </h3>
             <p className="text-text-muted text-xs">
-              Breakdown of manufacturing processes allocated to vendors, showing aggregated costing data.
+              Breakdown of manufacturing processes allocated to vendors, showing aggregated costing
+              data.
             </p>
           </div>
 
@@ -171,18 +172,30 @@ export const VendorsPage: React.FC = () => {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-text-muted uppercase bg-surface-elevated/50 border-b border-border-default">
                   <tr>
-                    <th scope="col" className="px-4 py-3 font-semibold">Vendor Name</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Manufacturing Process</th>
-                    <th scope="col" className="px-4 py-3 font-semibold text-center">Indents Involved</th>
-                    <th scope="col" className="px-4 py-3 font-semibold text-right">Predicted Cost</th>
-                    <th scope="col" className="px-4 py-3 font-semibold text-right">Actual Cost</th>
-                    <th scope="col" className="px-4 py-3 font-semibold text-right">Variance</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Vendor Name
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Manufacturing Process
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold text-center">
+                      Indents Involved
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold text-right">
+                      Predicted Cost
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold text-right">
+                      Actual Cost
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold text-right">
+                      Variance
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {processData.map((row, idx) => (
-                    <tr 
-                      key={`${row.vendorName}-${row.processName}-${idx}`} 
+                    <tr
+                      key={`${row.vendorName}-${row.processName}-${idx}`}
                       className="border-b border-border-default/50 hover:bg-surface-elevated/30 transition-colors"
                     >
                       <td className="px-4 py-3 font-medium text-text-primary">{row.vendorName}</td>
@@ -199,14 +212,17 @@ export const VendorsPage: React.FC = () => {
                         {row.totalActualCost > 0 ? formatCurrency(row.totalActualCost) : '-'}
                       </td>
                       <td className="px-4 py-3 text-right font-mono">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          row.variance > 0 
-                            ? 'bg-status-error/15 text-status-error border border-status-error/20' 
-                            : row.variance < 0 
-                              ? 'bg-status-success/15 text-status-success border border-status-success/20'
-                              : 'text-text-muted'
-                        }`}>
-                          {row.variance > 0 ? '+' : ''}{formatCurrency(row.variance)}
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-bold ${
+                            row.variance > 0
+                              ? 'bg-status-error/15 text-status-error border border-status-error/20'
+                              : row.variance < 0
+                                ? 'bg-status-success/15 text-status-success border border-status-success/20'
+                                : 'text-text-muted'
+                          }`}
+                        >
+                          {row.variance > 0 ? '+' : ''}
+                          {formatCurrency(row.variance)}
                         </span>
                       </td>
                     </tr>

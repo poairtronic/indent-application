@@ -108,7 +108,12 @@ export function createErrorInterceptor(
         finalMessage = finalMessage.join(', ');
       }
 
-      const apiError = createApiError(status, finalMessage, data?.errors, originalRequest.url ?? undefined);
+      const apiError = createApiError(
+        status,
+        finalMessage,
+        data?.errors,
+        originalRequest.url ?? undefined,
+      );
 
       // If it is a 401 error but we already retried (meaning the new token was still rejected),
       // or we are missing refresh functions, we must log the user out to prevent them from being stuck.

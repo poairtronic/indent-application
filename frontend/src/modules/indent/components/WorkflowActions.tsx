@@ -240,7 +240,6 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
         // No workflow action button here — the Accounts cost entry form handles this state.
         break;
 
-
       case 'ACTUAL_COST_UPDATED':
         if (hasPermission(AppPermission.ACCOUNTS_CLOSE)) {
           actions.push({

@@ -8,17 +8,19 @@ async function run() {
 
   let requests = [];
 
-  page.on('request', request => {
+  page.on('request', (request) => {
     requests.push({
       url: request.url(),
       method: request.method(),
       resourceType: request.resourceType(),
-      startTime: Date.now()
+      startTime: Date.now(),
     });
   });
 
-  page.on('response', response => {
-    const req = requests.find(r => r.url === response.url() && r.method === response.request().method());
+  page.on('response', (response) => {
+    const req = requests.find(
+      (r) => r.url === response.url() && r.method === response.request().method(),
+    );
     if (req) {
       req.status = response.status();
       req.endTime = Date.now();
@@ -37,20 +39,25 @@ async function run() {
   await page.fill('input[name="password"]', 'Password123!');
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'networkidle' }),
-    page.click('button[type="submit"]')
+    page.click('button[type="submit"]'),
   ]);
-  
+
   console.log('--- Navigating directly to Indents Create ---');
   await page.goto(`${BASE_URL}/indents/create`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000); // give time for late API calls
 
   console.log('--- Writing Results ---');
-  
+
   const apiRequests = requests
-    .filter(r => r.url.includes('/api/') && r.method !== 'OPTIONS')
+    .filter((r) => r.url.includes('/api/') && r.method !== 'OPTIONS')
     .sort((a, b) => a.startTime - b.startTime);
-  
-  const report = apiRequests.map(r => `${r.method} ${r.url.replace('http://localhost:3001', '')} - ${r.status} - ${r.duration}ms`).join('\n');
+
+  const report = apiRequests
+    .map(
+      (r) =>
+        `${r.method} ${r.url.replace('http://localhost:3001', '')} - ${r.status} - ${r.duration}ms`,
+    )
+    .join('\n');
   fs.writeFileSync('waterfall-baseline.txt', report);
 
   console.log('Done. Report saved to waterfall-baseline.txt');

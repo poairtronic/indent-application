@@ -6,7 +6,16 @@ import {
   useMarkAllNotificationsRead,
   useClearAllNotifications,
 } from '../../api/services/notifications/hooks';
-import { Info, AlertTriangle, AlertCircle, CheckCircle2, Bell, BellOff, X, Trash2 } from 'lucide-react';
+import {
+  Info,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  Bell,
+  BellOff,
+  X,
+  Trash2,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { filterNotificationsForUser } from '../../utils/notificationFilter';

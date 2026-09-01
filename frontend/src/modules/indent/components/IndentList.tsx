@@ -55,10 +55,13 @@ export const IndentList: React.FC<IndentListProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const isAdmin = user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' || user?.role?.roleName?.toUpperCase() === 'ADMIN' || user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
+  const isAdmin =
+    user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' ||
+    user?.role?.roleName?.toUpperCase() === 'ADMIN' ||
+    user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
   const { mutateAsync: deleteIndent, isPending: isDeleting } = useDeleteIndent();
   const { show } = useToasts();
-  
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleDelete = async () => {

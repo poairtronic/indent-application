@@ -30,7 +30,11 @@ import {
   ChevronUp,
   Trash2,
 } from 'lucide-react';
-import { useDocuments, useDownloadAttachment, useRemoveAttachment } from '../../api/services/indents/hooks';
+import {
+  useDocuments,
+  useDownloadAttachment,
+  useRemoveAttachment,
+} from '../../api/services/indents/hooks';
 import type { IndentDocumentItem } from '../../api/services/indents/service';
 import { apiClient } from '../../api/client';
 import { Badge, StatusChip } from '../../components/ui/Badge';
@@ -145,7 +149,10 @@ export const DocumentsPage: React.FC = () => {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' || user?.role?.roleName?.toUpperCase() === 'ADMIN' || user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
+  const isAdmin =
+    user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' ||
+    user?.role?.roleName?.toUpperCase() === 'ADMIN' ||
+    user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
   const [deleteDoc, setDeleteDoc] = useState<{ id: string; indentId: string } | null>(null);
 
   const handleDeleteConfirm = async () => {

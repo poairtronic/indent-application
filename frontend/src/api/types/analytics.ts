@@ -110,4 +110,3 @@ export interface IVendorProcessAllocation {
   totalActualCost: number;
   variance: number;
 }
-

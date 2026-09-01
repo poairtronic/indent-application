@@ -15,4 +15,3 @@ export {
   useInsights,
   useDashboardOverview,
 } from '../../../api/services/analytics/hooks';
-

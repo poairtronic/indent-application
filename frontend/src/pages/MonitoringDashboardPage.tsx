@@ -288,28 +288,18 @@ export const MonitoringDashboardPage: React.FC = () => {
                       %
                     </span>
                   </div>
-                  <Badge
-                    tone={
-                      metrics.notificationMetrics.failed > 0
-                        ? 'yellow'
-                        : 'green'
-                    }
-                  >
+                  <Badge tone={metrics.notificationMetrics.failed > 0 ? 'yellow' : 'green'}>
                     {metrics.notificationMetrics.failed > 0 ? 'Degraded' : 'Healthy'}
                   </Badge>
                 </div>
                 <div className="bg-background-primary/45 p-3 border border-border-default/50 rounded-xl">
-                  <span className="text-[10px] text-text-muted uppercase font-bold">
-                    Delivered
-                  </span>
+                  <span className="text-[10px] text-text-muted uppercase font-bold">Delivered</span>
                   <span className="block text-lg font-mono font-bold text-status-success mt-1">
                     {metrics.notificationMetrics.delivered}
                   </span>
                 </div>
                 <div className="bg-background-primary/45 p-3 border border-border-default/50 rounded-xl">
-                  <span className="text-[10px] text-text-muted uppercase font-bold">
-                    Failed
-                  </span>
+                  <span className="text-[10px] text-text-muted uppercase font-bold">Failed</span>
                   <span
                     className={`block text-lg font-mono font-bold mt-1 ${metrics.notificationMetrics.failed > 0 ? 'text-status-error' : 'text-text-primary'}`}
                   >

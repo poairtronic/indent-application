@@ -82,7 +82,10 @@ export const DashboardPage: React.FC = () => {
 
   const { data: dashboardOverview, isError: isDashboardError } =
     useDashboardOverview(hasAnalyticsAccess);
-  const { data: recentIndentsData, isLoading: isRecentIndentsLoading } = useIndents({ page: 1, limit: 5 });
+  const { data: recentIndentsData, isLoading: isRecentIndentsLoading } = useIndents({
+    page: 1,
+    limit: 5,
+  });
   const { data: operationalSummary, isError: isOperationalError } = useQuery({
     queryKey: ['business-transactions', 'operational-summary'],
     queryFn: () => indentService.getOperationalSummary(),
@@ -398,11 +401,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <div className="flex-1 flex items-center justify-center py-2">
-            <DonutChart
-              data={indentStatusDonutData}
-              size={160}
-              layout="vertical"
-            />
+            <DonutChart data={indentStatusDonutData} size={160} layout="vertical" />
           </div>
         </div>
 
@@ -436,8 +435,9 @@ export const DashboardPage: React.FC = () => {
                   Average Cycle Time
                 </span>
                 <span className="text-xl font-black text-text-primary font-mono mt-1 block">
-                  {workflowData?.averageCycleDays !== null && workflowData?.averageCycleDays !== undefined 
-                    ? `${workflowData.averageCycleDays.toFixed(1)} Days` 
+                  {workflowData?.averageCycleDays !== null &&
+                  workflowData?.averageCycleDays !== undefined
+                    ? `${workflowData.averageCycleDays.toFixed(1)} Days`
                     : '-'}
                 </span>
                 <span className="text-[11px] text-text-muted mt-0.5 block">
@@ -569,69 +569,75 @@ export const DashboardPage: React.FC = () => {
 
       {/* TABLES ROW: Recent Indents */}
       <div className="w-full bg-surface-card border border-border-default rounded-2xl p-5 lg:p-6 shadow-card space-y-4 glass-panel">
-          <div className="flex items-center justify-between border-b border-border-default/60 pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-text-primary">Recent Indents</h3>
-              <p className="text-xs text-text-muted">Latest manufacturing indent requests</p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate('/indents')}
-              className="text-xs font-bold"
-            >
-              View All &rarr;
-            </Button>
+        <div className="flex items-center justify-between border-b border-border-default/60 pb-3">
+          <div>
+            <h3 className="text-sm font-bold text-text-primary">Recent Indents</h3>
+            <p className="text-xs text-text-muted">Latest manufacturing indent requests</p>
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border-default text-[10px] font-extrabold uppercase text-text-muted tracking-wider">
-                  <th className="py-2.5 px-3">INDENT NO.</th>
-                  <th className="py-2.5 px-3">PRODUCT</th>
-                  <th className="py-2.5 px-3">DEPARTMENT</th>
-                  <th className="py-2.5 px-3">STATUS</th>
-                  <th className="py-2.5 px-3">CREATED AT</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-default/50 font-medium">
-                {isRecentIndentsLoading ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-text-muted">Loading recent indents...</td>
-                  </tr>
-                ) : !recentIndentsData?.items || recentIndentsData.items.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-text-muted">No recent indents found.</td>
-                  </tr>
-                ) : (
-                  recentIndentsData.items.map((row) => (
-                    <tr key={row.id} className="hover:bg-surface-hover/50 transition-colors">
-                      <td
-                        className="py-3 px-3 font-mono font-bold text-[#8B5CF6] cursor-pointer hover:underline"
-                        onClick={() => navigate(`/indents/${row.id}`)}
-                      >
-                        {row.indentNumber}
-                      </td>
-                      <td className="py-3 px-3 text-text-primary font-semibold">{row.productName || 'N/A'}</td>
-                      <td className="py-3 px-3 text-text-muted">{row.departmentName || 'N/A'}</td>
-                      <td className="py-3 px-3">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-surface-elevated text-text-primary border-border-default`}
-                        >
-                          {formatWorkflowState(row.currentState)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-3 text-text-muted font-mono text-[11px]">
-                        {new Date(row.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/indents')}
+            className="text-xs font-bold"
+          >
+            View All &rarr;
+          </Button>
         </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-border-default text-[10px] font-extrabold uppercase text-text-muted tracking-wider">
+                <th className="py-2.5 px-3">INDENT NO.</th>
+                <th className="py-2.5 px-3">PRODUCT</th>
+                <th className="py-2.5 px-3">DEPARTMENT</th>
+                <th className="py-2.5 px-3">STATUS</th>
+                <th className="py-2.5 px-3">CREATED AT</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-default/50 font-medium">
+              {isRecentIndentsLoading ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-text-muted">
+                    Loading recent indents...
+                  </td>
+                </tr>
+              ) : !recentIndentsData?.items || recentIndentsData.items.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-text-muted">
+                    No recent indents found.
+                  </td>
+                </tr>
+              ) : (
+                recentIndentsData.items.map((row) => (
+                  <tr key={row.id} className="hover:bg-surface-hover/50 transition-colors">
+                    <td
+                      className="py-3 px-3 font-mono font-bold text-[#8B5CF6] cursor-pointer hover:underline"
+                      onClick={() => navigate(`/indents/${row.id}`)}
+                    >
+                      {row.indentNumber}
+                    </td>
+                    <td className="py-3 px-3 text-text-primary font-semibold">
+                      {row.productName || 'N/A'}
+                    </td>
+                    <td className="py-3 px-3 text-text-muted">{row.departmentName || 'N/A'}</td>
+                    <td className="py-3 px-3">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-surface-elevated text-text-primary border-border-default`}
+                      >
+                        {formatWorkflowState(row.currentState)}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-text-muted font-mono text-[11px]">
+                      {new Date(row.createdAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* NOTIFICATIONS & ACTIVITY FEED */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -779,5 +785,3 @@ export const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
-
-

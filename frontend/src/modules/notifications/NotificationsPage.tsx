@@ -100,7 +100,9 @@ export const NotificationsPage: React.FC = () => {
   }, [markAllAsRead, refetch, show]);
 
   const handleClearAll = useCallback(async () => {
-    if (window.confirm('Are you sure you want to clear all notifications? This cannot be undone.')) {
+    if (
+      window.confirm('Are you sure you want to clear all notifications? This cannot be undone.')
+    ) {
       try {
         await clearAll();
         show('success', 'All notifications cleared.');

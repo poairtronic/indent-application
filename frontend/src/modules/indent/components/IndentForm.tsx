@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { Combobox } from '../../../components/ui/Combobox';
 import { Priority, MaterialShape } from '../../../types/indent';
 import { useUnits } from '../../../api/services/units/hooks';
 import { useProcesses } from '../../../api/services/processes/hooks';
@@ -118,85 +119,84 @@ export function parseIndentRemarks(remarks: string | null | undefined): ParsedIn
   return { layoutNumber: '', customerName: '', userRemarks: remarks };
 }
 
-const indentSchema = z
-  .object({
-    indent: z.object({
-      productName: z.string().optional(),
-      departmentName: z.string().optional(),
-      priority: z.nativeEnum(Priority),
-      requiredDate: z.string().min(1, 'Required date is required'),
-      purpose: z.string().trim().min(1, 'PO number is required'), // Labeled as PO Number in UI
-      layoutNumber: z.string().trim().min(1, 'Layout number is required'),
-      customerName: z.string().trim().min(1, 'Customer name is required'),
-      remarks: z.string().optional(),
-      items: z
-        .array(
-          z.object({
-            product: z.string().trim().min(1, 'Part Name / Product is required'),
-            materialName: z.string().trim().min(1, 'Material is required'),
-            shape: z.nativeEnum(MaterialShape).optional(),
-            diameterMm: z.coerce.number().optional().or(z.literal('')),
-            lengthMm: z.coerce.number().optional().or(z.literal('')),
-            widthMm: z.coerce.number().optional().or(z.literal('')),
-            heightMm: z.coerce.number().optional().or(z.literal('')),
-            quantity: z.coerce.number().min(0.01, 'Quantity must be greater than 0'),
-            unitId: z.string().uuid('Please select a valid unit'),
-            source: z.string().trim().optional(),
-            productionSource: z.string().trim().optional(),
-            remarks: z.string().trim().optional(),
-            processes: z
-              .array(
-                z.object({
-                  processId: z.string().uuid('Please select an existing process'),
-                  predictedCost: z.number().min(0, 'Cost must be >= 0'),
-                  estimatedHours: z.coerce
-                    .number()
-                    .min(0, 'Hours must be >= 0')
-                    .optional()
-                    .or(z.nan()),
-                  actualCost: z.number().min(0).optional(),
-                  actualHours: z.number().min(0).optional(),
-                  vendorType: z.string().optional(),
-                  productionSource: z.string().optional(),
-                }),
-              )
-              .optional(),
-          }),
-        )
-        .min(1, 'At least one material is required'),
-    }),
-    broughtMaterials: z
+const indentSchema = z.object({
+  indent: z.object({
+    productName: z.string().optional(),
+    departmentName: z.string().optional(),
+    priority: z.nativeEnum(Priority),
+    requiredDate: z.string().min(1, 'Required date is required'),
+    purpose: z.string().trim().min(1, 'PO number is required'), // Labeled as PO Number in UI
+    layoutNumber: z.string().trim().min(1, 'Layout number is required'),
+    customerName: z.string().trim().min(1, 'Customer name is required'),
+    remarks: z.string().optional(),
+    items: z
       .array(
         z.object({
-          name: z.string().trim().min(1, 'Name is required'),
-          quantity: z.coerce.number().min(0.0001, 'Quantity is required'),
-          specification: z.string().optional(),
-          amount: z.coerce.number().optional(),
-          actualAmount: z.coerce.number().optional(),
-        })
-      )
-      .optional(),
-    costSheet: z.object({
-      predictedTotal: z.number(),
-      designCost: z.number().min(0).optional(),
-      overheadCost: z.number().min(0).optional(),
-      contingencyCost: z.number().min(0).optional(),
-      actualDesignCost: z.number().min(0).optional(),
-      actualOverheadCost: z.number().min(0).optional(),
-      actualContingencyCost: z.number().min(0).optional(),
-      actualTotal: z.number().optional(),
-      costItems: z.array(
-        z.object({
-          materialName: z.string(),
-          predictedRate: z.number().min(0, 'Rate must be >= 0'),
-          predictedQuantity: z.number(),
-          predictedAmount: z.number(),
-          actualRate: z.number().min(0).optional(),
-          actualAmount: z.number().optional(),
+          product: z.string().trim().min(1, 'Part Name / Product is required'),
+          materialName: z.string().trim().min(1, 'Material is required'),
+          shape: z.nativeEnum(MaterialShape).optional(),
+          diameterMm: z.coerce.number().optional().or(z.literal('')),
+          lengthMm: z.coerce.number().optional().or(z.literal('')),
+          widthMm: z.coerce.number().optional().or(z.literal('')),
+          heightMm: z.coerce.number().optional().or(z.literal('')),
+          quantity: z.coerce.number().min(0.01, 'Quantity must be greater than 0'),
+          unitId: z.string().uuid('Please select a valid unit'),
+          source: z.string().trim().optional(),
+          productionSource: z.string().trim().optional(),
+          remarks: z.string().trim().optional(),
+          processes: z
+            .array(
+              z.object({
+                processId: z.string().uuid('Please select an existing process'),
+                predictedCost: z.number().min(0, 'Cost must be >= 0'),
+                estimatedHours: z.coerce
+                  .number()
+                  .min(0, 'Hours must be >= 0')
+                  .optional()
+                  .or(z.nan()),
+                actualCost: z.number().min(0).optional(),
+                actualHours: z.number().min(0).optional(),
+                vendorType: z.string().optional(),
+                productionSource: z.string().optional(),
+              }),
+            )
+            .optional(),
         }),
-      ),
-    }),
-  });
+      )
+      .min(1, 'At least one material is required'),
+  }),
+  broughtMaterials: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1, 'Name is required'),
+        quantity: z.coerce.number().min(0.0001, 'Quantity is required'),
+        specification: z.string().optional(),
+        amount: z.coerce.number().optional(),
+        actualAmount: z.coerce.number().optional(),
+      }),
+    )
+    .optional(),
+  costSheet: z.object({
+    predictedTotal: z.number(),
+    designCost: z.number().min(0).optional(),
+    overheadCost: z.number().min(0).optional(),
+    contingencyCost: z.number().min(0).optional(),
+    actualDesignCost: z.number().min(0).optional(),
+    actualOverheadCost: z.number().min(0).optional(),
+    actualContingencyCost: z.number().min(0).optional(),
+    actualTotal: z.number().optional(),
+    costItems: z.array(
+      z.object({
+        materialName: z.string(),
+        predictedRate: z.number().min(0, 'Rate must be >= 0'),
+        predictedQuantity: z.number(),
+        predictedAmount: z.number(),
+        actualRate: z.number().min(0).optional(),
+        actualAmount: z.number().optional(),
+      }),
+    ),
+  }),
+});
 
 type IndentFormData = z.infer<typeof indentSchema>;
 
@@ -555,26 +555,21 @@ const NestedProcessArray: React.FC<{
                     Process Vendor:
                   </div>
                   <div className="md:col-span-6">
-                    <Input
+                    <Combobox
                       placeholder="Type or select process vendor..."
-                      list={`vendors-list-proc-source-${itemIndex}-${pIndex}`}
                       disabled={isReadOnly || isProductionMode || isAccountsMode}
                       value={selectedSourceVendor}
-                      onChange={(e) => {
-                        const vName = e.target.value;
+                      onChange={(vName) => {
                         setValue(
                           `indent.items.${itemIndex}.processes.${pIndex}.vendorType`,
                           vName ? `Vendor: ${vName}` : 'Vendor',
                         );
                       }}
+                      options={vendorsList.map((v) => ({
+                        label: v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName,
+                        value: v.vendorName,
+                      }))}
                     />
-                    <datalist id={`vendors-list-proc-source-${itemIndex}-${pIndex}`}>
-                      {vendorsList.map((v) => (
-                        <option key={v.id} value={v.vendorName}>
-                          {v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName}
-                        </option>
-                      ))}
-                    </datalist>
                   </div>
                   <div className="md:col-span-4 text-xs text-text-secondary">
                     {selectedSourceVendor ? (
@@ -596,26 +591,21 @@ const NestedProcessArray: React.FC<{
                     Prod. Vendor:
                   </div>
                   <div className="md:col-span-6">
-                    <Input
+                    <Combobox
                       placeholder="Type or select production vendor..."
-                      list={`vendors-list-proc-prod-${itemIndex}-${pIndex}`}
                       disabled={!isProductionMode}
                       value={selectedProdVendor}
-                      onChange={(e) => {
-                        const vName = e.target.value;
+                      onChange={(vName) => {
                         setValue(
                           `indent.items.${itemIndex}.processes.${pIndex}.productionSource`,
                           vName ? `Vendor: ${vName}` : 'Vendor',
                         );
                       }}
+                      options={vendorsList.map((v) => ({
+                        label: v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName,
+                        value: v.vendorName,
+                      }))}
                     />
-                    <datalist id={`vendors-list-proc-prod-${itemIndex}-${pIndex}`}>
-                      {vendorsList.map((v) => (
-                        <option key={v.id} value={v.vendorName}>
-                          {v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName}
-                        </option>
-                      ))}
-                    </datalist>
                   </div>
                   <div className="md:col-span-4 text-xs text-text-secondary">
                     {selectedProdVendor ? (
@@ -778,13 +768,14 @@ export const IndentForm: React.FC<IndentFormProps> = ({
               );
             })(),
           },
-          broughtMaterials: initialData.broughtMaterials?.map((bm) => ({
-            name: bm.name,
-            quantity: bm.quantity,
-            specification: bm.specification || '',
-            amount: bm.amount || 0,
-            actualAmount: bm.actualAmount || 0,
-          })) || [],
+          broughtMaterials:
+            initialData.broughtMaterials?.map((bm) => ({
+              name: bm.name,
+              quantity: bm.quantity,
+              specification: bm.specification || '',
+              amount: bm.amount || 0,
+              actualAmount: bm.actualAmount || 0,
+            })) || [],
           costSheet: {
             predictedTotal: initialData.costSheet?.predictedTotal || 0,
             designCost:
@@ -952,29 +943,24 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   }, [watchedItems, watchedCostItems, setValue]);
 
   // Derived Totals
-  const totalMaterialCost = (watchedCostItems || []).reduce(
-    (sum, ci) => sum + (Number(ci?.predictedAmount) || 0),
-    0,
-  ) + (watchedBroughtMaterials || []).reduce(
-    (sum, bm) => sum + (Number(bm?.amount) || 0),
-    0,
-  );
+  const totalMaterialCost =
+    (watchedCostItems || []).reduce((sum, ci) => sum + (Number(ci?.predictedAmount) || 0), 0) +
+    (watchedBroughtMaterials || []).reduce((sum, bm) => sum + (Number(bm?.amount) || 0), 0);
   const totalProcessCost = (watchedItems || []).reduce(
     (sum, item) =>
       sum + (item?.processes || []).reduce((pSum, p) => pSum + (Number(p?.predictedCost) || 0), 0),
     0,
   );
 
-  const actualTotalMaterialCost = (watchedItems || []).reduce((sum, item, index) => {
-    const costItem = watchedCostItems?.[index];
-    const actualRate = Number(costItem?.actualRate) || 0;
-    const qty = Number(item?.quantity) || 0;
-    const actualAmt = actualRate * qty;
-    return sum + (Number(actualAmt) || 0);
-  }, 0) + (watchedBroughtMaterials || []).reduce(
-    (sum, bm) => sum + (Number(bm?.actualAmount) || 0),
-    0,
-  );
+  const actualTotalMaterialCost =
+    (watchedItems || []).reduce((sum, item, index) => {
+      const costItem = watchedCostItems?.[index];
+      const actualRate = Number(costItem?.actualRate) || 0;
+      const qty = Number(item?.quantity) || 0;
+      const actualAmt = actualRate * qty;
+      return sum + (Number(actualAmt) || 0);
+    }, 0) +
+    (watchedBroughtMaterials || []).reduce((sum, bm) => sum + (Number(bm?.actualAmount) || 0), 0);
 
   const actualTotalProcessCost = (watchedItems || []).reduce((sum, item) => {
     const procActual = (item?.processes || []).reduce(
@@ -1382,27 +1368,22 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                       Vendor
                     </div>
                     <div className="md:col-span-6">
-                      <Input
+                      <Combobox
                         label="Select Vendor (Created in Admin Portal)"
                         placeholder="Type or select vendor from master..."
-                        list={`vendors-list-item-source-${index}`}
                         disabled={isReadOnly || isProductionMode || isAccountsMode}
                         value={selectedVendorName}
-                        onChange={(e) => {
-                          const vName = e.target.value;
+                        onChange={(vName) => {
                           setValue(
                             `indent.items.${index}.source`,
                             vName ? `Vendor: ${vName}` : 'Vendor',
                           );
                         }}
+                        options={vendorsList.map((v) => ({
+                          label: v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName,
+                          value: v.vendorName,
+                        }))}
                       />
-                      <datalist id={`vendors-list-item-source-${index}`}>
-                        {vendorsList.map((v) => (
-                          <option key={v.id} value={v.vendorName}>
-                            {v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName}
-                          </option>
-                        ))}
-                      </datalist>
                     </div>
                     <div className="md:col-span-5 text-xs text-text-secondary pt-4">
                       {selectedVendorName ? (
@@ -1686,27 +1667,24 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         Prod. Vendor
                       </div>
                       <div className="md:col-span-6">
-                        <Input
+                        <Combobox
                           label="Select Production Vendor"
                           placeholder="Type or select production vendor..."
-                          list={`vendors-list-item-prod-${index}`}
                           disabled={!isProductionMode}
                           value={selectedProdVendorName}
-                          onChange={(e) => {
-                            const vName = e.target.value;
+                          onChange={(vName) => {
                             setValue(
                               `indent.items.${index}.productionSource`,
                               vName ? `Vendor: ${vName}` : 'Vendor',
                             );
                           }}
+                          options={vendorsList.map((v) => ({
+                            label: v.vendorCode
+                              ? `${v.vendorName} (${v.vendorCode})`
+                              : v.vendorName,
+                            value: v.vendorName,
+                          }))}
                         />
-                        <datalist id={`vendors-list-item-prod-${index}`}>
-                          {vendorsList.map((v) => (
-                            <option key={v.id} value={v.vendorName}>
-                              {v.vendorCode ? `${v.vendorName} (${v.vendorCode})` : v.vendorName}
-                            </option>
-                          ))}
-                        </datalist>
                       </div>
                       <div className="md:col-span-5 text-xs text-text-secondary pt-4">
                         {selectedProdVendorName ? (
@@ -1875,7 +1853,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                       <Input
                         type="number"
                         label="ACTUAL AMOUNT (₹) *"
-                        placeholder={isAccountsMode && !isReadOnly ? "Enter actual amount" : "By Accounts"}
+                        placeholder={
+                          isAccountsMode && !isReadOnly ? 'Enter actual amount' : 'By Accounts'
+                        }
                         step="0.01"
                         min="0"
                         error={error?.message}

@@ -89,5 +89,3 @@ class AnalyticsService extends BaseService {
 }
 
 export const analyticsService = new AnalyticsService();
-
-
