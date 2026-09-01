@@ -55,11 +55,15 @@ export function safeVariancePercentage(
     return 0;
   }
   const decVariance = toDecimal(variance);
-  return decVariance
+  const percentage = decVariance
     .dividedBy(decPredicted)
     .times(100)
     .toDecimalPlaces(decimals, Prisma.Decimal.ROUND_HALF_UP)
     .toNumber();
+
+  if (percentage > 999.99) return 999.99;
+  if (percentage < -999.99) return -999.99;
+  return percentage;
 }
 
 export function roundTo4Decimals(
