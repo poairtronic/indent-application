@@ -176,7 +176,7 @@ export class BusinessTransactionService {
 
         const productName = dto.indent.productName.trim();
         const departmentName = dto.indent.departmentName.trim();
-        const uniqueSuffix = Date.now().toString().slice(-6);
+        const uniqueSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
 
         const product =
           (await tx.product.findFirst({ where: { productName, isDeleted: false } })) ??
