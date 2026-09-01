@@ -21,7 +21,7 @@ export const IndentActivityFeed: React.FC<ActivityFeedProps> = ({ history, class
 
   const items = history.map((item) => ({
     id: item.id,
-    title: `Moved to ${item.toDepartment?.name || 'Unknown'}`,
+    title: `Moved to ${item.toDepartment?.departmentName || item.toDepartment?.name || 'Unknown'}`,
     description:
       item.remarks || `By ${item.mover?.firstName} ${item.mover?.lastName}` || 'No remarks',
     timestamp: new Date(item.movedAt).toLocaleString(),
