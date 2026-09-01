@@ -3,7 +3,7 @@ export function validateEnvironmentConfig() {
   const missing: string[] = [];
 
   const requiredVars = isProd
-    ? ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'FRONTEND_URL', 'APP_URL']
+    ? ['DATABASE_URL', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'GOOGLE_GMAIL_USER', 'FRONTEND_URL', 'APP_URL']
     : [];
 
   requiredVars.forEach((key) => {
