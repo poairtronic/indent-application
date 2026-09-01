@@ -1409,7 +1409,8 @@ export class BusinessTransactionService {
                 tx.costItem.update({
                   where: { id: existingCI.id },
                   data: {
-                    materialId: resolvedMaterialIds[i] || (ci as any).materialId || existingCI.materialId,
+                    materialId:
+                      resolvedMaterialIds[i] || (ci as any).materialId || existingCI.materialId,
                     vendorId: ci.vendorId || null,
                     predictedRate: roundTo4Decimals(ci.predictedRate),
                     predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
@@ -1426,8 +1427,7 @@ export class BusinessTransactionService {
               await tx.costItem.createMany({
                 data: newCostItems.slice(overlapCI).map((ci, idx) => ({
                   costSheetId: existingCostSheet.id,
-                  materialId:
-                    resolvedMaterialIds[overlapCI + idx] || (ci as any).materialId,
+                  materialId: resolvedMaterialIds[overlapCI + idx] || (ci as any).materialId,
                   vendorId: ci.vendorId || null,
                   predictedRate: roundTo4Decimals(ci.predictedRate),
                   predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
@@ -1691,7 +1691,6 @@ export class BusinessTransactionService {
     const materialMap = new Map(materials.map((m) => [m.id, m]));
 
     await this.prisma.$transaction(async (prisma) => {
-      let allItemsComplete = true;
       const issues = dto.issueItems || [];
       const materialUpdates: Promise<any>[] = [];
       const itemUpdates: Promise<any>[] = [];
@@ -1713,10 +1712,6 @@ export class BusinessTransactionService {
         }
 
         if (issueQty <= 0) {
-          const totalIssuedSoFar = Number(item.issuedQuantity);
-          if (totalIssuedSoFar < Number(item.quantity)) {
-            allItemsComplete = false;
-          }
           continue;
         }
 
@@ -1724,8 +1719,6 @@ export class BusinessTransactionService {
         if (!material) {
           throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
         }
-
-        const currentStock = Number(material.currentStock);
 
         // Queue material stock decrement (No stock bounds enforced per user request)
         materialUpdates.push(
@@ -1751,10 +1744,6 @@ export class BusinessTransactionService {
             },
           }),
         );
-
-        if (!isNowFullyIssued) {
-          allItemsComplete = false;
-        }
       }
 
       // 4. Execute all stock decrements and item updates in parallel
@@ -1767,21 +1756,21 @@ export class BusinessTransactionService {
 
       // Check completion status across both raw materials and brought out materials
       const unissuedItemsCount = await prisma.indentItem.count({
-        where: { 
-          indentId: id, 
-          isDeleted: false, 
-          OR: [{ status: { not: 'ISSUED' } }, { status: null }]
+        where: {
+          indentId: id,
+          isDeleted: false,
+          OR: [{ status: { not: 'ISSUED' } }, { status: null }],
         },
       });
       const unissuedBroughtCount = await prisma.indentBroughtMaterial.count({
-        where: { 
-          indentId: id, 
-          isDeleted: false, 
-          OR: [{ status: { not: 'ISSUED' } }, { status: null }]
+        where: {
+          indentId: id,
+          isDeleted: false,
+          OR: [{ status: { not: 'ISSUED' } }, { status: null }],
         },
       });
 
-      isFullyIssued = (unissuedItemsCount + unissuedBroughtCount === 0);
+      isFullyIssued = unissuedItemsCount + unissuedBroughtCount === 0;
 
       if (isFullyIssued) {
         // 5. State transition with optimistic lock protection
@@ -1882,8 +1871,6 @@ export class BusinessTransactionService {
           throw new NotFoundException(`Material with ID '${item.materialId}' not found.`);
         }
 
-        const currentStock = Number(material.currentStock);
-
         if (requiredQty <= 0) {
           throw new BadRequestException(
             `Invalid quantity for material '${material.materialName}'. Quantity must be greater than zero.`,
@@ -1920,17 +1907,17 @@ export class BusinessTransactionService {
 
     // Check completion status using lightweight COUNT queries instead of fetching all items
     const unissuedItemsCount = await this.prisma.indentItem.count({
-      where: { 
-        indentId: id, 
-        isDeleted: false, 
-        OR: [{ status: { not: 'ISSUED' } }, { status: null }]
+      where: {
+        indentId: id,
+        isDeleted: false,
+        OR: [{ status: { not: 'ISSUED' } }, { status: null }],
       },
     });
     const unissuedBroughtCount = await this.prisma.indentBroughtMaterial.count({
-      where: { 
-        indentId: id, 
-        isDeleted: false, 
-        OR: [{ status: { not: 'ISSUED' } }, { status: null }]
+      where: {
+        indentId: id,
+        isDeleted: false,
+        OR: [{ status: { not: 'ISSUED' } }, { status: null }],
       },
     });
 
@@ -3148,7 +3135,6 @@ export class BusinessTransactionService {
       );
     }
 
-
     await this.eventService.logAudit(
       AuditEventType.PRODUCTION_UPDATE,
       id,
@@ -3693,7 +3679,6 @@ export class BusinessTransactionService {
           `DB record now points to '${saved.fileName}'. Manual cleanup of old file required.`,
       );
     }
-
 
     await this.eventService.logAudit(
       AuditEventType.PRODUCTION_UPDATE,

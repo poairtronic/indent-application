@@ -51,7 +51,8 @@ describe('Stores Inventory Material Issue (BUG-REQ-001)', () => {
         update: jest.fn(),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-      indentBroughtMaterial: { count: jest.fn().mockResolvedValue(0) }, indentItem: {
+      indentBroughtMaterial: { count: jest.fn().mockResolvedValue(0) },
+      indentItem: {
         findMany: jest.fn(),
         findUnique: jest.fn(),
         count: jest.fn(),
