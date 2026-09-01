@@ -26,11 +26,12 @@ export class ResendProvider implements IEmailProvider {
     }
 
     const appConfig = CommunicationConfig.getAppMailConfig();
-    const fromName = process.env.SMTP_FROM_NAME || appConfig.appName || 'MERC';
+    const fromName = process.env.SMTP_FROM_NAME || appConfig.appName || 'MERC APPLICATION';
     const fromEmail =
       process.env.RESEND_FROM_EMAIL ||
-      process.env.SMTP_FROM ||
-      'onboarding@resend.dev';
+      (process.env.SMTP_FROM && !process.env.SMTP_FROM.includes('@gmail.com')
+        ? process.env.SMTP_FROM
+        : 'onboarding@resend.dev');
     const senderAddress = `${fromName} <${fromEmail}>`;
 
     const recipients = Array.isArray(payload.to) ? payload.to : [payload.to];
