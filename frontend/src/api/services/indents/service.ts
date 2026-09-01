@@ -179,7 +179,7 @@ export interface WorkflowHistoryData {
   id: string;
   movedAt: string;
   mover?: { id: string; firstName: string; lastName: string };
-  toDepartment?: { id: string; name: string };
+  toDepartment?: { id: string; name?: string; departmentName?: string; departmentCode?: string };
   remarks?: string;
 }
 
