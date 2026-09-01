@@ -384,9 +384,12 @@ export class UsersService {
       throw new NotFoundException(USER_MESSAGES.NOT_FOUND);
     }
 
+    const timestamp = Date.now();
     await this.prisma.user.update({
       where: { id },
       data: {
+        email: `${currentUser.email}_deleted_${timestamp}`,
+        employeeCode: `${currentUser.employeeCode}_deleted_${timestamp}`,
         isDeleted: true,
         deletedAt: new Date(),
         status: UserStatus.INACTIVE,
