@@ -18,6 +18,7 @@ import { getWorkflowAccess } from '../../../constants/workflow';
 import { AppPermission } from '../../../constants/permissions';
 import { calculateMaterialWeight } from '../../../utils/materialWeight';
 import { useMaterials } from '../../../api/services/materials/hooks';
+import { useToasts } from '../../../components/ui/toast';
 
 export interface ParsedRemarks {
   product?: string;
@@ -660,6 +661,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
 
   const user = useAuthStore((s) => s.user);
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const { show } = useToasts();
   const canViewCostSheet = !!(
     user?.permissions?.includes('costsheet.view') || user?.permissions?.includes('settings.manage')
   );
@@ -1094,11 +1096,30 @@ export const IndentForm: React.FC<IndentFormProps> = ({
 
   return (
     <form
-      onSubmit={handleSubmit(handleFormSubmit, (formErrors) => {
-        if (isAccountsMode) {
-          console.error('Actual cost form validation failed', formErrors);
-        }
-      })}
+      onSubmit={(e) => {
+        // Prevent default native form submission immediately to avoid browser extension crashes
+        e.preventDefault();
+        handleSubmit(handleFormSubmit, (formErrors) => {
+          if (isAccountsMode) {
+            console.error('Actual cost form validation failed', formErrors);
+          }
+          
+          // Extract top level errors
+          const errorMessages: string[] = [];
+          if (formErrors.indent?.purpose) errorMessages.push(formErrors.indent.purpose.message as string);
+          if (formErrors.indent?.requiredDate) errorMessages.push(formErrors.indent.requiredDate.message as string);
+          if (formErrors.indent?.layoutNumber) errorMessages.push(formErrors.indent.layoutNumber.message as string);
+          if (formErrors.indent?.customerName) errorMessages.push(formErrors.indent.customerName.message as string);
+          if (formErrors.indent?.items) errorMessages.push('Please check the material items section for errors.');
+          if (formErrors.costSheet) errorMessages.push('Please check the cost section for errors.');
+          if (formErrors.broughtMaterials) errorMessages.push('Please check the brought materials section for errors.');
+          
+          show('error', `Validation Failed. Please fill all required fields.\n${errorMessages.join('\n')}`);
+          
+          // Scroll up so the user can see the highlighted errors
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        })(e);
+      }}
       className="space-y-6 w-full"
     >
       <div className="bg-surface-card rounded-xl p-6 border border-border-default shadow-card">
