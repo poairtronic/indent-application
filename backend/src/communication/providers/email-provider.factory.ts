@@ -1,12 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IEmailProvider, IEmailPayload } from '../interfaces/provider.interface';
 import { CommunicationConfig } from '../config/communication.config';
-import { NodemailerProvider } from './nodemailer.provider';
-import { ResendProvider } from './resend.provider';
-import { BrevoProvider } from './brevo.provider';
-import { SendGridProvider } from './sendgrid.provider';
+import { GmailApiProvider } from './gmail-api.provider';
 
-export type EmailProviderType = 'resend' | 'brevo' | 'sendgrid' | 'smtp';
+export type EmailProviderType = 'gmail-api';
 
 @Injectable()
 export class EmailProviderFactory implements IEmailProvider {
@@ -14,10 +11,7 @@ export class EmailProviderFactory implements IEmailProvider {
   private readonly logger = new Logger(EmailProviderFactory.name);
 
   constructor(
-    private readonly nodemailerProvider: NodemailerProvider,
-    private readonly resendProvider: ResendProvider,
-    private readonly brevoProvider: BrevoProvider,
-    private readonly sendGridProvider: SendGridProvider,
+    private readonly gmailApiProvider: GmailApiProvider,
   ) {}
 
   public getActiveProviderType(): EmailProviderType {
@@ -25,18 +19,7 @@ export class EmailProviderFactory implements IEmailProvider {
   }
 
   public getActiveProvider(): IEmailProvider {
-    const type = this.getActiveProviderType();
-    switch (type) {
-      case 'resend':
-        return this.resendProvider;
-      case 'brevo':
-        return this.brevoProvider;
-      case 'sendgrid':
-        return this.sendGridProvider;
-      case 'smtp':
-      default:
-        return this.nodemailerProvider;
-    }
+    return this.gmailApiProvider;
   }
 
   public async send(
@@ -59,23 +42,7 @@ export class EmailProviderFactory implements IEmailProvider {
     status: 'ok' | 'degraded' | 'unavailable';
   }> {
     const providerType = this.getActiveProviderType();
-    let status: 'ok' | 'degraded' | 'unavailable' = 'unavailable';
-
-    switch (providerType) {
-      case 'resend':
-        status = await this.resendProvider.verify();
-        break;
-      case 'brevo':
-        status = await this.brevoProvider.verify();
-        break;
-      case 'sendgrid':
-        status = await this.sendGridProvider.verify();
-        break;
-      case 'smtp':
-      default:
-        status = await this.nodemailerProvider.verifySmtp();
-        break;
-    }
+    const status = await this.gmailApiProvider.verify();
 
     return {
       provider: providerType,

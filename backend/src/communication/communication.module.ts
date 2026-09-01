@@ -2,10 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CommunicationService } from './communication.service';
 import { CommunicationController } from './communication.controller';
-import { NodemailerProvider } from './providers/nodemailer.provider';
-import { ResendProvider } from './providers/resend.provider';
-import { BrevoProvider } from './providers/brevo.provider';
-import { SendGridProvider } from './providers/sendgrid.provider';
+import { GmailApiProvider } from './providers/gmail-api.provider';
 import { EmailProviderFactory } from './providers/email-provider.factory';
 import { TemplateEngine } from './templates/template.engine';
 import { RecipientResolver } from './resolver/recipient.resolver';
@@ -20,10 +17,7 @@ import { PostgresMailWorker } from './queue/postgres-mail.worker';
   controllers: [CommunicationController],
   providers: [
     CommunicationService,
-    NodemailerProvider,
-    ResendProvider,
-    BrevoProvider,
-    SendGridProvider,
+    GmailApiProvider,
     EmailProviderFactory,
     TemplateEngine,
     RecipientResolver,
@@ -37,10 +31,7 @@ import { PostgresMailWorker } from './queue/postgres-mail.worker';
     CommunicationEventBus,
     PostgresQueueService,
     EmailProviderFactory,
-    NodemailerProvider,
-    ResendProvider,
-    BrevoProvider,
-    SendGridProvider,
+    GmailApiProvider,
   ],
 })
 export class CommunicationModule {}
