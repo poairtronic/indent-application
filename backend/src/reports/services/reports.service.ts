@@ -799,8 +799,8 @@ export class ReportsService {
         JOIN "materials" m ON m."id" = ci."materialId" AND m."isDeleted" = false
         JOIN "cost_sheets" cs ON cs."id" = ci."costSheetId" AND cs."isDeleted" = false
         WHERE ci."isDeleted" = false
-          AND ($1::text IS NULL OR ci."materialId" = $1)
-          AND ($2::text IS NULL OR m."category" = $2)
+          AND ($1::text IS NULL OR ci."materialId"::text = $1)
+          AND ($2::text IS NULL OR m."category" ILIKE $2)
           AND ($3::text IS NULL OR m."materialName" ILIKE $3 OR m."materialCode" ILIKE $3)
           AND ($4::timestamp IS NULL OR cs."createdAt" >= $4)
           AND ($5::timestamp IS NULL OR cs."createdAt" <= $5)
@@ -838,8 +838,8 @@ export class ReportsService {
         JOIN "materials" m ON m."id" = ci."materialId" AND m."isDeleted" = false
         JOIN "cost_sheets" cs ON cs."id" = ci."costSheetId" AND cs."isDeleted" = false
         WHERE ci."isDeleted" = false
-          AND ($1::text IS NULL OR ci."materialId" = $1)
-          AND ($2::text IS NULL OR m."category" = $2)
+          AND ($1::text IS NULL OR ci."materialId"::text = $1)
+          AND ($2::text IS NULL OR m."category" ILIKE $2)
           AND ($3::text IS NULL OR m."materialName" ILIKE $3 OR m."materialCode" ILIKE $3)
           AND ($4::timestamp IS NULL OR cs."createdAt" >= $4)
           AND ($5::timestamp IS NULL OR cs."createdAt" <= $5)
@@ -1207,7 +1207,7 @@ export class ReportsService {
             ) AS "activeIndentCount"
           FROM "products" p
           WHERE p."isDeleted" = false
-            AND ($1::text IS NULL OR p."status" = $1)
+            AND ($1::text IS NULL OR p."status"::text = $1)
             AND ($2::text IS NULL OR p."productName" ILIKE $2 OR p."productCode" ILIKE $2)
           ORDER BY ${orderByClause}, p."productCode" ASC
           LIMIT $3 OFFSET $4

@@ -276,6 +276,7 @@ export const REPORTS_REGISTRY: Record<string, ReportConfig> = {
         type: 'select',
         placeholder: 'All Categories',
         options: [
+          { value: 'METALS', label: 'Metals' },
           { value: 'RAW_MATERIAL', label: 'Raw Material' },
           { value: 'CONSUMABLE', label: 'Consumable' },
           { value: 'SPARE', label: 'Spare Parts' },
