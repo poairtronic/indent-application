@@ -658,7 +658,8 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const isAccountsMode =
     propIsAccountsMode !== undefined
       ? propIsAccountsMode
-      : initialData?.currentState === 'ACCOUNTS_COST_VERIFICATION';
+      : initialData?.currentState === 'ACCOUNTS_COST_VERIFICATION' ||
+        initialData?.currentState === 'ACTUAL_COST_UPDATED';
 
   const user = useAuthStore((s) => s.user);
   const hasPermission = useAuthStore((s) => s.hasPermission);

@@ -7,11 +7,13 @@ import { useAuthStore } from '../../store/authStore';
 import { CostSheetList } from './components/CostSheetList';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Search, Filter, Grid, List as ListIcon, TrendingUp, Plus } from 'lucide-react';
+import { Search, Filter, Grid, List as ListIcon, TrendingUp, Plus, Printer } from 'lucide-react';
 import { Select } from '../../components/ui/Select';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { AppPermission } from '../../constants/permissions';
 import type { WorkflowState } from '../../api/types/enums';
+import { UniversalPrintModal, useUniversalPrint } from '../../components/print';
+import { CostSheetListPrintReport } from './components/CostSheetListPrintReport';
 
 const COST_RELEVANT_STATES: { label: string; value: string }[] = [
   { label: 'All Statuses', value: '' },
@@ -83,6 +85,8 @@ export const CostSheetDashboardPage: React.FC = () => {
     );
   }
 
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -131,6 +135,15 @@ export const CostSheetDashboardPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
+            onClick={openPrint}
+            className="flex items-center gap-2"
+          >
+            <Printer size={14} />
+            Print Report
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => refetch()}
             disabled={isFetching}
             className="flex items-center gap-2"
@@ -154,6 +167,23 @@ export const CostSheetDashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Universal Print Modal */}
+      <UniversalPrintModal
+        isOpen={isPrintOpen}
+        onClose={closePrint}
+        title="Process Cost Sheets Master Report"
+        orientation="landscape"
+      >
+        <CostSheetListPrintReport
+          indents={items}
+          totalCount={total}
+          filters={{
+            status: filters.status,
+            search: filters.search,
+          }}
+        />
+      </UniversalPrintModal>
 
       <CostSheetList
         indents={items}

@@ -10,6 +10,7 @@ import {
   Download,
   Archive,
   CheckCircle2,
+  Printer,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -25,6 +26,8 @@ import { downloadFile } from '../../utils/download';
 import { useAuthStore } from '../../store/authStore';
 import { AppPermission } from '../../constants/permissions';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { UniversalPrintModal, useUniversalPrint } from '../../components/print';
+import { ProductListPrintReport } from './components/ProductListPrintReport';
 import {
   useProducts,
   useCreateProduct,
@@ -196,6 +199,8 @@ export const ProductsMasterPage: React.FC = () => {
     overscan: 5,
   });
 
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
+
   return (
     <div className="space-y-6 font-sans">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
@@ -210,6 +215,9 @@ export const ProductsMasterPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" icon={<Printer size={16} />} onClick={openPrint}>
+            Print Catalog
+          </Button>
           {canExport && (
             <Button
               variant="secondary"
@@ -481,6 +489,23 @@ export const ProductsMasterPage: React.FC = () => {
         confirmLabel="Delete Product"
         loading={deleteProduct.isPending}
       />
+
+      {/* Universal Print Modal */}
+      <UniversalPrintModal
+        isOpen={isPrintOpen}
+        onClose={closePrint}
+        title="Master Product Catalog Report"
+        orientation="portrait"
+      >
+        <ProductListPrintReport
+          products={products}
+          totalCount={total}
+          filters={{
+            status: statusFilter !== 'ALL' ? statusFilter : undefined,
+            search,
+          }}
+        />
+      </UniversalPrintModal>
     </div>
   );
 };

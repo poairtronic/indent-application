@@ -58,16 +58,16 @@ export class ActualProcessCostDto {
 
 export class ActualCostEntryDto {
   @IsArray()
-  @IsNotEmpty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => ActualCostItemDto)
-  costItems: ActualCostItemDto[];
+  costItems?: ActualCostItemDto[];
 
   @IsArray()
-  @IsNotEmpty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => ActualProcessCostDto)
-  processCosts: ActualProcessCostDto[];
+  processCosts?: ActualProcessCostDto[];
 
   @IsArray()
   @IsOptional()

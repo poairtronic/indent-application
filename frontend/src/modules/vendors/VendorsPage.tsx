@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Eye, Pencil, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react';
+import { Eye, Pencil, Plus, RotateCcw, Search, Trash2, X, Printer } from 'lucide-react';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useAuthStore } from '../../store/authStore';
 import { AppPermission } from '../../constants/permissions';
@@ -27,6 +27,8 @@ import { inputClasses } from '../../components/ui/inputClasses';
 import { VendorFormModal } from './VendorFormModal';
 import { VendorDetailModal, vendorStatusLabel, vendorStatusTone } from './VendorDetailModal';
 import type { CreateVendorPayload, UpdateVendorPayload, VendorResponse } from '../../types/vendor';
+import { UniversalPrintModal, useUniversalPrint } from '../../components/print';
+import { VendorListPrintReport } from './components/VendorListPrintReport';
 
 const PAGE_SIZE = 10;
 
@@ -153,18 +155,20 @@ export const VendorsPage: React.FC = () => {
 
   const { data, isLoading, isError, error, refetch, isFetching } = vendorsQuery;
   const items = data?.items ?? [];
+  const total = data?.total ?? (data as any)?.meta?.total ?? items.length;
   const virtualizer = useWindowVirtualizer({
     count: items.length,
     estimateSize: () => 65,
     overscan: 5,
   });
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
 
   return (
     <div className="space-y-6">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
 
       <div className="bg-surface-card border border-border-default rounded-xl p-6 shadow-card">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-text-primary tracking-tight">Vendors</h1>
             <p className="text-text-muted mt-1">
@@ -182,6 +186,9 @@ export const VendorsPage: React.FC = () => {
                 Deleted ({records.length})
               </Button>
             )}
+            <Button variant="secondary" size="sm" icon={<Printer size={14} />} onClick={openPrint}>
+              Print Report
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -452,6 +459,23 @@ export const VendorsPage: React.FC = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* Universal Print Modal */}
+      <UniversalPrintModal
+        isOpen={isPrintOpen}
+        onClose={closePrint}
+        title="Vendor Directory Master Report"
+        orientation="portrait"
+      >
+        <VendorListPrintReport
+          vendors={items}
+          totalCount={total}
+          filters={{
+            status: statusFilter,
+            search,
+          }}
+        />
+      </UniversalPrintModal>
     </div>
   );
 };

@@ -32,5 +32,6 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["jest", "node"]
   },
-  "exclude": ["node_modules", "dist", "prettier.config.cjs", "eslint.config.js", "performance"]
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist", "prettier.config.cjs", "eslint.config.js", "performance", "scratch"]
 }

@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
+@import '../components/print/print.css';
 @config "../../tailwind.config.js";
 
 @layer base {
@@ -629,83 +630,28 @@
 }
 
 /* ============================================================================
-   Print Media Styles
+   Print Media Styles & Universal Portal Integration
    ============================================================================ */
 @media print {
-  /* Reset heights and overflow to allow full page printing */
-  html,
-  body,
+  /* Hide standard application root and navigation when printing */
   #root,
-  .h-screen {
-    height: auto !important;
-    min-height: auto !important;
-    overflow: visible !important;
-  }
-
-  /* Ensure scrolling containers expand to full height for printing */
-  .overflow-y-auto,
-  .overflow-y-scroll,
-  .overflow-hidden,
-  .overflow-x-auto {
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
-  }
-
-  /* Reset flex wrappers to block to allow native page breaks */
-  .flex.h-screen,
-  .flex-1.flex-col,
-  .flex-1.overflow-y-auto {
-    display: block !important;
-  }
-
-  /* Hide typical UI elements that shouldn't be printed */
+  .no-print,
   aside,
   header,
   nav,
-  .sidebar,
   button,
-  .no-print {
+  .sidebar,
+  .toast-viewport {
     display: none !important;
   }
 
-  /* Adjust main container to use full width when sidebar is hidden */
-  main,
-  .md\:ml-64,
-  .lg\:ml-72 {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 0 !important;
-  }
-
-  /* Ensure backgrounds and colors print properly - Force Pure Black and White */
-  * {
-    color: black !important;
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-    border-color: #000 !important;
-  }
-
-  /* Add subtle page breaks where appropriate */
-  .break-inside-avoid {
-    break-inside: avoid;
-  }
-
-  .page-break-before {
-    break-before: page;
-  }
-
-  /* Basic print typography & sizing adjustments */
+  /* Expand body and document container */
+  html,
   body {
-    background: white !important;
-    color: black !important;
-  }
-
-  .glass-panel,
-  .glass-surface {
-    border: 1px solid #000 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #111827 !important;
   }
 }

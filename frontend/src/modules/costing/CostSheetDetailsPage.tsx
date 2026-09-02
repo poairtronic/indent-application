@@ -19,6 +19,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Printer,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -29,6 +30,8 @@ import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { AppPermission } from '../../constants/permissions';
 import { getWorkflowAccess } from '../../constants/workflow';
 import { parseItemRemarks } from '../indent/components/IndentForm';
+import { UniversalPrintModal, useUniversalPrint } from '../../components/print';
+import { SingleCostSheetPrintSheet } from './components/SingleCostSheetPrintSheet';
 
 const WORKFLOW_STATE_LABELS: Record<string, string> = {
   DRAFT: 'Draft',
@@ -181,37 +184,69 @@ export const CostSheetDetailsPage: React.FC = () => {
   const isExecutingRef = React.useRef(false);
 
   const handleSaveActuals = useCallback(async () => {
-    if (!id || isExecutingRef.current) return;
+    if (!id || !indent || !indent.costSheet || isExecutingRef.current) return;
     isExecutingRef.current = true;
+    const currentCs = indent.costSheet;
     const payload = {
-      costItems: Object.entries(actuals.materials).map(([costItemId, vals]) => ({
-        costItemId,
-        actualRate: vals.actualRate,
-        actualQuantity: vals.actualQuantity,
-      })),
-      processCosts: Object.entries(actuals.processes).map(([processCostId, vals]) => ({
-        processCostId,
-        actualCost: vals.actualCost,
-        actualHours: vals.actualHours,
-      })),
-      broughtMaterials: Object.entries(actuals.broughtMaterials).map(
-        ([broughtMaterialId, vals]) => ({
-          broughtMaterialId,
-          actualAmount: vals.actualAmount,
+      costItems: (currentCs.costItems || []).map((ci) => {
+        const itemActual = actuals.materials[ci.id];
+        const actualRate =
+          itemActual !== undefined && itemActual.actualRate !== undefined
+            ? Number(itemActual.actualRate) || 0
+            : Number(ci.actualRate ?? ci.predictedRate ?? 0);
+        const actualQuantity =
+          itemActual !== undefined && itemActual.actualQuantity !== undefined
+            ? Number(itemActual.actualQuantity) || 0
+            : Number(ci.actualQuantity ?? ci.predictedQuantity ?? 0);
+        return {
+          costItemId: ci.id,
+          actualRate,
+          actualQuantity,
+          remarks: ci.remarks || '',
+        };
+      }),
+      processCosts: (currentCs.processCosts || []).map((pc) => {
+        const procActual = actuals.processes[pc.id];
+        const actualCost =
+          procActual !== undefined && procActual.actualCost !== undefined
+            ? Number(procActual.actualCost) || 0
+            : Number(pc.actualCost ?? pc.predictedCost ?? 0);
+        const actualHours =
+          procActual !== undefined && procActual.actualHours !== undefined
+            ? Number(procActual.actualHours) || 0
+            : Number(pc.actualHours ?? pc.estimatedHours ?? 0);
+        return {
+          processCostId: pc.id,
+          actualCost,
+          actualHours,
+        };
+      }),
+      broughtMaterials: (indent.broughtMaterials || []).map((bm) => {
+        const bmActual = actuals.broughtMaterials[bm.id];
+        const actualAmount =
+          bmActual !== undefined && bmActual.actualAmount !== undefined
+            ? Number(bmActual.actualAmount) || 0
+            : Number(bm.actualAmount ?? bm.amount ?? 0);
+        return {
+          broughtMaterialId: bm.id,
+          actualAmount,
           remarks: 'Actual costs updated via cost sheet',
-        }),
-      ),
-      remarks: 'Actual costs updated',
+        };
+      }),
+      actualDesignCost: Number(currentCs.actualDesignCost ?? currentCs.designCost ?? 0),
+      actualOverheadCost: Number(currentCs.actualOverheadCost ?? currentCs.overheadCost ?? 0),
+      actualContingencyCost: Number(currentCs.actualContingencyCost ?? currentCs.contingencyCost ?? 0),
+      remarks: 'Actual costs updated via cost sheet',
     };
     try {
       await saveActualCosts({ id, data: payload });
       show('success', 'Actual costs updated successfully!');
-    } catch {
-      show('error', 'Failed to save actual costs. Please try again.');
+    } catch (err: any) {
+      show('error', err?.response?.data?.message || err?.message || 'Failed to save actual costs. Please try again.');
     } finally {
       isExecutingRef.current = false;
     }
-  }, [id, actuals, saveActualCosts, show]);
+  }, [id, indent, actuals, saveActualCosts, show]);
 
   const handleFinancialClose = useCallback(async () => {
     if (!id || isExecutingRef.current) return;
@@ -245,18 +280,108 @@ export const CostSheetDetailsPage: React.FC = () => {
   }
 
   const cs = indent.costSheet;
+
+  // Real-time dynamic live calculations based on user input (fallback to saved values)
+  const dynamicCostItems = (cs.costItems || []).map((item) => {
+    const liveActualRate =
+      isEditable && actuals.materials[item.id] !== undefined
+        ? Number(actuals.materials[item.id]?.actualRate) || 0
+        : Number(item.actualRate ?? item.predictedRate ?? 0);
+    const liveActualQty =
+      isEditable && actuals.materials[item.id] !== undefined
+        ? Number(actuals.materials[item.id]?.actualQuantity) || 0
+        : Number(item.actualQuantity ?? item.predictedQuantity ?? 0);
+    const liveActualAmount = isEditable
+      ? liveActualRate * liveActualQty
+      : Number(item.actualAmount ?? liveActualRate * liveActualQty ?? 0);
+    const liveVariance = liveActualAmount - Number(item.predictedAmount || 0);
+    return {
+      ...item,
+      actualRate: liveActualRate,
+      actualQuantity: liveActualQty,
+      actualAmount: liveActualAmount,
+      variance: liveVariance,
+    };
+  });
+
+  const dynamicProcessCosts = (cs.processCosts || []).map((item) => {
+    const liveActualCost =
+      isEditable && actuals.processes[item.id] !== undefined
+        ? Number(actuals.processes[item.id]?.actualCost) || 0
+        : Number(item.actualCost ?? item.predictedCost ?? 0);
+    const liveActualHours =
+      isEditable && actuals.processes[item.id] !== undefined
+        ? Number(actuals.processes[item.id]?.actualHours) || 0
+        : Number(item.actualHours ?? item.estimatedHours ?? 0);
+    const liveVariance = liveActualCost - Number(item.predictedCost || 0);
+    return {
+      ...item,
+      actualCost: liveActualCost,
+      actualHours: liveActualHours,
+      variance: liveVariance,
+    };
+  });
+
+  const dynamicBroughtMaterials = (indent.broughtMaterials || []).map((item) => {
+    const liveActualAmount =
+      isEditable && actuals.broughtMaterials[item.id] !== undefined
+        ? Number(actuals.broughtMaterials[item.id]?.actualAmount) || 0
+        : Number(item.actualAmount ?? item.amount ?? 0);
+    const liveVariance = liveActualAmount - Number(item.amount || 0);
+    return {
+      ...item,
+      actualAmount: liveActualAmount,
+      variance: liveVariance,
+    };
+  });
+
   const plannedMaterialCost =
     (cs.costItems?.reduce((a, c) => a + (Number(c.predictedAmount) || 0), 0) || 0) +
     (indent.broughtMaterials?.reduce((a, c) => a + (Number(c.amount) || 0), 0) || 0);
+
   const actualMaterialCost =
-    (cs.costItems?.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) || 0) +
-    (indent.broughtMaterials?.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) || 0);
+    dynamicCostItems.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) +
+    dynamicBroughtMaterials.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0);
+
   const materialVariance = actualMaterialCost - plannedMaterialCost;
+
   const plannedProcessCost =
     cs.processCosts?.reduce((a, c) => a + (Number(c.predictedCost) || 0), 0) || 0;
+
   const actualProcessCost =
-    cs.processCosts?.reduce((a, c) => a + (Number(c.actualCost) || 0), 0) || 0;
+    dynamicProcessCosts.reduce((a, c) => a + (Number(c.actualCost) || 0), 0);
+
   const processVariance = actualProcessCost - plannedProcessCost;
+
+  const plannedTotal =
+    Number(cs.predictedTotal) ||
+    plannedMaterialCost +
+      plannedProcessCost +
+      Number(cs.designCost || 0) +
+      Number(cs.overheadCost || 0) +
+      Number(cs.contingencyCost || 0);
+
+  const actualTotal =
+    actualMaterialCost +
+    actualProcessCost +
+    Number(cs.actualDesignCost || 0) +
+    Number(cs.actualOverheadCost || 0) +
+    Number(cs.actualContingencyCost || 0);
+
+  const totalVariance = actualTotal - plannedTotal;
+  const totalVariancePercentage = plannedTotal > 0 ? (totalVariance / plannedTotal) * 100 : 0;
+
+  const dynamicCostSheet = {
+    ...cs,
+    predictedTotal: plannedTotal,
+    actualTotal,
+    varianceAmount: totalVariance,
+    variancePercentage: totalVariancePercentage,
+    costItems: dynamicCostItems,
+    processCosts: dynamicProcessCosts,
+  };
+
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
 
   return (
     <div className="space-y-6">
@@ -284,39 +409,59 @@ export const CostSheetDetailsPage: React.FC = () => {
             </p>
           </div>
         </div>
-        {isEditable && (
-          <div className="flex items-center gap-2">
-            {/* BIZ-001: Save Actuals button is available in both cost-entry states */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveActuals}
-              loading={isSaving}
-              className="flex items-center gap-2"
-            >
-              <Save size={16} /> Save Actuals
-            </Button>
-            {/* BIZ-001: Financial Closure is ONLY available after actual costs have been
-                submitted (ACTUAL_COST_UPDATED). It must NOT appear during
-                ACCOUNTS_COST_VERIFICATION to prevent bypassing the cost-entry step. */}
-            {indent?.currentState === 'ACTUAL_COST_UPDATED' && (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openPrint}
+            className="flex items-center gap-2"
+          >
+            <Printer size={16} /> Print Sheet
+          </Button>
+          {isEditable && (
+            <>
+              {/* BIZ-001: Save Actuals button is available in both cost-entry states */}
               <Button
-                variant="primary"
+                variant="outline"
                 size="sm"
-                onClick={handleFinancialClose}
-                loading={isClosing}
+                onClick={handleSaveActuals}
+                loading={isSaving}
                 className="flex items-center gap-2"
               >
-                <CheckCircle size={16} /> Finalize Closure
+                <Save size={16} /> Save Actuals
               </Button>
-            )}
-          </div>
-        )}
+              {/* BIZ-001: Financial Closure is ONLY available after actual costs have been
+                  submitted (ACTUAL_COST_UPDATED). It must NOT appear during
+                  ACCOUNTS_COST_VERIFICATION to prevent bypassing the cost-entry step. */}
+              {indent?.currentState === 'ACTUAL_COST_UPDATED' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleFinancialClose}
+                  loading={isClosing}
+                  className="flex items-center gap-2"
+                >
+                  <CheckCircle size={16} /> Finalize Closure
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
+      {/* Universal Print Modal */}
+      <UniversalPrintModal
+        isOpen={isPrintOpen}
+        onClose={closePrint}
+        title={`Cost Sheet: ${cs.costNumber}`}
+        orientation="portrait"
+      >
+        <SingleCostSheetPrintSheet indent={indent} />
+      </UniversalPrintModal>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <FinancialSummaryWidget costSheet={cs} />
-        <CostBreakdownChart costSheet={cs} />
+        <FinancialSummaryWidget costSheet={dynamicCostSheet} />
+        <CostBreakdownChart costSheet={dynamicCostSheet} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -356,11 +501,11 @@ export const CostSheetDetailsPage: React.FC = () => {
           </p>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="break-all">
-              <VarianceIndicator value={materialVariance + processVariance} />
+              <VarianceIndicator value={totalVariance} />
             </div>
             <span className="text-xs text-text-muted">
-              {Number(cs.predictedTotal) > 0
-                ? `${((((Number(cs.actualTotal) || 0) - Number(cs.predictedTotal)) / Number(cs.predictedTotal)) * 100).toFixed(1)}%`
+              {plannedTotal > 0
+                ? `${totalVariancePercentage.toFixed(1)}%`
                 : '--'}
             </span>
           </div>
@@ -389,9 +534,7 @@ export const CostSheetDetailsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {cs.costItems?.map((item, index) => {
-                const itemVariance =
-                  (Number(item.actualAmount) || 0) - Number(item.predictedAmount);
+              {dynamicCostItems.map((item, index) => {
                 const indentItem = indent?.items?.[index];
                 const parsed = indentItem ? parseItemRemarks(indentItem.remarks) : {};
                 return (
@@ -408,25 +551,26 @@ export const CostSheetDetailsPage: React.FC = () => {
                     <td className="py-3 px-4 text-text-secondary">{parsed.size || '—'}</td>
                     <td className="py-3 px-4">{item.predictedQuantity}</td>
                     <td className="py-3 px-4">Rs.{item.predictedRate}</td>
-                    <td className="py-3 px-4">Rs.{item.predictedAmount.toLocaleString()}</td>
+                    <td className="py-3 px-4">Rs.{Number(item.predictedAmount).toLocaleString()}</td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
                       {isEditable ? (
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
-                          value={actuals.materials[item.id]?.actualQuantity || ''}
-                          onChange={(e) =>
+                          value={actuals.materials[item.id]?.actualQuantity ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
                             setActuals((prev) => ({
                               ...prev,
                               materials: {
                                 ...prev.materials,
                                 [item.id]: {
-                                  ...prev.materials[item.id],
-                                  actualQuantity: parseFloat(e.target.value) || 0,
+                                  actualRate: prev.materials[item.id]?.actualRate ?? Number(item.actualRate ?? item.predictedRate ?? 0),
+                                  actualQuantity: typeof val === 'number' ? val : 0,
                                 },
                               },
-                            }))
-                          }
+                            }));
+                          }}
                         />
                       ) : (
                         <span>{item.actualQuantity || '--'}</span>
@@ -437,44 +581,37 @@ export const CostSheetDetailsPage: React.FC = () => {
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
-                          value={actuals.materials[item.id]?.actualRate || ''}
-                          onChange={(e) =>
+                          value={actuals.materials[item.id]?.actualRate ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
                             setActuals((prev) => ({
                               ...prev,
                               materials: {
                                 ...prev.materials,
                                 [item.id]: {
-                                  ...prev.materials[item.id],
-                                  actualRate: parseFloat(e.target.value) || 0,
+                                  actualQuantity: prev.materials[item.id]?.actualQuantity ?? Number(item.actualQuantity ?? item.predictedQuantity ?? 0),
+                                  actualRate: typeof val === 'number' ? val : 0,
                                 },
                               },
-                            }))
-                          }
+                            }));
+                          }}
                         />
                       ) : (
                         <span>{item.actualRate ? `Rs.${item.actualRate}` : '--'}</span>
                       )}
                     </td>
                     <td className="py-3 px-4 font-medium bg-surface-elevated/20 text-accent-primary">
-                      {isEditable
-                        ? `Rs.${((actuals.materials[item.id]?.actualRate || 0) * (actuals.materials[item.id]?.actualQuantity || 0)).toFixed(2)}`
-                        : item.actualAmount
-                          ? `Rs.${item.actualAmount.toLocaleString()}`
-                          : '--'}
+                      Rs.{Number(item.actualAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-3 px-4 bg-surface-elevated/20">
-                      {item.actualAmount !== undefined ? (
-                        <VarianceIndicator value={itemVariance} />
-                      ) : (
-                        '--'
-                      )}
+                      <VarianceIndicator value={item.variance} />
                     </td>
                   </tr>
                 );
               })}
               {(!cs.costItems || cs.costItems.length === 0) && (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-text-muted">
+                  <td colSpan={10} className="py-8 text-center text-text-muted">
                     No material costs recorded
                   </td>
                 </tr>
@@ -502,8 +639,7 @@ export const CostSheetDetailsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {cs.processCosts?.map((item) => {
-                const procVariance = (item.actualCost || 0) - item.predictedCost;
+              {dynamicProcessCosts.map((item) => {
                 return (
                   <tr
                     key={item.id}
@@ -513,25 +649,26 @@ export const CostSheetDetailsPage: React.FC = () => {
                       {item.process?.processName || `Process #${item.processId}`}
                     </td>
                     <td className="py-3 px-4">{item.estimatedHours}</td>
-                    <td className="py-3 px-4">Rs.{item.predictedCost.toLocaleString()}</td>
+                    <td className="py-3 px-4">Rs.{Number(item.predictedCost).toLocaleString()}</td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
                       {isEditable ? (
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
-                          value={actuals.processes[item.id]?.actualHours || ''}
-                          onChange={(e) =>
+                          value={actuals.processes[item.id]?.actualHours ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
                             setActuals((prev) => ({
                               ...prev,
                               processes: {
                                 ...prev.processes,
                                 [item.id]: {
-                                  ...prev.processes[item.id],
-                                  actualHours: parseFloat(e.target.value) || 0,
+                                  actualCost: prev.processes[item.id]?.actualCost ?? Number(item.actualCost ?? item.predictedCost ?? 0),
+                                  actualHours: typeof val === 'number' ? val : 0,
                                 },
                               },
-                            }))
-                          }
+                            }));
+                          }}
                         />
                       ) : (
                         <span>{item.actualHours !== null ? `${item.actualHours} hrs` : '--'}</span>
@@ -542,32 +679,29 @@ export const CostSheetDetailsPage: React.FC = () => {
                         <Input
                           type="number"
                           className="w-32 text-sm h-8"
-                          value={actuals.processes[item.id]?.actualCost || ''}
-                          onChange={(e) =>
+                          value={actuals.processes[item.id]?.actualCost ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
                             setActuals((prev) => ({
                               ...prev,
                               processes: {
                                 ...prev.processes,
                                 [item.id]: {
-                                  ...prev.processes[item.id],
-                                  actualCost: parseFloat(e.target.value) || 0,
+                                  actualHours: prev.processes[item.id]?.actualHours ?? Number(item.actualHours ?? item.estimatedHours ?? 0),
+                                  actualCost: typeof val === 'number' ? val : 0,
                                 },
                               },
-                            }))
-                          }
+                            }));
+                          }}
                         />
                       ) : (
                         <span className="font-medium text-indigo-500">
-                          {item.actualCost ? `Rs.${item.actualCost.toLocaleString()}` : '--'}
+                          {item.actualCost ? `Rs.${Number(item.actualCost).toLocaleString()}` : '--'}
                         </span>
                       )}
                     </td>
                     <td className="py-3 px-4 bg-surface-elevated/20">
-                      {item.actualCost !== undefined ? (
-                        <VarianceIndicator value={procVariance} />
-                      ) : (
-                        '--'
-                      )}
+                      <VarianceIndicator value={item.variance} />
                     </td>
                   </tr>
                 );
@@ -605,8 +739,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {indent.broughtMaterials.map((item) => {
-                  const bmVariance = (Number(item.actualAmount) || 0) - (Number(item.amount) || 0);
+                {dynamicBroughtMaterials.map((item) => {
                   return (
                     <tr
                       key={item.id}
@@ -623,34 +756,30 @@ export const CostSheetDetailsPage: React.FC = () => {
                           <Input
                             type="number"
                             className="w-32 text-sm h-8"
-                            value={actuals.broughtMaterials[item.id]?.actualAmount || ''}
-                            onChange={(e) =>
+                            value={actuals.broughtMaterials[item.id]?.actualAmount ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
                               setActuals((prev) => ({
                                 ...prev,
                                 broughtMaterials: {
                                   ...prev.broughtMaterials,
                                   [item.id]: {
-                                    ...prev.broughtMaterials[item.id],
-                                    actualAmount: parseFloat(e.target.value) || 0,
+                                    actualAmount: typeof val === 'number' ? val : 0,
                                   },
                                 },
-                              }))
-                            }
+                              }));
+                            }}
                           />
                         ) : (
                           <span className="font-medium text-teal-500">
-                            {item.actualAmount
+                            {item.actualAmount !== undefined && item.actualAmount !== null
                               ? `Rs.${Number(item.actualAmount).toLocaleString()}`
                               : '--'}
                           </span>
                         )}
                       </td>
                       <td className="py-3 px-4 bg-surface-elevated/20">
-                        {item.actualAmount !== undefined && item.actualAmount !== null ? (
-                          <VarianceIndicator value={bmVariance} />
-                        ) : (
-                          '--'
-                        )}
+                        <VarianceIndicator value={item.variance} />
                       </td>
                     </tr>
                   );

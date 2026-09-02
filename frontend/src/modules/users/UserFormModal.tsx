@@ -33,7 +33,11 @@ const baseSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED'] as const),
 });
 
-const profileImageField = z.string().url('Invalid URL format for profile image').optional().or(z.literal(''));
+const profileImageField = z
+  .string()
+  .url('Invalid URL format for profile image')
+  .optional()
+  .or(z.literal(''));
 
 const createSchema = baseSchema.extend({
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -41,7 +45,11 @@ const createSchema = baseSchema.extend({
 });
 
 const editSchema = baseSchema.extend({
-  password: z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal('')),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .optional()
+    .or(z.literal('')),
   profileImage: profileImageField,
 });
 
@@ -82,31 +90,35 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   const isCreate = mode === 'create';
   const schema = isCreate ? createSchema : editSchema;
 
-  const defaultValues = useMemo<UserFormValues>(() => user
-    ? {
-        employeeCode: user.employeeCode,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone ?? '',
-        password: '',
-        departmentId: user.departmentId,
-        roleId: user.roleId,
-        status: user.status,
-        profileImage: user.profileImage ?? '',
-      }
-    : {
-        employeeCode: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        password: '',
-        departmentId: '',
-        roleId: '',
-        status: 'ACTIVE',
-        profileImage: '',
-      }, [user]);
+  const defaultValues = useMemo<UserFormValues>(
+    () =>
+      user
+        ? {
+            employeeCode: user.employeeCode,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            phone: user.phone ?? '',
+            password: '',
+            departmentId: user.departmentId,
+            roleId: user.roleId,
+            status: user.status,
+            profileImage: user.profileImage ?? '',
+          }
+        : {
+            employeeCode: '',
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+            password: '',
+            departmentId: '',
+            roleId: '',
+            status: 'ACTIVE',
+            profileImage: '',
+          },
+    [user],
+  );
 
   const {
     register,

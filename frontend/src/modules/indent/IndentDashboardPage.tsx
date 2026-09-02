@@ -9,10 +9,12 @@ import { AppPermission } from '../../constants/permissions';
 import { IndentList } from './components/IndentList';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Search, Plus, Filter, Grid, List as ListIcon } from 'lucide-react';
+import { Search, Plus, Filter, Grid, List as ListIcon, Printer } from 'lucide-react';
 import { Select } from '../../components/ui/Select';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { WorkflowState } from '../../api/types/enums';
+import { UniversalPrintModal, useUniversalPrint } from '../../components/print';
+import { IndentListPrintReport } from './components/IndentListPrintReport';
 
 export const IndentDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -74,6 +76,11 @@ export const IndentDashboardPage: React.FC = () => {
   const items = data?.items ?? (data as any)?.data ?? [];
   const total = data?.total ?? (data as any)?.meta?.total ?? 0;
   const totalPages = data?.totalPages ?? (data as any)?.meta?.totalPages ?? 1;
+
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
+  const selectedDeptName = (departments ?? []).find(
+    (d) => d.id === filters.departmentId,
+  )?.departmentName;
 
   return (
     <div className="space-y-6">
@@ -139,6 +146,15 @@ export const IndentDashboardPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
+            onClick={openPrint}
+            className="flex items-center gap-2"
+          >
+            <Printer size={14} />
+            Print Report
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => refetch()}
             disabled={isFetching}
             className="flex items-center gap-2"
@@ -162,6 +178,24 @@ export const IndentDashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Universal Print Modal */}
+      <UniversalPrintModal
+        isOpen={isPrintOpen}
+        onClose={closePrint}
+        title="Manufacturing Indents Master Report"
+        orientation="landscape"
+      >
+        <IndentListPrintReport
+          indents={items}
+          totalCount={total}
+          filters={{
+            status: filters.status,
+            departmentName: selectedDeptName,
+            search: filters.search,
+          }}
+        />
+      </UniversalPrintModal>
 
       <IndentList
         indents={items}

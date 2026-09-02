@@ -155,7 +155,11 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
   const handleAccountsSubmit = async (data: any) => {
     try {
       // Find process actuals from item processes if costSheet.processCosts is not directly populated in form
-      const formProcessCosts: Array<{ processId?: string; actualCost?: number; actualHours?: number }> = [];
+      const formProcessCosts: Array<{
+        processId?: string;
+        actualCost?: number;
+        actualHours?: number;
+      }> = [];
       data.indent?.items?.forEach((it: any) => {
         it.processes?.forEach((p: any) => {
           formProcessCosts.push({
@@ -170,7 +174,8 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
         costItems: (data.costSheet?.costItems || []).map((ci: any, index: number) => ({
           costItemId: indent.costSheet?.costItems?.[index]?.id,
           actualRate: ci.actualRate ?? 0,
-          actualQuantity: ci.predictedQuantity ?? indent.costSheet?.costItems?.[index]?.predictedQuantity ?? 0,
+          actualQuantity:
+            ci.predictedQuantity ?? indent.costSheet?.costItems?.[index]?.predictedQuantity ?? 0,
         })),
         processCosts: (indent.costSheet?.processCosts || []).map((pc: any) => {
           const matched =

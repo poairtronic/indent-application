@@ -19,6 +19,8 @@ import {
 import { ArrowLeft, Edit, Printer, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import type { WorkflowState } from '../../constants/workflow';
 import { AppPermission } from '../../constants/permissions';
+import { UniversalPrintModal, useUniversalPrint } from '../../components/print';
+import { SingleIndentPrintSheet } from './components/SingleIndentPrintSheet';
 
 export const IndentDetailsPage: React.FC = () => {
   const { id } = useParams();
@@ -36,10 +38,17 @@ export const IndentDetailsPage: React.FC = () => {
       const access = getWorkflowAccess('DRAFT', user);
       return access.canEdit && hasPermission(AppPermission.INDENT_EDIT);
     }
-    // Accounts can verify/enter actual costs during ACCOUNTS_COST_VERIFICATION
-    if (indent.currentState === 'ACCOUNTS_COST_VERIFICATION') {
-      const access = getWorkflowAccess('ACCOUNTS_COST_VERIFICATION', user);
-      return access.canEdit && hasPermission(AppPermission.ACCOUNTS_VERIFY);
+    // Accounts can verify/enter actual costs during ACCOUNTS_COST_VERIFICATION and ACTUAL_COST_UPDATED
+    if (
+      indent.currentState === 'ACCOUNTS_COST_VERIFICATION' ||
+      indent.currentState === 'ACTUAL_COST_UPDATED'
+    ) {
+      const access = getWorkflowAccess(indent.currentState as any, user);
+      return (
+        access.canEdit &&
+        (hasPermission(AppPermission.ACCOUNTS_VERIFY) ||
+          hasPermission(AppPermission.ACCOUNTS_CLOSE))
+      );
     }
     return false;
   }, [indent, user, hasPermission]);
@@ -112,6 +121,8 @@ export const IndentDetailsPage: React.FC = () => {
     show('success', 'Workflow action completed successfully.');
   };
 
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
+
   return (
     <div className="space-y-6">
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
@@ -136,7 +147,7 @@ export const IndentDetailsPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.print()}
+            onClick={openPrint}
             className="flex items-center gap-2"
           >
             <Printer size={16} />
@@ -155,6 +166,16 @@ export const IndentDetailsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Universal Print Modal / Preview Portal */}
+      <UniversalPrintModal
+        isOpen={isPrintOpen}
+        onClose={closePrint}
+        title={`Indent Sheet: ${indent.indentNumber}`}
+        orientation="portrait"
+      >
+        <SingleIndentPrintSheet indent={indent} />
+      </UniversalPrintModal>
 
       {/* Workflow Progress Bar */}
       <div className="bg-surface-card rounded-xl p-4 border border-border-default shadow-card print:hidden">

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Download, Search, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Download, Search, RefreshCw, AlertTriangle, Printer } from 'lucide-react';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -12,6 +12,16 @@ import { useAuthStore } from '../../store/authStore';
 import { REPORTS_REGISTRY } from './registry';
 import { ToastViewport, useToasts } from '../../components/ui/toast';
 import { reportsService } from '../../api/services/reports/service';
+import {
+  UniversalPrintModal,
+  useUniversalPrint,
+  PrintDocument,
+  PrintHeader,
+  PrintFilters,
+  PrintTable,
+  PrintTotals,
+  PrintFooter,
+} from '../../components/print';
 import {
   useDailyProductionReport,
   useProcessYieldReport,
@@ -355,6 +365,8 @@ export const ReportDetailPage: React.FC = () => {
     setSearchParams(new URLSearchParams());
   };
 
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
+
   return (
     <div className="flex flex-col h-full animate-fade-in font-sans pb-12">
       {/* Header and Back Button */}
@@ -377,6 +389,15 @@ export const ReportDetailPage: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Printer size={14} />}
+            onClick={openPrint}
+            disabled={query.isLoading || !query.data?.data?.length}
+          >
+            Print Report
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -572,6 +593,46 @@ export const ReportDetailPage: React.FC = () => {
         </div>
       )}
       <ToastViewport toasts={toasts} onDismiss={dismiss} />
+
+      {/* Universal Print Modal */}
+      <UniversalPrintModal
+        isOpen={isPrintOpen}
+        onClose={closePrint}
+        title={config.name}
+        orientation="landscape"
+      >
+        <PrintDocument orientation="landscape">
+          <PrintHeader
+            moduleName="ENTERPRISE ANALYTICS REPORT"
+            reportTitle={config.name}
+            subtitle={config.description}
+          />
+          <PrintFilters
+            filters={[
+              { label: 'Date From', value: dateFrom },
+              { label: 'Date To', value: dateTo },
+              { label: 'Search', value: search },
+              { label: 'Status', value: statusFilter },
+              { label: 'Process Code', value: processCode },
+            ]}
+          />
+          <PrintTable
+            columns={config.columns.map((c: any) => ({
+              header: c.header,
+              accessor: typeof c.accessor === 'function' ? c.accessor : c.accessor,
+              align: c.align || 'left',
+            }))}
+            data={(query.data?.data as any[]) || []}
+          />
+          <PrintTotals
+            rows={[
+              { label: 'Total Records Count', value: query.data?.meta?.total ?? ((query.data?.data as any[]) || []).length, highlight: true },
+              { label: 'Rows Rendered', value: ((query.data?.data as any[]) || []).length },
+            ]}
+          />
+          <PrintFooter />
+        </PrintDocument>
+      </UniversalPrintModal>
     </div>
   );
 };

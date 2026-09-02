@@ -2888,7 +2888,7 @@ export class BusinessTransactionService {
       this.getTransactionContext(id),
       this.prisma.user.findUnique({
         where: { id: userId },
-        include: { department: true },
+        include: { department: true, role: true },
       }),
     ]);
 
@@ -2909,6 +2909,18 @@ export class BusinessTransactionService {
     let fileType: FileType = FileType.OTHER;
 
     const deptUpper = (departmentCode || '').toUpperCase();
+    const roleUpper = (user.role?.roleName || '').toUpperCase();
+
+    const isSystemAdmin =
+      roleUpper === 'ADMIN' ||
+      roleUpper === 'SUPER_ADMIN' ||
+      roleUpper === 'SYSTEM ADMIN' ||
+      roleUpper === 'SYSTEM ADMINISTRATOR' ||
+      user.role?.isSystem === true ||
+      deptUpper === 'ADMIN' ||
+      deptUpper === 'ADMINISTRATION' ||
+      deptUpper === 'ADM';
+
     const isDesignDept = deptUpper === 'DESIGN' || deptUpper === 'DSGN';
     const isAccountsDept =
       deptUpper === 'ACCOUNTS' ||
@@ -2917,7 +2929,34 @@ export class BusinessTransactionService {
       deptUpper === 'FINANCE' ||
       deptUpper === 'FIN';
 
-    if (isDesignDept) {
+    if (isSystemAdmin) {
+      const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png', '.dwg', '.dxf'];
+      if (!allowedExtensions.includes(ext)) {
+        throw new BadRequestException(`Extension '${ext}' not supported for Admin uploads.`);
+      }
+      if (ext === '.pdf') fileType = FileType.PDF;
+      else if (ext === '.xlsx' || ext === '.xls') fileType = FileType.EXCEL;
+      else if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') fileType = FileType.IMAGE;
+      else if (ext === '.dwg' || ext === '.dxf') fileType = FileType.CAD;
+    } else if (isAccountsDept) {
+      if (
+        txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
+        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED &&
+        txData.currentState !== WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE &&
+        txData.currentState !== WorkflowState.COMPLETED &&
+        txData.currentState !== WorkflowState.ARCHIVED
+      ) {
+        throw new BadRequestException('Accounts uploads allowed only in cost verification states.');
+      }
+      const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
+      if (!allowedExtensions.includes(ext)) {
+        throw new BadRequestException(`Extension '${ext}' not supported for Accounts uploads.`);
+      }
+
+      if (ext === '.pdf') fileType = FileType.PDF;
+      else if (ext === '.xlsx' || ext === '.xls') fileType = FileType.EXCEL;
+      else if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') fileType = FileType.IMAGE;
+    } else if (isDesignDept) {
       if (txData.currentState !== WorkflowState.DRAFT) {
         throw new BadRequestException('Design uploads allowed only in DRAFT state.');
       }
@@ -2930,22 +2969,6 @@ export class BusinessTransactionService {
       else if (ext === '.xlsx' || ext === '.xls') fileType = FileType.EXCEL;
       else if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') fileType = FileType.IMAGE;
       else if (ext === '.dwg' || ext === '.dxf') fileType = FileType.CAD;
-    } else if (isAccountsDept) {
-      if (
-        txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
-        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED &&
-        txData.currentState !== WorkflowState.ACCOUNTS_FINANCIAL_CLOSURE
-      ) {
-        throw new BadRequestException('Accounts uploads allowed only in cost verification states.');
-      }
-      const allowedExtensions = ['.pdf', '.xlsx', '.xls', '.jpg', '.jpeg', '.png'];
-      if (!allowedExtensions.includes(ext)) {
-        throw new BadRequestException(`Extension '${ext}' not supported for Accounts uploads.`);
-      }
-
-      if (ext === '.pdf') fileType = FileType.PDF;
-      else if (ext === '.xlsx' || ext === '.xls') fileType = FileType.EXCEL;
-      else if (ext === '.jpg' || ext === '.jpeg' || ext === '.png') fileType = FileType.IMAGE;
     } else {
       throw new ForbiddenException(
         `Department '${departmentCode}' is not authorized to upload attachments.`,
@@ -3093,10 +3116,17 @@ export class BusinessTransactionService {
     }
 
     const departmentCode = user.department.departmentCode;
+    const deptUpper = (departmentCode || '').toUpperCase();
+    const roleUpper = (user.role?.roleName || '').toUpperCase();
     const isAdmin =
-      user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMIN' ||
-      user?.role?.roleName?.toUpperCase() === 'ADMIN' ||
-      user?.role?.roleName?.toUpperCase() === 'SYSTEM ADMINISTRATOR';
+      roleUpper === 'SYSTEM ADMIN' ||
+      roleUpper === 'ADMIN' ||
+      roleUpper === 'SUPER_ADMIN' ||
+      roleUpper === 'SYSTEM ADMINISTRATOR' ||
+      user.role?.isSystem === true ||
+      deptUpper === 'ADMIN' ||
+      deptUpper === 'ADMINISTRATION' ||
+      deptUpper === 'ADM';
 
     let storageFileName = attachment.fileName;
     try {
@@ -3601,13 +3631,25 @@ export class BusinessTransactionService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { department: true },
+      include: { department: true, role: true },
     });
     if (!user || !user.department) {
       throw new ForbiddenException('User department not found.');
     }
 
     const departmentCode = user.department.departmentCode;
+    const deptUpper = (departmentCode || '').toUpperCase();
+    const roleUpper = (user.role?.roleName || '').toUpperCase();
+
+    const isSystemAdmin =
+      roleUpper === 'ADMIN' ||
+      roleUpper === 'SUPER_ADMIN' ||
+      roleUpper === 'SYSTEM ADMIN' ||
+      roleUpper === 'SYSTEM ADMINISTRATOR' ||
+      user.role?.isSystem === true ||
+      deptUpper === 'ADMIN' ||
+      deptUpper === 'ADMINISTRATION' ||
+      deptUpper === 'ADM';
 
     let oldMeta: any = {};
     try {
@@ -3621,22 +3663,24 @@ export class BusinessTransactionService {
     const isUserDesign = departmentCode === 'DESIGN' || departmentCode === 'DSGN';
     const isUserAccounts = departmentCode === 'ACCOUNTS' || departmentCode === 'ACCT';
 
-    if (isOldDesign) {
-      if (!isUserDesign) {
-        throw new ForbiddenException('Only Design department can replace design files.');
-      }
-      if (txData.currentState !== WorkflowState.DRAFT) {
-        throw new BadRequestException('Cannot replace Design files after submission.');
-      }
-    } else if (isOldAccounts) {
-      if (!isUserAccounts) {
-        throw new ForbiddenException('Only Accounts department can replace financial files.');
-      }
-      if (
-        txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
-        txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
-      ) {
-        throw new BadRequestException('Cannot replace Accounts files outside verification states.');
+    if (!isSystemAdmin) {
+      if (isOldDesign) {
+        if (!isUserDesign) {
+          throw new ForbiddenException('Only Design department can replace design files.');
+        }
+        if (txData.currentState !== WorkflowState.DRAFT) {
+          throw new BadRequestException('Cannot replace Design files after submission.');
+        }
+      } else if (isOldAccounts) {
+        if (!isUserAccounts) {
+          throw new ForbiddenException('Only Accounts department can replace financial files.');
+        }
+        if (
+          txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
+          txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
+        ) {
+          throw new BadRequestException('Cannot replace Accounts files outside verification states.');
+        }
       }
     }
 
