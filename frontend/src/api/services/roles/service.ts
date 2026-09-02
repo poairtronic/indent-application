@@ -10,6 +10,10 @@ class RoleService extends BaseService {
     return this.get<RoleResponse[]>('/roles');
   }
 
+  async update<T = RoleResponse>(id: string, data: unknown): Promise<T> {
+    return this.put<T>(`/roles/${id}`, data);
+  }
+
   async getPermissions(id: string): Promise<string[]> {
     return this.get<string[]>(`/roles/${id}/permissions`);
   }

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -41,11 +51,21 @@ export class RolesController {
 
   @Put(':id')
   @Permissions('roles.update')
-  @ApiOperation({ summary: 'Update role' })
+  @ApiOperation({ summary: 'Update role (PUT)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Role updated', type: RoleResponseDto })
   @ApiResponse({ status: 404, description: 'Role not found' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateRoleDto) {
+    return this.rolesService.update(id, dto);
+  }
+
+  @Patch(':id')
+  @Permissions('roles.update')
+  @ApiOperation({ summary: 'Update role (PATCH)' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Role updated', type: RoleResponseDto })
+  @ApiResponse({ status: 404, description: 'Role not found' })
+  patchUpdate(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateRoleDto) {
     return this.rolesService.update(id, dto);
   }
 
@@ -74,7 +94,14 @@ export class RolesController {
   @ApiOperation({ summary: 'Assign permissions to a role' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Permissions assigned', type: RoleResponseDto })
-  assignPermissions(@Param('id', ParseUUIDPipe) id: string, @Body() permissionIds: string[]) {
-    return this.rolesService.assignPermissions(id, permissionIds);
+  assignPermissions(@Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+    const permissionIds = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.permissionIds)
+        ? body.permissionIds
+        : typeof body === 'object' && body !== null
+          ? Object.values(body)
+          : [];
+    return this.rolesService.assignPermissions(id, permissionIds as string[]);
   }
 }

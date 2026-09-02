@@ -1,6 +1,11 @@
 import type { RecordType } from './types';
 
 export function serializePayload(data: RecordType): RecordType {
+  if (Array.isArray(data)) {
+    return data.map((item) =>
+      typeof item === 'object' && item !== null ? serializePayload(item) : item,
+    ) as unknown as RecordType;
+  }
   const result: RecordType = {};
   for (const [key, value] of Object.entries(data)) {
     if (value === undefined) continue;

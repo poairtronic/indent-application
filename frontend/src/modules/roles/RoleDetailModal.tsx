@@ -19,6 +19,12 @@ export const RoleDetailModal: React.FC<RoleDetailModalProps> = ({
 }) => {
   if (!role) return null;
 
+  const permissionsList = (role.permissions || [])
+    .map((perm: any) =>
+      typeof perm === 'string' ? perm : perm?.code || perm?.name || perm?.id || '',
+    )
+    .filter(Boolean);
+
   return (
     <Modal
       open={isOpen}
@@ -35,7 +41,7 @@ export const RoleDetailModal: React.FC<RoleDetailModalProps> = ({
               <span className="flex items-center gap-1 text-[11px] font-semibold text-text-muted">
                 <Users size={14} /> {userCount} Users Assigned
               </span>
-              <Badge tone="blue">{role.permissions?.length || 0} Scope Tokens</Badge>
+              <Badge tone="blue">{permissionsList.length} Scope Tokens</Badge>
             </div>
           </div>
           <p className="text-text-secondary">{role.description || 'No description provided.'}</p>
@@ -48,14 +54,14 @@ export const RoleDetailModal: React.FC<RoleDetailModalProps> = ({
           </h4>
 
           <div className="max-h-[260px] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 p-1">
-            {role.permissions && role.permissions.length > 0 ? (
-              role.permissions.map((perm) => (
+            {permissionsList.length > 0 ? (
+              permissionsList.map((permCode) => (
                 <div
-                  key={perm}
+                  key={permCode}
                   className="p-2.5 bg-background-primary/50 border border-border-default rounded-lg flex items-center gap-2 text-text-primary font-mono text-[11px]"
                 >
                   <Lock size={12} className="text-accent-primary shrink-0" />
-                  <span className="truncate">{perm}</span>
+                  <span className="truncate">{permCode}</span>
                 </div>
               ))
             ) : (

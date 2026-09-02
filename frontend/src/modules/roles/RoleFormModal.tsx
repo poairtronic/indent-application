@@ -53,7 +53,10 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
     if (initialData) {
       setRoleName(initialData.roleName);
       setDescription(initialData.description || '');
-      setSelectedPermissions(initialData.permissions || []);
+      const perms = (initialData.permissions || [])
+        .map((p: any) => (typeof p === 'string' ? p : p?.code || p?.name || p?.id || ''))
+        .filter(Boolean);
+      setSelectedPermissions(perms);
     } else {
       setRoleName('');
       setDescription('');
@@ -63,8 +66,11 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
   }, [initialData, isOpen]);
 
   useEffect(() => {
-    if (isEditing && rolePermissions) {
-      setSelectedPermissions(rolePermissions);
+    if (isEditing && rolePermissions && rolePermissions.length > 0) {
+      const perms = (rolePermissions as any[])
+        .map((p: any) => (typeof p === 'string' ? p : p?.code || p?.name || p?.id || ''))
+        .filter(Boolean);
+      setSelectedPermissions(perms);
     }
   }, [isEditing, rolePermissions]);
 
@@ -75,7 +81,9 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
   };
 
   const toggleCategory = (modulePermissions: string[]) => {
-    const allSelected = modulePermissions.every((p) => selectedPermissions.includes(p));
+    const allSelected =
+      modulePermissions.length > 0 &&
+      modulePermissions.every((p) => selectedPermissions.includes(p));
     if (allSelected) {
       setSelectedPermissions((prev) => prev.filter((p) => !modulePermissions.includes(p)));
     } else {

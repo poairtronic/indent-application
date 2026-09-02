@@ -165,13 +165,21 @@ export class RolesService {
     return rolePermissions.map((rp) => rp.permission);
   }
 
-  async assignPermissions(id: string, permissionIds: string[]) {
+  async assignPermissions(id: string, rawPermissionIds: any) {
     const role = await this.prisma.role.findFirst({
       where: { id, isDeleted: false },
     });
     if (!role) {
       throw new NotFoundException(`Role with ID '${id}' not found`);
     }
+
+    const permissionIds: string[] = Array.isArray(rawPermissionIds)
+      ? rawPermissionIds
+      : Array.isArray(rawPermissionIds?.permissionIds)
+        ? rawPermissionIds.permissionIds
+        : typeof rawPermissionIds === 'object' && rawPermissionIds !== null
+          ? Object.values(rawPermissionIds)
+          : [];
 
     await this.prisma.rolePermission.deleteMany({
       where: { roleId: id, isDeleted: false },

@@ -19,7 +19,9 @@ function toRoleData(role: RoleResponse): RoleData {
     id: role.id,
     roleName: role.roleName,
     description: role.description ?? '',
-    permissions: role.permissions ?? [],
+    permissions: (role.permissions ?? [])
+      .map((p: any) => (typeof p === 'string' ? p : p?.code || p?.name || p?.id || ''))
+      .filter(Boolean),
   };
 }
 
