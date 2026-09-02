@@ -154,25 +154,37 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
 
   const handleAccountsSubmit = async (data: any) => {
     try {
+      // Find process actuals from item processes if costSheet.processCosts is not directly populated in form
+      const formProcessCosts: Array<{ processId?: string; actualCost?: number; actualHours?: number }> = [];
+      data.indent?.items?.forEach((it: any) => {
+        it.processes?.forEach((p: any) => {
+          formProcessCosts.push({
+            processId: p.processId,
+            actualCost: p.actualCost ?? 0,
+            actualHours: p.actualHours ?? 0,
+          });
+        });
+      });
+
       const payload = {
-        costItems: data.costSheet.costItems.map((ci: any, index: number) => ({
+        costItems: (data.costSheet?.costItems || []).map((ci: any, index: number) => ({
           costItemId: indent.costSheet?.costItems?.[index]?.id,
           actualRate: ci.actualRate ?? 0,
-          actualQuantity: ci.predictedQuantity ?? 0,
+          actualQuantity: ci.predictedQuantity ?? indent.costSheet?.costItems?.[index]?.predictedQuantity ?? 0,
         })),
         processCosts: (indent.costSheet?.processCosts || []).map((pc: any) => {
-          const matched = data.costSheet.processCosts?.find(
-            (dpc: any) => dpc.processId === pc.processId,
-          );
+          const matched =
+            data.costSheet?.processCosts?.find((dpc: any) => dpc.processId === pc.processId) ||
+            formProcessCosts.find((fpc: any) => fpc.processId === pc.processId);
           return {
             processCostId: pc.id,
             actualCost: matched?.actualCost ?? 0,
             actualHours: matched?.actualHours ?? 0,
           };
         }),
-        actualDesignCost: data.costSheet.actualDesignCost || 0,
-        actualOverheadCost: data.costSheet.actualOverheadCost || 0,
-        actualContingencyCost: data.costSheet.actualContingencyCost || 0,
+        actualDesignCost: data.costSheet?.actualDesignCost || 0,
+        actualOverheadCost: data.costSheet?.actualOverheadCost || 0,
+        actualContingencyCost: data.costSheet?.actualContingencyCost || 0,
         broughtMaterials: (indent.broughtMaterials || []).map((bm: any, index: number) => {
           const matched = data.broughtMaterials?.[index];
           return {
@@ -184,9 +196,9 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
       };
 
       await enterActualCosts({ id: indent.id, data: payload });
-      window.alert('Actual costs updated successfully');
+      show('success', 'Actual costs updated successfully');
     } catch (e: any) {
-      window.alert(e.message || 'Failed to verify actual costs');
+      show('error', e.message || 'Failed to verify actual costs');
     }
   };
 

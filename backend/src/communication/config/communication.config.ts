@@ -116,16 +116,22 @@ export class CommunicationConfig {
     return process.env.FRONTEND_URL || 'http://localhost:5173';
   }
 
-  public static getGmailApiConfig(): {
-    clientId: string;
-    clientSecret: string;
-    refreshToken: string;
-    user: string;
-  } | undefined {
+  public static getGmailApiConfig():
+    | {
+        clientId: string;
+        clientSecret: string;
+        refreshToken: string;
+        user: string;
+      }
+    | undefined {
     const clientId = process.env.GOOGLE_CLIENT_ID || process.env.SMTP_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.SMTP_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN || process.env.SMTP_REFRESH_TOKEN;
-    const user = process.env.GOOGLE_GMAIL_USER || process.env.SMTP_FROM || process.env.EMAIL_FROM || 'posuppportairtronic@gmail.com';
+    const user =
+      process.env.GOOGLE_GMAIL_USER ||
+      process.env.SMTP_FROM ||
+      process.env.EMAIL_FROM ||
+      'posuppportairtronic@gmail.com';
 
     if (clientId && clientSecret && refreshToken) {
       return { clientId, clientSecret, refreshToken, user };

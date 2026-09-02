@@ -1930,7 +1930,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   label="Actual Design Cost (₹)"
                   type="number"
                   step="0.01"
-                  disabled={true}
+                  disabled={!isAccountsMode || isReadOnly}
                   {...register('costSheet.actualDesignCost', { valueAsNumber: true })}
                 />
               )}
@@ -1949,7 +1949,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   label="Actual Overhead Cost (₹)"
                   type="number"
                   step="0.01"
-                  disabled={true}
+                  disabled={!isAccountsMode || isReadOnly}
                   {...register('costSheet.actualOverheadCost', { valueAsNumber: true })}
                 />
               )}
@@ -1968,7 +1968,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                   label="Actual Contingency Cost (₹)"
                   type="number"
                   step="0.01"
-                  disabled={true}
+                  disabled={!isAccountsMode || isReadOnly}
                   {...register('costSheet.actualContingencyCost', { valueAsNumber: true })}
                 />
               )}

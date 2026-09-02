@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Send,
@@ -64,6 +65,7 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
 }) => {
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [confirmAction, setConfirmAction] = useState<{
     config: ActionConfig;
@@ -234,10 +236,21 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
         break;
 
       case 'ACCOUNTS_COST_VERIFICATION':
-        // BIZ-001: Financial closure is not allowed directly from cost verification.
-        // Accounts MUST submit actual costs first (→ ACTUAL_COST_UPDATED) before
-        // the 'Finalize Financial Closure' action becomes available.
-        // No workflow action button here — the Accounts cost entry form handles this state.
+        if (hasPermission(AppPermission.ACCOUNTS_VERIFY)) {
+          actions.push({
+            label: 'Enter Actual Costs',
+            icon: <Calculator size={16} />,
+            variant: 'primary',
+            permission: AppPermission.ACCOUNTS_VERIFY,
+            confirmTitle: `Enter Actual Costs: ${indentNumber}`,
+            confirmMessage:
+              'Navigate to the Cost Sheet to enter actual vendor bills, in-house process costs, and calculate variance.',
+            action: async () => {
+              navigate(`/cost-sheets/${indentId}`);
+            },
+            isPending: false,
+          });
+        }
         break;
 
       case 'ACTUAL_COST_UPDATED':
@@ -312,7 +325,13 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
 
   const actions = buildActions();
 
-  if (actions.length === 0) return null;
+  if (actions.length === 0) {
+    return (
+      <p className="text-xs text-text-secondary italic">
+        No workflow actions available for your current role at this stage.
+      </p>
+    );
+  }
 
   const handleConfirm = async () => {
     if (!confirmAction || executingRef.current) return;
