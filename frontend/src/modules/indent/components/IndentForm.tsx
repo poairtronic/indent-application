@@ -1109,7 +1109,8 @@ export const IndentForm: React.FC<IndentFormProps> = ({
               errorMessages.push(formErrors.indent.customerName.message as string);
             if (formErrors.indent?.items)
               errorMessages.push('Please check the material items section for errors.');
-            if (formErrors.costSheet) errorMessages.push('Please check the cost section for errors.');
+            if (formErrors.costSheet)
+              errorMessages.push('Please check the cost section for errors.');
             if (formErrors.broughtMaterials)
               errorMessages.push('Please check the brought materials section for errors.');
 
