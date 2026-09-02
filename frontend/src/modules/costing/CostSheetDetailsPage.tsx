@@ -235,14 +235,21 @@ export const CostSheetDetailsPage: React.FC = () => {
       }),
       actualDesignCost: Number(currentCs.actualDesignCost ?? currentCs.designCost ?? 0),
       actualOverheadCost: Number(currentCs.actualOverheadCost ?? currentCs.overheadCost ?? 0),
-      actualContingencyCost: Number(currentCs.actualContingencyCost ?? currentCs.contingencyCost ?? 0),
+      actualContingencyCost: Number(
+        currentCs.actualContingencyCost ?? currentCs.contingencyCost ?? 0,
+      ),
       remarks: 'Actual costs updated via cost sheet',
     };
     try {
       await saveActualCosts({ id, data: payload });
       show('success', 'Actual costs updated successfully!');
     } catch (err: any) {
-      show('error', err?.response?.data?.message || err?.message || 'Failed to save actual costs. Please try again.');
+      show(
+        'error',
+        err?.response?.data?.message ||
+          err?.message ||
+          'Failed to save actual costs. Please try again.',
+      );
     } finally {
       isExecutingRef.current = false;
     }
@@ -348,8 +355,10 @@ export const CostSheetDetailsPage: React.FC = () => {
   const plannedProcessCost =
     cs.processCosts?.reduce((a, c) => a + (Number(c.predictedCost) || 0), 0) || 0;
 
-  const actualProcessCost =
-    dynamicProcessCosts.reduce((a, c) => a + (Number(c.actualCost) || 0), 0);
+  const actualProcessCost = dynamicProcessCosts.reduce(
+    (a, c) => a + (Number(c.actualCost) || 0),
+    0,
+  );
 
   const processVariance = actualProcessCost - plannedProcessCost;
 
@@ -504,9 +513,7 @@ export const CostSheetDetailsPage: React.FC = () => {
               <VarianceIndicator value={totalVariance} />
             </div>
             <span className="text-xs text-text-muted">
-              {plannedTotal > 0
-                ? `${totalVariancePercentage.toFixed(1)}%`
-                : '--'}
+              {plannedTotal > 0 ? `${totalVariancePercentage.toFixed(1)}%` : '--'}
             </span>
           </div>
         </div>
@@ -551,7 +558,9 @@ export const CostSheetDetailsPage: React.FC = () => {
                     <td className="py-3 px-4 text-text-secondary">{parsed.size || '—'}</td>
                     <td className="py-3 px-4">{item.predictedQuantity}</td>
                     <td className="py-3 px-4">Rs.{item.predictedRate}</td>
-                    <td className="py-3 px-4">Rs.{Number(item.predictedAmount).toLocaleString()}</td>
+                    <td className="py-3 px-4">
+                      Rs.{Number(item.predictedAmount).toLocaleString()}
+                    </td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
                       {isEditable ? (
                         <Input
@@ -559,13 +568,16 @@ export const CostSheetDetailsPage: React.FC = () => {
                           className="w-24 text-sm h-8"
                           value={actuals.materials[item.id]?.actualQuantity ?? ''}
                           onChange={(e) => {
-                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
+                            const val =
+                              e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
                             setActuals((prev) => ({
                               ...prev,
                               materials: {
                                 ...prev.materials,
                                 [item.id]: {
-                                  actualRate: prev.materials[item.id]?.actualRate ?? Number(item.actualRate ?? item.predictedRate ?? 0),
+                                  actualRate:
+                                    prev.materials[item.id]?.actualRate ??
+                                    Number(item.actualRate ?? item.predictedRate ?? 0),
                                   actualQuantity: typeof val === 'number' ? val : 0,
                                 },
                               },
@@ -583,13 +595,16 @@ export const CostSheetDetailsPage: React.FC = () => {
                           className="w-24 text-sm h-8"
                           value={actuals.materials[item.id]?.actualRate ?? ''}
                           onChange={(e) => {
-                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
+                            const val =
+                              e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
                             setActuals((prev) => ({
                               ...prev,
                               materials: {
                                 ...prev.materials,
                                 [item.id]: {
-                                  actualQuantity: prev.materials[item.id]?.actualQuantity ?? Number(item.actualQuantity ?? item.predictedQuantity ?? 0),
+                                  actualQuantity:
+                                    prev.materials[item.id]?.actualQuantity ??
+                                    Number(item.actualQuantity ?? item.predictedQuantity ?? 0),
                                   actualRate: typeof val === 'number' ? val : 0,
                                 },
                               },
@@ -601,7 +616,11 @@ export const CostSheetDetailsPage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3 px-4 font-medium bg-surface-elevated/20 text-accent-primary">
-                      Rs.{Number(item.actualAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Rs.
+                      {Number(item.actualAmount).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </td>
                     <td className="py-3 px-4 bg-surface-elevated/20">
                       <VarianceIndicator value={item.variance} />
@@ -657,13 +676,16 @@ export const CostSheetDetailsPage: React.FC = () => {
                           className="w-24 text-sm h-8"
                           value={actuals.processes[item.id]?.actualHours ?? ''}
                           onChange={(e) => {
-                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
+                            const val =
+                              e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
                             setActuals((prev) => ({
                               ...prev,
                               processes: {
                                 ...prev.processes,
                                 [item.id]: {
-                                  actualCost: prev.processes[item.id]?.actualCost ?? Number(item.actualCost ?? item.predictedCost ?? 0),
+                                  actualCost:
+                                    prev.processes[item.id]?.actualCost ??
+                                    Number(item.actualCost ?? item.predictedCost ?? 0),
                                   actualHours: typeof val === 'number' ? val : 0,
                                 },
                               },
@@ -681,13 +703,16 @@ export const CostSheetDetailsPage: React.FC = () => {
                           className="w-32 text-sm h-8"
                           value={actuals.processes[item.id]?.actualCost ?? ''}
                           onChange={(e) => {
-                            const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
+                            const val =
+                              e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
                             setActuals((prev) => ({
                               ...prev,
                               processes: {
                                 ...prev.processes,
                                 [item.id]: {
-                                  actualHours: prev.processes[item.id]?.actualHours ?? Number(item.actualHours ?? item.estimatedHours ?? 0),
+                                  actualHours:
+                                    prev.processes[item.id]?.actualHours ??
+                                    Number(item.actualHours ?? item.estimatedHours ?? 0),
                                   actualCost: typeof val === 'number' ? val : 0,
                                 },
                               },
@@ -696,7 +721,9 @@ export const CostSheetDetailsPage: React.FC = () => {
                         />
                       ) : (
                         <span className="font-medium text-indigo-500">
-                          {item.actualCost ? `Rs.${Number(item.actualCost).toLocaleString()}` : '--'}
+                          {item.actualCost
+                            ? `Rs.${Number(item.actualCost).toLocaleString()}`
+                            : '--'}
                         </span>
                       )}
                     </td>
@@ -758,7 +785,8 @@ export const CostSheetDetailsPage: React.FC = () => {
                             className="w-32 text-sm h-8"
                             value={actuals.broughtMaterials[item.id]?.actualAmount ?? ''}
                             onChange={(e) => {
-                              const val = e.target.value === '' ? '' : (parseFloat(e.target.value) || 0);
+                              const val =
+                                e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
                               setActuals((prev) => ({
                                 ...prev,
                                 broughtMaterials: {
