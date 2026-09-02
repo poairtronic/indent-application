@@ -70,9 +70,17 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({ costShee
         <div>
           <div className="flex justify-between text-xs font-medium mb-2">
             <span className="text-text-secondary">Actual Cost</span>
-            <span className="text-text-primary">₹{actualTotal.toLocaleString()}</span>
+            <span className="text-text-primary">
+              {actualTotal > 0 ? `₹${actualTotal.toLocaleString()}` : '—'}
+            </span>
           </div>
-          {renderBar(actualMaterialCost, actualProcessCost, actualTotal, maxTotal)}
+          {actualTotal > 0 ? (
+            renderBar(actualMaterialCost, actualProcessCost, actualTotal, maxTotal)
+          ) : (
+            <div className="h-6 w-full bg-surface-elevated/40 rounded flex items-center justify-center text-[10px] text-text-muted italic">
+              No actual costs entered
+            </div>
+          )}
         </div>
       </div>
 

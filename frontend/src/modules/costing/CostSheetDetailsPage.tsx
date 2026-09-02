@@ -61,14 +61,24 @@ const STATUS_TONE: Record<string, 'green' | 'yellow' | 'red' | 'blue' | 'gray'> 
   COMPLETED: 'green',
 };
 
-const VarianceIndicator: React.FC<{ value: number }> = ({ value }) => {
-  if (value === 0) return <Minus size={14} className="text-text-muted" />;
+const VarianceIndicator: React.FC<{ value: number | null | undefined }> = ({ value }) => {
+  if (value === null || value === undefined) return <span className="text-text-muted">—</span>;
+  if (value === 0)
+    return (
+      <span className="inline-flex items-center gap-1 text-text-muted">
+        <Minus size={14} /> Rs.0.00
+      </span>
+    );
   const Icon = value > 0 ? TrendingUp : TrendingDown;
   const color = value > 0 ? 'text-status-error' : 'text-status-success';
   return (
     <span className={`inline-flex items-center gap-1 ${color}`}>
       <Icon size={14} />
-      {value > 0 ? '+' : ''}Rs.{Math.abs(value).toLocaleString()}
+      {value > 0 ? '+' : ''}Rs.
+      {Math.abs(value).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}
     </span>
   );
 };
@@ -145,9 +155,9 @@ export const CostSheetDetailsPage: React.FC = () => {
   }, [indent, user]);
 
   const [actuals, setActuals] = useState<{
-    materials: Record<string, { actualRate: number; actualQuantity: number }>;
-    processes: Record<string, { actualCost: number; actualHours: number }>;
-    broughtMaterials: Record<string, { actualAmount: number }>;
+    materials: Record<string, { actualRate: string | number; actualQuantity: string | number }>;
+    processes: Record<string, { actualCost: string | number; actualHours: string | number }>;
+    broughtMaterials: Record<string, { actualAmount: string | number }>;
   }>({ materials: {}, processes: {}, broughtMaterials: {} });
 
   const isAccountsStage =
@@ -156,24 +166,47 @@ export const CostSheetDetailsPage: React.FC = () => {
 
   React.useEffect(() => {
     if (indent?.costSheet && isAccountsStage) {
-      const matActuals: Record<string, { actualRate: number; actualQuantity: number }> = {};
-      const procActuals: Record<string, { actualCost: number; actualHours: number }> = {};
-      const bmActuals: Record<string, { actualAmount: number }> = {};
+      const matActuals: Record<
+        string,
+        { actualRate: string | number; actualQuantity: string | number }
+      > = {};
+      const procActuals: Record<
+        string,
+        { actualCost: string | number; actualHours: string | number }
+      > = {};
+      const bmActuals: Record<string, { actualAmount: string | number }> = {};
       indent.costSheet.costItems?.forEach((item) => {
         matActuals[item.id] = {
-          actualRate: item.actualRate || item.predictedRate || 0,
-          actualQuantity: item.actualQuantity || item.predictedQuantity || 0,
+          actualRate:
+            item.actualRate !== null && item.actualRate !== undefined && Number(item.actualRate) > 0
+              ? item.actualRate
+              : '',
+          actualQuantity:
+            item.actualQuantity !== null &&
+            item.actualQuantity !== undefined &&
+            Number(item.actualQuantity) > 0
+              ? item.actualQuantity
+              : '',
         };
       });
       indent.costSheet.processCosts?.forEach((pc) => {
         procActuals[pc.id] = {
-          actualCost: pc.actualCost || pc.predictedCost || 0,
-          actualHours: pc.actualHours || pc.estimatedHours || 0,
+          actualCost:
+            pc.actualCost !== null && pc.actualCost !== undefined && Number(pc.actualCost) > 0
+              ? pc.actualCost
+              : '',
+          actualHours:
+            pc.actualHours !== null && pc.actualHours !== undefined && Number(pc.actualHours) > 0
+              ? pc.actualHours
+              : '',
         };
       });
       indent.broughtMaterials?.forEach((bm) => {
         bmActuals[bm.id] = {
-          actualAmount: bm.actualAmount || bm.amount || 0,
+          actualAmount:
+            bm.actualAmount !== null && bm.actualAmount !== undefined && Number(bm.actualAmount) > 0
+              ? bm.actualAmount
+              : '',
         };
       });
       setActuals({ materials: matActuals, processes: procActuals, broughtMaterials: bmActuals });
@@ -191,14 +224,22 @@ export const CostSheetDetailsPage: React.FC = () => {
     const payload = {
       costItems: (currentCs.costItems || []).map((ci) => {
         const itemActual = actuals.materials[ci.id];
+        const rawRate =
+          itemActual !== undefined && itemActual.actualRate !== ''
+            ? itemActual.actualRate
+            : ci.actualRate;
+        const rawQty =
+          itemActual !== undefined && itemActual.actualQuantity !== ''
+            ? itemActual.actualQuantity
+            : ci.actualQuantity;
         const actualRate =
-          itemActual !== undefined && itemActual.actualRate !== undefined
-            ? Number(itemActual.actualRate) || 0
-            : Number(ci.actualRate ?? ci.predictedRate ?? 0);
+          rawRate !== undefined && rawRate !== null && rawRate !== '' ? Number(rawRate) : 0;
         const actualQuantity =
-          itemActual !== undefined && itemActual.actualQuantity !== undefined
-            ? Number(itemActual.actualQuantity) || 0
-            : Number(ci.actualQuantity ?? ci.predictedQuantity ?? 0);
+          rawQty !== undefined && rawQty !== null && rawQty !== ''
+            ? Number(rawQty)
+            : actualRate > 0
+              ? Number(ci.predictedQuantity || 1)
+              : 0;
         return {
           costItemId: ci.id,
           actualRate,
@@ -208,14 +249,18 @@ export const CostSheetDetailsPage: React.FC = () => {
       }),
       processCosts: (currentCs.processCosts || []).map((pc) => {
         const procActual = actuals.processes[pc.id];
+        const rawCost =
+          procActual !== undefined && procActual.actualCost !== ''
+            ? procActual.actualCost
+            : pc.actualCost;
+        const rawHours =
+          procActual !== undefined && procActual.actualHours !== ''
+            ? procActual.actualHours
+            : pc.actualHours;
         const actualCost =
-          procActual !== undefined && procActual.actualCost !== undefined
-            ? Number(procActual.actualCost) || 0
-            : Number(pc.actualCost ?? pc.predictedCost ?? 0);
+          rawCost !== undefined && rawCost !== null && rawCost !== '' ? Number(rawCost) : 0;
         const actualHours =
-          procActual !== undefined && procActual.actualHours !== undefined
-            ? Number(procActual.actualHours) || 0
-            : Number(pc.actualHours ?? pc.estimatedHours ?? 0);
+          rawHours !== undefined && rawHours !== null && rawHours !== '' ? Number(rawHours) : 0;
         return {
           processCostId: pc.id,
           actualCost,
@@ -224,21 +269,21 @@ export const CostSheetDetailsPage: React.FC = () => {
       }),
       broughtMaterials: (indent.broughtMaterials || []).map((bm) => {
         const bmActual = actuals.broughtMaterials[bm.id];
+        const rawAmount =
+          bmActual !== undefined && bmActual.actualAmount !== ''
+            ? bmActual.actualAmount
+            : bm.actualAmount;
         const actualAmount =
-          bmActual !== undefined && bmActual.actualAmount !== undefined
-            ? Number(bmActual.actualAmount) || 0
-            : Number(bm.actualAmount ?? bm.amount ?? 0);
+          rawAmount !== undefined && rawAmount !== null && rawAmount !== '' ? Number(rawAmount) : 0;
         return {
           broughtMaterialId: bm.id,
           actualAmount,
           remarks: 'Actual costs updated via cost sheet',
         };
       }),
-      actualDesignCost: Number(currentCs.actualDesignCost ?? currentCs.designCost ?? 0),
-      actualOverheadCost: Number(currentCs.actualOverheadCost ?? currentCs.overheadCost ?? 0),
-      actualContingencyCost: Number(
-        currentCs.actualContingencyCost ?? currentCs.contingencyCost ?? 0,
-      ),
+      actualDesignCost: Number(currentCs.actualDesignCost ?? 0),
+      actualOverheadCost: Number(currentCs.actualOverheadCost ?? 0),
+      actualContingencyCost: Number(currentCs.actualContingencyCost ?? 0),
       remarks: 'Actual costs updated via cost sheet',
     };
     try {
@@ -291,77 +336,135 @@ export const CostSheetDetailsPage: React.FC = () => {
 
   // Real-time dynamic live calculations based on user input (fallback to saved values)
   const dynamicCostItems = (cs.costItems || []).map((item) => {
-    const liveActualRate =
-      isEditable && actuals.materials[item.id] !== undefined
-        ? Number(actuals.materials[item.id]?.actualRate) || 0
-        : Number(item.actualRate ?? item.predictedRate ?? 0);
-    const liveActualQty =
-      isEditable && actuals.materials[item.id] !== undefined
-        ? Number(actuals.materials[item.id]?.actualQuantity) || 0
-        : Number(item.actualQuantity ?? item.predictedQuantity ?? 0);
-    const liveActualAmount = isEditable
-      ? liveActualRate * liveActualQty
-      : Number(item.actualAmount ?? liveActualRate * liveActualQty);
-    const liveVariance = liveActualAmount - Number(item.predictedAmount || 0);
+    const rawRate = isEditable ? actuals.materials[item.id]?.actualRate : item.actualRate;
+    const rawQty = isEditable ? actuals.materials[item.id]?.actualQuantity : item.actualQuantity;
+
+    const hasRate = rawRate !== undefined && rawRate !== null && rawRate !== '';
+    const hasQty = rawQty !== undefined && rawQty !== null && rawQty !== '';
+
+    const liveActualRate = hasRate
+      ? Number(rawRate)
+      : item.actualRate !== null && item.actualRate !== undefined && Number(item.actualRate) > 0
+        ? Number(item.actualRate)
+        : null;
+    const liveActualQty = hasQty
+      ? Number(rawQty)
+      : item.actualQuantity !== null &&
+          item.actualQuantity !== undefined &&
+          Number(item.actualQuantity) > 0
+        ? Number(item.actualQuantity)
+        : hasRate
+          ? Number(item.predictedQuantity || 1)
+          : null;
+
+    const hasActual = liveActualRate !== null;
+    const liveActualAmount = hasActual
+      ? liveActualRate * (liveActualQty ?? Number(item.predictedQuantity || 1))
+      : null;
+    const liveVariance =
+      hasActual && liveActualAmount !== null
+        ? liveActualAmount - Number(item.predictedAmount || 0)
+        : null;
+
     return {
       ...item,
-      actualRate: liveActualRate,
-      actualQuantity: liveActualQty,
-      actualAmount: liveActualAmount,
-      variance: liveVariance,
+      actualRate: liveActualRate ?? undefined,
+      actualQuantity: liveActualQty ?? undefined,
+      actualAmount: liveActualAmount ?? undefined,
+      variance: liveVariance ?? undefined,
+      hasActual,
     };
   });
 
-  const dynamicProcessCosts = (cs.processCosts || []).map((item) => {
-    const liveActualCost =
-      isEditable && actuals.processes[item.id] !== undefined
-        ? Number(actuals.processes[item.id]?.actualCost) || 0
-        : Number(item.actualCost ?? item.predictedCost ?? 0);
-    const liveActualHours =
-      isEditable && actuals.processes[item.id] !== undefined
-        ? Number(actuals.processes[item.id]?.actualHours) || 0
-        : Number(item.actualHours ?? item.estimatedHours ?? 0);
-    const liveVariance = liveActualCost - Number(item.predictedCost || 0);
+  const dynamicProcessCosts = (cs.processCosts || []).map((pc) => {
+    const rawCost = isEditable ? actuals.processes[pc.id]?.actualCost : pc.actualCost;
+    const rawHours = isEditable ? actuals.processes[pc.id]?.actualHours : pc.actualHours;
+
+    const hasCost = rawCost !== undefined && rawCost !== null && rawCost !== '';
+    const hasHours = rawHours !== undefined && rawHours !== null && rawHours !== '';
+
+    const liveActualCost = hasCost
+      ? Number(rawCost)
+      : pc.actualCost !== null && pc.actualCost !== undefined && Number(pc.actualCost) > 0
+        ? Number(pc.actualCost)
+        : null;
+    const liveActualHours = hasHours
+      ? Number(rawHours)
+      : pc.actualHours !== null && pc.actualHours !== undefined && Number(pc.actualHours) > 0
+        ? Number(pc.actualHours)
+        : null;
+
+    const hasActual = liveActualCost !== null || liveActualHours !== null;
+    const liveVariance =
+      liveActualCost !== null ? liveActualCost - Number(pc.predictedCost || 0) : null;
+
     return {
-      ...item,
-      actualCost: liveActualCost,
-      actualHours: liveActualHours,
-      variance: liveVariance,
+      ...pc,
+      actualCost: liveActualCost ?? undefined,
+      actualHours: liveActualHours ?? undefined,
+      variance: liveVariance ?? undefined,
+      hasActual,
     };
   });
 
   const dynamicBroughtMaterials = (indent.broughtMaterials || []).map((item) => {
-    const liveActualAmount =
-      isEditable && actuals.broughtMaterials[item.id] !== undefined
-        ? Number(actuals.broughtMaterials[item.id]?.actualAmount) || 0
-        : Number(item.actualAmount ?? item.amount ?? 0);
-    const liveVariance = liveActualAmount - Number(item.amount || 0);
+    const rawAmount = isEditable
+      ? actuals.broughtMaterials[item.id]?.actualAmount
+      : item.actualAmount;
+    const hasAmount = rawAmount !== undefined && rawAmount !== null && rawAmount !== '';
+
+    const liveActualAmount = hasAmount
+      ? Number(rawAmount)
+      : item.actualAmount !== null &&
+          item.actualAmount !== undefined &&
+          Number(item.actualAmount) > 0
+        ? Number(item.actualAmount)
+        : null;
+    const hasActual = liveActualAmount !== null;
+    const liveVariance =
+      hasActual && liveActualAmount !== null ? liveActualAmount - Number(item.amount || 0) : null;
+
     return {
       ...item,
-      actualAmount: liveActualAmount,
-      variance: liveVariance,
+      actualAmount: liveActualAmount ?? undefined,
+      variance: liveVariance ?? undefined,
+      hasActual,
     };
   });
+
+  const hasAnyActuals =
+    dynamicCostItems.some((i) => i.hasActual) ||
+    dynamicProcessCosts.some((i) => i.hasActual) ||
+    dynamicBroughtMaterials.some((i) => i.hasActual) ||
+    (cs.actualTotal !== null && cs.actualTotal !== undefined && Number(cs.actualTotal) > 0);
 
   const plannedMaterialCost =
     (cs.costItems?.reduce((a, c) => a + (Number(c.predictedAmount) || 0), 0) || 0) +
     (indent.broughtMaterials?.reduce((a, c) => a + (Number(c.amount) || 0), 0) || 0);
 
   const actualMaterialCost =
-    dynamicCostItems.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0) +
-    dynamicBroughtMaterials.reduce((a, c) => a + (Number(c.actualAmount) || 0), 0);
+    dynamicCostItems.reduce(
+      (a, c) => a + (c.actualAmount !== null ? Number(c.actualAmount) : 0),
+      0,
+    ) +
+    dynamicBroughtMaterials.reduce(
+      (a, c) => a + (c.actualAmount !== null ? Number(c.actualAmount) : 0),
+      0,
+    );
 
-  const materialVariance = actualMaterialCost - plannedMaterialCost;
+  const hasMaterialActuals =
+    dynamicCostItems.some((i) => i.hasActual) || dynamicBroughtMaterials.some((i) => i.hasActual);
+  const materialVariance = hasMaterialActuals ? actualMaterialCost - plannedMaterialCost : null;
 
   const plannedProcessCost =
     cs.processCosts?.reduce((a, c) => a + (Number(c.predictedCost) || 0), 0) || 0;
 
   const actualProcessCost = dynamicProcessCosts.reduce(
-    (a, c) => a + (Number(c.actualCost) || 0),
+    (a, c) => a + (c.actualCost !== null ? Number(c.actualCost) : 0),
     0,
   );
-
-  const processVariance = actualProcessCost - plannedProcessCost;
+  const hasProcessActuals = dynamicProcessCosts.some((i) => i.hasActual);
+  const processVariance = hasProcessActuals ? actualProcessCost - plannedProcessCost : null;
 
   const plannedTotal =
     Number(cs.predictedTotal) ||
@@ -371,22 +474,25 @@ export const CostSheetDetailsPage: React.FC = () => {
       Number(cs.overheadCost || 0) +
       Number(cs.contingencyCost || 0);
 
-  const actualTotal =
-    actualMaterialCost +
-    actualProcessCost +
-    Number(cs.actualDesignCost || 0) +
-    Number(cs.actualOverheadCost || 0) +
-    Number(cs.actualContingencyCost || 0);
+  const actualTotal = hasAnyActuals
+    ? actualMaterialCost +
+      actualProcessCost +
+      Number(cs.actualDesignCost || 0) +
+      Number(cs.actualOverheadCost || 0) +
+      Number(cs.actualContingencyCost || 0)
+    : 0;
 
-  const totalVariance = actualTotal - plannedTotal;
-  const totalVariancePercentage = plannedTotal > 0 ? (totalVariance / plannedTotal) * 100 : 0;
+  const totalVariance = hasAnyActuals ? actualTotal - plannedTotal : null;
+  const totalVariancePercentage =
+    hasAnyActuals && plannedTotal > 0 ? ((totalVariance ?? 0) / plannedTotal) * 100 : null;
 
   const dynamicCostSheet = {
     ...cs,
     predictedTotal: plannedTotal,
-    actualTotal,
-    varianceAmount: totalVariance,
-    variancePercentage: totalVariancePercentage,
+    actualTotal: hasAnyActuals ? actualTotal : (cs.actualTotal ?? 0),
+    varianceAmount: totalVariance ?? 0,
+    variancePercentage: totalVariancePercentage ?? 0,
+    hasActualCostsEntered: hasAnyActuals,
     costItems: dynamicCostItems,
     processCosts: dynamicProcessCosts,
   };
@@ -482,7 +588,7 @@ export const CostSheetDetailsPage: React.FC = () => {
               <VarianceIndicator value={materialVariance} />
             </div>
             <span className="text-xs text-text-muted">
-              {plannedMaterialCost > 0
+              {plannedMaterialCost > 0 && materialVariance !== null
                 ? `${((materialVariance / plannedMaterialCost) * 100).toFixed(1)}%`
                 : '--'}
             </span>
@@ -497,7 +603,7 @@ export const CostSheetDetailsPage: React.FC = () => {
               <VarianceIndicator value={processVariance} />
             </div>
             <span className="text-xs text-text-muted">
-              {plannedProcessCost > 0
+              {plannedProcessCost > 0 && processVariance !== null
                 ? `${((processVariance / plannedProcessCost) * 100).toFixed(1)}%`
                 : '--'}
             </span>
@@ -512,7 +618,9 @@ export const CostSheetDetailsPage: React.FC = () => {
               <VarianceIndicator value={totalVariance} />
             </div>
             <span className="text-xs text-text-muted">
-              {plannedTotal > 0 ? `${totalVariancePercentage.toFixed(1)}%` : '--'}
+              {plannedTotal > 0 && totalVariance !== null && totalVariancePercentage !== null
+                ? `${totalVariancePercentage.toFixed(1)}%`
+                : '--'}
             </span>
           </div>
         </div>
@@ -565,26 +673,28 @@ export const CostSheetDetailsPage: React.FC = () => {
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
+                          placeholder="—"
                           value={actuals.materials[item.id]?.actualQuantity ?? ''}
                           onChange={(e) => {
-                            const val =
-                              e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
+                            const val = e.target.value;
                             setActuals((prev) => ({
                               ...prev,
                               materials: {
                                 ...prev.materials,
                                 [item.id]: {
-                                  actualRate:
-                                    prev.materials[item.id]?.actualRate ??
-                                    Number(item.actualRate ?? item.predictedRate ?? 0),
-                                  actualQuantity: typeof val === 'number' ? val : 0,
+                                  actualRate: prev.materials[item.id]?.actualRate ?? '',
+                                  actualQuantity: val,
                                 },
                               },
                             }));
                           }}
                         />
                       ) : (
-                        <span>{item.actualQuantity || '--'}</span>
+                        <span>
+                          {item.actualQuantity !== null && item.actualQuantity !== undefined
+                            ? item.actualQuantity
+                            : '—'}
+                        </span>
                       )}
                     </td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
@@ -592,34 +702,37 @@ export const CostSheetDetailsPage: React.FC = () => {
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
+                          placeholder="—"
                           value={actuals.materials[item.id]?.actualRate ?? ''}
                           onChange={(e) => {
-                            const val =
-                              e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
+                            const val = e.target.value;
                             setActuals((prev) => ({
                               ...prev,
                               materials: {
                                 ...prev.materials,
                                 [item.id]: {
-                                  actualQuantity:
-                                    prev.materials[item.id]?.actualQuantity ??
-                                    Number(item.actualQuantity ?? item.predictedQuantity ?? 0),
-                                  actualRate: typeof val === 'number' ? val : 0,
+                                  actualQuantity: prev.materials[item.id]?.actualQuantity ?? '',
+                                  actualRate: val,
                                 },
                               },
                             }));
                           }}
                         />
                       ) : (
-                        <span>{item.actualRate ? `Rs.${item.actualRate}` : '--'}</span>
+                        <span>
+                          {item.actualRate !== null && item.actualRate !== undefined
+                            ? `Rs.${item.actualRate}`
+                            : '—'}
+                        </span>
                       )}
                     </td>
                     <td className="py-3 px-4 font-medium bg-surface-elevated/20 text-accent-primary">
-                      Rs.
-                      {Number(item.actualAmount).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      {item.actualAmount !== null && item.actualAmount !== undefined
+                        ? `Rs.${Number(item.actualAmount).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}`
+                        : '—'}
                     </td>
                     <td className="py-3 px-4 bg-surface-elevated/20">
                       <VarianceIndicator value={item.variance} />
@@ -673,26 +786,28 @@ export const CostSheetDetailsPage: React.FC = () => {
                         <Input
                           type="number"
                           className="w-24 text-sm h-8"
+                          placeholder="—"
                           value={actuals.processes[item.id]?.actualHours ?? ''}
                           onChange={(e) => {
-                            const val =
-                              e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
+                            const val = e.target.value;
                             setActuals((prev) => ({
                               ...prev,
                               processes: {
                                 ...prev.processes,
                                 [item.id]: {
-                                  actualCost:
-                                    prev.processes[item.id]?.actualCost ??
-                                    Number(item.actualCost ?? item.predictedCost ?? 0),
-                                  actualHours: typeof val === 'number' ? val : 0,
+                                  actualCost: prev.processes[item.id]?.actualCost ?? '',
+                                  actualHours: val,
                                 },
                               },
                             }));
                           }}
                         />
                       ) : (
-                        <span>{item.actualHours !== null ? `${item.actualHours} hrs` : '--'}</span>
+                        <span>
+                          {item.actualHours !== null && item.actualHours !== undefined
+                            ? `${item.actualHours} hrs`
+                            : '—'}
+                        </span>
                       )}
                     </td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
@@ -700,19 +815,17 @@ export const CostSheetDetailsPage: React.FC = () => {
                         <Input
                           type="number"
                           className="w-32 text-sm h-8"
+                          placeholder="—"
                           value={actuals.processes[item.id]?.actualCost ?? ''}
                           onChange={(e) => {
-                            const val =
-                              e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
+                            const val = e.target.value;
                             setActuals((prev) => ({
                               ...prev,
                               processes: {
                                 ...prev.processes,
                                 [item.id]: {
-                                  actualHours:
-                                    prev.processes[item.id]?.actualHours ??
-                                    Number(item.actualHours ?? item.estimatedHours ?? 0),
-                                  actualCost: typeof val === 'number' ? val : 0,
+                                  actualHours: prev.processes[item.id]?.actualHours ?? '',
+                                  actualCost: val,
                                 },
                               },
                             }));
@@ -720,9 +833,9 @@ export const CostSheetDetailsPage: React.FC = () => {
                         />
                       ) : (
                         <span className="font-medium text-indigo-500">
-                          {item.actualCost
+                          {item.actualCost !== null && item.actualCost !== undefined
                             ? `Rs.${Number(item.actualCost).toLocaleString()}`
-                            : '--'}
+                            : '—'}
                         </span>
                       )}
                     </td>
@@ -782,16 +895,16 @@ export const CostSheetDetailsPage: React.FC = () => {
                           <Input
                             type="number"
                             className="w-32 text-sm h-8"
+                            placeholder="—"
                             value={actuals.broughtMaterials[item.id]?.actualAmount ?? ''}
                             onChange={(e) => {
-                              const val =
-                                e.target.value === '' ? '' : parseFloat(e.target.value) || 0;
+                              const val = e.target.value;
                               setActuals((prev) => ({
                                 ...prev,
                                 broughtMaterials: {
                                   ...prev.broughtMaterials,
                                   [item.id]: {
-                                    actualAmount: typeof val === 'number' ? val : 0,
+                                    actualAmount: val,
                                   },
                                 },
                               }));
@@ -801,7 +914,7 @@ export const CostSheetDetailsPage: React.FC = () => {
                           <span className="font-medium text-teal-500">
                             {item.actualAmount !== undefined && item.actualAmount !== null
                               ? `Rs.${Number(item.actualAmount).toLocaleString()}`
-                              : '--'}
+                              : '—'}
                           </span>
                         )}
                       </td>

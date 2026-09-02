@@ -143,9 +143,11 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
                   {virtualizer.getVirtualItems().map((virtualRow) => {
                     const item = indents[virtualRow.index];
                     const actualTotal = item.costSheet?.actualTotal;
+                    const hasActual =
+                      actualTotal !== null && actualTotal !== undefined && Number(actualTotal) > 0;
                     const variance =
-                      actualTotal !== undefined && item.predictedTotal !== undefined
-                        ? actualTotal - item.predictedTotal
+                      hasActual && item.predictedTotal !== undefined
+                        ? Number(actualTotal) - Number(item.predictedTotal)
                         : null;
                     const varianceColor =
                       variance !== null
@@ -178,7 +180,7 @@ export const CostSheetList: React.FC<CostSheetListProps> = ({
                           {formatCurrency(item.predictedTotal)}
                         </td>
                         <td className="py-3.5 px-4 text-right font-medium">
-                          {actualTotal !== undefined ? (
+                          {hasActual ? (
                             <span className="text-accent-primary">
                               {formatCurrency(actualTotal)}
                             </span>

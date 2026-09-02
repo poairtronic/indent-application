@@ -32,9 +32,12 @@ export const ProductionDashboardPage: React.FC = () => {
     page: filters.page,
     limit: filters.limit,
     search: search || undefined,
-    state: (filters.status ||
-      'STORES_PROCESSING,MATERIALS_ISSUED,PRODUCTION_PROCESSING,PRODUCTION_COMPLETED') as
-      WorkflowState | undefined,
+    state:
+      filters.status === 'ALL'
+        ? undefined
+        : ((filters.status ||
+            'STORES_PROCESSING,MATERIALS_ISSUED,PRODUCTION_PROCESSING,PRODUCTION_COMPLETED') as
+            WorkflowState | undefined),
     departmentId: filters.departmentId || undefined,
   };
 
@@ -90,10 +93,12 @@ export const ProductionDashboardPage: React.FC = () => {
           <div className="w-full sm:w-48">
             <Select
               options={[
-                { label: 'All Production Stages', value: '' },
+                { label: 'Production Pipeline (Default)', value: '' },
+                { label: 'Stores Processing', value: 'STORES_PROCESSING' },
                 { label: 'Materials Issued', value: 'MATERIALS_ISSUED' },
                 { label: 'Production Processing', value: 'PRODUCTION_PROCESSING' },
                 { label: 'Production Completed', value: 'PRODUCTION_COMPLETED' },
+                { label: 'All Indents (Any Stage)', value: 'ALL' },
               ]}
               value={filters.status || ''}
               onChange={(e) => handleStatusChange(e.target.value)}

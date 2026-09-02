@@ -9,13 +9,16 @@ interface FinancialSummaryWidgetProps {
 export const FinancialSummaryWidget: React.FC<FinancialSummaryWidgetProps> = ({ costSheet }) => {
   if (!costSheet) return null;
 
+  const hasActual = Boolean(
+    (costSheet as any).hasActualCostsEntered ?? Number(costSheet.actualTotal) > 0,
+  );
   const planned = Number(costSheet.predictedTotal) || 0;
-  const actual = Number(costSheet.actualTotal) || 0;
-  const variance = Number(costSheet.varianceAmount) || 0;
-  const variancePct = Number(costSheet.variancePercentage) || 0;
+  const actual = hasActual ? Number(costSheet.actualTotal) || 0 : 0;
+  const variance = hasActual ? Number(costSheet.varianceAmount) || 0 : 0;
+  const variancePct = hasActual ? Number(costSheet.variancePercentage) || 0 : 0;
 
-  const isOverBudget = variance > 0;
-  const isUnderBudget = variance < 0;
+  const isOverBudget = hasActual && variance > 0;
+  const isUnderBudget = hasActual && variance < 0;
 
   let VarianceIcon = Minus;
   let varianceColor = 'text-text-muted';
@@ -32,7 +35,7 @@ export const FinancialSummaryWidget: React.FC<FinancialSummaryWidgetProps> = ({ 
   }
 
   // Calculate percentage of budget used for the progress bar (max 100% visually)
-  const budgetUsedPct = planned > 0 ? Math.min((actual / planned) * 100, 100) : 0;
+  const budgetUsedPct = planned > 0 && hasActual ? Math.min((actual / planned) * 100, 100) : 0;
   const overBudgetPct =
     planned > 0 && isOverBudget ? Math.min(((actual - planned) / planned) * 100, 100) : 0;
 
@@ -54,29 +57,33 @@ export const FinancialSummaryWidget: React.FC<FinancialSummaryWidgetProps> = ({ 
         <div>
           <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Actual Cost</p>
           <p className="text-2xl font-bold text-accent-primary break-all">
-            ₹
-            {actual.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            {hasActual
+              ? `₹${actual.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`
+              : '—'}
           </p>
         </div>
         <div>
           <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Cost Variance</p>
           <div className="flex flex-wrap items-center gap-2">
             <p className={`text-2xl font-bold ${varianceColor} break-all`}>
-              {isOverBudget ? '+' : ''}₹
-              {variance.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+              {hasActual
+                ? `${isOverBudget ? '+' : ''}₹${variance.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : '—'}
             </p>
-            <div
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${varianceBg} ${varianceColor} text-xs font-medium`}
-            >
-              <VarianceIcon size={12} />
-              <span>{Math.abs(variancePct).toFixed(2)}%</span>
-            </div>
+            {hasActual && (
+              <div
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${varianceBg} ${varianceColor} text-xs font-medium`}
+              >
+                <VarianceIcon size={12} />
+                <span>{Math.abs(variancePct).toFixed(2)}%</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
