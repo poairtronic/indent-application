@@ -3679,7 +3679,9 @@ export class BusinessTransactionService {
           txData.currentState !== WorkflowState.ACCOUNTS_COST_VERIFICATION &&
           txData.currentState !== WorkflowState.ACTUAL_COST_UPDATED
         ) {
-          throw new BadRequestException('Cannot replace Accounts files outside verification states.');
+          throw new BadRequestException(
+            'Cannot replace Accounts files outside verification states.',
+          );
         }
       }
     }

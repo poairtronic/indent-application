@@ -35,4 +35,3 @@ import { PostgresMailWorker } from './queue/postgres-mail.worker';
   ],
 })
 export class CommunicationModule {}
-

@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IEmailProvider, IEmailPayload } from '../interfaces/provider.interface';
 import { CommunicationConfig } from '../config/communication.config';
-import { SMTPException, ProviderUnavailableException } from '../exceptions/communication.exceptions';
+import {
+  SMTPException,
+  ProviderUnavailableException,
+} from '../exceptions/communication.exceptions';
 import { google } from 'googleapis';
 import * as nodemailer from 'nodemailer';
 const MailComposer = require('nodemailer/lib/mail-composer');
@@ -66,24 +69,21 @@ export class GmailApiProvider implements IEmailProvider {
 
     try {
       this.logger.log(`Constructing MIME message for Gmail API delivery to: ${recipients}`);
-      
+
       const mail = new MailComposer(mailOptions);
       const messageBuffer = await mail.compile().build();
       const encodedMessage = messageBuffer.toString('base64url');
 
-      const oauth2Client = new google.auth.OAuth2(
-        config.clientId,
-        config.clientSecret,
-      );
-      
+      const oauth2Client = new google.auth.OAuth2(config.clientId, config.clientSecret);
+
       oauth2Client.setCredentials({
         refresh_token: config.refreshToken,
       });
 
       const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-      
+
       this.logger.log(`Dispatching email via Gmail API (HTTPS:443)`);
-      
+
       const response = await gmail.users.messages.send({
         userId: 'me',
         requestBody: {
@@ -91,7 +91,9 @@ export class GmailApiProvider implements IEmailProvider {
         },
       });
 
-      this.logger.log(`Email dispatched via Gmail API successfully. Message ID: ${response.data.id}`);
+      this.logger.log(
+        `Email dispatched via Gmail API successfully. Message ID: ${response.data.id}`,
+      );
       return {
         success: true,
         messageId: response.data.id || response.data.threadId || undefined,
@@ -99,9 +101,9 @@ export class GmailApiProvider implements IEmailProvider {
     } catch (error: any) {
       let failureReason = error?.message || String(error);
       const statusCode = error?.code || error?.response?.status;
-      
+
       this.logger.error(`Gmail API delivery failed (Status: ${statusCode}): ${failureReason}`);
-      
+
       if (error instanceof SMTPException) {
         throw error;
       }
@@ -115,10 +117,7 @@ export class GmailApiProvider implements IEmailProvider {
       return 'unavailable';
     }
     try {
-      const oauth2Client = new google.auth.OAuth2(
-        config.clientId,
-        config.clientSecret,
-      );
+      const oauth2Client = new google.auth.OAuth2(config.clientId, config.clientSecret);
       oauth2Client.setCredentials({ refresh_token: config.refreshToken });
       const { token } = await oauth2Client.getAccessToken();
       if (!token) throw new Error('No access token returned');

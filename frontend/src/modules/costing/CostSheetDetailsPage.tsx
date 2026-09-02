@@ -293,7 +293,7 @@ export const CostSheetDetailsPage: React.FC = () => {
         : Number(item.actualQuantity ?? item.predictedQuantity ?? 0);
     const liveActualAmount = isEditable
       ? liveActualRate * liveActualQty
-      : Number(item.actualAmount ?? liveActualRate * liveActualQty ?? 0);
+      : Number(item.actualAmount ?? liveActualRate * liveActualQty);
     const liveVariance = liveActualAmount - Number(item.predictedAmount || 0);
     return {
       ...item,

@@ -10,9 +10,7 @@ export class EmailProviderFactory implements IEmailProvider {
   public readonly channel = 'email';
   private readonly logger = new Logger(EmailProviderFactory.name);
 
-  constructor(
-    private readonly gmailApiProvider: GmailApiProvider,
-  ) {}
+  constructor(private readonly gmailApiProvider: GmailApiProvider) {}
 
   public getActiveProviderType(): EmailProviderType {
     return CommunicationConfig.getActiveProviderType();
@@ -33,7 +31,9 @@ export class EmailProviderFactory implements IEmailProvider {
   ): Promise<{ success: boolean; messageId?: string; error?: any }> {
     const activeProvider = this.getActiveProvider();
     const providerType = this.getActiveProviderType();
-    this.logger.log(`Routing email dispatch through active provider: [${providerType.toUpperCase()}]`);
+    this.logger.log(
+      `Routing email dispatch through active provider: [${providerType.toUpperCase()}]`,
+    );
     return activeProvider.sendEmail(payload);
   }
 
