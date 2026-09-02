@@ -626,8 +626,15 @@ export const ReportDetailPage: React.FC = () => {
           />
           <PrintTotals
             rows={[
-              { label: 'Total Records Count', value: query.data?.meta?.total ?? ((query.data?.data as any[]) || []).length, highlight: true },
-              { label: 'Rows Rendered', value: ((query.data?.data as any[]) || []).length },
+              {
+                label: 'Total Records Count',
+                value: query.data?.meta?.total ?? ((query.data?.data as any[]) || []).length,
+                highlight: true,
+              },
+              {
+                label: 'Rows Rendered',
+                value: ((query.data?.data as any[]) || []).length,
+              },
             ]}
           />
           <PrintFooter />
