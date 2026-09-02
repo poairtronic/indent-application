@@ -155,8 +155,8 @@ export const CostSheetDetailsPage: React.FC = () => {
   }, [indent, user]);
 
   const [actuals, setActuals] = useState<{
-    materials: Record<string, { actualRate: string | number; actualQuantity: string | number }>;
-    processes: Record<string, { actualCost: string | number; actualHours: string | number }>;
+    materials: Record<string, { actualRate: string | number }>;
+    processes: Record<string, { actualCost: string | number }>;
     broughtMaterials: Record<string, { actualAmount: string | number }>;
   }>({ materials: {}, processes: {}, broughtMaterials: {} });
 
@@ -166,26 +166,14 @@ export const CostSheetDetailsPage: React.FC = () => {
 
   React.useEffect(() => {
     if (indent?.costSheet && isAccountsStage) {
-      const matActuals: Record<
-        string,
-        { actualRate: string | number; actualQuantity: string | number }
-      > = {};
-      const procActuals: Record<
-        string,
-        { actualCost: string | number; actualHours: string | number }
-      > = {};
+      const matActuals: Record<string, { actualRate: string | number }> = {};
+      const procActuals: Record<string, { actualCost: string | number }> = {};
       const bmActuals: Record<string, { actualAmount: string | number }> = {};
       indent.costSheet.costItems?.forEach((item) => {
         matActuals[item.id] = {
           actualRate:
             item.actualRate !== null && item.actualRate !== undefined && Number(item.actualRate) > 0
               ? item.actualRate
-              : '',
-          actualQuantity:
-            item.actualQuantity !== null &&
-            item.actualQuantity !== undefined &&
-            Number(item.actualQuantity) > 0
-              ? item.actualQuantity
               : '',
         };
       });
@@ -194,10 +182,6 @@ export const CostSheetDetailsPage: React.FC = () => {
           actualCost:
             pc.actualCost !== null && pc.actualCost !== undefined && Number(pc.actualCost) > 0
               ? pc.actualCost
-              : '',
-          actualHours:
-            pc.actualHours !== null && pc.actualHours !== undefined && Number(pc.actualHours) > 0
-              ? pc.actualHours
               : '',
         };
       });
@@ -222,28 +206,19 @@ export const CostSheetDetailsPage: React.FC = () => {
     isExecutingRef.current = true;
     const currentCs = indent.costSheet;
     const payload = {
-      costItems: (currentCs.costItems || []).map((ci) => {
+      costItems: (currentCs.costItems || []).map((ci, index) => {
         const itemActual = actuals.materials[ci.id];
         const rawRate =
           itemActual !== undefined && itemActual.actualRate !== ''
             ? itemActual.actualRate
             : ci.actualRate;
-        const rawQty =
-          itemActual !== undefined && itemActual.actualQuantity !== ''
-            ? itemActual.actualQuantity
-            : ci.actualQuantity;
         const actualRate =
           rawRate !== undefined && rawRate !== null && rawRate !== '' ? Number(rawRate) : 0;
-        const actualQuantity =
-          rawQty !== undefined && rawQty !== null && rawQty !== ''
-            ? Number(rawQty)
-            : actualRate > 0
-              ? Number(ci.predictedQuantity || 1)
-              : 0;
+        const designQty = Number(ci.predictedQuantity ?? indent?.items?.[index]?.quantity ?? 1);
         return {
           costItemId: ci.id,
           actualRate,
-          actualQuantity,
+          actualQuantity: designQty,
           remarks: ci.remarks || '',
         };
       }),
@@ -253,18 +228,12 @@ export const CostSheetDetailsPage: React.FC = () => {
           procActual !== undefined && procActual.actualCost !== ''
             ? procActual.actualCost
             : pc.actualCost;
-        const rawHours =
-          procActual !== undefined && procActual.actualHours !== ''
-            ? procActual.actualHours
-            : pc.actualHours;
         const actualCost =
           rawCost !== undefined && rawCost !== null && rawCost !== '' ? Number(rawCost) : 0;
-        const actualHours =
-          rawHours !== undefined && rawHours !== null && rawHours !== '' ? Number(rawHours) : 0;
         return {
           processCostId: pc.id,
           actualCost,
-          actualHours,
+          actualHours: Number(pc.estimatedHours || 0),
         };
       }),
       broughtMaterials: (indent.broughtMaterials || []).map((bm) => {
@@ -334,33 +303,21 @@ export const CostSheetDetailsPage: React.FC = () => {
 
   const cs = indent.costSheet;
 
-  // Real-time dynamic live calculations based on user input (fallback to saved values)
-  const dynamicCostItems = (cs.costItems || []).map((item) => {
+  const dynamicCostItems = (cs.costItems || []).map((item, index) => {
     const rawRate = isEditable ? actuals.materials[item.id]?.actualRate : item.actualRate;
-    const rawQty = isEditable ? actuals.materials[item.id]?.actualQuantity : item.actualQuantity;
-
     const hasRate = rawRate !== undefined && rawRate !== null && rawRate !== '';
-    const hasQty = rawQty !== undefined && rawQty !== null && rawQty !== '';
+
+    // Quantity is fixed from Design
+    const designQty = Number(item.predictedQuantity ?? indent?.items?.[index]?.quantity ?? 1);
 
     const liveActualRate = hasRate
       ? Number(rawRate)
       : item.actualRate !== null && item.actualRate !== undefined && Number(item.actualRate) > 0
         ? Number(item.actualRate)
         : null;
-    const liveActualQty = hasQty
-      ? Number(rawQty)
-      : item.actualQuantity !== null &&
-          item.actualQuantity !== undefined &&
-          Number(item.actualQuantity) > 0
-        ? Number(item.actualQuantity)
-        : hasRate
-          ? Number(item.predictedQuantity || 1)
-          : null;
 
     const hasActual = liveActualRate !== null;
-    const liveActualAmount = hasActual
-      ? liveActualRate * (liveActualQty ?? Number(item.predictedQuantity || 1))
-      : null;
+    const liveActualAmount = hasActual ? liveActualRate * designQty : null;
     const liveVariance =
       hasActual && liveActualAmount !== null
         ? liveActualAmount - Number(item.predictedAmount || 0)
@@ -369,7 +326,7 @@ export const CostSheetDetailsPage: React.FC = () => {
     return {
       ...item,
       actualRate: liveActualRate ?? undefined,
-      actualQuantity: liveActualQty ?? undefined,
+      actualQuantity: designQty,
       actualAmount: liveActualAmount ?? undefined,
       variance: liveVariance ?? undefined,
       hasActual,
@@ -378,30 +335,22 @@ export const CostSheetDetailsPage: React.FC = () => {
 
   const dynamicProcessCosts = (cs.processCosts || []).map((pc) => {
     const rawCost = isEditable ? actuals.processes[pc.id]?.actualCost : pc.actualCost;
-    const rawHours = isEditable ? actuals.processes[pc.id]?.actualHours : pc.actualHours;
-
     const hasCost = rawCost !== undefined && rawCost !== null && rawCost !== '';
-    const hasHours = rawHours !== undefined && rawHours !== null && rawHours !== '';
 
     const liveActualCost = hasCost
       ? Number(rawCost)
       : pc.actualCost !== null && pc.actualCost !== undefined && Number(pc.actualCost) > 0
         ? Number(pc.actualCost)
         : null;
-    const liveActualHours = hasHours
-      ? Number(rawHours)
-      : pc.actualHours !== null && pc.actualHours !== undefined && Number(pc.actualHours) > 0
-        ? Number(pc.actualHours)
-        : null;
 
-    const hasActual = liveActualCost !== null || liveActualHours !== null;
+    const hasActual = liveActualCost !== null;
     const liveVariance =
       liveActualCost !== null ? liveActualCost - Number(pc.predictedCost || 0) : null;
 
     return {
       ...pc,
       actualCost: liveActualCost ?? undefined,
-      actualHours: liveActualHours ?? undefined,
+      actualHours: Number(pc.estimatedHours || 0),
       variance: liveVariance ?? undefined,
       hasActual,
     };
@@ -444,11 +393,13 @@ export const CostSheetDetailsPage: React.FC = () => {
 
   const actualMaterialCost =
     dynamicCostItems.reduce(
-      (a, c) => a + (c.actualAmount !== null ? Number(c.actualAmount) : 0),
+      (a, c) =>
+        a + (c.actualAmount !== null && c.actualAmount !== undefined ? Number(c.actualAmount) : 0),
       0,
     ) +
     dynamicBroughtMaterials.reduce(
-      (a, c) => a + (c.actualAmount !== null ? Number(c.actualAmount) : 0),
+      (a, c) =>
+        a + (c.actualAmount !== null && c.actualAmount !== undefined ? Number(c.actualAmount) : 0),
       0,
     );
 
@@ -460,7 +411,7 @@ export const CostSheetDetailsPage: React.FC = () => {
     cs.processCosts?.reduce((a, c) => a + (Number(c.predictedCost) || 0), 0) || 0;
 
   const actualProcessCost = dynamicProcessCosts.reduce(
-    (a, c) => a + (c.actualCost !== null ? Number(c.actualCost) : 0),
+    (a, c) => a + (c.actualCost !== null && c.actualCost !== undefined ? Number(c.actualCost) : 0),
     0,
   );
   const hasProcessActuals = dynamicProcessCosts.some((i) => i.hasActual);
@@ -638,12 +589,11 @@ export const CostSheetDetailsPage: React.FC = () => {
                 <th className="py-3 px-4">Part Name / Product</th>
                 <th className="py-3 px-4">Material</th>
                 <th className="py-3 px-4">Size</th>
-                <th className="py-3 px-4">Planned Qty</th>
-                <th className="py-3 px-4">Planned Rate</th>
-                <th className="py-3 px-4">Planned Amt</th>
-                <th className="py-3 px-4 bg-surface-elevated/50 rounded-tl-md">Actual Qty</th>
-                <th className="py-3 px-4 bg-surface-elevated/50">Actual Rate</th>
-                <th className="py-3 px-4 bg-surface-elevated/50">Actual Amt</th>
+                <th className="py-3 px-4">Quantity</th>
+                <th className="py-3 px-4">Planned Rate (₹)</th>
+                <th className="py-3 px-4">Planned Amt (₹)</th>
+                <th className="py-3 px-4 bg-surface-elevated/50 rounded-tl-md">Actual Rate (₹)</th>
+                <th className="py-3 px-4 bg-surface-elevated/50">Actual Mat. Cost (₹)</th>
                 <th className="py-3 px-4 bg-surface-elevated/50 rounded-tr-md">Variance</th>
               </tr>
             </thead>
@@ -663,7 +613,9 @@ export const CostSheetDetailsPage: React.FC = () => {
                       {item.material?.materialName || `Material #${item.materialId}`}
                     </td>
                     <td className="py-3 px-4 text-text-secondary">{parsed.size || '—'}</td>
-                    <td className="py-3 px-4">{item.predictedQuantity}</td>
+                    <td className="py-3 px-4 font-semibold text-text-primary">
+                      {item.predictedQuantity}
+                    </td>
                     <td className="py-3 px-4">Rs.{item.predictedRate}</td>
                     <td className="py-3 px-4">
                       Rs.{Number(item.predictedAmount).toLocaleString()}
@@ -672,37 +624,9 @@ export const CostSheetDetailsPage: React.FC = () => {
                       {isEditable ? (
                         <Input
                           type="number"
-                          className="w-24 text-sm h-8"
-                          placeholder="—"
-                          value={actuals.materials[item.id]?.actualQuantity ?? ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setActuals((prev) => ({
-                              ...prev,
-                              materials: {
-                                ...prev.materials,
-                                [item.id]: {
-                                  actualRate: prev.materials[item.id]?.actualRate ?? '',
-                                  actualQuantity: val,
-                                },
-                              },
-                            }));
-                          }}
-                        />
-                      ) : (
-                        <span>
-                          {item.actualQuantity !== null && item.actualQuantity !== undefined
-                            ? item.actualQuantity
-                            : '—'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-4 bg-surface-elevated/20">
-                      {isEditable ? (
-                        <Input
-                          type="number"
-                          className="w-24 text-sm h-8"
-                          placeholder="—"
+                          step="0.01"
+                          className="w-32 text-sm h-8"
+                          placeholder="Enter actual rate..."
                           value={actuals.materials[item.id]?.actualRate ?? ''}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -711,7 +635,6 @@ export const CostSheetDetailsPage: React.FC = () => {
                               materials: {
                                 ...prev.materials,
                                 [item.id]: {
-                                  actualQuantity: prev.materials[item.id]?.actualQuantity ?? '',
                                   actualRate: val,
                                 },
                               },
@@ -742,7 +665,7 @@ export const CostSheetDetailsPage: React.FC = () => {
               })}
               {(!cs.costItems || cs.costItems.length === 0) && (
                 <tr>
-                  <td colSpan={10} className="py-8 text-center text-text-muted">
+                  <td colSpan={9} className="py-8 text-center text-text-muted">
                     No material costs recorded
                   </td>
                 </tr>
@@ -762,10 +685,9 @@ export const CostSheetDetailsPage: React.FC = () => {
             <thead>
               <tr className="border-b border-border-default text-text-muted font-bold uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-4">Process</th>
-                <th className="py-3 px-4">Planned Hours</th>
-                <th className="py-3 px-4">Planned Cost</th>
-                <th className="py-3 px-4 bg-surface-elevated/50 rounded-tl-md">Actual Hours</th>
-                <th className="py-3 px-4 bg-surface-elevated/50">Actual Cost</th>
+                <th className="py-3 px-4">Estimated Hours</th>
+                <th className="py-3 px-4">Planned Cost (₹)</th>
+                <th className="py-3 px-4 bg-surface-elevated/50 rounded-tl-md">Actual Cost (₹)</th>
                 <th className="py-3 px-4 bg-surface-elevated/50 rounded-tr-md">Variance</th>
               </tr>
             </thead>
@@ -779,43 +701,15 @@ export const CostSheetDetailsPage: React.FC = () => {
                     <td className="py-3 px-4 font-medium text-text-primary">
                       {item.process?.processName || `Process #${item.processId}`}
                     </td>
-                    <td className="py-3 px-4">{item.estimatedHours}</td>
+                    <td className="py-3 px-4">{item.estimatedHours} hrs</td>
                     <td className="py-3 px-4">Rs.{Number(item.predictedCost).toLocaleString()}</td>
                     <td className="py-2 px-4 bg-surface-elevated/20">
                       {isEditable ? (
                         <Input
                           type="number"
-                          className="w-24 text-sm h-8"
-                          placeholder="—"
-                          value={actuals.processes[item.id]?.actualHours ?? ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setActuals((prev) => ({
-                              ...prev,
-                              processes: {
-                                ...prev.processes,
-                                [item.id]: {
-                                  actualCost: prev.processes[item.id]?.actualCost ?? '',
-                                  actualHours: val,
-                                },
-                              },
-                            }));
-                          }}
-                        />
-                      ) : (
-                        <span>
-                          {item.actualHours !== null && item.actualHours !== undefined
-                            ? `${item.actualHours} hrs`
-                            : '—'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 px-4 bg-surface-elevated/20">
-                      {isEditable ? (
-                        <Input
-                          type="number"
-                          className="w-32 text-sm h-8"
-                          placeholder="—"
+                          step="0.01"
+                          className="w-36 text-sm h-8"
+                          placeholder="Enter actual cost..."
                           value={actuals.processes[item.id]?.actualCost ?? ''}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -824,7 +718,6 @@ export const CostSheetDetailsPage: React.FC = () => {
                               processes: {
                                 ...prev.processes,
                                 [item.id]: {
-                                  actualHours: prev.processes[item.id]?.actualHours ?? '',
                                   actualCost: val,
                                 },
                               },
@@ -847,7 +740,7 @@ export const CostSheetDetailsPage: React.FC = () => {
               })}
               {(!cs.processCosts || cs.processCosts.length === 0) && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-text-muted">
+                  <td colSpan={5} className="py-8 text-center text-text-muted">
                     No process costs recorded
                   </td>
                 </tr>
