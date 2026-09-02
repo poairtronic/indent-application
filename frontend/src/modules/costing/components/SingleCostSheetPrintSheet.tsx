@@ -68,7 +68,9 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
           {
             header: 'Act. Rate (₹)',
             accessor: (item: any) =>
-              item.actualRate !== null && item.actualRate !== undefined
+              item.actualRate !== null &&
+              item.actualRate !== undefined &&
+              Number(item.actualRate) > 0
                 ? Number(item.actualRate).toLocaleString(undefined, { minimumFractionDigits: 2 })
                 : '—',
             align: 'right' as const,
@@ -77,7 +79,9 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
           {
             header: 'Act. Total (₹)',
             accessor: (item: any) =>
-              item.actualAmount !== null && item.actualAmount !== undefined
+              item.actualAmount !== null &&
+              item.actualAmount !== undefined &&
+              Number(item.actualAmount) > 0
                 ? Number(item.actualAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })
                 : '—',
             align: 'right' as const,
@@ -86,6 +90,13 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
           {
             header: 'Var (₹)',
             accessor: (item: any) => {
+              if (
+                item.actualAmount === null ||
+                item.actualAmount === undefined ||
+                Number(item.actualAmount) <= 0
+              ) {
+                return '—';
+              }
               const pred = Number(item.predictedAmount) || 0;
               const act = Number(item.actualAmount) || 0;
               const diff = act - pred;
@@ -132,7 +143,7 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
           {
             header: 'Act. Cost (₹)',
             accessor: (pc: any) =>
-              pc.actualCost !== null && pc.actualCost !== undefined
+              pc.actualCost !== null && pc.actualCost !== undefined && Number(pc.actualCost) > 0
                 ? Number(pc.actualCost).toLocaleString(undefined, { minimumFractionDigits: 2 })
                 : '—',
             align: 'right' as const,
@@ -141,6 +152,13 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
           {
             header: 'Variance (₹)',
             accessor: (pc: any) => {
+              if (
+                pc.actualCost === null ||
+                pc.actualCost === undefined ||
+                Number(pc.actualCost) <= 0
+              ) {
+                return '—';
+              }
               const diff = (Number(pc.actualCost) || 0) - (Number(pc.predictedCost) || 0);
               return (
                 <span className="font-mono font-bold">
@@ -155,10 +173,74 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
       : []),
   ];
 
-  const totalMaterialEst = (cs?.costItems || []).reduce(
+  // 3. Brought Material Columns
+  const broughtMaterialColumns: PrintColumn<any>[] = [
+    { header: '#', accessor: (_, i) => i + 1, width: '30px', align: 'center' },
+    {
+      header: 'Item Description',
+      accessor: (bm) => <span className="font-semibold">{bm.name || '—'}</span>,
+      width: '35%',
+    },
+    {
+      header: 'Qty',
+      accessor: (bm) => bm.quantity || 0,
+      align: 'right',
+      width: '12%',
+    },
+    {
+      header: 'Est. Amount (₹)',
+      accessor: (bm) =>
+        (Number(bm.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+      align: 'right',
+      width: '20%',
+    },
+    ...(isActualAvailable
+      ? [
+          {
+            header: 'Act. Amount (₹)',
+            accessor: (bm: any) =>
+              bm.actualAmount !== null &&
+              bm.actualAmount !== undefined &&
+              Number(bm.actualAmount) > 0
+                ? Number(bm.actualAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })
+                : '—',
+            align: 'right' as const,
+            width: '20%',
+          },
+          {
+            header: 'Variance (₹)',
+            accessor: (bm: any) => {
+              if (
+                bm.actualAmount === null ||
+                bm.actualAmount === undefined ||
+                Number(bm.actualAmount) <= 0
+              ) {
+                return '—';
+              }
+              const diff = (Number(bm.actualAmount) || 0) - (Number(bm.amount) || 0);
+              return (
+                <span className="font-mono font-bold">
+                  {diff !== 0 ? (diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)) : '0.00'}
+                </span>
+              );
+            },
+            align: 'right' as const,
+            width: '13%',
+          },
+        ]
+      : []),
+  ];
+
+  const totalRawMaterialEst = (cs?.costItems || []).reduce(
     (acc, c) => acc + (Number(c.predictedAmount) || 0),
     0,
   );
+  const totalBroughtMaterialEst = (indent.broughtMaterials || []).reduce(
+    (acc, bm) => acc + (Number(bm.amount) || 0),
+    0,
+  );
+  const totalMaterialEst = totalRawMaterialEst + totalBroughtMaterialEst;
+
   const totalProcessEst = (cs?.processCosts || []).reduce(
     (acc, p) => acc + (Number(p.predictedCost) || 0),
     0,
@@ -167,6 +249,7 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
   const overheadCost = Number(cs?.overheadCost) || 0;
   const contingencyCost = Number(cs?.contingencyCost) || 0;
   const grandTotalEst =
+    Number(cs?.predictedTotal) ||
     totalMaterialEst + totalProcessEst + designCost + overheadCost + contingencyCost;
 
   const summaryMetrics: SummaryMetric[] = [
@@ -198,7 +281,11 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
   ];
 
   const signatures: SignatureBlock[] = [
-    { title: 'Cost Prepared By', department: 'DESIGN DEPT', name: indent.creatorName || undefined },
+    {
+      title: 'Cost Prepared By',
+      department: 'DESIGN DEPT',
+      name: indent.creatorName || undefined,
+    },
     { title: 'Materials Cost Verified', department: 'STORES DEPT' },
     { title: 'Final Financial Closure', department: 'ACCOUNTS DEPT' },
   ];
@@ -213,7 +300,10 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
         customMetadata={[
           { label: 'Customer', value: indent.customerName || 'N/A' },
           { label: 'Layout No.', value: indent.layoutNumber || 'N/A' },
-          { label: 'Department', value: indent.departmentName || 'Administration' },
+          {
+            label: 'Department',
+            value: indent.departmentName || 'Administration',
+          },
           { label: 'Financial Status', value: indent.currentState?.replace(/_/g, ' ') || 'DRAFT' },
         ]}
       />
@@ -236,11 +326,29 @@ export const SingleCostSheetPrintSheet: React.FC<SingleCostSheetPrintSheetProps>
         <PrintTable columns={processCostColumns} data={cs?.processCosts || []} />
       </div>
 
+      {/* 3. Brought-Out Material Costs */}
+      {indent.broughtMaterials && indent.broughtMaterials.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-1.5 pb-0.5 border-b border-gray-400">
+            3. Brought-Out Components & Hardware Costs
+          </h3>
+          <PrintTable columns={broughtMaterialColumns} data={indent.broughtMaterials} />
+        </div>
+      )}
+
       {/* Totals Summary */}
       <PrintTotals
         notes="All rates are in Indian Rupees (₹). Cost sheet is strictly confidential and protected under corporate governance policies."
         rows={[
-          { label: 'Total Material Cost', value: `₹${totalMaterialEst.toFixed(2)}` },
+          { label: 'Total Raw Material Cost', value: `₹${totalRawMaterialEst.toFixed(2)}` },
+          ...(totalBroughtMaterialEst > 0
+            ? [
+                {
+                  label: 'Total Brought-Out Items Cost',
+                  value: `₹${totalBroughtMaterialEst.toFixed(2)}`,
+                },
+              ]
+            : []),
           { label: 'Total Process Operations Cost', value: `₹${totalProcessEst.toFixed(2)}` },
           { label: 'Design Allocation Cost', value: `₹${designCost.toFixed(2)}` },
           { label: 'Overhead Allocation Cost', value: `₹${overheadCost.toFixed(2)}` },

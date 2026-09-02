@@ -11,6 +11,7 @@ import {
 } from '../../../components/print';
 import { parseItemRemarks, parseIndentRemarks } from './IndentForm';
 import { useAuthStore } from '../../../store/authStore';
+import { calculateMaterialWeight } from '../../../utils/materialWeight';
 
 export interface SingleIndentPrintSheetProps {
   indent: IndentData;
@@ -37,6 +38,72 @@ export const SingleIndentPrintSheet: React.FC<SingleIndentPrintSheetProps> = ({ 
       })
     : '—';
 
+  // Authoritative Helper: Resolves item unit weight and total weight
+  const getItemWeightData = (item: any) => {
+    const parsed = parseItemRemarks(item.remarks);
+    const density = Number(item.material?.densityKgPerDm3 || 0);
+    const calculatedUnit = calculateMaterialWeight({
+      shape: (item.shape || '') as any,
+      densityKgPerDm3: density,
+      diameterMm:
+        item.diameterMm !== undefined && item.diameterMm !== null
+          ? Number(item.diameterMm)
+          : undefined,
+      lengthMm:
+        item.lengthMm !== undefined && item.lengthMm !== null ? Number(item.lengthMm) : undefined,
+      widthMm:
+        item.widthMm !== undefined && item.widthMm !== null ? Number(item.widthMm) : undefined,
+      heightMm:
+        item.heightMm !== undefined && item.heightMm !== null ? Number(item.heightMm) : undefined,
+    });
+
+    const unitWeight =
+      item.unitWeightKg !== undefined && item.unitWeightKg !== null && Number(item.unitWeightKg) > 0
+        ? Number(item.unitWeightKg)
+        : calculatedUnit > 0
+          ? calculatedUnit
+          : Number(parsed.weight) || 0;
+
+    const qty = Number(item.quantity) || 1;
+    const totalWeight =
+      item.totalWeightKg !== undefined &&
+      item.totalWeightKg !== null &&
+      Number(item.totalWeightKg) > 0
+        ? Number(item.totalWeightKg)
+        : unitWeight * qty;
+
+    return { unitWeight, totalWeight };
+  };
+
+  // Authoritative Helper: Resolves item shape & dimensions
+  const getItemDimensions = (item: any) => {
+    const parsed = parseItemRemarks(item.remarks);
+    if (parsed.size) return parsed.size;
+
+    const shape = (item.shape || '').toUpperCase();
+    if (shape === 'ROUND' || shape === 'CIRCLE') {
+      if (item.diameterMm && item.lengthMm) {
+        return `Ø${item.diameterMm} × ${item.lengthMm} mm`;
+      } else if (item.diameterMm) {
+        return `Ø${item.diameterMm} mm`;
+      }
+    }
+    if (
+      shape === 'RECTANGLE' ||
+      shape === 'SQUARE' ||
+      shape === 'PLATE' ||
+      shape === 'RECTANGULAR'
+    ) {
+      const parts = [item.lengthMm, item.widthMm, item.heightMm].filter(
+        (v) => v !== null && v !== undefined && v !== '',
+      );
+      if (parts.length > 0) {
+        return `${shape ? `${shape} ` : ''}${parts.join(' × ')} mm`;
+      }
+    }
+    return item.shape || 'Standard';
+  };
+
   // 1. Materials Columns
   const materialColumns: PrintColumn<any>[] = [
     { header: '#', accessor: (_, i) => i + 1, width: '30px', align: 'center' },
@@ -44,7 +111,11 @@ export const SingleIndentPrintSheet: React.FC<SingleIndentPrintSheetProps> = ({ 
       header: 'Part / Product Name',
       accessor: (item) => {
         const parsed = parseItemRemarks(item.remarks);
-        return <span className="font-semibold text-gray-900">{parsed.product || '—'}</span>;
+        return (
+          <span className="font-semibold text-gray-900">
+            {parsed.product || indent.productName || '—'}
+          </span>
+        );
       },
       width: '25%',
     },
@@ -65,11 +136,7 @@ export const SingleIndentPrintSheet: React.FC<SingleIndentPrintSheetProps> = ({ 
     },
     {
       header: 'Shape & Dimensions',
-      accessor: (item) => {
-        const parsed = parseItemRemarks(item.remarks);
-        if (parsed.size) return parsed.size;
-        return 'Standard';
-      },
+      accessor: (item) => getItemDimensions(item),
       width: '18%',
     },
     {
@@ -85,8 +152,12 @@ export const SingleIndentPrintSheet: React.FC<SingleIndentPrintSheetProps> = ({ 
     {
       header: 'Weight (kg)',
       accessor: (item) => {
-        const parsed = parseItemRemarks(item.remarks);
-        return <span className="font-mono font-medium">{parsed.weight || '—'}</span>;
+        const { unitWeight } = getItemWeightData(item);
+        return (
+          <span className="font-mono font-medium">
+            {unitWeight > 0 ? `${unitWeight.toFixed(4)} kg` : '—'}
+          </span>
+        );
       },
       align: 'right',
       width: '12%',
@@ -108,11 +179,14 @@ export const SingleIndentPrintSheet: React.FC<SingleIndentPrintSheetProps> = ({ 
     const itemParsed = parseItemRemarks(item.remarks);
     return (item.indentProcesses || []).map((proc: any, pIdx: number) => ({
       itemNumber: itemIdx + 1,
-      productName: itemParsed.product || `Item #${itemIdx + 1}`,
+      productName: itemParsed.product || indent.productName || `Item #${itemIdx + 1}`,
       processName: proc.process?.processName || 'Process',
       sequence: proc.sequence || pIdx + 1,
       estimatedHours: proc.estimatedHours ? `${proc.estimatedHours} hrs` : '—',
-      source: itemParsed.processSources?.[pIdx] || 'In-House',
+      source:
+        itemParsed.processProductionSources?.[pIdx] ||
+        itemParsed.processSources?.[pIdx] ||
+        'In-House',
     }));
   });
 
@@ -180,8 +254,7 @@ export const SingleIndentPrintSheet: React.FC<SingleIndentPrintSheetProps> = ({ 
 
   // Calculate totals
   const totalWeight = (indent.items || []).reduce((acc, curr) => {
-    const parsed = parseItemRemarks(curr.remarks);
-    return acc + (Number(parsed.weight) || 0);
+    return acc + getItemWeightData(curr).totalWeight;
   }, 0);
   const totalItemsCount = (indent.items || []).reduce(
     (acc, curr) => acc + (Number(curr.quantity) || 0),
@@ -199,11 +272,17 @@ export const SingleIndentPrintSheet: React.FC<SingleIndentPrintSheetProps> = ({ 
         customMetadata={[
           { label: 'Customer', value: indent.customerName || parsedIndent.customerName || 'N/A' },
           { label: 'Layout No.', value: indent.layoutNumber || parsedIndent.layoutNumber || 'N/A' },
-          { label: 'Department', value: indent.departmentName || 'Administration' },
+          {
+            label: 'Department',
+            value: indent.departmentName || 'Administration',
+          },
           { label: 'Priority', value: indent.priority || 'MEDIUM' },
           { label: 'Required By', value: formattedRequiredDate },
           { label: 'Workflow State', value: indent.currentState?.replace(/_/g, ' ') || 'DRAFT' },
-          { label: 'Created By', value: indent.creatorName || 'Design Team' },
+          {
+            label: 'Created By',
+            value: indent.creatorName || 'Design Team',
+          },
           { label: 'Created Date', value: formattedCreatedDate },
         ]}
       />
@@ -252,12 +331,22 @@ export const SingleIndentPrintSheet: React.FC<SingleIndentPrintSheetProps> = ({ 
         rows={[
           { label: 'Total Component Lines', value: (indent.items || []).length },
           { label: 'Total Output Quantity', value: `${totalItemsCount} units` },
-          { label: 'Total Gross Weight', value: `${totalWeight.toFixed(2)} kg`, highlight: true },
+          {
+            label: 'Total Gross Weight',
+            value: totalWeight > 0 ? `${totalWeight.toFixed(4)} kg` : '0.0000 kg',
+            highlight: true,
+          },
           ...(canViewCostSheet && indent.costSheet
             ? [
                 {
                   label: 'Estimated Material Cost',
-                  value: `₹${(Number(indent.costSheet.predictedTotal) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+                  value: `₹${(
+                    (indent.costSheet.costItems?.reduce(
+                      (a, c) => a + (Number(c.predictedAmount) || 0),
+                      0,
+                    ) || 0) +
+                    (indent.broughtMaterials?.reduce((a, c) => a + (Number(c.amount) || 0), 0) || 0)
+                  ).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
                 },
                 {
                   label: 'Total Estimated Cost',
