@@ -30,6 +30,7 @@ export const IndentDetailsPage: React.FC = () => {
   const { data: indent, isLoading, isError, error, refetch } = useIndent(id || '');
 
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
 
   const isEditable = React.useMemo(() => {
     if (!indent) return false;
@@ -120,8 +121,6 @@ export const IndentDetailsPage: React.FC = () => {
   const handleWorkflowSuccess = () => {
     show('success', 'Workflow action completed successfully.');
   };
-
-  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
 
   return (
     <div className="space-y-6">

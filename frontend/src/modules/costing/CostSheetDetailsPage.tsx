@@ -100,6 +100,7 @@ export const CostSheetDetailsPage: React.FC = () => {
 
   const user = useAuthStore((s) => s.user);
   const canViewWorkflow = hasPermission(AppPermission.WORKFLOW_VIEW);
+  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
 
   const handleUploadFile = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -389,8 +390,6 @@ export const CostSheetDetailsPage: React.FC = () => {
     costItems: dynamicCostItems,
     processCosts: dynamicProcessCosts,
   };
-
-  const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
 
   return (
     <div className="space-y-6">
