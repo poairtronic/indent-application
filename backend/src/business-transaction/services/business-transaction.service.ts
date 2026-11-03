@@ -5,6 +5,7 @@ import {
   ConflictException,
   ForbiddenException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BusinessTransactionValidator } from '../validators/business-transaction.validator';
@@ -31,6 +32,7 @@ import {
 } from '../utils/financial-math.util';
 import { calculateMaterialWeight } from '../../common/utils/material-weight.util';
 import { DocumentNumberService } from '../../common/services/document-number.service';
+import { RmIntegrationService } from '../../internal/rm-integration.service';
 
 @Injectable()
 export class BusinessTransactionService {
@@ -43,6 +45,7 @@ export class BusinessTransactionService {
     private readonly eventService: BusinessTransactionEventService,
     private readonly attachmentStorage: AttachmentStorageService,
     private readonly documentNumberService: DocumentNumberService,
+    @Optional() private readonly rmIntegrationService?: RmIntegrationService,
   ) {}
 
   private invalidateMetadataCache(): void {
@@ -1672,6 +1675,13 @@ export class BusinessTransactionService {
       { state: txData.currentState },
       { state: targetState, verificationResults },
     );
+
+    // Fire and forget — never await, never throw
+    console.log('[RM-DEBUG] About to call notifyStoresPending for indent:', id);
+    console.log('[RM-DEBUG] rmIntegrationService available:', !!this.rmIntegrationService);
+    this.rmIntegrationService
+      ?.notifyStoresPending(id, this.prisma)
+      .catch((err) => console.error('[RM-Integration] notifyStoresPending error:', err.message));
 
     this.invalidateWorkflowCache();
     return { id, success: true };

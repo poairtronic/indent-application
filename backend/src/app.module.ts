@@ -25,6 +25,7 @@ import { MasterDataModule } from './master-data/master-data.module';
 import { ReportsModule } from './reports/reports.module';
 import { StorageModule } from './storage/storage.module';
 import { SettingsModule } from './settings/settings.module';
+import { InternalModule } from './internal/internal.module';
 
 import { ObservabilityModule } from './observability/observability.module';
 import { CorrelationIdMiddleware } from './observability/correlation-id.middleware';
@@ -53,6 +54,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     StorageModule,
     SettingsModule,
     ObservabilityModule,
+    InternalModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { InternalModule } from '../internal/internal.module';
 import { BusinessTransactionController } from './business-transaction.controller';
 import { IndentSheetValidator } from './validators/indent-sheet.validator';
 import { ProcessCostSheetValidator } from './validators/process-cost-sheet.validator';
@@ -10,6 +11,7 @@ import { BusinessTransactionEventService } from './services/business-transaction
 import { AttachmentStorageService } from './services/attachment-storage.service';
 
 @Module({
+  imports: [InternalModule],
   controllers: [BusinessTransactionController],
   providers: [
     IndentSheetValidator,
