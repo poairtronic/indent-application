@@ -55,7 +55,7 @@ export class RmIntegrationService implements OnModuleInit {
       poNumber: (indent as any).poNumber ?? null,
       customerName: indent.customerName ?? null,
       layoutNumber: indent.layoutNumber ?? null,
-      mercCurrentState: 'STORES_PROCESSING',
+      mercCurrentState: (indent as any).currentState || 'DESIGN_COMPLETED',
       lineItems: [
         ...(indent.indentItems ?? []).map((item: any) => ({
           mercItemId: item.id,

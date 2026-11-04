@@ -87,4 +87,18 @@ export class InternalController {
   async getOutboxStatus() {
     return this.rmIntegrationService.getOutboxStatus(50);
   }
+
+  @Get('indents/pending')
+  @UseGuards(InternalSecretGuard)
+  @ApiOperation({ summary: 'Get all pending indents for RM stores sync' })
+  @ApiHeader({
+    name: 'x-internal-secret',
+    description: 'Shared secret for M2M communication',
+    required: true,
+  })
+  @ApiResponse({ status: 200, description: 'Pending indents retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid x-internal-secret header' })
+  async getPendingIndents() {
+    return this.internalService.getPendingIndents();
+  }
 }

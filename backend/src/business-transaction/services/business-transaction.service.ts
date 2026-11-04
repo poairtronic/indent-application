@@ -1596,6 +1596,11 @@ export class BusinessTransactionService {
       { state: targetState },
     );
 
+    // Immediately push indent to RM Stores upon Design Submission
+    this.rmIntegrationService
+      ?.notifyStoresPending(id, this.prisma)
+      .catch((err) => console.error('[RM-Integration] notifyStoresPending error:', err.message));
+
     this.invalidateWorkflowCache();
     return { id, success: true };
   }

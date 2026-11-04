@@ -200,4 +200,65 @@ export class InternalService {
       updatedStatus: dto.newIndentStatus,
     };
   }
+
+  /**
+   * Returns all indents in DESIGN_COMPLETED, STORES_PROCESSING, or MATERIALS_ISSUED
+   * formatted for RM/V-Smart stores sync.
+   */
+  async getPendingIndents(): Promise<any[]> {
+    const indents = await this.prisma.indent.findMany({
+      where: {
+        currentState: { in: ['DESIGN_COMPLETED', 'STORES_PROCESSING', 'MATERIALS_ISSUED'] },
+        isDeleted: false,
+      },
+      include: {
+        indentItems: {
+          include: { material: true, unit: true },
+          where: { isDeleted: false },
+        },
+        broughtMaterials: {
+          where: { isDeleted: false },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return indents.map((indent) => ({
+      indentId: indent.id,
+      indentNumber: indent.indentNumber,
+      poNumber: (indent as any).poNumber ?? null,
+      customerName: indent.customerName ?? null,
+      layoutNumber: indent.layoutNumber ?? null,
+      mercCurrentState: indent.currentState,
+      lineItems: [
+        ...(indent.indentItems ?? []).map((item: any) => ({
+          mercItemId: item.id,
+          itemType: 'RAW_MATERIAL',
+          name: item.material?.materialName ?? item.material?.name ?? 'Unknown',
+          material: item.material?.materialName ?? item.material?.name ?? null,
+          shape: item.shape ?? null,
+          lengthMm: item.lengthMm ? Number(item.lengthMm) : null,
+          widthMm: item.widthMm ? Number(item.widthMm) : null,
+          heightMm: item.heightMm ? Number(item.heightMm) : null,
+          diameterMm: item.diameterMm ? Number(item.diameterMm) : null,
+          quantityRequired: Number(item.quantity),
+          unit: item.unit?.unitName ?? item.unit?.name ?? null,
+        })),
+        ...(indent.broughtMaterials ?? []).map((item: any) => ({
+          mercItemId: item.id,
+          itemType: 'BROUGHT_OUT',
+          name: item.name,
+          material: null,
+          shape: null,
+          lengthMm: null,
+          widthMm: null,
+          heightMm: null,
+          diameterMm: null,
+          quantityRequired: Number(item.quantity),
+          unit: null,
+        })),
+      ],
+    }));
+  }
 }

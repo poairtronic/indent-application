@@ -101,6 +101,7 @@ describe('RmIntegrationService', () => {
       indentNumber: 'IND-2026-001',
       customerName: 'Acme Corp',
       layoutNumber: 'LAY-100',
+      currentState: 'STORES_PROCESSING',
       indentItems: [
         {
           id: 'item-raw-1',

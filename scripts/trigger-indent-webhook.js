@@ -44,7 +44,7 @@ async function main() {
     poNumber: indent.poNumber ?? null,
     customerName: indent.customerName ?? null,
     layoutNumber: indent.layoutNumber ?? null,
-    mercCurrentState: 'STORES_PROCESSING',
+    mercCurrentState: indent.currentState || 'DESIGN_COMPLETED',
     lineItems: [
       ...indent.indentItems.map((item) => ({
         mercItemId: item.id,
