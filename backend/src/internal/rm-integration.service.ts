@@ -13,10 +13,14 @@ export class RmIntegrationService implements OnModuleInit {
   }
 
   onModuleInit() {
-    this.logger.log(
-      `[MERC-Integration] RM_INTERNAL_SECRET first 4: ${process.env.RM_INTERNAL_SECRET?.substring(0, 4)}`,
-    );
-    this.logger.log(`[MERC-Integration] RM_API_URL configured: ${process.env.RM_API_URL}`);
+    const rmUrl = process.env.RM_API_URL?.trim();
+    const rmSecret = process.env.RM_INTERNAL_SECRET;
+    const mercSecret = process.env.MERC_INTERNAL_SECRET;
+    this.logger.log(`[STARTUP] RM_API_URL = "${rmUrl}"`);
+    this.logger.log(`[STARTUP] RM_INTERNAL_SECRET set = ${!!rmSecret}`);
+    this.logger.log(`[STARTUP] MERC_INTERNAL_SECRET set = ${!!mercSecret}`);
+    if (!rmUrl) this.logger.error('[STARTUP] CRITICAL: RM_API_URL is not set!');
+    if (!rmSecret) this.logger.error('[STARTUP] CRITICAL: RM_INTERNAL_SECRET is not set!');
   }
 
   // Called after STORES_PROCESSING transition
@@ -147,7 +151,10 @@ export class RmIntegrationService implements OnModuleInit {
     if (!entry) return;
 
     const cleanUrl = rmUrl.replace(/\/+$/, '');
-    const url = `${cleanUrl}/api/internal/merc/indent-pending`;
+    const targetUrl = `${cleanUrl}/api/internal/merc/indent-pending`;
+    const url = targetUrl;
+    this.logger.log(`[RM-Outbox] Full target URL: ${targetUrl}`);
+    this.logger.log(`[RM-Outbox] Secret first 6 chars: ${rmSecret?.substring(0, 6)}`);
     this.logger.log(`[RM-Outbox] Sending to: ${url}`);
 
     try {

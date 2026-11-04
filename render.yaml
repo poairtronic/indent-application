@@ -5,7 +5,7 @@ services:
     env: node
     nodeVersion: 20
     region: ohio
-    buildCommand: npm run build
+    buildCommand: npm install && npx prisma migrate deploy --schema=../database/schema.prisma && npm run build
     startCommand: npm run start:prod
     rootDir: backend
     envVars:
@@ -15,6 +15,8 @@ services:
         value: production
       - key: DATABASE_URL
         sync: false
+      - key: DIRECT_URL
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET
@@ -23,6 +25,12 @@ services:
         value: https://indent-application-frontend.onrender.com
       - key: APP_URL
         value: https://indent-application.onrender.com
+      - key: RM_API_URL
+        value: https://v-smart-backend.onrender.com
+      - key: RM_INTERNAL_SECRET
+        sync: false
+      - key: MERC_INTERNAL_SECRET
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

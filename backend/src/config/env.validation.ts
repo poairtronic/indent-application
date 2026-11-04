@@ -11,6 +11,10 @@ export function validateEnvironmentConfig() {
         'GOOGLE_GMAIL_USER',
         'FRONTEND_URL',
         'APP_URL',
+        'RM_API_URL',
+        'RM_INTERNAL_SECRET',
+        'MERC_INTERNAL_SECRET',
+        'DIRECT_URL',
       ]
     : [];
 
