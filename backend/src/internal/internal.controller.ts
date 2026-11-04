@@ -3,6 +3,7 @@ import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { InternalSecretGuard } from '../common/guards/internal-secret.guard';
 import { InternalService } from './internal.service';
+import { RmIntegrationService } from './rm-integration.service';
 import { ItemIssuedDto } from './dto/item-issued.dto';
 
 /**
@@ -13,7 +14,10 @@ import { ItemIssuedDto } from './dto/item-issued.dto';
 @Public()
 @Controller(['internal', 'api/internal'])
 export class InternalController {
-  constructor(private readonly internalService: InternalService) {}
+  constructor(
+    private readonly internalService: InternalService,
+    private readonly rmIntegrationService: RmIntegrationService,
+  ) {}
 
   @Get('health')
   @UseGuards(InternalSecretGuard)
@@ -47,5 +51,34 @@ export class InternalController {
   @ApiResponse({ status: 404, description: 'Indent not found' })
   async handleItemIssued(@Body() dto: ItemIssuedDto) {
     return this.internalService.handleItemIssued(dto);
+  }
+
+  @Post('rm/retry-outbox')
+  @UseGuards(InternalSecretGuard)
+  @ApiOperation({ summary: 'Manually retry failed RM webhook outbox entries' })
+  @ApiHeader({
+    name: 'x-internal-secret',
+    description: 'Shared secret for M2M communication',
+    required: true,
+  })
+  @ApiResponse({ status: 200, description: 'Retry initiated successfully' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid x-internal-secret header' })
+  async retryOutbox() {
+    await this.rmIntegrationService.retryFailedOutbox();
+    return { triggered: true, timestamp: new Date() };
+  }
+
+  @Get('rm/outbox-status')
+  @UseGuards(InternalSecretGuard)
+  @ApiOperation({ summary: 'Get status of latest RM webhook outbox entries' })
+  @ApiHeader({
+    name: 'x-internal-secret',
+    description: 'Shared secret for M2M communication',
+    required: true,
+  })
+  @ApiResponse({ status: 200, description: 'Outbox entries retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid x-internal-secret header' })
+  async getOutboxStatus() {
+    return this.rmIntegrationService.getOutboxStatus(50);
   }
 }

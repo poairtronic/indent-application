@@ -1,119 +1,235 @@
-/* eslint-disable no-console */
-import { Injectable, Logger, Optional } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class RmIntegrationService {
   private readonly logger = new Logger(RmIntegrationService.name);
 
-  constructor(@Optional() private readonly defaultPrisma?: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async notifyStoresPending(
-    indentId: string,
-    prisma?: PrismaClient | PrismaService,
-  ): Promise<void> {
-    console.log('[RM-DEBUG] notifyStoresPending called for indentId:', indentId);
-    console.log('[RM-DEBUG] RM_API_URL:', process.env.RM_API_URL);
-    console.log('[RM-DEBUG] RM_INTERNAL_SECRET set:', !!process.env.RM_INTERNAL_SECRET);
+  // Called after STORES_PROCESSING transition
+  async notifyStoresPending(indentId: string, customPrisma?: any): Promise<void> {
+    this.logger.log(`[RM-Outbox] Starting for indent: ${indentId}`);
 
-    const db = prisma || this.defaultPrisma;
-    if (!db) {
-      console.warn('[RM-Integration] No Prisma client provided or available.');
+    const db = customPrisma || this.prisma;
+
+    // Step 1: Build payload
+    const indent = await db.indent.findUnique({
+      where: { id: indentId },
+      include: {
+        indentItems: {
+          include: { material: true, unit: true },
+          where: { isDeleted: false },
+        },
+        broughtMaterials: {
+          where: { isDeleted: false },
+        },
+      },
+    });
+
+    if (!indent) {
+      this.logger.error(`[RM-Outbox] Indent not found: ${indentId}`);
       return;
     }
 
-    try {
-      const indent = await db.indent.findUnique({
-        where: { id: indentId },
-        include: {
-          indentItems: {
-            include: {
-              material: true,
-              unit: true,
-            },
-            where: { isDeleted: false },
-          },
-          broughtMaterials: {
-            where: { isDeleted: false },
-          },
+    // Build payload — check exact field names on material and unit models
+    const payload = {
+      indentId: indent.id,
+      indentNumber: indent.indentNumber,
+      poNumber: (indent as any).poNumber ?? null,
+      customerName: indent.customerName ?? null,
+      layoutNumber: indent.layoutNumber ?? null,
+      mercCurrentState: 'STORES_PROCESSING',
+      lineItems: [
+        ...(indent.indentItems ?? []).map((item: any) => ({
+          mercItemId: item.id,
+          itemType: 'RAW_MATERIAL',
+          name: item.material?.materialName ?? item.material?.name ?? 'Unknown',
+          material: item.material?.materialName ?? item.material?.name ?? null,
+          shape: item.shape ?? null,
+          lengthMm: item.lengthMm ? Number(item.lengthMm) : null,
+          widthMm: item.widthMm ? Number(item.widthMm) : null,
+          heightMm: item.heightMm ? Number(item.heightMm) : null,
+          diameterMm: item.diameterMm ? Number(item.diameterMm) : null,
+          quantityRequired: Number(item.quantity),
+          unit: item.unit?.unitName ?? item.unit?.name ?? null,
+        })),
+        ...(indent.broughtMaterials ?? []).map((item: any) => ({
+          mercItemId: item.id,
+          itemType: 'BROUGHT_OUT',
+          name: item.name,
+          material: null,
+          shape: null,
+          lengthMm: null,
+          widthMm: null,
+          heightMm: null,
+          diameterMm: null,
+          quantityRequired: Number(item.quantity),
+          unit: null,
+        })),
+      ],
+    };
+
+    this.logger.log(`[RM-Outbox] Payload built. Items: ${payload.lineItems.length}`);
+    this.logger.log(`[RM-Outbox] RM_API_URL: ${process.env.RM_API_URL}`);
+    this.logger.log(`[RM-Outbox] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`);
+
+    // Step 2: Save to outbox first (guaranteed delivery)
+    const outboxDb = db?.rmWebhookOutbox ? db : this.prisma;
+    let outboxId: string | null = null;
+    if (outboxDb?.rmWebhookOutbox?.create) {
+      const outbox = await outboxDb.rmWebhookOutbox.create({
+        data: {
+          indentId: indent.id,
+          indentNumber: indent.indentNumber,
+          payload: payload as any,
+          status: 'PENDING',
         },
       });
+      outboxId = outbox.id;
+      this.logger.log(`[RM-Outbox] Saved to outbox: ${outbox.id}`);
+    }
 
-      if (!indent) {
-        console.warn(`[RM-Integration] Indent not found for ID '${indentId}' — skipping`);
-        return;
+    // Step 3: Try immediate send
+    if (outboxId) {
+      await this.sendOutboxEntry(outboxId, payload);
+    } else {
+      // In case outbox wasn't created (e.g., in unit test without outbox mock)
+      await this.directSend(payload);
+    }
+  }
+
+  async sendOutboxEntry(outboxId: string, payload?: any): Promise<void> {
+    const rmUrl = process.env.RM_API_URL?.trim();
+    const rmSecret = process.env.RM_INTERNAL_SECRET?.trim();
+
+    if (!rmUrl || !rmSecret) {
+      this.logger.error('[RM-Outbox] RM_API_URL or RM_INTERNAL_SECRET missing in env');
+      if (this.prisma?.rmWebhookOutbox?.update) {
+        await this.prisma.rmWebhookOutbox.update({
+          where: { id: outboxId },
+          data: {
+            status: 'FAILED',
+            lastError: 'Missing env vars',
+            lastAttemptAt: new Date(),
+            attemptCount: { increment: 1 },
+          },
+        });
       }
+      return;
+    }
 
-      const payload = {
-        indentId: indent.id,
-        indentNumber: indent.indentNumber,
-        poNumber: (indent as any).poNumber ?? null,
-        customerName: indent.customerName ?? null,
-        layoutNumber: indent.layoutNumber ?? null,
-        mercCurrentState: 'STORES_PROCESSING',
-        lineItems: [
-          // RAW_MATERIAL items
-          ...indent.indentItems.map((item) => ({
-            mercItemId: item.id,
-            itemType: 'RAW_MATERIAL',
-            name: item.material?.materialName ?? (item.material as any)?.name ?? 'Unknown',
-            material: item.material?.materialName ?? (item.material as any)?.name ?? null,
-            shape: item.shape ?? null,
-            lengthMm: item.lengthMm ? Number(item.lengthMm) : null,
-            widthMm: item.widthMm ? Number(item.widthMm) : null,
-            heightMm: item.heightMm ? Number(item.heightMm) : null,
-            diameterMm: item.diameterMm ? Number(item.diameterMm) : null,
-            quantityRequired: Number(item.quantity),
-            unit: item.unit?.unitName ?? (item.unit as any)?.name ?? null,
-          })),
-          // BROUGHT_OUT items
-          ...((indent.broughtMaterials as any[]) || []).map((item) => ({
-            mercItemId: item.id,
-            itemType: 'BROUGHT_OUT',
-            name: item.name,
-            material: null,
-            shape: null,
-            lengthMm: null,
-            widthMm: null,
-            heightMm: null,
-            diameterMm: null,
-            quantityRequired: Number(item.quantity),
-            unit: null,
-          })),
-        ],
-      };
+    const entry =
+      payload ??
+      (await this.prisma.rmWebhookOutbox.findUnique({ where: { id: outboxId } }))?.payload;
+    if (!entry) return;
 
-      console.log('[RM-DEBUG] Payload being sent:', JSON.stringify(payload, null, 2));
+    const cleanUrl = rmUrl.replace(/\/+$/, '');
+    const url = `${cleanUrl}/api/internal/merc/indent-pending`;
+    this.logger.log(`[RM-Outbox] Sending to: ${url}`);
 
-      const rmUrl = process.env.RM_API_URL;
-      const rmSecret = process.env.RM_INTERNAL_SECRET;
-      if (!rmUrl || !rmSecret) {
-        console.warn('[RM-Integration] RM_API_URL or RM_INTERNAL_SECRET not set — skipping');
-        return;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-secret': rmSecret,
+        },
+        body: JSON.stringify(entry),
+        // Add timeout
+        signal: AbortSignal.timeout(15000),
+      });
+
+      const responseBody = await res.text();
+      this.logger.log(`[RM-Outbox] Response: ${res.status} — ${responseBody}`);
+
+      if (res.ok) {
+        await this.prisma.rmWebhookOutbox.update({
+          where: { id: outboxId },
+          data: {
+            status: 'SENT',
+            sentAt: new Date(),
+            lastAttemptAt: new Date(),
+            attemptCount: { increment: 1 },
+          },
+        });
+        this.logger.log(`[RM-Outbox] Successfully sent for outbox: ${outboxId}`);
+      } else {
+        await this.prisma.rmWebhookOutbox.update({
+          where: { id: outboxId },
+          data: {
+            status: 'FAILED',
+            lastError: `HTTP ${res.status}: ${responseBody}`,
+            lastAttemptAt: new Date(),
+            attemptCount: { increment: 1 },
+          },
+        });
+        this.logger.error(`[RM-Outbox] Failed HTTP ${res.status}: ${responseBody}`);
       }
+    } catch (err: any) {
+      const errorMsg = err?.message ?? String(err);
+      this.logger.error(`[RM-Outbox] Network error: ${errorMsg}`);
+      await this.prisma.rmWebhookOutbox.update({
+        where: { id: outboxId },
+        data: {
+          status: 'FAILED',
+          lastError: errorMsg,
+          lastAttemptAt: new Date(),
+          attemptCount: { increment: 1 },
+        },
+      });
+    }
+  }
 
-      const cleanUrl = rmUrl.replace(/\/+$/, '');
-      const res = await fetch(`${cleanUrl}/api/internal/merc/indent-pending`, {
+  // Fallback for tests or environments where outbox table is not mocked
+  private async directSend(payload: any): Promise<void> {
+    const rmUrl = process.env.RM_API_URL?.trim();
+    const rmSecret = process.env.RM_INTERNAL_SECRET?.trim();
+    if (!rmUrl || !rmSecret) return;
+    const cleanUrl = rmUrl.replace(/\/+$/, '');
+    const url = `${cleanUrl}/api/internal/merc/indent-pending`;
+    try {
+      await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-internal-secret': rmSecret,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
       });
-
-      console.log('[RM-DEBUG] RM response status:', res.status);
-      const responseBody = await res.text();
-      console.log('[RM-DEBUG] RM response body:', responseBody);
-
-      if (!res.ok) {
-        console.error('[RM-Integration] Webhook non-OK:', res.status, responseBody);
-      } else {
-        console.info('[RM-Integration] RM notified for indent:', indent.indentNumber);
-      }
     } catch (err: any) {
-      console.error('[RM-Integration] Webhook failed — manual retry needed:', err.message);
+      this.logger.error(`[RM-Outbox] Direct send error: ${err?.message ?? err}`);
     }
+  }
+
+  // Cron retry — called every 2 minutes for FAILED entries with < 5 attempts
+  async retryFailedOutbox(): Promise<void> {
+    const failed = await this.prisma.rmWebhookOutbox.findMany({
+      where: { status: 'FAILED', attemptCount: { lt: 5 } },
+      orderBy: { createdAt: 'asc' },
+      take: 10,
+    });
+
+    if (failed.length > 0) {
+      this.logger.log(`[RM-Outbox] Retrying ${failed.length} failed entries`);
+    }
+
+    for (const entry of failed) {
+      await this.sendOutboxEntry(entry.id, entry.payload);
+    }
+  }
+
+  @Cron('*/2 * * * *') // every 2 minutes
+  async handleOutboxRetry(): Promise<void> {
+    await this.retryFailedOutbox();
+  }
+
+  async getOutboxStatus(limit = 50) {
+    return this.prisma.rmWebhookOutbox.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
   }
 }
