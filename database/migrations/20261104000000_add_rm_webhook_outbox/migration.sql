@@ -20,3 +20,4 @@ CREATE INDEX "rm_webhook_outbox_status_attemptCount_idx" ON "rm_webhook_outbox"(
 
 -- CreateIndex
 CREATE INDEX "rm_webhook_outbox_createdAt_idx" ON "rm_webhook_outbox"("createdAt");
+
