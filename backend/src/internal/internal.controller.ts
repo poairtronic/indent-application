@@ -55,7 +55,9 @@ export class InternalController {
 
   @Post('rm/retry-outbox')
   @UseGuards(InternalSecretGuard)
-  @ApiOperation({ summary: 'Manually retry failed RM webhook outbox entries or trigger for a specific indent' })
+  @ApiOperation({
+    summary: 'Manually retry failed RM webhook outbox entries or trigger for a specific indent',
+  })
   @ApiHeader({
     name: 'x-internal-secret',
     description: 'Shared secret for M2M communication',

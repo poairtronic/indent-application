@@ -8,6 +8,10 @@ export class RmIntegrationService implements OnModuleInit {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private get outbox(): any {
+    return (this.prisma as any).rmWebhookOutbox;
+  }
+
   onModuleInit() {
     this.logger.log(
       `[MERC-Integration] RM_INTERNAL_SECRET first 4: ${process.env.RM_INTERNAL_SECRET?.substring(0, 4)}`,
@@ -87,10 +91,10 @@ export class RmIntegrationService implements OnModuleInit {
     this.logger.log(`[RM-Outbox] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`);
 
     // Step 2: Save to outbox first (guaranteed delivery)
-    const outboxDb = db?.rmWebhookOutbox ? db : this.prisma;
+    const outboxRepo = (db as any)?.rmWebhookOutbox || this.outbox;
     let outboxId: string | null = null;
-    if (outboxDb?.rmWebhookOutbox?.create) {
-      const outbox = await outboxDb.rmWebhookOutbox.create({
+    if (outboxRepo?.create) {
+      const outbox = await outboxRepo.create({
         data: {
           indentId: indent.id,
           indentNumber: indent.indentNumber,
@@ -113,7 +117,9 @@ export class RmIntegrationService implements OnModuleInit {
 
   async sendOutboxEntry(outboxId: string, payload?: any): Promise<void> {
     this.logger.log(`[RM-Outbox-DEBUG] RM_API_URL raw value: "${process.env.RM_API_URL}"`);
-    this.logger.log(`[RM-Outbox-DEBUG] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`);
+    this.logger.log(
+      `[RM-Outbox-DEBUG] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`,
+    );
     this.logger.log(
       `[RM-Outbox-DEBUG] Secret first 4 chars: ${process.env.RM_INTERNAL_SECRET?.substring(0, 4)}`,
     );
@@ -123,8 +129,8 @@ export class RmIntegrationService implements OnModuleInit {
 
     if (!rmUrl || !rmSecret) {
       this.logger.error('[RM-Outbox] RM_API_URL or RM_INTERNAL_SECRET missing in env');
-      if (this.prisma?.rmWebhookOutbox?.update) {
-        await this.prisma.rmWebhookOutbox.update({
+      if (this.outbox?.update) {
+        await this.outbox.update({
           where: { id: outboxId },
           data: {
             status: 'FAILED',
@@ -137,9 +143,7 @@ export class RmIntegrationService implements OnModuleInit {
       return;
     }
 
-    const entry =
-      payload ??
-      (await this.prisma.rmWebhookOutbox.findUnique({ where: { id: outboxId } }))?.payload;
+    const entry = payload ?? (await this.outbox?.findUnique({ where: { id: outboxId } }))?.payload;
     if (!entry) return;
 
     const cleanUrl = rmUrl.replace(/\/+$/, '');
@@ -162,7 +166,7 @@ export class RmIntegrationService implements OnModuleInit {
       this.logger.log(`[RM-Outbox] Response: ${res.status} — ${responseBody}`);
 
       if (res.ok) {
-        await this.prisma.rmWebhookOutbox.update({
+        await this.outbox.update({
           where: { id: outboxId },
           data: {
             status: 'SENT',
@@ -173,7 +177,7 @@ export class RmIntegrationService implements OnModuleInit {
         });
         this.logger.log(`[RM-Outbox] Successfully sent for outbox: ${outboxId}`);
       } else {
-        await this.prisma.rmWebhookOutbox.update({
+        await this.outbox.update({
           where: { id: outboxId },
           data: {
             status: 'FAILED',
@@ -187,7 +191,7 @@ export class RmIntegrationService implements OnModuleInit {
     } catch (err: any) {
       const errorMsg = err?.message ?? String(err);
       this.logger.error(`[RM-Outbox] Network error: ${errorMsg}`);
-      await this.prisma.rmWebhookOutbox.update({
+      await this.outbox.update({
         where: { id: outboxId },
         data: {
           status: 'FAILED',
@@ -223,7 +227,7 @@ export class RmIntegrationService implements OnModuleInit {
 
   // Cron retry — called every 2 minutes for FAILED entries or PENDING older than 1 min with < 5 attempts
   async retryFailedOutbox(): Promise<void> {
-    const failed = await this.prisma.rmWebhookOutbox.findMany({
+    const failed = await this.outbox.findMany({
       where: {
         OR: [
           { status: 'FAILED', attemptCount: { lt: 5 } },
@@ -253,7 +257,7 @@ export class RmIntegrationService implements OnModuleInit {
   }
 
   async getOutboxStatus(limit = 50) {
-    return this.prisma.rmWebhookOutbox.findMany({
+    return this.outbox.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
