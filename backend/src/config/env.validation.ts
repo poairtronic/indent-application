@@ -2,6 +2,11 @@ export function validateEnvironmentConfig() {
   const isProd = process.env.NODE_ENV === 'production';
   const missing: string[] = [];
 
+  // Fallback DIRECT_URL to DATABASE_URL if direct connection string is not separately provided
+  if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
+    process.env.DIRECT_URL = process.env.DATABASE_URL;
+  }
+
   const requiredVars = isProd
     ? [
         'DATABASE_URL',
@@ -14,7 +19,6 @@ export function validateEnvironmentConfig() {
         'RM_API_URL',
         'RM_INTERNAL_SECRET',
         'MERC_INTERNAL_SECRET',
-        'DIRECT_URL',
       ]
     : [];
 
