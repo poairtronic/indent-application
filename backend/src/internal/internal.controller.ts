@@ -55,7 +55,7 @@ export class InternalController {
 
   @Post('rm/retry-outbox')
   @UseGuards(InternalSecretGuard)
-  @ApiOperation({ summary: 'Manually retry failed RM webhook outbox entries' })
+  @ApiOperation({ summary: 'Manually retry failed RM webhook outbox entries or trigger for a specific indent' })
   @ApiHeader({
     name: 'x-internal-secret',
     description: 'Shared secret for M2M communication',
@@ -63,7 +63,11 @@ export class InternalController {
   })
   @ApiResponse({ status: 200, description: 'Retry initiated successfully' })
   @ApiResponse({ status: 401, description: 'Missing or invalid x-internal-secret header' })
-  async retryOutbox() {
+  async retryOutbox(@Body() body?: { indentId?: string }) {
+    if (body?.indentId) {
+      await this.rmIntegrationService.notifyStoresPending(body.indentId);
+      return { triggered: true, indentId: body.indentId, timestamp: new Date() };
+    }
     await this.rmIntegrationService.retryFailedOutbox();
     return { triggered: true, timestamp: new Date() };
   }

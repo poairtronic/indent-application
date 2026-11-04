@@ -21,6 +21,7 @@ describe('InternalController', () => {
 
     mockRmIntegrationService = {
       retryFailedOutbox: jest.fn().mockResolvedValue(undefined),
+      notifyStoresPending: jest.fn().mockResolvedValue(undefined),
       getOutboxStatus: jest.fn().mockResolvedValue([
         {
           id: 'outbox-1',
@@ -76,11 +77,19 @@ describe('InternalController', () => {
     expect(mockInternalService.handleItemIssued).toHaveBeenCalledWith(dto);
   });
 
-  it('should handle retry-outbox manual trigger', async () => {
+  it('should handle retry-outbox manual trigger without indentId', async () => {
     const result = await controller.retryOutbox();
     expect(result.triggered).toBe(true);
     expect(result.timestamp).toBeInstanceOf(Date);
     expect(mockRmIntegrationService.retryFailedOutbox).toHaveBeenCalled();
+  });
+
+  it('should handle retry-outbox manual trigger with specific indentId', async () => {
+    const result = await controller.retryOutbox({ indentId: 'indent-uuid-999' });
+    expect(result.triggered).toBe(true);
+    expect(result.indentId).toBe('indent-uuid-999');
+    expect(result.timestamp).toBeInstanceOf(Date);
+    expect(mockRmIntegrationService.notifyStoresPending).toHaveBeenCalledWith('indent-uuid-999');
   });
 
   it('should handle get outbox-status', async () => {
