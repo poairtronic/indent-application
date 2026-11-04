@@ -1,12 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class RmIntegrationService {
+export class RmIntegrationService implements OnModuleInit {
   private readonly logger = new Logger(RmIntegrationService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit() {
+    this.logger.log(
+      `[MERC-Integration] RM_INTERNAL_SECRET first 4: ${process.env.RM_INTERNAL_SECRET?.substring(0, 4)}`,
+    );
+    this.logger.log(`[MERC-Integration] RM_API_URL configured: ${process.env.RM_API_URL}`);
+  }
 
   // Called after STORES_PROCESSING transition
   async notifyStoresPending(indentId: string, customPrisma?: any): Promise<void> {
@@ -27,6 +34,10 @@ export class RmIntegrationService {
         },
       },
     });
+
+    this.logger.log(
+      `[RM-Outbox-DEBUG] Indent found: ${indent?.indentNumber}, items: ${indent?.indentItems?.length ?? 0}, brought: ${(indent as any)?.broughtMaterials?.length ?? 0}`,
+    );
 
     if (!indent) {
       this.logger.error(`[RM-Outbox] Indent not found: ${indentId}`);
@@ -101,6 +112,12 @@ export class RmIntegrationService {
   }
 
   async sendOutboxEntry(outboxId: string, payload?: any): Promise<void> {
+    this.logger.log(`[RM-Outbox-DEBUG] RM_API_URL raw value: "${process.env.RM_API_URL}"`);
+    this.logger.log(`[RM-Outbox-DEBUG] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`);
+    this.logger.log(
+      `[RM-Outbox-DEBUG] Secret first 4 chars: ${process.env.RM_INTERNAL_SECRET?.substring(0, 4)}`,
+    );
+
     const rmUrl = process.env.RM_API_URL?.trim();
     const rmSecret = process.env.RM_INTERNAL_SECRET?.trim();
 
@@ -204,16 +221,25 @@ export class RmIntegrationService {
     }
   }
 
-  // Cron retry — called every 2 minutes for FAILED entries with < 5 attempts
+  // Cron retry — called every 2 minutes for FAILED entries or PENDING older than 1 min with < 5 attempts
   async retryFailedOutbox(): Promise<void> {
     const failed = await this.prisma.rmWebhookOutbox.findMany({
-      where: { status: 'FAILED', attemptCount: { lt: 5 } },
+      where: {
+        OR: [
+          { status: 'FAILED', attemptCount: { lt: 5 } },
+          {
+            status: 'PENDING',
+            createdAt: { lt: new Date(Date.now() - 60000) },
+            attemptCount: { lt: 5 },
+          },
+        ],
+      },
       orderBy: { createdAt: 'asc' },
       take: 10,
     });
 
     if (failed.length > 0) {
-      this.logger.log(`[RM-Outbox] Retrying ${failed.length} failed entries`);
+      this.logger.log(`[RM-Outbox] Retrying ${failed.length} failed/pending entries`);
     }
 
     for (const entry of failed) {

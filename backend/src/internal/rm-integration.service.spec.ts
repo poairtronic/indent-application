@@ -291,7 +291,16 @@ describe('RmIntegrationService', () => {
     await service.retryFailedOutbox();
 
     expect(mockPrisma.rmWebhookOutbox.findMany).toHaveBeenCalledWith({
-      where: { status: 'FAILED', attemptCount: { lt: 5 } },
+      where: {
+        OR: [
+          { status: 'FAILED', attemptCount: { lt: 5 } },
+          {
+            status: 'PENDING',
+            createdAt: expect.any(Object),
+            attemptCount: { lt: 5 },
+          },
+        ],
+      },
       orderBy: { createdAt: 'asc' },
       take: 10,
     });

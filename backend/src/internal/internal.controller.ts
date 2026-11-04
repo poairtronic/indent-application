@@ -12,7 +12,7 @@ import { ItemIssuedDto } from './dto/item-issued.dto';
  */
 @ApiTags('Internal')
 @Public()
-@Controller(['internal', 'api/internal'])
+@Controller('internal')
 export class InternalController {
   constructor(
     private readonly internalService: InternalService,
