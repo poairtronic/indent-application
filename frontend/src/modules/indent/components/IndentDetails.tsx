@@ -236,7 +236,27 @@ export const IndentDetails: React.FC<IndentDetailsProps> = ({ indent }) => {
           <div className="text-right">
             <p className="text-xs text-text-muted uppercase tracking-wider">Status</p>
             <Badge tone={statusTone[indent.currentState] ?? 'gray'}>
-              {formatStatus(indent.currentState)}
+              {(() => {
+                if (indent.currentState !== 'STORES_PROCESSING') return formatStatus(indent.currentState);
+                const total =
+                  indent.totalItemsCount !== undefined && indent.totalItemsCount > 0
+                    ? indent.totalItemsCount
+                    : (indent.items?.length ?? (indent as any).indentItems?.length ?? 0) +
+                      (indent.broughtMaterials?.length ?? 0);
+                const issued =
+                  indent.issuedItemsCount !== undefined
+                    ? indent.issuedItemsCount
+                    : [
+                        ...(indent.items ?? (indent as any).indentItems ?? []),
+                        ...(indent.broughtMaterials ?? []),
+                      ].filter(
+                        (item: any) =>
+                          item.status === 'ISSUED' || Number(item.issuedQuantity) > 0,
+                      ).length;
+                return total > 0
+                  ? `Stores Processing (${issued}/${total} Issued)`
+                  : formatStatus(indent.currentState);
+              })()}
             </Badge>
           </div>
           <div className="text-right">

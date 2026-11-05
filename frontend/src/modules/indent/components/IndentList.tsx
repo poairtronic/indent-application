@@ -100,12 +100,11 @@ export const IndentList: React.FC<IndentListProps> = ({
             )}
           </div>
           <Badge tone={statusTone[item.currentState] ?? 'gray'}>
-            {formatStatus(item.currentState)}
             {item.currentState === 'STORES_PROCESSING' &&
-            item.totalItemsCount &&
+            item.totalItemsCount !== undefined &&
             item.totalItemsCount > 0
-              ? ` (${item.issuedItemsCount || 0}/${item.totalItemsCount} ISSUED)`
-              : ''}
+              ? `Stores Processing (${item.issuedItemsCount ?? 0}/${item.totalItemsCount} Issued)`
+              : formatStatus(item.currentState)}
           </Badge>
           {isAdmin && (
             <button
@@ -255,12 +254,11 @@ export const IndentList: React.FC<IndentListProps> = ({
                         </td>
                         <td className="py-3.5 px-4">
                           <Badge tone={statusTone[item.currentState] ?? 'gray'}>
-                            {formatStatus(item.currentState)}
                             {item.currentState === 'STORES_PROCESSING' &&
-                            item.totalItemsCount &&
+                            item.totalItemsCount !== undefined &&
                             item.totalItemsCount > 0
-                              ? ` (${item.issuedItemsCount || 0}/${item.totalItemsCount} ISSUED)`
-                              : ''}
+                              ? `Stores Processing (${item.issuedItemsCount ?? 0}/${item.totalItemsCount} Issued)`
+                              : formatStatus(item.currentState)}
                           </Badge>
                         </td>
                         <td className="py-3.5 px-4 text-text-secondary">

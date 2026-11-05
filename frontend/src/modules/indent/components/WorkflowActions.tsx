@@ -38,7 +38,7 @@ interface WorkflowActionsProps {
   indentNumber: string;
   indentRemarks?: string;
   workflowHistory?: Array<{ remarks?: string }>;
-  onSuccess?: () => void;
+  onSuccess?: (message?: string) => void;
 }
 
 interface ActionConfig {
@@ -66,6 +66,9 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const toast = {
+    success: (msg: string) => onSuccess?.(msg),
+  };
 
   const [confirmAction, setConfirmAction] = useState<{
     config: ActionConfig;
@@ -132,10 +135,10 @@ export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
             permission: AppPermission.STORES_ISSUE,
             confirmTitle: `Verify Stock: ${indentNumber}`,
             confirmMessage:
-              'Confirm stock verification for this indent. This will move the workflow to Stores Processing.',
+              'Confirm stock verification for this indent. This will move the workflow to Stores Processing and notify RM Stores to issue materials.',
             action: async () => {
               await verifyStores(indentId);
-              onSuccess?.();
+              toast.success('Stock verified. RM Stores has been notified to issue materials.');
             },
             isPending: isVerifyingStores,
           });

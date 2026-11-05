@@ -583,6 +583,11 @@ export class BusinessTransactionService {
       updatedAt: indent.updatedAt,
       items: indent.indentItems,
       broughtMaterials: indent.broughtMaterials,
+      totalItemsCount: (indent.indentItems?.length || 0) + (indent.broughtMaterials?.length || 0),
+      issuedItemsCount: [
+        ...(indent.indentItems ?? []),
+        ...(indent.broughtMaterials ?? []),
+      ].filter((i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0).length,
       attachments: indent.attachments.map((att: any) => {
         try {
           const meta = JSON.parse(att.fileName);
@@ -825,6 +830,11 @@ export class BusinessTransactionService {
       updatedAt: indent.updatedAt,
       items: indent.indentItems,
       broughtMaterials: indent.broughtMaterials,
+      totalItemsCount: (indent.indentItems?.length || 0) + (indent.broughtMaterials?.length || 0),
+      issuedItemsCount: [
+        ...(indent.indentItems ?? []),
+        ...(indent.broughtMaterials ?? []),
+      ].filter((i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0).length,
       attachments: indent.attachments.map((att: any) => {
         try {
           const meta = JSON.parse(att.fileName);
@@ -944,6 +954,11 @@ export class BusinessTransactionService {
       updatedAt: indent.updatedAt,
       items: indent.indentItems,
       broughtMaterials: indent.broughtMaterials,
+      totalItemsCount: (indent.indentItems?.length || 0) + (indent.broughtMaterials?.length || 0),
+      issuedItemsCount: [
+        ...(indent.indentItems ?? []),
+        ...(indent.broughtMaterials ?? []),
+      ].filter((i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0).length,
       attachments: [],
       costSheet: indent.costSheet,
       productionReceipt: null,
@@ -1024,7 +1039,14 @@ export class BusinessTransactionService {
           department: { select: { departmentName: true, departmentCode: true } },
           creator: { select: { firstName: true, lastName: true } },
           costSheet: { select: { predictedTotal: true, costNumber: true, actualTotal: true } },
-          indentItems: { select: { status: true } },
+          indentItems: {
+            where: { isDeleted: false },
+            select: { status: true, issuedQuantity: true },
+          },
+          broughtMaterials: {
+            where: { isDeleted: false },
+            select: { status: true, issuedQuantity: true },
+          },
         },
       }),
     ]);
@@ -1050,8 +1072,11 @@ export class BusinessTransactionService {
           : 'N/A',
         createdAt: indent.createdAt,
         requiredDate: indent.requiredDate,
-        issuedItemsCount: indent.indentItems?.filter((i) => i.status === 'ISSUED').length || 0,
-        totalItemsCount: indent.indentItems?.length || 0,
+        issuedItemsCount: [
+          ...(indent.indentItems ?? []),
+          ...(indent.broughtMaterials ?? []),
+        ].filter((i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0).length,
+        totalItemsCount: (indent.indentItems?.length || 0) + (indent.broughtMaterials?.length || 0),
       };
     });
 
