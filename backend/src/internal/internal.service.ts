@@ -240,18 +240,24 @@ export class InternalService {
             itemRemarks = null;
           }
 
-          let rawSource = item.source ?? itemRemarks?.source ?? null;
+          const rawSource = item.source ?? itemRemarks?.source ?? null;
           let source: string | null = null;
           let parsedVendorName: string | null = null;
 
           if (rawSource) {
             if (typeof rawSource === 'string' && rawSource.toLowerCase().startsWith('vendor')) {
               source = 'Vendor';
-              const clean = rawSource.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '').trim();
+              const clean = rawSource
+                .replace(/^Vendor:\s*/i, '')
+                .replace(/^Vendor\s*-\s*/i, '')
+                .trim();
               if (clean && clean.toLowerCase() !== 'vendor') {
                 parsedVendorName = clean;
               }
-            } else if (typeof rawSource === 'string' && rawSource.toLowerCase().includes('in-house')) {
+            } else if (
+              typeof rawSource === 'string' &&
+              rawSource.toLowerCase().includes('in-house')
+            ) {
               source = 'In-house';
             } else {
               source = rawSource;
