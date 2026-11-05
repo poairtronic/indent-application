@@ -178,6 +178,8 @@ describe('RmIntegrationService', () => {
               diameterMm: 25,
               quantityRequired: 10,
               unit: 'Nos',
+              source: null,
+              vendorName: null,
             },
             {
               mercItemId: 'item-bo-1',
@@ -191,6 +193,8 @@ describe('RmIntegrationService', () => {
               diameterMm: null,
               quantityRequired: 4,
               unit: null,
+              source: null,
+              vendorName: null,
             },
           ],
         }),

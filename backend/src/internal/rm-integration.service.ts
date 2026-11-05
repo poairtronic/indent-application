@@ -56,29 +56,68 @@ export class RmIntegrationService implements OnModuleInit {
     const payload = {
       indentId: indent.id,
       indentNumber: indent.indentNumber,
-      poNumber: (indent as any).poNumber ?? null,
+      poNumber: (indent as any).poNumber || (indent as any).purpose || null,
       customerName: indent.customerName ?? null,
       layoutNumber: indent.layoutNumber ?? null,
       mercCurrentState: (indent as any).currentState || 'DESIGN_COMPLETED',
       lineItems: [
-        ...(indent.indentItems ?? []).map((item: any) => ({
-          mercItemId: item.id,
-          itemType: 'RAW_MATERIAL',
-          name: item.material?.materialName ?? item.material?.name ?? 'Unknown',
-          material: item.material?.materialName ?? item.material?.name ?? null,
-          shape: item.shape ?? null,
-          lengthMm: item.lengthMm ? Number(item.lengthMm) : null,
-          widthMm: item.widthMm ? Number(item.widthMm) : null,
-          heightMm: item.heightMm ? Number(item.heightMm) : null,
-          diameterMm: item.diameterMm ? Number(item.diameterMm) : null,
-          quantityRequired: Number(item.quantity),
-          unit: item.unit?.unitName ?? item.unit?.name ?? null,
-        })),
+        ...(indent.indentItems ?? []).map((item: any) => {
+          let itemRemarks: any = null;
+          try {
+            itemRemarks = item.remarks ? JSON.parse(item.remarks) : null;
+          } catch {
+            itemRemarks = null;
+          }
+
+          let rawSource = item.source ?? itemRemarks?.source ?? null;
+          let source: string | null = null;
+          let parsedVendorName: string | null = null;
+
+          if (rawSource) {
+            if (typeof rawSource === 'string' && rawSource.toLowerCase().startsWith('vendor')) {
+              source = 'Vendor';
+              const clean = rawSource.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '').trim();
+              if (clean && clean.toLowerCase() !== 'vendor') {
+                parsedVendorName = clean;
+              }
+            } else if (typeof rawSource === 'string' && rawSource.toLowerCase().includes('in-house')) {
+              source = 'In-house';
+            } else {
+              source = rawSource;
+            }
+          }
+
+          const vendorName =
+            item.vendor?.vendorName ||
+            item.vendor?.name ||
+            item.vendorName ||
+            parsedVendorName ||
+            null;
+
+          const materialName = item.material?.materialName || item.material?.name || null;
+          const itemName = itemRemarks?.product || item.product || materialName || 'Unknown';
+
+          return {
+            mercItemId: item.id,
+            itemType: 'RAW_MATERIAL',
+            name: itemName,
+            material: materialName,
+            shape: item.shape ?? null,
+            lengthMm: item.lengthMm ? Number(item.lengthMm) : null,
+            widthMm: item.widthMm ? Number(item.widthMm) : null,
+            heightMm: item.heightMm ? Number(item.heightMm) : null,
+            diameterMm: item.diameterMm ? Number(item.diameterMm) : null,
+            quantityRequired: Number(item.quantity),
+            unit: item.unit?.unitName ?? item.unit?.name ?? null,
+            source: source ?? item.source ?? null,
+            vendorName,
+          };
+        }),
         ...(indent.broughtMaterials ?? []).map((item: any) => ({
           mercItemId: item.id,
           itemType: 'BROUGHT_OUT',
           name: item.name,
-          material: null,
+          material: item.specification ?? null,
           shape: null,
           lengthMm: null,
           widthMm: null,
@@ -86,6 +125,8 @@ export class RmIntegrationService implements OnModuleInit {
           diameterMm: null,
           quantityRequired: Number(item.quantity),
           unit: null,
+          source: null,
+          vendorName: null,
         })),
       ],
     };
