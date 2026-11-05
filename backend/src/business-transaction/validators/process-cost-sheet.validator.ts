@@ -25,11 +25,7 @@ export class ProcessCostSheetValidator {
       });
     }
 
-    if (!dto.processCosts || dto.processCosts.length === 0) {
-      errors.push(
-        'Process Cost Sheet must contain at least one manufacturing process cost structure.',
-      );
-    } else {
+    if (dto.processCosts && dto.processCosts.length > 0) {
       dto.processCosts.forEach((process, index) => {
         if (!process.processId) {
           errors.push(`Manufacturing Process Cost #${index + 1}: Process ID is required.`);
