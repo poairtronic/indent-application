@@ -31,6 +31,18 @@ export interface ParsedRemarks {
   processProductionSources?: string[];
 }
 
+export function extractVendorName(sourceValue: string | undefined | null): string {
+  if (!sourceValue) return '';
+  const trimmed = sourceValue.trim();
+  if (/^vendor$/i.test(trimmed)) return '';
+  const cleaned = trimmed
+    .replace(/^Vendor:\s*/i, '')
+    .replace(/^Vendor\s*-\s*/i, '')
+    .trim();
+  if (/^vendor$/i.test(cleaned)) return '';
+  return cleaned;
+}
+
 export function parseItemRemarks(remarks: string | null | undefined): ParsedRemarks {
   if (!remarks)
     return {
@@ -326,7 +338,7 @@ const NestedProcessArray: React.FC<{
                   v.vendorName === currentVendorType || currentVendorType.includes(v.vendorName),
               ));
           const selectedSourceVendor = isSourceVendor
-            ? currentVendorType.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '')
+            ? extractVendorName(currentVendorType)
             : '';
 
           const currentProdSource =
@@ -342,7 +354,7 @@ const NestedProcessArray: React.FC<{
                   v.vendorName === currentProdSource || currentProdSource.includes(v.vendorName),
               ));
           const selectedProdVendor = isProdVendor
-            ? currentProdSource.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '')
+            ? extractVendorName(currentProdSource)
             : '';
 
           return (
@@ -556,9 +568,11 @@ const NestedProcessArray: React.FC<{
                       disabled={isReadOnly || isProductionMode || isAccountsMode}
                       value={selectedSourceVendor}
                       onChange={(vName) => {
+                        const cleanName = extractVendorName(vName);
                         setValue(
                           `indent.items.${itemIndex}.processes.${pIndex}.vendorType`,
-                          vName ? `Vendor: ${vName}` : 'Vendor',
+                          cleanName ? `Vendor: ${cleanName}` : 'Vendor',
+                          { shouldDirty: true, shouldValidate: true },
                         );
                       }}
                       options={vendorsList.map((v) => ({
@@ -592,9 +606,11 @@ const NestedProcessArray: React.FC<{
                       disabled={!isProductionMode}
                       value={selectedProdVendor}
                       onChange={(vName) => {
+                        const cleanName = extractVendorName(vName);
                         setValue(
                           `indent.items.${itemIndex}.processes.${pIndex}.productionSource`,
-                          vName ? `Vendor: ${vName}` : 'Vendor',
+                          cleanName ? `Vendor: ${cleanName}` : 'Vendor',
+                          { shouldDirty: true, shouldValidate: true },
                         );
                       }}
                       options={vendorsList.map((v) => ({
@@ -1242,9 +1258,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                 : currentSource
                   ? 'In-house'
                   : 'In-house';
-            const selectedVendorName = isVendor
-              ? currentSource.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '')
-              : '';
+            const selectedVendorName = isVendor ? extractVendorName(currentSource) : '';
 
             return (
               <div
@@ -1392,9 +1406,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         disabled={isReadOnly || isProductionMode || isAccountsMode}
                         value={selectedVendorName}
                         onChange={(vName) => {
+                          const cleanName = extractVendorName(vName);
                           setValue(
                             `indent.items.${index}.source`,
-                            vName ? `Vendor: ${vName}` : 'Vendor',
+                            cleanName ? `Vendor: ${cleanName}` : 'Vendor',
+                            { shouldDirty: true, shouldValidate: true },
                           );
                         }}
                         options={vendorsList.map((v) => ({
@@ -1671,7 +1687,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                           currentProdSource.includes(v.vendorName),
                       ));
                   const selectedProdVendorName = isVendor
-                    ? currentProdSource.replace(/^Vendor:\s*/i, '').replace(/^Vendor\s*-\s*/i, '')
+                    ? extractVendorName(currentProdSource)
                     : '';
 
                   if (!isVendor) return null;
@@ -1688,9 +1704,11 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                           disabled={!isProductionMode}
                           value={selectedProdVendorName}
                           onChange={(vName) => {
+                            const cleanName = extractVendorName(vName);
                             setValue(
                               `indent.items.${index}.productionSource`,
-                              vName ? `Vendor: ${vName}` : 'Vendor',
+                              cleanName ? `Vendor: ${cleanName}` : 'Vendor',
+                              { shouldDirty: true, shouldValidate: true },
                             );
                           }}
                           options={vendorsList.map((v) => ({
