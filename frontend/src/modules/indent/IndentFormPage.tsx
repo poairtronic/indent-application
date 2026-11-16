@@ -34,6 +34,11 @@ export const IndentFormPage: React.FC = () => {
         { id, payload: data },
         {
           onSuccess: () => {
+            try {
+              localStorage.removeItem(`indent_draft_backup_${id}`);
+            } catch {
+              // Ignore
+            }
             show('success', 'Indent updated successfully!');
             navigate(`/indents/${id}`);
           },
@@ -45,6 +50,9 @@ export const IndentFormPage: React.FC = () => {
               errMsg = err.message.join('\n');
             } else if (err.message) {
               errMsg = err.message;
+            }
+            if (err.statusCode === 408 || errMsg.toLowerCase().includes('timed out')) {
+              errMsg = 'Database operation timed out. All your entered data is preserved. Please click Update Transaction again to retry.';
             }
             show('error', `Update Failed: ${errMsg}`);
             console.error('Update failed:', err);

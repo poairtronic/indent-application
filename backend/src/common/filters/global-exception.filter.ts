@@ -51,9 +51,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           status = HttpStatus.BAD_REQUEST;
           message = 'Uploaded file metadata is too large for the database column.';
           break;
+        case 'P2028':
+          status = HttpStatus.REQUEST_TIMEOUT;
+          message = 'Database transaction timed out. Please retry the update.';
+          break;
+        case 'P2034':
+          status = HttpStatus.CONFLICT;
+          message = 'A concurrent transaction conflict was detected. Please retry the update.';
+          break;
         default:
           status = HttpStatus.BAD_REQUEST;
-          message = 'Invalid data provided.';
+          message = `Database operation failed (${exception.code}). Please verify your input and retry.`;
       }
       errors = [];
     } else if (exception instanceof Prisma.PrismaClientValidationError) {

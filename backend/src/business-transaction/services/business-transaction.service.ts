@@ -237,6 +237,114 @@ export class BusinessTransactionService {
   }
 
   /**
+   * Batch resolve materials: fetches all matching materials in a single query
+   * and creates any missing ones, avoiding N+1 roundtrips.
+   */
+  private async resolveMaterialsBatch(
+    tx: any,
+    items: Array<{ materialName: string; unitId: string }>,
+    userId: string,
+  ): Promise<Map<string, any>> {
+    const names = Array.from(
+      new Set(items.map((it) => (it.materialName || '').trim()).filter(Boolean)),
+    );
+    const existing = await tx.material.findMany({
+      where: { materialName: { in: names, mode: 'insensitive' }, isDeleted: false },
+    });
+    const map = new Map<string, any>();
+    existing.forEach((m: any) => {
+      map.set(m.materialName.toLowerCase(), m);
+    });
+
+    for (const item of items) {
+      const norm = (item.materialName || '').trim().toLowerCase();
+      if (!map.has(norm)) {
+        const materialCode = await this.documentNumberService.generateMaterialNumber(tx);
+        const created = await tx.material.create({
+          data: {
+            materialName: item.materialName.trim(),
+            materialCode,
+            unitId: item.unitId,
+            category: 'General',
+            currentStock: 100,
+            minimumStock: 10,
+            maximumStock: 1000,
+            createdBy: userId,
+          },
+        });
+        map.set(norm, created);
+      }
+    }
+    return map;
+  }
+
+  /**
+   * Batch resolve manufacturing processes: fetches all matching processes in a single query
+   * and creates any missing custom process names, eliminating N+1 roundtrips.
+   */
+  private async resolveProcessesBatch(
+    tx: any,
+    allProcessesList: Array<{ processId?: string; processName?: string }>,
+    userId: string,
+  ): Promise<Map<string, string>> {
+    const isUUID = (s: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s || '');
+    const uuids = Array.from(
+      new Set(
+        allProcessesList
+          .map((p) => (p.processId || '').trim())
+          .filter((id) => isUUID(id)),
+      ),
+    );
+    const names = Array.from(
+      new Set(
+        allProcessesList
+          .map((p) => (p.processName || (!isUUID(p.processId || '') ? p.processId : '') || '').trim())
+          .filter(Boolean),
+      ),
+    );
+
+    const conditions: any[] = [];
+    if (uuids.length > 0) conditions.push({ id: { in: uuids } });
+    if (names.length > 0) conditions.push({ processName: { in: names, mode: 'insensitive' } });
+
+    const existing =
+      conditions.length > 0
+        ? await tx.manufacturingProcess.findMany({
+            where: {
+              OR: conditions,
+              isDeleted: false,
+            },
+          })
+        : [];
+
+    const map = new Map<string, string>();
+    existing.forEach((p: any) => {
+      map.set(p.id.toLowerCase(), p.id);
+      map.set(p.processName.toLowerCase(), p.id);
+    });
+
+    for (const p of allProcessesList) {
+      const rawId = (p.processId || '').trim();
+      const rawName = (p.processName || (!isUUID(rawId) ? rawId : '')).trim();
+      const key = (rawName || rawId).toLowerCase();
+      if (key && !map.has(key)) {
+        const created = await tx.manufacturingProcess.create({
+          data: {
+            processName: rawName || rawId,
+            status: 'ACTIVE',
+            createdBy: userId,
+          },
+        });
+        map.set(created.id.toLowerCase(), created.id);
+        map.set(created.processName.toLowerCase(), created.id);
+        map.set(key, created.id);
+      }
+    }
+    return map;
+  }
+
+  /**
    * Create a new Business Transaction (Indent + Process Cost Sheet) in DRAFT state.
    */
   public async createTransaction(dto: CreateBusinessTransactionDto, userId: string): Promise<any> {
@@ -530,6 +638,7 @@ export class BusinessTransactionService {
             material: { select: { id: true, materialName: true, materialCode: true } },
             unit: { select: { id: true, unitName: true, symbol: true } },
             indentProcesses: {
+              orderBy: { sequence: 'asc' },
               select: {
                 id: true,
                 indentItemId: true,
@@ -612,10 +721,13 @@ export class BusinessTransactionService {
               },
             },
             processCosts: {
+              orderBy: [{ sequence: 'asc' }, { createdAt: 'asc' }],
               select: {
                 id: true,
                 costSheetId: true,
+                indentItemId: true,
                 processId: true,
+                sequence: true,
                 predictedCost: true,
                 actualCost: true,
                 variance: true,
@@ -776,6 +888,7 @@ export class BusinessTransactionService {
             material: { select: { id: true, materialName: true, materialCode: true } },
             unit: { select: { id: true, unitName: true, symbol: true } },
             indentProcesses: {
+              orderBy: { sequence: 'asc' },
               select: {
                 id: true,
                 indentItemId: true,
@@ -858,10 +971,13 @@ export class BusinessTransactionService {
               },
             },
             processCosts: {
+              orderBy: [{ sequence: 'asc' }, { createdAt: 'asc' }],
               select: {
                 id: true,
                 costSheetId: true,
+                indentItemId: true,
                 processId: true,
+                sequence: true,
                 predictedCost: true,
                 actualCost: true,
                 variance: true,
@@ -1307,16 +1423,28 @@ export class BusinessTransactionService {
           },
         });
 
-        const resolvedMaterialIds: string[] = [];
-        const processCache = new Map<string, string>();
-        // 2. PRF-DB-002: Differential update for indent items instead of delete+recreate.
-        // Strategy: compare existing DB items with incoming DTO items by index.
-        //   - Overlap: update in place (preserve UUID, no orphaned references)
-        //   - New items (DTO longer): createMany the extra
-        //   - Removed items (DB longer): deleteMany the excess
+        const newItems = dto.indent?.items || [];
+        const isUUID = (s: string) =>
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s || '');
+
+        // Collect all processes across items and costSheet for batch resolution (1 single query)
+        const allProcsInDto: any[] = [];
+        newItems.forEach((item) => {
+          (item.processes || []).forEach((p) => allProcsInDto.push(p));
+        });
+        (dto.costSheet?.processCosts || []).forEach((p) => allProcsInDto.push(p));
+
+        // Batch resolve materials and processes up front (2 queries total)
+        const [materialMap, processMap] = await Promise.all([
+          this.resolveMaterialsBatch(tx, newItems, userId),
+          this.resolveProcessesBatch(tx, allProcsInDto, userId),
+        ]);
+
+        let currentItemIds: string[] = [];
+
         if (dto.indent?.items) {
           if (existing.currentState === WorkflowState.PRODUCTION_PROCESSING) {
-            // In PRODUCTION_PROCESSING, Production is only updating production source and process details on existing items
+            // In PRODUCTION_PROCESSING, Production only updates production source and process details on existing items
             for (let i = 0; i < dto.indent.items.length; i++) {
               const itemDto = dto.indent.items[i];
               const existingItem = existing.items[i];
@@ -1330,34 +1458,28 @@ export class BusinessTransactionService {
                 });
               }
             }
+            currentItemIds = (existing.items as any[]).map((i) => i.id);
           } else {
             const existingItems = existing.items as any[];
-            const newItems = dto.indent.items;
             const overlapCount = Math.min(existingItems.length, newItems.length);
-
-            // Resolve materials for all new/updated items
-            const resolvedMaterials = await Promise.all(
-              newItems.map((item, i) =>
-                this.resolveMaterial(tx, item.materialName, item.unitId, userId, i),
-              ),
-            );
-            resolvedMaterialIds.push(...resolvedMaterials.map((m) => m.id));
+            const overlapItemIds: string[] = [];
 
             // UPDATE overlapping items in parallel
             const itemUpdatePromises: Promise<any>[] = [];
             for (let i = 0; i < overlapCount; i++) {
               const item = newItems[i];
               const existingItem = existingItems[i];
-              const material = resolvedMaterials[i];
+              const material = materialMap.get((item.materialName || '').trim().toLowerCase());
               const unitWeightKg = calculateMaterialWeight({
                 shape: item.shape || '',
-                densityKgPerDm3: Number(material.densityKgPerDm3 || 0),
+                densityKgPerDm3: Number(material?.densityKgPerDm3 || 7.85),
                 diameterMm: item.diameterMm,
                 lengthMm: item.lengthMm,
                 widthMm: item.widthMm,
                 heightMm: item.heightMm,
               });
               const totalWeightKg = safeMultiply(unitWeightKg, item.quantity);
+              overlapItemIds.push(existingItem.id);
 
               itemUpdatePromises.push(
                 tx.indentItem.update({
@@ -1378,58 +1500,21 @@ export class BusinessTransactionService {
                   },
                 }),
               );
-
-              // Differential update processes for this item:
-              // Delete old processes and recreate (processes don't have stable business keys)
-              itemUpdatePromises.push(
-                tx.indentProcess
-                  .deleteMany({ where: { indentItemId: existingItem.id } })
-                  .then(async () => {
-                    if (item.processes && item.processes.length > 0) {
-                      const uniqueProcesses = [];
-                      const seenProcessIds = new Set();
-                      for (const proc of item.processes) {
-                        if (!proc.processId && !(proc as any).processName) continue;
-                        const resolvedId = await this.resolveProcess(
-                          tx,
-                          proc.processId,
-                          (proc as any).processName,
-                          userId,
-                          processCache,
-                        );
-                        if (!seenProcessIds.has(resolvedId)) {
-                          seenProcessIds.add(resolvedId);
-                          uniqueProcesses.push({
-                            ...proc,
-                            processId: resolvedId,
-                          });
-                        }
-                      }
-                      if (uniqueProcesses.length > 0) {
-                        await tx.indentProcess.createMany({
-                          data: uniqueProcesses.map((proc, idx) => ({
-                            indentItemId: existingItem.id,
-                            processId: proc.processId,
-                            sequence: idx + 1,
-                            estimatedHours: proc.estimatedHours ?? 0,
-                          })),
-                        });
-                      }
-                    }
-                  }),
-              );
             }
-            await Promise.all(itemUpdatePromises);
+            if (itemUpdatePromises.length > 0) {
+              await Promise.all(itemUpdatePromises);
+            }
 
-            // CREATE new items (DTO has more than existing)
+            // CREATE new items using bulk createManyAndReturn (1 query)
+            const createdItemIds: string[] = [];
             if (newItems.length > existingItems.length) {
-              const createdItems: any[] = [];
+              const newItemsData = [];
               for (let i = overlapCount; i < newItems.length; i++) {
                 const item = newItems[i];
-                const material = resolvedMaterials[i];
+                const material = materialMap.get((item.materialName || '').trim().toLowerCase());
                 const unitWeightKg = calculateMaterialWeight({
                   shape: item.shape || '',
-                  densityKgPerDm3: Number(material.densityKgPerDm3 || 0),
+                  densityKgPerDm3: Number(material?.densityKgPerDm3 || 7.85),
                   diameterMm: item.diameterMm,
                   lengthMm: item.lengthMm,
                   widthMm: item.widthMm,
@@ -1437,83 +1522,79 @@ export class BusinessTransactionService {
                 });
                 const totalWeightKg = safeMultiply(unitWeightKg, item.quantity);
 
-                const createdItem = await tx.indentItem.create({
-                  data: {
-                    indentId: id,
-                    materialId: material.id,
-                    quantity: item.quantity,
-                    unitId: item.unitId,
-                    shape: item.shape || null,
-                    diameterMm: item.diameterMm || null,
-                    lengthMm: item.lengthMm || null,
-                    widthMm: item.widthMm || null,
-                    heightMm: item.heightMm || null,
-                    unitWeightKg,
-                    totalWeightKg,
-                    remarks: item.remarks || null,
-                    status: 'DRAFT',
-                  },
+                newItemsData.push({
+                  indentId: id,
+                  materialId: material.id,
+                  quantity: item.quantity,
+                  unitId: item.unitId,
+                  shape: item.shape || null,
+                  diameterMm: item.diameterMm || null,
+                  lengthMm: item.lengthMm || null,
+                  widthMm: item.widthMm || null,
+                  heightMm: item.heightMm || null,
+                  unitWeightKg,
+                  totalWeightKg,
+                  remarks: item.remarks || null,
+                  status: 'DRAFT',
+                  createdBy: userId,
                 });
-                createdItems.push({ item, createdItem });
               }
 
-              // Create processes for new items in parallel
-              const processCreatePromises = createdItems
-                .filter(({ item }) => item.processes && item.processes.length > 0)
-                .map(async ({ item, createdItem }) => {
-                  const uniqueProcesses = [];
-                  const seenProcessIds = new Set();
-                  for (const proc of item.processes) {
-                    if (!proc.processId && !(proc as any).processName) continue;
-                    const resolvedId = await this.resolveProcess(
-                      tx,
-                      proc.processId,
-                      (proc as any).processName,
-                      userId,
-                      processCache,
-                    );
-                    if (!seenProcessIds.has(resolvedId)) {
-                      seenProcessIds.add(resolvedId);
-                      uniqueProcesses.push({
-                        ...proc,
-                        processId: resolvedId,
-                      });
-                    }
-                  }
-                  if (uniqueProcesses.length > 0) {
-                    await tx.indentProcess.createMany({
-                      data: uniqueProcesses.map((proc: any, idx: number) => ({
-                        indentItemId: createdItem.id,
-                        processId: proc.processId,
-                        sequence: idx + 1,
-                        estimatedHours: proc.estimatedHours ?? 0,
-                      })),
-                    });
-                  }
-                });
-              if (processCreatePromises.length > 0) {
-                await Promise.all(processCreatePromises);
-              }
+              const createdRecords = await tx.indentItem.createManyAndReturn({
+                data: newItemsData,
+                select: { id: true },
+              });
+              createdRecords.forEach((ci: any) => createdItemIds.push(ci.id));
             }
 
-            // DELETE removed items (existing has more than DTO)
+            // DELETE removed items in bulk (2 queries)
             if (existingItems.length > newItems.length) {
               const excessItems = existingItems.slice(overlapCount);
               const excessIds = excessItems.map((i: any) => i.id);
               await tx.indentProcess.deleteMany({ where: { indentItemId: { in: excessIds } } });
               await tx.indentItem.deleteMany({ where: { id: { in: excessIds } } });
             }
+
+            currentItemIds = [...overlapItemIds, ...createdItemIds];
+
+            // Phase: Bulk replace all IndentProcesses for all current items (2 queries)
+            const allProcessesData: any[] = [];
+            newItems.forEach((item, itemIdx) => {
+              const itemId = currentItemIds[itemIdx];
+              const seenProcessIds = new Set<string>();
+              (item.processes || []).forEach((proc, pIdx) => {
+                const rawId = (proc.processId || '').trim();
+                const rawName = (proc.processName || (!isUUID(rawId) ? rawId : '')).trim();
+                const resolvedId = processMap.get((rawName || rawId).toLowerCase()) || rawId;
+
+                if (resolvedId && !seenProcessIds.has(resolvedId)) {
+                  seenProcessIds.add(resolvedId);
+                  allProcessesData.push({
+                    indentItemId: itemId,
+                    processId: resolvedId,
+                    sequence: pIdx + 1,
+                    estimatedHours: proc.estimatedHours ?? 0,
+                  });
+                }
+              });
+            });
+
+            await tx.indentProcess.deleteMany({
+              where: { indentItemId: { in: currentItemIds } },
+            });
+            if (allProcessesData.length > 0) {
+              await tx.indentProcess.createMany({ data: allProcessesData });
+            }
           }
         }
 
-        // 2b. PRF-DB-002: Differential update for broughtMaterials
+        // 2b. Differential update for broughtMaterials
         if (dto.indent?.broughtMaterials !== undefined) {
           if (existing.currentState !== WorkflowState.PRODUCTION_PROCESSING) {
             const existingBMs = (existing as any).broughtMaterials || [];
             const newBMs = dto.indent.broughtMaterials;
             const overlapBM = Math.min(existingBMs.length, newBMs.length);
 
-            // UPDATE overlapping brought materials in parallel
             const bmUpdatePromises: Promise<any>[] = [];
             for (let i = 0; i < overlapBM; i++) {
               const bm = newBMs[i];
@@ -1526,14 +1607,12 @@ export class BusinessTransactionService {
                     quantity: roundTo4Decimals(bm.quantity),
                     specification: bm.specification || null,
                     amount: bm.amount !== undefined && bm.amount !== null ? bm.amount : null,
-                    // BIZ-003: actualAmount NOT updated here — financial data protected.
                   },
                 }),
               );
             }
             if (bmUpdatePromises.length > 0) await Promise.all(bmUpdatePromises);
 
-            // CREATE new brought materials
             if (newBMs.length > existingBMs.length) {
               await tx.indentBroughtMaterial.createMany({
                 data: newBMs.slice(overlapBM).map((bm) => ({
@@ -1542,12 +1621,10 @@ export class BusinessTransactionService {
                   quantity: roundTo4Decimals(bm.quantity),
                   specification: bm.specification || null,
                   amount: bm.amount !== undefined && bm.amount !== null ? bm.amount : null,
-                  // BIZ-003: actualAmount NOT set here.
                 })),
               });
             }
 
-            // DELETE removed brought materials
             if (existingBMs.length > newBMs.length) {
               const excessBMIds = existingBMs.slice(overlapBM).map((bm: any) => bm.id);
               await tx.indentBroughtMaterial.deleteMany({ where: { id: { in: excessBMIds } } });
@@ -1555,7 +1632,7 @@ export class BusinessTransactionService {
           }
         }
 
-        // 3. Update CostSheet if provided — PRF-DB-002 differential update
+        // 3. Update CostSheet in bulk with explicit item ownership
         if (dto.costSheet && existingCostSheet) {
           await tx.costSheet.update({
             where: { id: existingCostSheet.id },
@@ -1576,123 +1653,89 @@ export class BusinessTransactionService {
             },
           });
 
-          // PRF-DB-002: Differential update for costItems
+          // Bulk replace costItems (2 queries total)
           if (dto.costSheet.costItems) {
-            const existingCostItems = await tx.costItem.findMany({
-              where: { costSheetId: existingCostSheet.id },
-              orderBy: { createdAt: 'asc' },
+            const costItemsData = (dto.costSheet.costItems || []).map((ci, idx) => {
+              const mat =
+                materialMap.get((ci.materialName || '').trim().toLowerCase()) ||
+                materialMap.get((newItems[idx]?.materialName || '').trim().toLowerCase());
+              return {
+                costSheetId: existingCostSheet.id,
+                materialId: mat?.id || (existing.items as any[])?.[0]?.materialId,
+                vendorId: ci.vendorId || null,
+                predictedRate: roundTo4Decimals(ci.predictedRate),
+                predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
+                predictedAmount: roundTo4Decimals(ci.predictedAmount ?? ci.predictedRate),
+                remarks: ci.remarks || null,
+              };
             });
-            const newCostItems = dto.costSheet.costItems;
-            const overlapCI = Math.min(existingCostItems.length, newCostItems.length);
 
-            // UPDATE overlapping cost items in parallel
-            const ciUpdatePromises: Promise<any>[] = [];
-            for (let i = 0; i < overlapCI; i++) {
-              const ci = newCostItems[i];
-              const existingCI = existingCostItems[i];
-              ciUpdatePromises.push(
-                tx.costItem.update({
-                  where: { id: existingCI.id },
-                  data: {
-                    materialId:
-                      resolvedMaterialIds[i] || (ci as any).materialId || existingCI.materialId,
-                    vendorId: ci.vendorId || null,
-                    predictedRate: roundTo4Decimals(ci.predictedRate),
-                    predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
-                    predictedAmount: roundTo4Decimals(ci.predictedAmount ?? ci.predictedRate),
-                    remarks: ci.remarks || null,
-                  },
-                }),
-              );
-            }
-            if (ciUpdatePromises.length > 0) await Promise.all(ciUpdatePromises);
-
-            // CREATE new cost items
-            if (newCostItems.length > existingCostItems.length) {
-              await tx.costItem.createMany({
-                data: newCostItems.slice(overlapCI).map((ci, idx) => ({
-                  costSheetId: existingCostSheet.id,
-                  materialId: resolvedMaterialIds[overlapCI + idx] || (ci as any).materialId,
-                  vendorId: ci.vendorId || null,
-                  predictedRate: roundTo4Decimals(ci.predictedRate),
-                  predictedQuantity: roundTo4Decimals(ci.predictedQuantity),
-                  predictedAmount: roundTo4Decimals(ci.predictedAmount ?? ci.predictedRate),
-                  remarks: ci.remarks || null,
-                })),
-              });
-            }
-
-            // DELETE removed cost items
-            if (existingCostItems.length > newCostItems.length) {
-              const excessCIIds = existingCostItems.slice(overlapCI).map((ci) => ci.id);
-              await tx.costItem.deleteMany({ where: { id: { in: excessCIIds } } });
+            await tx.costItem.deleteMany({ where: { costSheetId: existingCostSheet.id } });
+            if (costItemsData.length > 0) {
+              await tx.costItem.createMany({ data: costItemsData });
             }
           }
 
-          // PRF-DB-002: Differential update for processCosts
-          if (dto.costSheet.processCosts) {
-            const existingPCs = await tx.processCost.findMany({
-              where: { costSheetId: existingCostSheet.id },
-              orderBy: { createdAt: 'asc' },
-            });
-            const validPCs = dto.costSheet.processCosts.filter(
-              (pc) =>
-                (pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000') ||
-                (pc as any).processName,
-            );
-            const resolvedNewPCs = await Promise.all(
-              validPCs.map(async (pc) => ({
-                ...pc,
-                processId: await this.resolveProcess(
-                  tx,
-                  pc.processId,
-                  (pc as any).processName,
-                  userId,
-                  processCache,
-                ),
-              })),
-            );
-            const overlapPC = Math.min(existingPCs.length, resolvedNewPCs.length);
+          // Bulk replace processCosts with EXPLICIT item ownership & sequence (2 queries total)
+          const allProcessCostsData: any[] = [];
+          let flatProcIdx = 0;
 
-            // UPDATE overlapping process costs in parallel
-            const pcUpdatePromises: Promise<any>[] = [];
-            for (let i = 0; i < overlapPC; i++) {
-              const pc = resolvedNewPCs[i];
-              const existingPC = existingPCs[i];
-              pcUpdatePromises.push(
-                tx.processCost.update({
-                  where: { id: existingPC.id },
-                  data: {
-                    processId: pc.processId,
-                    predictedCost: roundTo4Decimals(pc.predictedCost),
-                    estimatedHours: pc.estimatedHours ?? 0,
-                  },
-                }),
-              );
-            }
-            if (pcUpdatePromises.length > 0) await Promise.all(pcUpdatePromises);
+          newItems.forEach((item, itemIdx) => {
+            const itemId = currentItemIds[itemIdx];
+            const seenProcesses = new Set<string>();
 
-            // CREATE new process costs
-            if (resolvedNewPCs.length > existingPCs.length) {
-              await tx.processCost.createMany({
-                data: resolvedNewPCs.slice(overlapPC).map((pc) => ({
+            (item.processes || []).forEach((proc, procIdx) => {
+              const rawId = (proc.processId || '').trim();
+              const rawName = (proc.processName || (!isUUID(rawId) ? rawId : '')).trim();
+              const resolvedId = processMap.get((rawName || rawId).toLowerCase()) || rawId;
+
+              const matchingCostDto = dto.costSheet?.processCosts?.[flatProcIdx];
+              flatProcIdx++;
+              const predictedCost =
+                (proc as any).predictedCost !== undefined
+                  ? (proc as any).predictedCost
+                  : matchingCostDto?.predictedCost ?? 0;
+
+              if (resolvedId && !seenProcesses.has(resolvedId)) {
+                seenProcesses.add(resolvedId);
+                allProcessCostsData.push({
                   costSheetId: existingCostSheet.id,
-                  processId: pc.processId,
-                  predictedCost: roundTo4Decimals(pc.predictedCost),
-                  estimatedHours: pc.estimatedHours ?? 0,
-                })),
-              });
-            }
+                  indentItemId: itemId,
+                  processId: resolvedId,
+                  sequence: procIdx + 1,
+                  predictedCost: roundTo4Decimals(predictedCost),
+                  estimatedHours: roundTo4Decimals(proc.estimatedHours ?? 0),
+                });
+              }
+            });
+          });
 
-            // DELETE removed process costs
-            if (existingPCs.length > resolvedNewPCs.length) {
-              const excessPCIds = existingPCs.slice(overlapPC).map((pc) => pc.id);
-              await tx.processCost.deleteMany({ where: { id: { in: excessPCIds } } });
-            }
+          // Fallback if DTO only had flat processCosts
+          if (dto.costSheet.processCosts && allProcessCostsData.length === 0) {
+            dto.costSheet.processCosts.forEach((pc, idx) => {
+              const rawId = (pc.processId || '').trim();
+              const rawName = (pc.processName || (!isUUID(rawId) ? rawId : '')).trim();
+              const resolvedId = processMap.get((rawName || rawId).toLowerCase()) || rawId;
+              if (resolvedId) {
+                allProcessCostsData.push({
+                  costSheetId: existingCostSheet.id,
+                  indentItemId: (pc as any).indentItemId || null,
+                  processId: resolvedId,
+                  sequence: idx + 1,
+                  predictedCost: roundTo4Decimals(pc.predictedCost ?? 0),
+                  estimatedHours: roundTo4Decimals(pc.estimatedHours ?? 0),
+                });
+              }
+            });
+          }
+
+          await tx.processCost.deleteMany({ where: { costSheetId: existingCostSheet.id } });
+          if (allProcessCostsData.length > 0) {
+            await tx.processCost.createMany({ data: allProcessCostsData });
           }
         }
       },
-      { maxWait: 5000, timeout: 20000 },
+      { maxWait: 10000, timeout: 60000 },
     );
 
     await this.eventService.logAudit(

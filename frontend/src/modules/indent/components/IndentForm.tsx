@@ -714,18 +714,37 @@ export const IndentForm: React.FC<IndentFormProps> = ({
 
   const parsedIndentRemarks = parseIndentRemarks(initialData?.remarks);
 
+  const localBackupDraft = React.useMemo(() => {
+    if (!initialData?.id) return null;
+    try {
+      const raw = localStorage.getItem(`indent_draft_backup_${initialData.id}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (
+        parsed?.data?.indent?.items?.length &&
+        (!initialData.updatedAt || parsed.timestamp > new Date(initialData.updatedAt).getTime())
+      ) {
+        return parsed.data;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return null;
+  }, [initialData?.id, initialData?.updatedAt]);
+
   const {
     register,
     control,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<IndentFormData>({
     // Accounts edits are a cost-entry DTO, not a design-form submission.
     // Running the full design schema here rejects valid actual-cost updates
     // before the API request is created. Backend DTO validation remains active.
     resolver: isAccountsMode ? undefined : (zodResolver(indentSchema) as never),
-    defaultValues: initialData
+    defaultValues: localBackupDraft || (initialData
       ? {
           indent: {
             productName: initialData.productName ?? '',
@@ -765,9 +784,16 @@ export const IndentForm: React.FC<IndentFormProps> = ({
                         let savedActualCost = ip.actualCost ? Number(ip.actualCost) : undefined;
                         let savedActualHours = ip.actualHours ? Number(ip.actualHours) : undefined;
 
-                        const costIndex = availableProcessCosts.findIndex(
-                          (pc) => pc.processId === pId,
+                        // Primary match: exact indentItemId AND processId to avoid any item cost misassignment
+                        let costIndex = availableProcessCosts.findIndex(
+                          (pc: any) => pc.indentItemId === item.id && pc.processId === pId,
                         );
+                        // Fallback match for legacy records where indentItemId was null
+                        if (costIndex === -1) {
+                          costIndex = availableProcessCosts.findIndex(
+                            (pc) => pc.processId === pId,
+                          );
+                        }
                         if (costIndex !== -1) {
                           const matchedPc = availableProcessCosts[costIndex];
                           savedCost = Number(matchedPc.predictedCost) || 0;
@@ -885,7 +911,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
               { materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
             ],
           },
-        },
+        }),
   });
 
   const {
@@ -972,6 +998,30 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       setValue('costSheet.costItems', newCostItems);
     }
   }, [watchedItems, watchedCostItems, setValue]);
+
+  // Auto-save form draft to localStorage to protect designer-entered data against browser crashes or accidental reloads
+  useEffect(() => {
+    if (!initialData?.id) return;
+    const draftKey = `indent_draft_backup_${initialData.id}`;
+
+    const subscription = watch((value) => {
+      try {
+        if (value && value.indent && value.indent.items && value.indent.items.length > 0) {
+          localStorage.setItem(
+            draftKey,
+            JSON.stringify({
+              timestamp: Date.now(),
+              data: value,
+            }),
+          );
+        }
+      } catch {
+        // Ignore storage errors
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [watch, initialData?.id]);
 
   // Derived Totals
   const totalMaterialCost =
@@ -1074,6 +1124,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
             processName: pName,
             sequence: idx + 1,
             estimatedHours: Number.isNaN(p.estimatedHours) ? undefined : p.estimatedHours,
+            predictedCost: p.predictedCost,
           };
         });
 

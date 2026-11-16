@@ -583,6 +583,7 @@ model IndentItem {
   material        Material        @relation(fields: [materialId], references: [id])
   unit            Unit            @relation(fields: [unitId], references: [id])
   indentProcesses IndentProcess[]
+  processCosts    ProcessCost[]
 
   @@index([indentId])
   @@index([materialId])
@@ -761,7 +762,9 @@ model CostItem {
 model ProcessCost {
   id             String   @id @default(uuid()) @db.Uuid
   costSheetId    String   @db.Uuid
+  indentItemId   String?  @db.Uuid
   processId      String   @db.Uuid
+  sequence       Int?     @default(1)
   predictedCost  Decimal  @db.Decimal(18, 4)
   actualCost     Decimal? @db.Decimal(18, 4)
   variance       Decimal? @db.Decimal(18, 4)
@@ -778,10 +781,12 @@ model ProcessCost {
   deletedBy String?   @db.Uuid
 
   // Relations
-  costSheet CostSheet            @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
-  process   ManufacturingProcess @relation(fields: [processId], references: [id])
+  costSheet  CostSheet            @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
+  indentItem IndentItem?          @relation(fields: [indentItemId], references: [id], onDelete: Cascade)
+  process    ManufacturingProcess @relation(fields: [processId], references: [id])
 
   @@index([costSheetId])
+  @@index([indentItemId])
   @@index([processId])
   @@index([isDeleted])
   @@index([createdAt])
