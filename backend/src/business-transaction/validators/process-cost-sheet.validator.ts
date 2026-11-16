@@ -27,8 +27,8 @@ export class ProcessCostSheetValidator {
 
     if (dto.processCosts && dto.processCosts.length > 0) {
       dto.processCosts.forEach((process, index) => {
-        if (!process.processId) {
-          errors.push(`Manufacturing Process Cost #${index + 1}: Process ID is required.`);
+        if (!process.processId?.trim() && !(process as any).processName?.trim()) {
+          errors.push(`Manufacturing Process Cost #${index + 1}: Process name or ID is required.`);
         }
         if (process.predictedCost < 0) {
           errors.push(

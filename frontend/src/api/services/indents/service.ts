@@ -199,6 +199,7 @@ export interface CreateIndentPayload {
       remarks?: string;
       processes?: Array<{
         processId: string;
+        processName?: string;
         sequence: number;
         estimatedHours?: number;
       }>;
@@ -221,6 +222,7 @@ export interface CreateIndentPayload {
     }>;
     processCosts: Array<{
       processId: string;
+      processName?: string;
       predictedCost: number;
       estimatedHours?: number;
       vendorType?: string;
@@ -243,6 +245,7 @@ export interface UpdateIndentPayload {
       remarks?: string;
       processes?: Array<{
         processId: string;
+        processName?: string;
         sequence: number;
         estimatedHours?: number;
       }>;
@@ -260,6 +263,7 @@ export interface UpdateIndentPayload {
     }>;
     processCosts?: Array<{
       processId: string;
+      processName?: string;
       predictedCost: number;
       estimatedHours?: number;
       vendorType?: string;

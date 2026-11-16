@@ -159,6 +159,83 @@ export class BusinessTransactionService {
     });
   }
 
+  private async resolveProcess(
+    tx: any,
+    processIdentifier: string,
+    processName: string | undefined,
+    userId: string,
+    processCache?: Map<string, string>,
+  ): Promise<string> {
+    const rawName = (processName || '').trim();
+    const rawId = (processIdentifier || '').trim();
+
+    // Cache lookup key
+    const cacheKey = (rawName || rawId).toLowerCase();
+    if (processCache && cacheKey && processCache.has(cacheKey)) {
+      return processCache.get(cacheKey)!;
+    }
+
+    const isUUID =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawId);
+
+    // 1. If valid UUID, check if it already exists in DB
+    if (isUUID) {
+      const existingById = await tx.manufacturingProcess.findFirst({
+        where: { id: rawId, isDeleted: false },
+      });
+      if (existingById) {
+        if (processCache) {
+          processCache.set(rawId.toLowerCase(), existingById.id);
+          processCache.set(existingById.processName.toLowerCase(), existingById.id);
+          if (cacheKey) processCache.set(cacheKey, existingById.id);
+        }
+        return existingById.id;
+      }
+    }
+
+    // 2. Identify target name to search or create
+    const targetName = (rawName || (!isUUID ? rawId : '')).trim();
+    if (!targetName) {
+      throw new BadRequestException('A valid process ID or process name must be provided.');
+    }
+
+    // Check if process already exists by name (case-insensitive)
+    const existingByName = await tx.manufacturingProcess.findFirst({
+      where: {
+        processName: { equals: targetName, mode: 'insensitive' },
+        isDeleted: false,
+      },
+    });
+
+    if (existingByName) {
+      if (processCache) {
+        processCache.set(targetName.toLowerCase(), existingByName.id);
+        processCache.set(existingByName.processName.toLowerCase(), existingByName.id);
+        if (isUUID) processCache.set(rawId.toLowerCase(), existingByName.id);
+        if (cacheKey) processCache.set(cacheKey, existingByName.id);
+      }
+      return existingByName.id;
+    }
+
+    // 3. Create new ManufacturingProcess record
+    const newProcess = await tx.manufacturingProcess.create({
+      data: {
+        processName: targetName,
+        status: 'ACTIVE',
+        createdBy: userId,
+      },
+    });
+
+    if (processCache) {
+      processCache.set(targetName.toLowerCase(), newProcess.id);
+      processCache.set(newProcess.processName.toLowerCase(), newProcess.id);
+      if (isUUID) processCache.set(rawId.toLowerCase(), newProcess.id);
+      if (cacheKey) processCache.set(cacheKey, newProcess.id);
+    }
+
+    return newProcess.id;
+  }
+
   /**
    * Create a new Business Transaction (Indent + Process Cost Sheet) in DRAFT state.
    */
@@ -286,6 +363,7 @@ export class BusinessTransactionService {
         });
 
         // Attach IndentProcesses if specified
+        const processCache = new Map<string, string>();
         for (let i = 0; i < dto.indent.items.length; i++) {
           const itemDto = dto.indent.items[i];
           const createdItem = createdIndent.indentItems[i];
@@ -294,19 +372,32 @@ export class BusinessTransactionService {
             const uniqueProcesses = [];
             const seenProcessIds = new Set();
             for (const proc of itemDto.processes) {
-              if (!seenProcessIds.has(proc.processId)) {
-                seenProcessIds.add(proc.processId);
-                uniqueProcesses.push(proc);
+              if (!proc.processId && !(proc as any).processName) continue;
+              const resolvedId = await this.resolveProcess(
+                tx,
+                proc.processId,
+                (proc as any).processName,
+                userId,
+                processCache,
+              );
+              if (!seenProcessIds.has(resolvedId)) {
+                seenProcessIds.add(resolvedId);
+                uniqueProcesses.push({
+                  ...proc,
+                  processId: resolvedId,
+                });
               }
             }
-            await tx.indentProcess.createMany({
-              data: uniqueProcesses.map((proc) => ({
-                indentItemId: createdItem.id,
-                processId: proc.processId,
-                sequence: proc.sequence,
-                estimatedHours: proc.estimatedHours ?? 0,
-              })),
-            });
+            if (uniqueProcesses.length > 0) {
+              await tx.indentProcess.createMany({
+                data: uniqueProcesses.map((proc) => ({
+                  indentItemId: createdItem.id,
+                  processId: proc.processId,
+                  sequence: proc.sequence,
+                  estimatedHours: proc.estimatedHours ?? 0,
+                })),
+              });
+            }
           }
         }
 
@@ -334,15 +425,28 @@ export class BusinessTransactionService {
               })),
             },
             processCosts: {
-              create: (dto.costSheet.processCosts || [])
-                .filter(
-                  (pc) => pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000',
-                )
-                .map((pc) => ({
-                  processId: pc.processId,
-                  predictedCost: roundTo4Decimals(pc.predictedCost),
-                  estimatedHours: pc.estimatedHours ?? 0,
-                })),
+              create: await Promise.all(
+                (dto.costSheet.processCosts || [])
+                  .filter(
+                    (pc) =>
+                      (pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000') ||
+                      (pc as any).processName,
+                  )
+                  .map(async (pc) => {
+                    const resolvedId = await this.resolveProcess(
+                      tx,
+                      pc.processId,
+                      (pc as any).processName,
+                      userId,
+                      processCache,
+                    );
+                    return {
+                      processId: resolvedId,
+                      predictedCost: roundTo4Decimals(pc.predictedCost),
+                      estimatedHours: pc.estimatedHours ?? 0,
+                    };
+                  }),
+              ),
             },
           },
         });
@@ -584,10 +688,9 @@ export class BusinessTransactionService {
       items: indent.indentItems,
       broughtMaterials: indent.broughtMaterials,
       totalItemsCount: (indent.indentItems?.length || 0) + (indent.broughtMaterials?.length || 0),
-      issuedItemsCount: [
-        ...(indent.indentItems ?? []),
-        ...(indent.broughtMaterials ?? []),
-      ].filter((i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0).length,
+      issuedItemsCount: [...(indent.indentItems ?? []), ...(indent.broughtMaterials ?? [])].filter(
+        (i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0,
+      ).length,
       attachments: indent.attachments.map((att: any) => {
         try {
           const meta = JSON.parse(att.fileName);
@@ -831,10 +934,9 @@ export class BusinessTransactionService {
       items: indent.indentItems,
       broughtMaterials: indent.broughtMaterials,
       totalItemsCount: (indent.indentItems?.length || 0) + (indent.broughtMaterials?.length || 0),
-      issuedItemsCount: [
-        ...(indent.indentItems ?? []),
-        ...(indent.broughtMaterials ?? []),
-      ].filter((i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0).length,
+      issuedItemsCount: [...(indent.indentItems ?? []), ...(indent.broughtMaterials ?? [])].filter(
+        (i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0,
+      ).length,
       attachments: indent.attachments.map((att: any) => {
         try {
           const meta = JSON.parse(att.fileName);
@@ -955,10 +1057,9 @@ export class BusinessTransactionService {
       items: indent.indentItems,
       broughtMaterials: indent.broughtMaterials,
       totalItemsCount: (indent.indentItems?.length || 0) + (indent.broughtMaterials?.length || 0),
-      issuedItemsCount: [
-        ...(indent.indentItems ?? []),
-        ...(indent.broughtMaterials ?? []),
-      ].filter((i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0).length,
+      issuedItemsCount: [...(indent.indentItems ?? []), ...(indent.broughtMaterials ?? [])].filter(
+        (i: any) => i.status === 'ISSUED' || Number(i.issuedQuantity) > 0,
+      ).length,
       attachments: [],
       costSheet: indent.costSheet,
       productionReceipt: null,
@@ -1207,6 +1308,7 @@ export class BusinessTransactionService {
         });
 
         const resolvedMaterialIds: string[] = [];
+        const processCache = new Map<string, string>();
         // 2. PRF-DB-002: Differential update for indent items instead of delete+recreate.
         // Strategy: compare existing DB items with incoming DTO items by index.
         //   - Overlap: update in place (preserve UUID, no orphaned references)
@@ -1287,19 +1389,32 @@ export class BusinessTransactionService {
                       const uniqueProcesses = [];
                       const seenProcessIds = new Set();
                       for (const proc of item.processes) {
-                        if (!seenProcessIds.has(proc.processId)) {
-                          seenProcessIds.add(proc.processId);
-                          uniqueProcesses.push(proc);
+                        if (!proc.processId && !(proc as any).processName) continue;
+                        const resolvedId = await this.resolveProcess(
+                          tx,
+                          proc.processId,
+                          (proc as any).processName,
+                          userId,
+                          processCache,
+                        );
+                        if (!seenProcessIds.has(resolvedId)) {
+                          seenProcessIds.add(resolvedId);
+                          uniqueProcesses.push({
+                            ...proc,
+                            processId: resolvedId,
+                          });
                         }
                       }
-                      await tx.indentProcess.createMany({
-                        data: uniqueProcesses.map((proc, idx) => ({
-                          indentItemId: existingItem.id,
-                          processId: proc.processId,
-                          sequence: idx + 1,
-                          estimatedHours: proc.estimatedHours ?? 0,
-                        })),
-                      });
+                      if (uniqueProcesses.length > 0) {
+                        await tx.indentProcess.createMany({
+                          data: uniqueProcesses.map((proc, idx) => ({
+                            indentItemId: existingItem.id,
+                            processId: proc.processId,
+                            sequence: idx + 1,
+                            estimatedHours: proc.estimatedHours ?? 0,
+                          })),
+                        });
+                      }
                     }
                   }),
               );
@@ -1345,23 +1460,36 @@ export class BusinessTransactionService {
               // Create processes for new items in parallel
               const processCreatePromises = createdItems
                 .filter(({ item }) => item.processes && item.processes.length > 0)
-                .map(({ item, createdItem }) => {
+                .map(async ({ item, createdItem }) => {
                   const uniqueProcesses = [];
                   const seenProcessIds = new Set();
                   for (const proc of item.processes) {
-                    if (!seenProcessIds.has(proc.processId)) {
-                      seenProcessIds.add(proc.processId);
-                      uniqueProcesses.push(proc);
+                    if (!proc.processId && !(proc as any).processName) continue;
+                    const resolvedId = await this.resolveProcess(
+                      tx,
+                      proc.processId,
+                      (proc as any).processName,
+                      userId,
+                      processCache,
+                    );
+                    if (!seenProcessIds.has(resolvedId)) {
+                      seenProcessIds.add(resolvedId);
+                      uniqueProcesses.push({
+                        ...proc,
+                        processId: resolvedId,
+                      });
                     }
                   }
-                  return tx.indentProcess.createMany({
-                    data: uniqueProcesses.map((proc: any, idx: number) => ({
-                      indentItemId: createdItem.id,
-                      processId: proc.processId,
-                      sequence: idx + 1,
-                      estimatedHours: proc.estimatedHours ?? 0,
-                    })),
-                  });
+                  if (uniqueProcesses.length > 0) {
+                    await tx.indentProcess.createMany({
+                      data: uniqueProcesses.map((proc: any, idx: number) => ({
+                        indentItemId: createdItem.id,
+                        processId: proc.processId,
+                        sequence: idx + 1,
+                        estimatedHours: proc.estimatedHours ?? 0,
+                      })),
+                    });
+                  }
                 });
               if (processCreatePromises.length > 0) {
                 await Promise.all(processCreatePromises);
@@ -1507,15 +1635,29 @@ export class BusinessTransactionService {
               where: { costSheetId: existingCostSheet.id },
               orderBy: { createdAt: 'asc' },
             });
-            const newPCs = dto.costSheet.processCosts.filter(
-              (pc) => pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000',
+            const validPCs = dto.costSheet.processCosts.filter(
+              (pc) =>
+                (pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000') ||
+                (pc as any).processName,
             );
-            const overlapPC = Math.min(existingPCs.length, newPCs.length);
+            const resolvedNewPCs = await Promise.all(
+              validPCs.map(async (pc) => ({
+                ...pc,
+                processId: await this.resolveProcess(
+                  tx,
+                  pc.processId,
+                  (pc as any).processName,
+                  userId,
+                  processCache,
+                ),
+              })),
+            );
+            const overlapPC = Math.min(existingPCs.length, resolvedNewPCs.length);
 
             // UPDATE overlapping process costs in parallel
             const pcUpdatePromises: Promise<any>[] = [];
             for (let i = 0; i < overlapPC; i++) {
-              const pc = newPCs[i];
+              const pc = resolvedNewPCs[i];
               const existingPC = existingPCs[i];
               pcUpdatePromises.push(
                 tx.processCost.update({
@@ -1531,9 +1673,9 @@ export class BusinessTransactionService {
             if (pcUpdatePromises.length > 0) await Promise.all(pcUpdatePromises);
 
             // CREATE new process costs
-            if (newPCs.length > existingPCs.length) {
+            if (resolvedNewPCs.length > existingPCs.length) {
               await tx.processCost.createMany({
-                data: newPCs.slice(overlapPC).map((pc) => ({
+                data: resolvedNewPCs.slice(overlapPC).map((pc) => ({
                   costSheetId: existingCostSheet.id,
                   processId: pc.processId,
                   predictedCost: roundTo4Decimals(pc.predictedCost),
@@ -1543,7 +1685,7 @@ export class BusinessTransactionService {
             }
 
             // DELETE removed process costs
-            if (existingPCs.length > newPCs.length) {
+            if (existingPCs.length > resolvedNewPCs.length) {
               const excessPCIds = existingPCs.slice(overlapPC).map((pc) => pc.id);
               await tx.processCost.deleteMany({ where: { id: { in: excessPCIds } } });
             }
@@ -1707,11 +1849,13 @@ export class BusinessTransactionService {
     );
 
     // Fire and forget — never await, never throw
-    console.log('[RM-DEBUG] About to call notifyStoresPending for indent:', id);
-    console.log('[RM-DEBUG] rmIntegrationService available:', !!this.rmIntegrationService);
+    this.logger.debug(`[RM-DEBUG] About to call notifyStoresPending for indent: ${id}`);
+    this.logger.debug(`[RM-DEBUG] rmIntegrationService available: ${!!this.rmIntegrationService}`);
     this.rmIntegrationService
       ?.notifyStoresPending(id, this.prisma)
-      .catch((err) => console.error('[RM-Integration] notifyStoresPending error:', err.message));
+      .catch((err) =>
+        this.logger.error(`[RM-Integration] notifyStoresPending error: ${err.message}`),
+      );
 
     this.invalidateWorkflowCache();
     return { id, success: true };

@@ -14,9 +14,13 @@ import { Type } from 'class-transformer';
 import { IndentPriority, FileType } from '../enums/workflow-state.enum';
 
 export class IndentProcessDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   processId: string;
+
+  @IsString()
+  @IsOptional()
+  processName?: string;
 
   @IsNumber()
   @Min(1)

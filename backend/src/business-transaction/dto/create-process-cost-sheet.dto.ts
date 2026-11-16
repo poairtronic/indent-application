@@ -51,9 +51,13 @@ export class CostItemDto {
 }
 
 export class ProcessCostDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   processId: string;
+
+  @IsString()
+  @IsOptional()
+  processName?: string;
 
   @IsNumber()
   @Min(0)

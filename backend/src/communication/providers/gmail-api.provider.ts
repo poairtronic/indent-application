@@ -99,7 +99,7 @@ export class GmailApiProvider implements IEmailProvider {
         messageId: response.data.id || response.data.threadId || undefined,
       };
     } catch (error: any) {
-      let failureReason = error?.message || String(error);
+      const failureReason = error?.message || String(error);
       const statusCode = error?.code || error?.response?.status;
 
       this.logger.error(`Gmail API delivery failed (Status: ${statusCode}): ${failureReason}`);

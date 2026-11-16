@@ -10,6 +10,8 @@ import type {
 
 function invalidateIndent(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
   queryClient.invalidateQueries({ queryKey: queryKeys.indents.list('indents') });
+  queryClient.invalidateQueries({ queryKey: ['processes'] });
+  queryClient.invalidateQueries({ queryKey: ['materials'] });
   if (id) {
     queryClient.invalidateQueries({ queryKey: queryKeys.indents.detail('indents', id) });
   }

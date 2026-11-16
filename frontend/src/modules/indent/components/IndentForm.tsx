@@ -161,6 +161,7 @@ const indentSchema = z.object({
             .array(
               z.object({
                 processId: z.string().optional().default(''),
+                processName: z.string().optional().default(''),
                 predictedCost: z.coerce.number().min(0).optional().default(0),
                 estimatedHours: z.coerce.number().optional().default(0),
                 actualCost: z.coerce.number().optional(),
@@ -276,6 +277,7 @@ const NestedProcessArray: React.FC<{
             onClick={() =>
               append({
                 processId: '',
+                processName: '',
                 predictedCost: 0,
                 estimatedHours: 0,
                 vendorType: 'In-house',
@@ -368,9 +370,12 @@ const NestedProcessArray: React.FC<{
                     control={control}
                     name={`indent.items.${itemIndex}.processes.${pIndex}.processId`}
                     render={({ field: procField }) => {
+                      const procWatch = watchedProcesses?.[pIndex] as any;
                       const selectedProcess = processesList.find((p) => p.id === procField.value);
                       const fallbackName =
-                        (procField as any).processName || (fields[pIndex] as any).processName;
+                        procWatch?.processName ||
+                        (procField as any).processName ||
+                        (fields[pIndex] as any).processName;
                       const inputValue = selectedProcess
                         ? selectedProcess.processName
                         : fallbackName || procField.value || '';
@@ -385,15 +390,27 @@ const NestedProcessArray: React.FC<{
                             onChange={(e) => {
                               const val = e.target.value;
                               const matched = processesList.find(
-                                (p) => p.processName.toLowerCase() === val.toLowerCase(),
+                                (p) => p.processName.toLowerCase() === val.trim().toLowerCase(),
                               );
-                              procField.onChange(matched ? matched.id : val);
+                              if (matched) {
+                                procField.onChange(matched.id);
+                                setValue(
+                                  `indent.items.${itemIndex}.processes.${pIndex}.processName`,
+                                  matched.processName,
+                                );
+                              } else {
+                                procField.onChange(val);
+                                setValue(
+                                  `indent.items.${itemIndex}.processes.${pIndex}.processName`,
+                                  val,
+                                );
+                              }
                             }}
                             error={
                               errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.processId
+                                ?.message ||
+                              errors.indent?.items?.[itemIndex]?.processes?.[pIndex]?.processName
                                 ?.message
-                                ? 'Please select an existing process from the list'
-                                : undefined
                             }
                           />
                           <datalist id={`processes-datalist-${itemIndex}-${pIndex}`}>
@@ -1031,20 +1048,34 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     const allProcessCosts: any[] = [];
 
     const formattedItems = data.indent.items.map((item) => {
-      const backendProcesses = item.processes?.map((p, idx) => {
-        allProcessCosts.push({
-          processId: p.processId,
-          estimatedHours: Number.isNaN(p.estimatedHours) ? undefined : p.estimatedHours,
-          predictedCost: p.predictedCost,
-          actualHours: p.actualHours,
-          actualCost: p.actualCost,
+      const backendProcesses = item.processes
+        ?.filter(
+          (p) =>
+            (p.processId && p.processId.trim() !== '') ||
+            ((p as any).processName && (p as any).processName.trim() !== ''),
+        )
+        ?.map((p, idx) => {
+          const matchedProc = processes.find((pl: any) => pl.id === p.processId);
+          const pName =
+            (p as any).processName?.trim() ||
+            matchedProc?.processName ||
+            p.processId?.trim();
+
+          allProcessCosts.push({
+            processId: p.processId,
+            processName: pName,
+            estimatedHours: Number.isNaN(p.estimatedHours) ? undefined : p.estimatedHours,
+            predictedCost: p.predictedCost,
+            actualHours: p.actualHours,
+            actualCost: p.actualCost,
+          });
+          return {
+            processId: p.processId,
+            processName: pName,
+            sequence: idx + 1,
+            estimatedHours: Number.isNaN(p.estimatedHours) ? undefined : p.estimatedHours,
+          };
         });
-        return {
-          processId: p.processId,
-          sequence: idx + 1,
-          estimatedHours: Number.isNaN(p.estimatedHours) ? undefined : p.estimatedHours,
-        };
-      });
 
       return {
         materialName: item.materialName,
