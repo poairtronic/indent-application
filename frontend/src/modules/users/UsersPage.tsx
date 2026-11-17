@@ -27,6 +27,7 @@ import { UserFormModal } from './UserFormModal';
 import { UserDetailModal } from './UserDetailModal';
 import type {
   CreateUserPayload,
+  DepartmentOption,
   UpdateUserPayload,
   UserResponse,
   UserStatus,
@@ -76,7 +77,12 @@ export const UsersPage: React.FC = () => {
   const usersQuery = useUsers(query);
   const rolesQuery = useUserRoles();
   const departmentQuery = useDepartmentOptions();
-  const departments = useMemo(() => departmentQuery.data ?? [], [departmentQuery.data]);
+  const departments = useMemo<DepartmentOption[]>(() => {
+    const d = departmentQuery.data;
+    if (Array.isArray(d)) return d;
+    if (Array.isArray((d as any)?.items)) return (d as any).items;
+    return [];
+  }, [departmentQuery.data]);
   const roles = useMemo(() => rolesQuery.data ?? [], [rolesQuery.data]);
 
   const createMutation = useCreateUser();

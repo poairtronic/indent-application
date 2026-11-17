@@ -17,7 +17,11 @@ class DepartmentService extends BaseService {
   }
 
   async getOptions(): Promise<DepartmentOption[]> {
-    return this.get<DepartmentOption[]>('/departments');
+    const res = await this.get<any>('/departments');
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.items)) return res.items;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
   }
 }
 

@@ -31,7 +31,11 @@ class UserService extends BaseService {
   }
 
   async listDepartments(): Promise<DepartmentOption[]> {
-    return this.get<DepartmentOption[]>('/departments');
+    const res = await this.get<any>('/departments');
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.items)) return res.items;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
   }
 
   async bulkRestore(ids: string[]): Promise<void> {

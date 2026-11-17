@@ -78,8 +78,13 @@ export const IndentDashboardPage: React.FC = () => {
   const totalPages = data?.totalPages ?? (data as any)?.meta?.totalPages ?? 1;
 
   const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
-  const selectedDeptName = (departments ?? []).find(
-    (d) => d.id === filters.departmentId,
+  const deptList = Array.isArray(departments)
+    ? departments
+    : Array.isArray((departments as any)?.items)
+      ? (departments as any).items
+      : [];
+  const selectedDeptName = deptList.find(
+    (d: any) => d.id === filters.departmentId,
   )?.departmentName;
 
   return (
@@ -134,7 +139,7 @@ export const IndentDashboardPage: React.FC = () => {
             <Select
               options={[
                 { label: 'All Departments', value: '' },
-                ...(departments ?? []).map((d) => ({ label: d.departmentName, value: d.id })),
+                ...deptList.map((d: any) => ({ label: d.departmentName, value: d.id })),
               ]}
               value={filters.departmentId || ''}
               onChange={(e) => handleDepartmentChange(e.target.value)}

@@ -108,7 +108,12 @@ export const ProductionDashboardPage: React.FC = () => {
             <Select
               options={[
                 { label: 'All Departments', value: '' },
-                ...(departments ?? []).map((d) => ({ label: d.departmentName, value: d.id })),
+                ...(Array.isArray(departments)
+                  ? departments
+                  : Array.isArray((departments as any)?.items)
+                    ? (departments as any).items
+                    : []
+                ).map((d: any) => ({ label: d.departmentName, value: d.id })),
               ]}
               value={filters.departmentId || ''}
               onChange={(e) => handleDepartmentChange(e.target.value)}
