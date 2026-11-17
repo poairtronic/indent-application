@@ -240,8 +240,24 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
             },
           });
         }
-      } catch (dbErr) {
+      } catch (dbErr: any) {
         this.logger.error(`Error finalizing successful email job ${job.id}:`, dbErr);
+        try {
+          await this.prisma.emailJob.updateMany({
+            where: { id: job.id },
+            data: {
+              status: 'DEAD_LETTER',
+              lastError: `Email sent but post-dispatch cleanup failed: ${dbErr?.message || dbErr}`,
+              lockedAt: null,
+              lockedBy: null,
+            },
+          });
+        } catch (terminalUpdateErr) {
+          this.logger.error(
+            `Failed to mark email job ${job.id} as DEAD_LETTER after cleanup failure:`,
+            terminalUpdateErr,
+          );
+        }
       }
 
       this.logger.log(`Job ${job.id} processed successfully in ${duration}ms`);

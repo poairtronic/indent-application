@@ -171,9 +171,7 @@ export class RmIntegrationService implements OnModuleInit {
     this.logger.log(
       `[RM-Outbox-DEBUG] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`,
     );
-    this.logger.log(
-      `[RM-Outbox-DEBUG] Secret first 4 chars: ${process.env.RM_INTERNAL_SECRET?.substring(0, 4)}`,
-    );
+    this.logger.debug('[RM-Outbox] Validating outbound secret');
 
     const rmUrl = process.env.RM_API_URL?.trim();
     const rmSecret = process.env.RM_INTERNAL_SECRET?.trim();
@@ -201,7 +199,7 @@ export class RmIntegrationService implements OnModuleInit {
     const targetUrl = `${cleanUrl}/api/internal/merc/indent-pending`;
     const url = targetUrl;
     this.logger.log(`[RM-Outbox] Full target URL: ${targetUrl}`);
-    this.logger.log(`[RM-Outbox] Secret first 6 chars: ${rmSecret?.substring(0, 6)}`);
+    this.logger.debug('[RM-Outbox] Validating outbound secret');
     this.logger.log(`[RM-Outbox] Sending to: ${url}`);
 
     try {
@@ -279,7 +277,7 @@ export class RmIntegrationService implements OnModuleInit {
     }
   }
 
-  // Cron retry — called every 2 minutes for FAILED entries or PENDING older than 1 min with < 5 attempts
+  // Cron retry — called every 30 minutes for FAILED entries or PENDING older than 1 min with < 5 attempts
   async retryFailedOutbox(): Promise<void> {
     const failed = await this.outbox.findMany({
       where: {
@@ -305,7 +303,7 @@ export class RmIntegrationService implements OnModuleInit {
     }
   }
 
-  @Cron('*/2 * * * *') // every 2 minutes
+  @Cron('*/30 * * * *') // every 30 minutes
   async handleOutboxRetry(): Promise<void> {
     await this.retryFailedOutbox();
   }

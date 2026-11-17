@@ -20,10 +20,17 @@ export class DepartmentsController {
   )
   async list(@Query() query: PaginationQueryDto) {
     if (!query.page && !query.limit) {
-      return this.prisma.department.findMany({
+      const items = await this.prisma.department.findMany({
         where: { isDeleted: false },
         orderBy: { departmentName: 'asc' },
       });
+      return {
+        items,
+        total: items.length,
+        page: 1,
+        limit: 100,
+        totalPages: Math.ceil(items.length / 100),
+      };
     }
 
     const pageNumber = Math.max(1, query.page || 1);

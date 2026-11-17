@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { observabilityEventBus } from '../../observability/observability-event-bus';
 import { PasswordService } from './password.service';
@@ -21,6 +21,8 @@ import {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
@@ -304,19 +306,20 @@ export class AuthService {
     }
 
     const token = crypto.randomUUID();
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
 
     await this.prisma.passwordResetToken.create({
       data: {
         userId: user.id,
-        token,
+        token: hashedToken,
         expiresAt,
       },
     });
 
     const frontendUrl = CommunicationConfig.getFrontendUrl();
-    console.info(`[STUB] Password Reset Link: ${frontendUrl}/reset-password?token=${token}`);
+    this.logger.log('Password reset email dispatched');
 
     this.eventBus.emit(CommunicationEventType.PASSWORD_RESET, {
       email: user.email,
@@ -326,8 +329,9 @@ export class AuthService {
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    const hashedToken = crypto.createHash('sha256').update(resetPasswordDto.token).digest('hex');
     const resetToken = await this.prisma.passwordResetToken.findUnique({
-      where: { token: resetPasswordDto.token },
+      where: { token: hashedToken },
     });
 
     if (
@@ -430,5 +434,9 @@ export class AuthService {
         description: 'Password changed successfully',
       },
     });
+  }
+
+  async adminUnlockAccount(userId: string, adminUserId?: string): Promise<void> {
+    await this.accountSecurityService.unlockAccount(userId, adminUserId);
   }
 }

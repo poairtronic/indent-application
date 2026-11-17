@@ -22,7 +22,7 @@ export class ReportsController {
     @Res() res: Response,
   ) {
     const { format = 'excel' } = query as any;
-    const allQuery = { ...query, page: 1, limit: 100000 };
+    const allQuery = { ...query, page: 1, limit: Math.min(query.limit || 5000, 5000) };
     const reportData = await this.reportsService.getDailyProductionSummary(req.user, allQuery);
 
     if (format === 'excel') {
@@ -118,7 +118,7 @@ export class ReportsController {
     @Res() res: Response,
   ) {
     const { format = 'excel' } = query as any;
-    const allQuery = { ...query, page: 1, limit: 100000 };
+    const allQuery = { ...query, page: 1, limit: Math.min(query.limit || 5000, 5000) };
     const reportData = await this.reportsService.getActualVsPredictedCosts(req.user, allQuery);
 
     if (format === 'excel') {
@@ -201,7 +201,7 @@ export class ReportsController {
     @Res() res: Response,
   ) {
     const { format = 'excel' } = query as any;
-    const allQuery = { ...query, page: 1, limit: 100000 };
+    const allQuery = { ...query, page: 1, limit: Math.min(query.limit || 5000, 5000) };
     const reportData = await this.reportsService.getMaterialCostBreakdown(req.user, allQuery);
 
     if (format === 'excel') {
@@ -299,7 +299,7 @@ export class ReportsController {
     @Res() res: Response,
   ) {
     const { format = 'excel' } = query as any;
-    const allQuery = { ...query, page: 1, limit: 100000 };
+    const allQuery = { ...query, page: 1, limit: Math.min(query.limit || 5000, 5000) };
     const reportData = await this.reportsService.getVendorPerformance(req.user, allQuery);
 
     if (format === 'excel') {
@@ -380,7 +380,7 @@ export class ReportsController {
     @Res() res: Response,
   ) {
     const { format = 'excel' } = query as any;
-    const allQuery = { ...query, page: 1, limit: 100000 };
+    const allQuery = { ...query, page: 1, limit: Math.min(query.limit || 5000, 5000) };
     const reportData = await this.reportsService.getProductCatalog(req.user, allQuery);
 
     if (format === 'excel') {
@@ -448,7 +448,7 @@ export class ReportsController {
     @Res() res: Response,
   ) {
     const { format = 'excel' } = query as any;
-    const allQuery = { ...query, page: 1, limit: 100000 };
+    const allQuery = { ...query, page: 1, limit: Math.min(query.limit || 5000, 5000) };
     const reportData = await this.reportsService.getWorkflowBottleneck(req.user, allQuery);
 
     if (format === 'excel') {

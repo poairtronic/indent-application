@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class ProductionReceiptDto {
   @IsString()
@@ -14,18 +14,4 @@ export class ProductionUpdateDto {
   @IsString()
   @IsOptional()
   remarks?: string;
-}
-
-export class CustomerDeliveryDto {
-  @IsDateString()
-  @IsNotEmpty()
-  deliveryDate: string;
-
-  @IsString()
-  @IsOptional()
-  deliveryNotes?: string;
-
-  @IsString()
-  @IsOptional()
-  customerReceiptReference?: string;
 }

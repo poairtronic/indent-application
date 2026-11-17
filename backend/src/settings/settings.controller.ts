@@ -20,6 +20,7 @@ export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   @Get()
+  @Permissions('settings.manage')
   @ApiOperation({ summary: 'Get all application settings' })
   @ApiQuery({ name: 'category', required: false, type: String })
   @ApiResponse({ status: 200, description: 'List of settings', type: [SettingResponseDto] })
@@ -28,6 +29,7 @@ export class SettingsController {
   }
 
   @Get(':key')
+  @Permissions('settings.manage')
   @ApiOperation({ summary: 'Get setting by key' })
   @ApiParam({ name: 'key', type: 'string' })
   @ApiResponse({ status: 200, description: 'Setting details', type: SettingResponseDto })

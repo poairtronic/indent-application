@@ -70,7 +70,7 @@ export class KpiService {
     }
     if (processCode) {
       const processSubQuery = {
-        items: {
+        indentItems: {
           some: {
             indentProcesses: {
               some: {

@@ -7,6 +7,7 @@ import {
   Patch,
   Body,
   Param,
+  ParseUUIDPipe,
   Query,
   Request,
   UseInterceptors,
@@ -80,14 +81,14 @@ export class BusinessTransactionController {
 
   @Get(':id')
   @Permissions('indent.view')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.businessTransactionService.findTransactionById(id);
   }
 
   @Patch(':id')
   @Permissions('indent.edit', 'production.update')
   async updateDraft(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateBusinessTransactionDto,
     @Request() req: any,
   ) {
@@ -97,7 +98,7 @@ export class BusinessTransactionController {
   @Post(':id/submit')
   @Permissions('indent.submit')
   async submitDesign(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -110,32 +111,44 @@ export class BusinessTransactionController {
 
   @Post(':id/stores/verify')
   @Permissions('stores.issue')
-  async storesVerifyStock(@Param('id') id: string, @Request() req: any) {
+  async storesVerifyStock(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
     return this.businessTransactionService.storesVerifyStock(id, req.user.id);
   }
 
   @Post(':id/stores/issue')
   @Permissions('stores.issue')
-  async storesIssueNew(@Param('id') id: string, @Body() dto: StoresIssueDto, @Request() req: any) {
+  async storesIssueNew(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: StoresIssueDto,
+    @Request() req: any,
+  ) {
     return this.businessTransactionService.storesIssueMaterials(id, req.user.id, dto);
   }
 
   @Post(':id/stores-issue')
   @Permissions('stores.issue')
-  async storesIssue(@Param('id') id: string, @Body() dto: StoresIssueDto, @Request() req: any) {
+  async storesIssue(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: StoresIssueDto,
+    @Request() req: any,
+  ) {
     return this.businessTransactionService.storesIssueMaterials(id, req.user.id, dto);
   }
 
   @Post(':id/items/:itemId/issue')
   @Permissions('stores.issue')
-  async issueItem(@Param('id') id: string, @Param('itemId') itemId: string, @Request() req: any) {
+  async issueItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+    @Request() req: any,
+  ) {
     return this.businessTransactionService.issueSingleMaterialItem(id, itemId, req.user.id);
   }
 
   @Post(':id/production/receive')
   @Permissions('production.update')
   async productionReceiveNew(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -145,7 +158,7 @@ export class BusinessTransactionController {
   @Post(':id/production-receive')
   @Permissions('production.update')
   async productionReceive(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -155,7 +168,7 @@ export class BusinessTransactionController {
   @Post(':id/production/start')
   @Permissions('production.update')
   async productionStart(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -165,7 +178,7 @@ export class BusinessTransactionController {
   @Patch(':id/production/progress')
   @Permissions('production.update')
   async productionProgress(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ProductionUpdateDto,
     @Request() req: any,
   ) {
@@ -175,7 +188,7 @@ export class BusinessTransactionController {
   @Post(':id/production-update')
   @Permissions('production.update')
   async productionUpdate(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ProductionUpdateDto,
     @Request() req: any,
   ) {
@@ -185,7 +198,7 @@ export class BusinessTransactionController {
   @Post(':id/production/complete')
   @Permissions('production.update')
   async productionComplete(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -199,7 +212,7 @@ export class BusinessTransactionController {
   @Post(':id/accounts/verify')
   @Permissions('accounts.verify')
   async accountsVerifyNew(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -209,7 +222,7 @@ export class BusinessTransactionController {
   @Post(':id/accounts-verify')
   @Permissions('accounts.verify')
   async startAccountsVerify(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -219,7 +232,7 @@ export class BusinessTransactionController {
   @Post(':id/accounts/actual-cost')
   @Permissions('accounts.verify')
   async enterActualCostsNew(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ActualCostEntryDto,
     @Request() req: any,
   ) {
@@ -229,7 +242,7 @@ export class BusinessTransactionController {
   @Post(':id/actual-costs')
   @Permissions('accounts.verify')
   async enterActualCosts(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ActualCostEntryDto,
     @Request() req: any,
   ) {
@@ -239,7 +252,7 @@ export class BusinessTransactionController {
   @Patch(':id/accounts/material-cost')
   @Permissions('accounts.verify')
   async updateMaterialCost(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body()
     dto: { costItemId: string; actualRate: number; actualQuantity: number; remarks?: string },
     @Request() req: any,
@@ -250,7 +263,7 @@ export class BusinessTransactionController {
   @Post(':id/accounts/financial-close')
   @Permissions('accounts.close')
   async financialCloseNew(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: FinancialClosureDto,
     @Request() req: any,
   ) {
@@ -260,7 +273,7 @@ export class BusinessTransactionController {
   @Post(':id/financial-closure')
   @Permissions('accounts.close')
   async financialClosure(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: FinancialClosureDto,
     @Request() req: any,
   ) {
@@ -270,7 +283,7 @@ export class BusinessTransactionController {
   @Post(':id/archive')
   @Permissions('system.archive')
   async archiveTransaction(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -280,7 +293,7 @@ export class BusinessTransactionController {
   @Post(':id/complete')
   @Permissions('system.complete')
   async completeTransaction(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body('remarks') remarks: string,
     @Request() req: any,
   ) {
@@ -299,7 +312,7 @@ export class BusinessTransactionController {
     }),
   )
   async uploadAttachment(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: any,
     @Body('remarks') remarks: string,
     @Request() req: any,
@@ -335,13 +348,16 @@ export class BusinessTransactionController {
 
   @Get(':id/attachments/summary')
   @Permissions('documents.view')
-  async getAttachmentSummary(@Param('id') id: string) {
+  async getAttachmentSummary(@Param('id', ParseUUIDPipe) id: string) {
     return this.businessTransactionService.getAttachmentSummary(id);
   }
 
   @Get(':id/attachments/:attachmentId/history')
   @Permissions('documents.view')
-  async getAttachmentHistory(@Param('id') id: string, @Param('attachmentId') attachmentId: string) {
+  async getAttachmentHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
     return this.businessTransactionService.getAttachmentHistory(id, attachmentId);
   }
 
@@ -354,7 +370,7 @@ export class BusinessTransactionController {
     }),
   )
   async replaceAttachment(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Param('attachmentId') attachmentId: string,
     @UploadedFile() file: any,
     @Body('remarks') remarks: string,
@@ -372,7 +388,7 @@ export class BusinessTransactionController {
   @Delete(':id/attachments/:attachmentId')
   @Permissions('indent.edit', 'accounts.verify')
   async removeAttachment(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Param('attachmentId') attachmentId: string,
     @Request() req: any,
   ) {
@@ -381,7 +397,7 @@ export class BusinessTransactionController {
 
   @Delete(':id')
   @Permissions('indent.delete')
-  async deleteIndent(@Param('id') id: string, @Request() req: any) {
+  async deleteIndent(@Param('id', ParseUUIDPipe) id: string, @Request() req: any) {
     return this.businessTransactionService.deleteIndent(id, req.user.id);
   }
 }

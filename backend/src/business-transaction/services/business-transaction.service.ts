@@ -290,16 +290,14 @@ export class BusinessTransactionService {
     const isUUID = (s: string) =>
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s || '');
     const uuids = Array.from(
-      new Set(
-        allProcessesList
-          .map((p) => (p.processId || '').trim())
-          .filter((id) => isUUID(id)),
-      ),
+      new Set(allProcessesList.map((p) => (p.processId || '').trim()).filter((id) => isUUID(id))),
     );
     const names = Array.from(
       new Set(
         allProcessesList
-          .map((p) => (p.processName || (!isUUID(p.processId || '') ? p.processId : '') || '').trim())
+          .map((p) =>
+            (p.processName || (!isUUID(p.processId || '') ? p.processId : '') || '').trim(),
+          )
           .filter(Boolean),
       ),
     );
@@ -385,17 +383,24 @@ export class BusinessTransactionService {
             },
           }));
 
+        // Collect all processes across items and costSheet for batch resolution (1 single query)
+        const allProcsInDto: any[] = [];
+        dto.indent.items.forEach((item) => {
+          (item.processes || []).forEach((p) => allProcsInDto.push(p));
+        });
+        (dto.costSheet?.processCosts || []).forEach((p) => allProcsInDto.push(p));
+
+        // Batch resolve materials and processes up front (2 queries total, eliminating N+1)
+        const [materialMap, processMap] = await Promise.all([
+          this.resolveMaterialsBatch(tx, dto.indent.items, userId),
+          this.resolveProcessesBatch(tx, allProcsInDto, userId),
+        ]);
+
         const resolvedMaterialIds: string[] = [];
         const resolvedMaterials: any[] = [];
         for (let i = 0; i < dto.indent.items.length; i++) {
           const item = dto.indent.items[i];
-          const material = await this.resolveMaterial(
-            tx,
-            item.materialName,
-            item.unitId,
-            userId,
-            i,
-          );
+          const material = materialMap.get((item.materialName || '').trim().toLowerCase());
           resolvedMaterialIds.push(material.id);
           resolvedMaterials.push(material);
         }
@@ -471,24 +476,24 @@ export class BusinessTransactionService {
         });
 
         // Attach IndentProcesses if specified
-        const processCache = new Map<string, string>();
+        const isUUID = (s: string) =>
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            s || '',
+          );
+
         for (let i = 0; i < dto.indent.items.length; i++) {
           const itemDto = dto.indent.items[i];
           const createdItem = createdIndent.indentItems[i];
           if (itemDto.processes && itemDto.processes.length > 0 && createdItem) {
             // Deduplicate processes by processId to prevent Prisma @@unique([indentItemId, processId]) conflict
             const uniqueProcesses = [];
-            const seenProcessIds = new Set();
+            const seenProcessIds = new Set<string>();
             for (const proc of itemDto.processes) {
-              if (!proc.processId && !(proc as any).processName) continue;
-              const resolvedId = await this.resolveProcess(
-                tx,
-                proc.processId,
-                (proc as any).processName,
-                userId,
-                processCache,
-              );
-              if (!seenProcessIds.has(resolvedId)) {
+              const rawId = (proc.processId || '').trim();
+              const rawName = ((proc as any).processName || (!isUUID(rawId) ? rawId : '')).trim();
+              if (!rawId && !rawName) continue;
+              const resolvedId = processMap.get((rawName || rawId).toLowerCase()) || rawId;
+              if (resolvedId && !seenProcessIds.has(resolvedId)) {
                 seenProcessIds.add(resolvedId);
                 uniqueProcesses.push({
                   ...proc,
@@ -533,28 +538,22 @@ export class BusinessTransactionService {
               })),
             },
             processCosts: {
-              create: await Promise.all(
-                (dto.costSheet.processCosts || [])
-                  .filter(
-                    (pc) =>
-                      (pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000') ||
-                      (pc as any).processName,
-                  )
-                  .map(async (pc) => {
-                    const resolvedId = await this.resolveProcess(
-                      tx,
-                      pc.processId,
-                      (pc as any).processName,
-                      userId,
-                      processCache,
-                    );
-                    return {
-                      processId: resolvedId,
-                      predictedCost: roundTo4Decimals(pc.predictedCost),
-                      estimatedHours: pc.estimatedHours ?? 0,
-                    };
-                  }),
-              ),
+              create: (dto.costSheet.processCosts || [])
+                .filter(
+                  (pc) =>
+                    (pc.processId && pc.processId !== '00000000-0000-0000-0000-000000000000') ||
+                    (pc as any).processName,
+                )
+                .map((pc) => {
+                  const rawId = (pc.processId || '').trim();
+                  const rawName = ((pc as any).processName || (!isUUID(rawId) ? rawId : '')).trim();
+                  const resolvedId = processMap.get((rawName || rawId).toLowerCase()) || rawId;
+                  return {
+                    processId: resolvedId,
+                    predictedCost: roundTo4Decimals(pc.predictedCost),
+                    estimatedHours: pc.estimatedHours ?? 0,
+                  };
+                }),
             },
           },
         });
@@ -1425,7 +1424,9 @@ export class BusinessTransactionService {
 
         const newItems = dto.indent?.items || [];
         const isUUID = (s: string) =>
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s || '');
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            s || '',
+          );
 
         // Collect all processes across items and costSheet for batch resolution (1 single query)
         const allProcsInDto: any[] = [];
@@ -1694,7 +1695,7 @@ export class BusinessTransactionService {
               const predictedCost =
                 (proc as any).predictedCost !== undefined
                   ? (proc as any).predictedCost
-                  : matchingCostDto?.predictedCost ?? 0;
+                  : (matchingCostDto?.predictedCost ?? 0);
 
               if (resolvedId && !seenProcesses.has(resolvedId)) {
                 seenProcesses.add(resolvedId);
@@ -2012,6 +2013,20 @@ export class BusinessTransactionService {
         await Promise.all(itemUpdates);
       }
 
+      if (prisma.indentBroughtMaterial.updateMany) {
+        await prisma.indentBroughtMaterial.updateMany({
+          where: {
+            indentId: id,
+            isDeleted: false,
+            OR: [{ status: { not: 'ISSUED' } }, { status: null }],
+          },
+          data: {
+            status: 'ISSUED',
+            updatedBy: userId,
+          },
+        });
+      }
+
       // Check completion status across both raw materials and brought out materials
       const unissuedItemsCount = await prisma.indentItem.count({
         where: {
@@ -2202,7 +2217,7 @@ export class BusinessTransactionService {
           currentState = WorkflowState.STORES_PROCESSING;
         }
         const transitionValidation = this.workflowStateMachine.validateTransition(
-          txData.currentState,
+          currentState,
           targetState,
           'STORES',
         );
@@ -2218,7 +2233,7 @@ export class BusinessTransactionService {
         await this.prisma.$transaction(async (tx) => {
           await this.assertCurrentStateAndUpdate(
             id,
-            txData.currentState,
+            currentState,
             {
               status: prismaTargetStatus,
               currentState: targetState,
@@ -2595,6 +2610,10 @@ export class BusinessTransactionService {
       const processCostUpdates: Promise<any>[] = [];
       const broughtMaterialUpdates: Promise<any>[] = [];
 
+      const unmatchedCostItemIds: string[] = [];
+      const unmatchedProcessCostIds: string[] = [];
+      const unmatchedBroughtMaterialIds: string[] = [];
+
       // 1. Prepare CostItem updates
       if (dto.costItems && Array.isArray(dto.costItems)) {
         for (const cDto of dto.costItems) {
@@ -2618,6 +2637,8 @@ export class BusinessTransactionService {
                 },
               }),
             );
+          } else {
+            unmatchedCostItemIds.push(cDto.costItemId);
           }
         }
       }
@@ -2646,6 +2667,8 @@ export class BusinessTransactionService {
                 },
               }),
             );
+          } else {
+            unmatchedProcessCostIds.push(pDto.processCostId);
           }
         }
       }
@@ -2664,8 +2687,27 @@ export class BusinessTransactionService {
                 data: { actualAmount },
               }),
             );
+          } else {
+            unmatchedBroughtMaterialIds.push(bmDto.broughtMaterialId);
           }
         }
+      }
+
+      const unmatchedErrors: string[] = [];
+      if (unmatchedCostItemIds.length > 0) {
+        unmatchedErrors.push(`CostItem IDs: [${unmatchedCostItemIds.join(', ')}]`);
+      }
+      if (unmatchedProcessCostIds.length > 0) {
+        unmatchedErrors.push(`ProcessCost IDs: [${unmatchedProcessCostIds.join(', ')}]`);
+      }
+      if (unmatchedBroughtMaterialIds.length > 0) {
+        unmatchedErrors.push(`BroughtMaterial IDs: [${unmatchedBroughtMaterialIds.join(', ')}]`);
+      }
+
+      if (unmatchedErrors.length > 0) {
+        throw new BadRequestException(
+          `Cannot enter actual costs. The following unmatched IDs were not found: ${unmatchedErrors.join('; ')}`,
+        );
       }
 
       // Execute all updates concurrently within the transaction
@@ -2818,8 +2860,14 @@ export class BusinessTransactionService {
       const allProcessCosts = await tx.processCost.findMany({
         where: { costSheetId },
       });
+      const currentBroughtMaterials = await tx.indentBroughtMaterial.findMany({
+        where: { indentId: id },
+      });
 
-      const totalMaterialActual = safeAdd(allCostItems.map((item) => item.actualAmount));
+      const totalMaterialActual = safeAdd([
+        ...allCostItems.map((i) => Number(i.actualAmount) || 0),
+        ...currentBroughtMaterials.map((i) => Number(i.actualAmount) || 0),
+      ]);
       const totalProcessActual = safeAdd(allProcessCosts.map((item) => item.actualCost));
 
       const actualTotal = safeAdd([
@@ -3519,7 +3567,7 @@ export class BusinessTransactionService {
     const atts = await this.prisma.indentAttachment.findMany({
       where: {
         fileName: {
-          contains: fileName,
+          equals: fileName,
         },
         isDeleted: false,
       },
@@ -3553,6 +3601,30 @@ export class BusinessTransactionService {
 
     if (isSystemAdmin) {
       return this.attachmentStorage.getDownloadStream(fileName);
+    }
+
+    const userDeptId = user.departmentId || user.department?.id;
+    const indentIds = atts.map((a) => a.indentId);
+
+    const indents = await this.prisma.indent.findMany({
+      where: {
+        id: { in: indentIds },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        departmentId: true,
+        createdBy: true,
+      },
+    });
+
+    const hasAccess = indents.some(
+      (indent) =>
+        (userDeptId && indent.departmentId === userDeptId) || indent.createdBy === user.id,
+    );
+
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to download this attachment.');
     }
 
     return this.attachmentStorage.getDownloadStream(fileName);

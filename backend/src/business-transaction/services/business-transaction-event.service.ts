@@ -391,9 +391,8 @@ export class BusinessTransactionEventService {
     const moduleName = auditDef ? auditDef.moduleName : 'BUSINESS_TRANSACTION';
     const actionCode = auditDef ? auditDef.actionCode : auditType;
 
-    // Execute asynchronously in the background so it doesn't block the request path
-    this.prisma.auditLog
-      .create({
+    try {
+      await this.prisma.auditLog.create({
         data: {
           module: moduleName,
           recordId,
@@ -403,17 +402,15 @@ export class BusinessTransactionEventService {
           performedBy: performedByUserId,
           ipAddress: ipAddress || '127.0.0.1',
         },
-      })
-      .then(() => {
-        this.logger.log(
-          `Audit Log recorded: Action '${actionCode}' on Record '${recordId}' by User '${performedByUserId}'.`,
-        );
-      })
-      .catch((error) => {
-        this.logger.error(
-          `Failed to record audit log for action ${actionCode}: ${error.message}`,
-          error.stack,
-        );
       });
+      this.logger.log(
+        `Audit Log recorded: Action '${actionCode}' on Record '${recordId}' by User '${performedByUserId}'.`,
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to record audit log for action ${actionCode}: ${error?.message || error}`,
+        error?.stack,
+      );
+    }
   }
 }

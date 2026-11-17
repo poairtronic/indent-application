@@ -48,6 +48,29 @@ export class InternalService {
 
     // 3. Update the line item based on itemType
     if (dto.itemType === 'RAW_MATERIAL') {
+      const item =
+        (indent as any).indentItems?.find((i: any) => i.id === dto.mercItemId) ||
+        (this.prisma.indentItem.findUnique
+          ? await this.prisma.indentItem.findUnique({
+              where: { id: dto.mercItemId },
+              select: { remarks: true },
+            })
+          : null);
+
+      let remarks = `Issued by ${dto.issuedByName} via RM`;
+      if (item?.remarks) {
+        try {
+          const parsed = JSON.parse(item.remarks);
+          if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+            parsed.issuedBy = dto.issuedByName;
+            parsed.issuedVia = 'RM';
+            remarks = JSON.stringify(parsed);
+          }
+        } catch {
+          // If not valid JSON, proceed with existing behavior
+        }
+      }
+
       await this.prisma.indentItem.update({
         where: { id: dto.mercItemId },
         data: {
@@ -55,7 +78,7 @@ export class InternalService {
           status: dto.newItemStatus === 'ISSUED' ? 'ISSUED' : 'AVAILABLE',
           updatedBy: systemUserId,
           updatedAt: issuedAt,
-          remarks: `Issued by ${dto.issuedByName} via RM`,
+          remarks,
         },
       });
     } else {

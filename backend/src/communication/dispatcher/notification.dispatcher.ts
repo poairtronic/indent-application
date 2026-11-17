@@ -181,6 +181,24 @@ export class NotificationDispatcher implements OnModuleInit, OnModuleDestroy {
           });
           break;
 
+        case CommunicationEventType.MATERIAL_ISSUE_OVERDUE:
+          await this.communicationService.sendEmail({
+            to: { departmentCode: 'STORES', roleName: ['Senior Manager', 'General Manager'] },
+            subject: `Material Issue Overdue: #${payload.indentNumber} - MERC`,
+            templateName: 'material_issue_overdue',
+            templateContext: {
+              indentNumber: payload.indentNumber,
+              productName: payload.productName,
+              storesProcessingStartedAt: payload.storesProcessingStartedAt,
+              overdueSince: payload.overdueSince,
+              outstandingMaterials: payload.outstandingMaterials,
+              totalRemaining: payload.totalRemaining,
+              transactionUrl: payload.transactionUrl,
+            },
+            correlationId: payload.correlationId,
+          });
+          break;
+
         case CommunicationEventType.PRODUCTION_STARTED:
           await this.communicationService.sendEmail({
             to: { indentId: payload.indentId, roleName: ['Senior Manager', 'General Manager'] }, // notify creator and managers
