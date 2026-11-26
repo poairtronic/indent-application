@@ -32,6 +32,7 @@ export interface IEmailPayload extends ICommunicationPayload {
   cc?: string | string[];
   bcc?: string | string[];
   attachments?: IEmailAttachment[];
+  signal?: AbortSignal;
 }
 
 export interface IEmailProvider extends ICommunicationProvider {

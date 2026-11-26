@@ -76,9 +76,7 @@ describe('PostgresMailWorker Phase 1.1 Remediation & Safety Verification', () =>
       maxAttempts: 4,
     };
 
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([slowJob])
-      .mockResolvedValue([]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([slowJob]).mockResolvedValue([]);
 
     // Simulate slow send
     mockEmailFactory.sendEmail.mockImplementation(
@@ -165,9 +163,7 @@ describe('PostgresMailWorker Phase 1.1 Remediation & Safety Verification', () =>
       maxAttempts: 4,
     };
 
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([jobA])
-      .mockResolvedValue([]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([jobA]).mockResolvedValue([]);
 
     mockEmailFactory.sendEmail.mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve({ messageId: 'msg-shutdown' }), 50)),
@@ -206,14 +202,15 @@ describe('PostgresMailWorker Phase 1.1 Remediation & Safety Verification', () =>
       maxAttempts: 4,
     };
 
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([lingeringJob])
-      .mockResolvedValue([]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([lingeringJob]).mockResolvedValue([]);
 
     // Promise that does not resolve during test window
     let resolveSend: any;
     mockEmailFactory.sendEmail.mockImplementation(
-      () => new Promise((resolve) => { resolveSend = resolve; }),
+      () =>
+        new Promise((resolve) => {
+          resolveSend = resolve;
+        }),
     );
 
     // Temporarily shorten shutdown timeout for test speed
@@ -294,9 +291,7 @@ describe('PostgresMailWorker Phase 1.1 Remediation & Safety Verification', () =>
       maxAttempts: 4,
     };
 
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([failingJob])
-      .mockResolvedValue([]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([failingJob]).mockResolvedValue([]);
 
     mockEmailFactory.sendEmail.mockRejectedValueOnce(new Error('SMTP Network Dropped'));
     const triggerSpy = jest.spyOn(worker, 'triggerWakeup');
@@ -349,9 +344,7 @@ describe('PostgresMailWorker Phase 1.1 Remediation & Safety Verification', () =>
       maxAttempts: 4,
     };
 
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([batchJob1, exhaustedJob])
-      .mockResolvedValue([]);
+    mockPrisma.$queryRaw.mockResolvedValueOnce([batchJob1, exhaustedJob]).mockResolvedValue([]);
 
     // batchJob1 succeeds, exhaustedJob fails
     mockEmailFactory.sendEmail
@@ -379,5 +372,116 @@ describe('PostgresMailWorker Phase 1.1 Remediation & Safety Verification', () =>
         }),
       }),
     );
+  });
+
+  // 11. Heartbeat continues during graceful shutdown wait
+  it('11. Shutdown keeps lease heartbeats running during the graceful wait period', async () => {
+    const slowJob = {
+      id: 'job-shutdown-heartbeat',
+      payload: {
+        jobId: 'job-shutdown-heartbeat',
+        recipient: 'hb@example.com',
+        recipients: ['hb@example.com'],
+        subject: 'Shutdown Heartbeat',
+        template: 'welcome',
+      },
+      attempts: 0,
+      maxAttempts: 4,
+    };
+
+    (worker as any).heartbeatIntervalMs = 25;
+    (worker as any).shutdownTimeoutMs = 120;
+
+    mockPrisma.$queryRaw.mockResolvedValueOnce([slowJob]).mockResolvedValue([]);
+
+    let resolveSend: any;
+    mockEmailFactory.sendEmail.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveSend = resolve;
+        }),
+    );
+
+    worker.onModuleInit();
+    worker.triggerWakeup(0);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    mockPrisma.emailJob.updateMany.mockClear();
+    const destroyPromise = worker.onModuleDestroy();
+    await destroyPromise;
+
+    // Heartbeat must have renewed at least once DURING the graceful wait
+    const renewCalls = mockPrisma.emailJob.updateMany.mock.calls.filter(
+      (call: any) => call[0]?.where?.id === 'job-shutdown-heartbeat' && call[0]?.data?.lockedAt,
+    );
+    expect(renewCalls.length).toBeGreaterThanOrEqual(1);
+    expect(worker.getWorkerStatus().activeHeartbeatsCount).toBe(0);
+
+    if (resolveSend) resolveSend({ messageId: 'done' });
+  });
+
+  // 12. Transient DB error during heartbeat does NOT abort job
+  it('12. Transient DB error during heartbeat keeps job ownership and does not abort', async () => {
+    const resilientJob = {
+      id: 'job-db-glitch',
+      payload: {
+        jobId: 'job-db-glitch',
+        recipient: 'glitch@example.com',
+        recipients: ['glitch@example.com'],
+        subject: 'Glitch Test',
+        template: 'welcome',
+      },
+      attempts: 0,
+      maxAttempts: 4,
+    };
+
+    (worker as any).heartbeatIntervalMs = 20;
+    mockPrisma.$queryRaw.mockResolvedValueOnce([resilientJob]).mockResolvedValue([]);
+    mockPrisma.emailJob.updateMany.mockRejectedValueOnce(new Error('Connection pool timeout'));
+
+    let capturedSignal: AbortSignal | undefined;
+    mockEmailFactory.sendEmail.mockImplementation(
+      (payload: any) =>
+        new Promise((resolve) => {
+          capturedSignal = payload.signal;
+          setTimeout(() => resolve({ messageId: 'msg-ok' }), 60);
+        }),
+    );
+
+    worker.onModuleInit();
+    worker.triggerWakeup(0);
+    await worker.waitForIdle();
+
+    expect(capturedSignal).toBeDefined();
+    expect(capturedSignal?.aborted).toBe(false);
+    expect(mockPrisma.emailJob.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'job-db-glitch', lockedBy: worker.getWorkerStatus().workerId },
+    });
+  });
+
+  // 13. RecoverStuckJobs wakes worker when due PENDING jobs exist
+  it('13. recoverStuckJobs wakes worker when due PENDING jobs exist with 0 stuck PROCESSING jobs', async () => {
+    mockPrisma.emailJob.updateMany.mockResolvedValueOnce({ count: 0 });
+    mockPrisma.emailJob.findMany.mockResolvedValueOnce([{ id: 'pending-job-1' }]);
+    const triggerSpy = jest.spyOn(worker, 'triggerWakeup');
+
+    const recovered = await worker.recoverStuckJobs();
+
+    expect(recovered).toBe(0);
+    expect(triggerSpy).toHaveBeenCalledWith(0);
+  });
+
+  // 14. $executeRaw SQL path uses PostgreSQL NOW() for lease renewal and recovery
+  it('14. Raw SQL path uses $executeRaw for renewLockWithStatus and recoverStuckJobs', async () => {
+    mockPrisma.$executeRaw = jest.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+    const triggerSpy = jest.spyOn(worker, 'triggerWakeup');
+
+    const status = await worker.renewLockWithStatus('job-raw-1');
+    expect(status).toBe('RENEWED');
+
+    const recovered = await worker.recoverStuckJobs();
+    expect(recovered).toBe(2);
+    expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(2);
+    expect(triggerSpy).toHaveBeenCalledWith(0);
   });
 });

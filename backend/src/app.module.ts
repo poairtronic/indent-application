@@ -100,6 +100,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CorrelationIdMiddleware, ApiMonitoringMiddleware).forRoutes('*');
+    consumer.apply(CorrelationIdMiddleware, ApiMonitoringMiddleware).forRoutes('{*path}');
   }
 }

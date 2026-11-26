@@ -3,8 +3,9 @@ services:
   - type: web
     name: indent-application
     env: node
-    nodeVersion: 20
+    nodeVersion: 24
     region: ohio
+    healthCheckPath: /api/observability/health/liveness
     buildCommand: npm install && npx prisma migrate deploy --schema=../database/schema.prisma && npm run build
     startCommand: npm run start:prod
     rootDir: backend
@@ -45,9 +46,13 @@ services:
         value: "false"
       - key: SMTP_FAMILY
         value: "4"
-      - key: SMTP_USER
+      - key: GOOGLE_CLIENT_ID
         sync: false
-      - key: SMTP_PASS
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false
+      - key: GOOGLE_GMAIL_USER
         sync: false
       - key: SMTP_FROM
         sync: false

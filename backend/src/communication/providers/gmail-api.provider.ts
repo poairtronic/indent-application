@@ -84,12 +84,19 @@ export class GmailApiProvider implements IEmailProvider {
 
       this.logger.log(`Dispatching email via Gmail API (HTTPS:443)`);
 
-      const response = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-          raw: encodedMessage,
+      if (payload.signal?.aborted) {
+        throw new Error('Gmail API dispatch aborted before transmission');
+      }
+
+      const response = await gmail.users.messages.send(
+        {
+          userId: 'me',
+          requestBody: {
+            raw: encodedMessage,
+          },
         },
-      });
+        payload.signal ? { signal: payload.signal } : undefined,
+      );
 
       this.logger.log(
         `Email dispatched via Gmail API successfully. Message ID: ${response.data.id}`,

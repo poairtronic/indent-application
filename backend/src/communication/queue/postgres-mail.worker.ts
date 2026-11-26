@@ -12,6 +12,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PostgresMailWorker.name);
   private workerId: string;
   private isShuttingDown = false;
+  private isHeartbeatStopped = false;
   private concurrency: number;
   private activeJobs = 0;
   private isPolling = false;
@@ -44,6 +45,8 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
+    this.isShuttingDown = false;
+    this.isHeartbeatStopped = false;
     this.logger.log(
       `Starting PostgresMailWorker with Lease Heartbeat & Safe Shutdown (ID: ${this.workerId}, Concurrency: ${this.concurrency}, Lease: ${this.lockDurationMs}ms, Heartbeat: ${this.heartbeatIntervalMs}ms)`,
     );
@@ -158,21 +161,22 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     }
     this.delayedTimers.clear();
 
-    // 3. Cease active heartbeat renewals
-    for (const [jobId, timer] of this.activeHeartbeats.entries()) {
-      clearTimeout(timer);
-    }
-    this.activeHeartbeats.clear();
-
     this.logger.log(
       `PostgresMailWorker shutting down. Waiting up to ${this.shutdownTimeoutMs / 1000}s for ${this.activeJobs} active jobs to finish...`,
     );
 
-    // 4. Wait for active jobs to complete gracefully within the shutdown timeout
+    // 3. Wait for active jobs to complete gracefully while keeping their lease heartbeats alive
     const startTime = Date.now();
     while (this.activeJobs > 0 && Date.now() - startTime < this.shutdownTimeoutMs) {
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
+
+    // 4. Cease any remaining heartbeat renewals only after graceful wait concludes
+    this.isHeartbeatStopped = true;
+    for (const [, timer] of this.activeHeartbeats.entries()) {
+      clearTimeout(timer);
+    }
+    this.activeHeartbeats.clear();
 
     // 5. SAFE SHUTDOWN BEHAVIOR (Issue B Remediation):
     // If jobs completed cleanly (activeJobs === 0), rows are already deleted or retried.
@@ -191,12 +195,26 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private get hasRawSql(): boolean {
+    return typeof (this.prisma as any)?.$executeRaw === 'function';
+  }
+
   /**
-   * Renew lock lease for an actively processing job.
-   * Only succeeds if the job is still in PROCESSING status AND owned by this specific worker.
+   * Renew lock lease for an actively processing job, distinguishing DB errors from lost lease ownership.
    */
-  public async renewLock(jobId: string): Promise<boolean> {
+  public async renewLockWithStatus(jobId: string): Promise<'RENEWED' | 'LEASE_LOST' | 'DB_ERROR'> {
     try {
+      if (this.hasRawSql) {
+        const affected = await this.prisma.$executeRaw`
+          UPDATE email_jobs
+          SET "lockedAt" = NOW()
+          WHERE id = ${jobId}
+            AND status = 'PROCESSING'
+            AND "lockedBy" = ${this.workerId}
+        `;
+        return affected > 0 ? 'RENEWED' : 'LEASE_LOST';
+      }
+
       const result = await this.prisma.emailJob.updateMany({
         where: {
           id: jobId,
@@ -207,32 +225,42 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
           lockedAt: new Date(),
         },
       });
-      return result.count > 0;
+      return result.count > 0 ? 'RENEWED' : 'LEASE_LOST';
     } catch (err: any) {
       this.logger.error(`Error renewing lock for job ${jobId}: ${err?.message}`);
-      return false;
+      return 'DB_ERROR';
     }
   }
 
   /**
+   * Renew lock lease for an actively processing job.
+   * Only succeeds if the job is still in PROCESSING status AND owned by this specific worker.
+   */
+  public async renewLock(jobId: string): Promise<boolean> {
+    const status = await this.renewLockWithStatus(jobId);
+    return status === 'RENEWED';
+  }
+
+  /**
    * Starts periodic lock renewal heartbeat while a job is actively executing.
-   * If lock renewal fails (ownership lost to another instance or recovery), aborts processing.
+   * If lock renewal fails due to lost ownership, aborts processing.
+   * Transient DB errors are logged and retried on the next heartbeat without aborting ownership.
    */
   private startHeartbeat(jobId: string, abortController: AbortController): void {
     this.stopHeartbeat(jobId);
 
     const scheduleNext = () => {
-      if (this.isShuttingDown || abortController.signal.aborted) {
+      if (this.isHeartbeatStopped || abortController.signal.aborted) {
         return;
       }
 
       const timer = setTimeout(async () => {
-        if (this.isShuttingDown || abortController.signal.aborted) {
+        if (this.isHeartbeatStopped || abortController.signal.aborted) {
           return;
         }
 
-        const renewed = await this.renewLock(jobId);
-        if (!renewed) {
+        const renewStatus = await this.renewLockWithStatus(jobId);
+        if (renewStatus === 'LEASE_LOST') {
           this.logger.warn(
             `[LEASE_LOST] Worker ${this.workerId} lost lock ownership for job ${jobId}. Aborting execution.`,
           );
@@ -241,9 +269,15 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
           return;
         }
 
-        this.logger.debug(
-          `[HEARTBEAT] Renewed lease for job ${jobId} by worker ${this.workerId}`,
-        );
+        if (renewStatus === 'DB_ERROR') {
+          this.logger.warn(
+            `[HEARTBEAT_DB_ERROR] Transient error renewing lease for job ${jobId}. Retrying on next heartbeat.`,
+          );
+          scheduleNext();
+          return;
+        }
+
+        this.logger.debug(`[HEARTBEAT] Renewed lease for job ${jobId} by worker ${this.workerId}`);
 
         scheduleNext();
       }, this.heartbeatIntervalMs);
@@ -263,31 +297,73 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Recover genuinely abandoned jobs where lockedAt is older than lockDurationMs.
-   * Active jobs whose workers are heartbeating will never be reclaimed.
+   * Recover genuinely abandoned jobs where lockedAt is older than lockDurationMs,
+   * and wake the worker if any orphaned due PENDING jobs remain queued.
    */
   public async recoverStuckJobs(): Promise<number> {
     try {
-      const staleThreshold = new Date(Date.now() - this.lockDurationMs);
+      let recoveredCount = 0;
 
-      const updated = await this.prisma.emailJob.updateMany({
-        where: {
-          status: 'PROCESSING',
-          lockedAt: { lt: staleThreshold },
-        },
-        data: {
-          status: 'PENDING',
-          lockedAt: null,
-          lockedBy: null,
-        },
-      });
-      if (updated.count > 0) {
+      if (this.hasRawSql) {
+        recoveredCount = await this.prisma.$executeRaw`
+          UPDATE email_jobs
+          SET status = 'PENDING',
+              "lockedAt" = NULL,
+              "lockedBy" = NULL
+          WHERE status = 'PROCESSING'
+            AND "lockedAt" < NOW() - make_interval(secs => ${this.lockDurationMs / 1000})
+        `;
+      } else {
+        const staleThreshold = new Date(Date.now() - this.lockDurationMs);
+        const updated = await this.prisma.emailJob.updateMany({
+          where: {
+            status: 'PROCESSING',
+            lockedAt: { lt: staleThreshold },
+          },
+          data: {
+            status: 'PENDING',
+            lockedAt: null,
+            lockedBy: null,
+          },
+        });
+        recoveredCount = updated.count;
+      }
+
+      if (recoveredCount > 0) {
         this.logger.warn(
-          `Recovered ${updated.count} genuinely stuck email jobs (no heartbeat for > ${this.lockDurationMs / 1000}s).`,
+          `Recovered ${recoveredCount} genuinely stuck email jobs (no heartbeat for > ${this.lockDurationMs / 1000}s).`,
         );
         this.triggerWakeup(0);
+        return recoveredCount;
       }
-      return updated.count;
+
+      // Check for orphaned due PENDING jobs (e.g., manual retry or missed wakeup)
+      if (this.hasRawSql) {
+        const duePending = await this.prisma.$queryRaw<Array<{ id: string }>>`
+          SELECT id FROM email_jobs
+          WHERE status = 'PENDING' AND "availableAt" <= NOW()
+          LIMIT 1
+        `;
+        if (Array.isArray(duePending) && duePending.length > 0) {
+          this.logger.log('Found due PENDING email jobs during recovery sweep. Waking worker.');
+          this.triggerWakeup(0);
+        }
+      } else if (typeof (this.prisma.emailJob as any)?.findMany === 'function') {
+        const duePending = await this.prisma.emailJob.findMany({
+          where: {
+            status: 'PENDING',
+            availableAt: { lte: new Date() },
+          },
+          select: { id: true },
+          take: 1,
+        });
+        if (Array.isArray(duePending) && duePending.length > 0) {
+          this.logger.log('Found due PENDING email jobs during recovery sweep. Waking worker.');
+          this.triggerWakeup(0);
+        }
+      }
+
+      return recoveredCount;
     } catch (e) {
       this.logger.error('Error recovering stuck jobs', e);
       return 0;
@@ -448,6 +524,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
         body: payload.body || 'MERC Notification. Please view in HTML mode.',
         html,
         attachments: payload.attachments,
+        signal: abortController.signal,
       };
 
       if (abortController.signal.aborted) {

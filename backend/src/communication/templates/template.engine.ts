@@ -55,6 +55,7 @@ const INLINE_TEMPLATES: Record<string, string> = {
   transaction_completed: `<h2>Transaction Completed</h2><p>Indent #{{indentNumber}} completed.</p>`,
   smtp_failure: `<h2>SMTP Failure</h2><p>Failure at: {{host}}:{{port}}. Error: {{errorMessage}}</p>`,
   queue_failure: `<h2>Queue Failure</h2><p>Job ID: {{jobId}}. Detail: {{errorDetail}}</p>`,
+  material_issue_overdue: `<h2>Material Issue Overdue</h2><p>Indent #{{indentNumber}} for {{productName}} has {{totalRemaining}} pending material units after 48 hours in Stores processing.</p><a href="{{transactionUrl}}" class="btn">Open Transaction</a>`,
   template_failure: `<h2>Template Failure</h2><p>Template: {{templateName}}. Error: {{parserError}}</p>`,
 };
 
@@ -73,14 +74,15 @@ export class TemplateEngine {
   private resolveTemplatesDirectory(): void {
     // Try multiple possible paths to accommodate NestJS runtime compile layouts
     const paths = [
-      path.join(__dirname, '..', 'templates'), // dist/communication/templates
-      path.join(__dirname, 'templates'), // src/communication/templates (dev mode)
-      path.join(process.cwd(), 'src', 'communication', 'templates'),
+      __dirname, // dist/communication/templates or src/communication/templates
+      path.join(__dirname, '..', 'templates'),
+      path.join(__dirname, 'templates'),
       path.join(process.cwd(), 'dist', 'communication', 'templates'),
+      path.join(process.cwd(), 'src', 'communication', 'templates'),
     ];
 
     for (const p of paths) {
-      if (fs.existsSync(p) && fs.statSync(p).isDirectory()) {
+      if (this.hasTemplatesOnDisk(p)) {
         this.templatesDir = p;
         this.logger.log(`Resolved email templates directory to: ${p}`);
         return;
@@ -88,6 +90,15 @@ export class TemplateEngine {
     }
     this.logger.warn(
       'Could not locate templates directory on disk. Using built-in inline fallback templates.',
+    );
+  }
+
+  private hasTemplatesOnDisk(dir: string): boolean {
+    return (
+      fs.existsSync(dir) &&
+      fs.statSync(dir).isDirectory() &&
+      fs.existsSync(path.join(dir, 'items')) &&
+      fs.existsSync(path.join(dir, 'layouts', 'main.hbs'))
     );
   }
 

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CommunicationService } from './communication.service';
 import { CommunicationConfig } from './config/communication.config';
 import { PostgresQueueService } from './queue/postgres-queue.service';
+import { mailQueueEventBus } from './queue/mail-queue.event-bus';
 import { EmailProviderFactory } from './providers/email-provider.factory';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
@@ -146,6 +147,9 @@ export class CommunicationController {
     });
 
     const totalJobs = updatedJobs.count + resetBackoffJobs.count;
+
+    // Wake up the event-driven worker immediately so re-queued or pending jobs drain without waiting
+    mailQueueEventBus.emitWakeup();
 
     return {
       success: true,
