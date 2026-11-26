@@ -4,6 +4,7 @@ import { EmailProviderFactory } from '../providers/email-provider.factory';
 import { TemplateEngine } from '../templates/template.engine';
 import { IJobPayload, EmailState } from './queue.constants';
 import { observabilityEventBus } from '../../observability/observability-event-bus';
+import { mailQueueEventBus, IMailQueueWakeupEvent } from './mail-queue.event-bus';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -11,12 +12,24 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PostgresMailWorker.name);
   private workerId: string;
   private isShuttingDown = false;
-  private pollTimer: NodeJS.Timeout | null = null;
   private concurrency: number;
   private activeJobs = 0;
-  private basePollInterval = 2000;
-  private maxPollInterval = 10000;
-  private currentPollInterval = 2000;
+  private isPolling = false;
+  private hasPendingWakeup = false;
+  private recoveryTimer: NodeJS.Timeout | null = null;
+  private startupTimer: NodeJS.Timeout | null = null;
+  private readonly delayedTimers = new Set<NodeJS.Timeout>();
+
+  // Lease / Heartbeat & Graceful Shutdown Configurations (Phase 1.1 Remediation)
+  private readonly lockDurationMs: number;
+  private readonly heartbeatIntervalMs: number;
+  private readonly shutdownTimeoutMs: number;
+  private readonly activeHeartbeats = new Map<string, NodeJS.Timeout>();
+  private readonly activeAbortControllers = new Map<string, AbortController>();
+
+  private readonly wakeupListener = (event: IMailQueueWakeupEvent) => {
+    this.handleWakeupEvent(event);
+  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -25,65 +38,242 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
   ) {
     this.workerId = crypto.randomUUID();
     this.concurrency = parseInt(process.env.SMTP_CONCURRENCY || '2', 10);
+    this.lockDurationMs = parseInt(process.env.SMTP_LOCK_DURATION || '60000', 10);
+    this.heartbeatIntervalMs = parseInt(process.env.SMTP_HEARTBEAT_INTERVAL_MS || '15000', 10);
+    this.shutdownTimeoutMs = parseInt(process.env.SMTP_SHUTDOWN_TIMEOUT_MS || '10000', 10);
   }
 
   onModuleInit() {
     this.logger.log(
-      `Starting PostgresMailWorker (ID: ${this.workerId}, Concurrency: ${this.concurrency})`,
+      `Starting PostgresMailWorker with Lease Heartbeat & Safe Shutdown (ID: ${this.workerId}, Concurrency: ${this.concurrency}, Lease: ${this.lockDurationMs}ms, Heartbeat: ${this.heartbeatIntervalMs}ms)`,
     );
-    this.scheduleNextPoll(this.basePollInterval);
 
-    // Recovery of stuck jobs
-    setInterval(() => this.recoverStuckJobs(), 60000);
+    // 1. Subscribe to event-driven wakeups (0 idle polling queries)
+    mailQueueEventBus.onWakeup(this.wakeupListener);
+
+    // 2. Perform startup recovery for any truly stuck jobs from previous crashed instance
+    this.recoverStuckJobs().catch((err) => {
+      this.logger.error('Error in startup stuck-job recovery:', err);
+    });
+
+    // 3. Initial startup drain sweep to process any pending jobs persisted prior to restart
+    this.startupTimer = setTimeout(() => {
+      this.startupTimer = null;
+      this.triggerWakeup(0);
+    }, 500);
+
+    // 4. Setup periodic fallback recovery timer (default 1 hour, down from 60s)
+    const recoveryIntervalMs = parseInt(
+      process.env.SMTP_STUCK_JOB_RECOVERY_INTERVAL_MS || '3600000',
+      10,
+    );
+    this.recoveryTimer = setInterval(() => {
+      this.recoverStuckJobs().catch((err) => {
+        this.logger.error('Error in periodic stuck-job recovery:', err);
+      });
+    }, recoveryIntervalMs);
   }
 
-  private scheduleNextPoll(delayMs: number) {
+  private handleWakeupEvent(event: IMailQueueWakeupEvent): void {
+    const delayMs = event?.delayMs || 0;
+    if (delayMs > 0) {
+      const timer = setTimeout(() => {
+        this.delayedTimers.delete(timer);
+        this.triggerWakeup(0);
+      }, delayMs);
+      this.delayedTimers.add(timer);
+      return;
+    }
+    this.triggerWakeup(0);
+  }
+
+  public triggerWakeup(delayMs = 0): void {
     if (this.isShuttingDown) return;
-    this.pollTimer = setTimeout(() => {
-      this.poll().then((jobsClaimed) => {
-        if (jobsClaimed > 0) {
-          this.currentPollInterval = this.basePollInterval;
-        } else {
-          this.currentPollInterval = Math.min(this.currentPollInterval * 2, this.maxPollInterval);
+
+    if (delayMs > 0) {
+      const timer = setTimeout(() => {
+        this.delayedTimers.delete(timer);
+        this.triggerWakeup(0);
+      }, delayMs);
+      this.delayedTimers.add(timer);
+      return;
+    }
+
+    if (this.isPolling) {
+      this.hasPendingWakeup = true;
+      return;
+    }
+
+    this.runDrainLoop().catch((err) => {
+      this.logger.error('Error in email worker drain loop', err);
+    });
+  }
+
+  private async runDrainLoop(): Promise<void> {
+    if (this.isShuttingDown || this.isPolling) return;
+
+    this.isPolling = true;
+    try {
+      while (!this.isShuttingDown) {
+        this.hasPendingWakeup = false;
+        const claimedCount = await this.poll();
+
+        // If we claimed jobs, continue draining immediately until empty
+        if (claimedCount > 0) {
+          continue;
         }
-        this.scheduleNextPoll(this.currentPollInterval);
-      });
-    }, delayMs);
+
+        // If a wakeup arrived while polling, re-poll once more to ensure nothing was missed
+        if (this.hasPendingWakeup) {
+          this.hasPendingWakeup = false;
+          continue;
+        }
+
+        // Queue is completely empty. Enter sleep mode with ZERO continuous polling queries.
+        this.logger.debug('Email queue is empty. PostgresMailWorker entering sleep mode.');
+        break;
+      }
+    } finally {
+      this.isPolling = false;
+    }
   }
 
   async onModuleDestroy() {
     this.isShuttingDown = true;
-    if (this.pollTimer) {
-      clearTimeout(this.pollTimer);
+
+    // 1. Unsubscribe from event bus to stop accepting new job wakeups
+    mailQueueEventBus.offWakeup(this.wakeupListener);
+
+    // 2. Stop scheduling timers
+    if (this.startupTimer) {
+      clearTimeout(this.startupTimer);
+      this.startupTimer = null;
     }
+    if (this.recoveryTimer) {
+      clearInterval(this.recoveryTimer);
+      this.recoveryTimer = null;
+    }
+    for (const timer of this.delayedTimers) {
+      clearTimeout(timer);
+    }
+    this.delayedTimers.clear();
+
+    // 3. Cease active heartbeat renewals
+    for (const [jobId, timer] of this.activeHeartbeats.entries()) {
+      clearTimeout(timer);
+    }
+    this.activeHeartbeats.clear();
+
     this.logger.log(
-      `PostgresMailWorker shutting down. Waiting for ${this.activeJobs} active jobs to finish...`,
+      `PostgresMailWorker shutting down. Waiting up to ${this.shutdownTimeoutMs / 1000}s for ${this.activeJobs} active jobs to finish...`,
     );
 
-    let waitTime = 0;
-    while (this.activeJobs > 0 && waitTime < 10000) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      waitTime += 500;
+    // 4. Wait for active jobs to complete gracefully within the shutdown timeout
+    const startTime = Date.now();
+    while (this.activeJobs > 0 && Date.now() - startTime < this.shutdownTimeoutMs) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
+    // 5. SAFE SHUTDOWN BEHAVIOR (Issue B Remediation):
+    // If jobs completed cleanly (activeJobs === 0), rows are already deleted or retried.
+    // If activeJobs > 0 after grace period: DO NOT forcibly release jobs to PENDING.
+    // Releasing an in-flight job back to PENDING while its network socket may still complete
+    // creates an active duplicate-delivery vulnerability with newly booted rolling containers.
+    // Instead, leave the job locked in PROCESSING by this workerId. The lease will safely expire
+    // after lockDurationMs, after which the hourly recovery sweep will reclaim it if abandoned.
     if (this.activeJobs > 0) {
       this.logger.warn(
-        `PostgresMailWorker shut down forcefully with ${this.activeJobs} jobs still processing.`,
+        `PostgresMailWorker shut down with ${this.activeJobs} jobs still processing. ` +
+          `Leaving locks intact until lease expiry (${this.lockDurationMs / 1000}s) to prevent concurrent double-delivery.`,
       );
     } else {
-      this.logger.log('PostgresMailWorker shut down gracefully.');
+      this.logger.log('PostgresMailWorker shut down gracefully with 0 active jobs.');
     }
   }
 
-  private async recoverStuckJobs() {
+  /**
+   * Renew lock lease for an actively processing job.
+   * Only succeeds if the job is still in PROCESSING status AND owned by this specific worker.
+   */
+  public async renewLock(jobId: string): Promise<boolean> {
     try {
-      const lockDurationMs = parseInt(process.env.SMTP_LOCK_DURATION || '30000', 10);
-      const staleDate = new Date(Date.now() - lockDurationMs);
+      const result = await this.prisma.emailJob.updateMany({
+        where: {
+          id: jobId,
+          status: 'PROCESSING',
+          lockedBy: this.workerId,
+        },
+        data: {
+          lockedAt: new Date(),
+        },
+      });
+      return result.count > 0;
+    } catch (err: any) {
+      this.logger.error(`Error renewing lock for job ${jobId}: ${err?.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Starts periodic lock renewal heartbeat while a job is actively executing.
+   * If lock renewal fails (ownership lost to another instance or recovery), aborts processing.
+   */
+  private startHeartbeat(jobId: string, abortController: AbortController): void {
+    this.stopHeartbeat(jobId);
+
+    const scheduleNext = () => {
+      if (this.isShuttingDown || abortController.signal.aborted) {
+        return;
+      }
+
+      const timer = setTimeout(async () => {
+        if (this.isShuttingDown || abortController.signal.aborted) {
+          return;
+        }
+
+        const renewed = await this.renewLock(jobId);
+        if (!renewed) {
+          this.logger.warn(
+            `[LEASE_LOST] Worker ${this.workerId} lost lock ownership for job ${jobId}. Aborting execution.`,
+          );
+          abortController.abort();
+          this.stopHeartbeat(jobId);
+          return;
+        }
+
+        this.logger.debug(
+          `[HEARTBEAT] Renewed lease for job ${jobId} by worker ${this.workerId}`,
+        );
+
+        scheduleNext();
+      }, this.heartbeatIntervalMs);
+
+      this.activeHeartbeats.set(jobId, timer);
+    };
+
+    scheduleNext();
+  }
+
+  private stopHeartbeat(jobId: string): void {
+    const timer = this.activeHeartbeats.get(jobId);
+    if (timer) {
+      clearTimeout(timer);
+      this.activeHeartbeats.delete(jobId);
+    }
+  }
+
+  /**
+   * Recover genuinely abandoned jobs where lockedAt is older than lockDurationMs.
+   * Active jobs whose workers are heartbeating will never be reclaimed.
+   */
+  public async recoverStuckJobs(): Promise<number> {
+    try {
+      const staleThreshold = new Date(Date.now() - this.lockDurationMs);
 
       const updated = await this.prisma.emailJob.updateMany({
         where: {
           status: 'PROCESSING',
-          lockedAt: { lt: staleDate },
+          lockedAt: { lt: staleThreshold },
         },
         data: {
           status: 'PENDING',
@@ -92,11 +282,37 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
         },
       });
       if (updated.count > 0) {
-        this.logger.warn(`Recovered ${updated.count} stuck email jobs.`);
+        this.logger.warn(
+          `Recovered ${updated.count} genuinely stuck email jobs (no heartbeat for > ${this.lockDurationMs / 1000}s).`,
+        );
+        this.triggerWakeup(0);
       }
+      return updated.count;
     } catch (e) {
       this.logger.error('Error recovering stuck jobs', e);
+      return 0;
     }
+  }
+
+  public async waitForIdle(maxWaitMs = 5000): Promise<void> {
+    const start = Date.now();
+    while ((this.isPolling || this.activeJobs > 0) && Date.now() - start < maxWaitMs) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+  }
+
+  public getWorkerStatus() {
+    return {
+      workerId: this.workerId,
+      concurrency: this.concurrency,
+      activeJobs: this.activeJobs,
+      isPolling: this.isPolling,
+      isShuttingDown: this.isShuttingDown,
+      activeHeartbeatsCount: this.activeHeartbeats.size,
+      lockDurationMs: this.lockDurationMs,
+      heartbeatIntervalMs: this.heartbeatIntervalMs,
+      shutdownTimeoutMs: this.shutdownTimeoutMs,
+    };
   }
 
   private async poll(): Promise<number> {
@@ -106,7 +322,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     if (availableSlots <= 0) return 0;
 
     try {
-      // Atomic claim
+      // Atomic claim using row-level locking
       const claimedJobs = await this.prisma.$queryRaw<any[]>`
         UPDATE email_jobs
         SET status = 'PROCESSING',
@@ -131,6 +347,10 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
             })
             .finally(() => {
               this.activeJobs--;
+              // Concurrency slot freed up: trigger drain to pick up remaining queued jobs
+              if (!this.isShuttingDown) {
+                this.triggerWakeup(0);
+              }
             });
         }
         return claimedJobs.length;
@@ -151,43 +371,52 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
     );
     const startTime = Date.now();
 
-    // ENFORCE: Global Email Notification Toggle
-    const globalToggle = await this.prisma.applicationSetting.findUnique({
-      where: { key: 'GLOBAL_EMAIL_NOTIFICATIONS_ENABLED' },
-    });
-
-    if (globalToggle && globalToggle.value === 'false') {
-      const errorMessage = 'Global email notifications are disabled. Job permanently suppressed.';
-      const attempts = (job.attempts || 0) + 1;
-
-      await this.prisma.emailJob.updateMany({
-        where: { id: job.id },
-        data: {
-          status: 'DEAD_LETTER',
-          lastError: errorMessage,
-          attempts,
-          lockedAt: null,
-          lockedBy: null,
-        },
-      });
-
-      if (logIds.length > 0) {
-        await this.prisma.emailLog.updateMany({
-          where: { id: { in: logIds } },
-          data: { status: EmailState.DEAD_LETTER, errorMessage },
-        });
-      }
-
-      this.logger.warn(`Job ${job.id} suppressed because global emails are disabled.`);
-      observabilityEventBus.emit('notification.event', {
-        action: 'suppressed',
-        success: false,
-        error: errorMessage,
-      });
-      return;
-    }
+    // Start lease renewal heartbeat and prepare cancellation controller
+    const abortController = new AbortController();
+    this.activeAbortControllers.set(job.id, abortController);
+    this.startHeartbeat(job.id, abortController);
 
     try {
+      // ENFORCE: Global Email Notification Toggle
+      const globalToggle = await this.prisma.applicationSetting.findUnique({
+        where: { key: 'GLOBAL_EMAIL_NOTIFICATIONS_ENABLED' },
+      });
+
+      if (globalToggle && globalToggle.value === 'false') {
+        const errorMessage = 'Global email notifications are disabled. Job permanently suppressed.';
+        const attempts = (job.attempts || 0) + 1;
+
+        await this.prisma.emailJob.updateMany({
+          where: { id: job.id, lockedBy: this.workerId },
+          data: {
+            status: 'DEAD_LETTER',
+            lastError: errorMessage,
+            attempts,
+            lockedAt: null,
+            lockedBy: null,
+          },
+        });
+
+        if (logIds.length > 0) {
+          await this.prisma.emailLog.updateMany({
+            where: { id: { in: logIds } },
+            data: { status: EmailState.DEAD_LETTER, errorMessage },
+          });
+        }
+
+        this.logger.warn(`Job ${job.id} suppressed because global emails are disabled.`);
+        observabilityEventBus.emit('notification.event', {
+          action: 'suppressed',
+          success: false,
+          error: errorMessage,
+        });
+        return;
+      }
+
+      if (abortController.signal.aborted) {
+        throw new Error(`Job ${job.id} aborted: lock lease lost before dispatch`);
+      }
+
       if (logIds.length > 0) {
         await this.updateLogStatus(logIds, EmailState.PROCESSING);
       }
@@ -221,11 +450,28 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
         attachments: payload.attachments,
       };
 
+      if (abortController.signal.aborted) {
+        throw new Error(`Job ${job.id} aborted: lock lease lost before SMTP call`);
+      }
+
+      // External Email Dispatch (Gmail API / SMTP)
       const result = await this.emailProviderFactory.sendEmail(mailPayload);
       const duration = Date.now() - startTime;
 
+      // Stop heartbeat immediately upon external transmission completion
+      this.stopHeartbeat(job.id);
+
       try {
-        await this.prisma.emailJob.deleteMany({ where: { id: job.id } });
+        // Enforce lock ownership during successful deletion
+        const deleted = await this.prisma.emailJob.deleteMany({
+          where: { id: job.id, lockedBy: this.workerId },
+        });
+
+        if (deleted.count === 0) {
+          this.logger.warn(
+            `[LEASE_WARNING] Job ${job.id} sent successfully, but lock was no longer held by worker ${this.workerId} during cleanup.`,
+          );
+        }
 
         if (logIds.length > 0) {
           await this.prisma.emailLog.updateMany({
@@ -244,7 +490,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
         this.logger.error(`Error finalizing successful email job ${job.id}:`, dbErr);
         try {
           await this.prisma.emailJob.updateMany({
-            where: { id: job.id },
+            where: { id: job.id, lockedBy: this.workerId },
             data: {
               status: 'DEAD_LETTER',
               lastError: `Email sent but post-dispatch cleanup failed: ${dbErr?.message || dbErr}`,
@@ -263,10 +509,16 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`Job ${job.id} processed successfully in ${duration}ms`);
       observabilityEventBus.emit('notification.event', { action: 'delivered', success: true });
     } catch (error: any) {
+      // If job was aborted due to lease loss, skip standard retry to avoid conflicting with new owner
+      if (abortController.signal.aborted) {
+        this.logger.warn(
+          `[ABORTED_JOB] Processing of job ${job.id} aborted because lock ownership was lost. Skipping retry/cleanup.`,
+        );
+        throw error;
+      }
+
       const errorMessage = error?.message || String(error);
       const attempts = (job.attempts || 0) + 1;
-      // ERR-L2-010: Rich structured error context for every worker failure.
-      // Includes all required diagnostic fields for actionable incident response.
       const errorContext = {
         jobId: job.id,
         jobType: payload.template || 'unknown',
@@ -283,7 +535,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
       try {
         if (attempts >= (job.maxAttempts || 4)) {
           await this.prisma.emailJob.updateMany({
-            where: { id: job.id },
+            where: { id: job.id, lockedBy: this.workerId },
             data: {
               status: 'DEAD_LETTER',
               attempts,
@@ -298,7 +550,6 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
               data: { status: EmailState.DEAD_LETTER, errorMessage },
             });
           }
-          // ERR-L2-010: Log DEAD_LETTER with full context including final reason
           this.logger.error(
             `[DEAD_LETTER] Job permanently failed after max retries. Context: ${JSON.stringify(errorContext)}`,
           );
@@ -311,7 +562,7 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
           const backoffDelay = 5 * 60 * 1000 * Math.pow(2, attempts - 1); // Exponential backoff
 
           await this.prisma.emailJob.updateMany({
-            where: { id: job.id },
+            where: { id: job.id, lockedBy: this.workerId },
             data: {
               status: 'PENDING',
               attempts,
@@ -331,7 +582,6 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
             });
           }
 
-          // ERR-L2-010: Log retry with full structured context
           this.logger.warn(
             `[RETRY] Job failed attempt ${attempts}/${errorContext.maxAttempts}. ` +
               `Retry in ${Math.round(backoffDelay / 1000)}s. Context: ${JSON.stringify(errorContext)}`,
@@ -342,15 +592,20 @@ export class PostgresMailWorker implements OnModuleInit, OnModuleDestroy {
             attempt: attempts,
             error: errorMessage,
           });
+
+          // Schedule event-driven wakeup for when the backoff expires
+          this.triggerWakeup(backoffDelay);
         }
       } catch (innerErr: any) {
-        // ERR-L2-010: Inner error (DB update failure during error handling) also logged with context
         this.logger.error(
           `[WORKER_INNER_ERROR] Failed to update job status after error. ` +
             `Job: ${job.id}, innerError: ${innerErr.message}, outerContext: ${JSON.stringify(errorContext)}`,
         );
       }
       throw error;
+    } finally {
+      this.stopHeartbeat(job.id);
+      this.activeAbortControllers.delete(job.id);
     }
   }
 

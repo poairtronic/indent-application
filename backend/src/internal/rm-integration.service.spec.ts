@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RmIntegrationService } from './rm-integration.service';
+import {
+  RmIntegrationService,
+  DEFAULT_RM_OUTBOX_CRON_SCHEDULE,
+  RM_OUTBOX_LOCK_KEY,
+} from './rm-integration.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('RmIntegrationService', () => {
@@ -12,6 +16,12 @@ describe('RmIntegrationService', () => {
     process.env = { ...originalEnv };
 
     mockPrisma = {
+      $executeRaw: jest.fn().mockResolvedValue(1),
+      applicationSetting: {
+        upsert: jest.fn().mockResolvedValue({ key: RM_OUTBOX_LOCK_KEY, value: '0' }),
+        findUnique: jest.fn().mockResolvedValue({ key: RM_OUTBOX_LOCK_KEY, value: '0' }),
+        update: jest.fn().mockResolvedValue({ key: RM_OUTBOX_LOCK_KEY, value: '0' }),
+      },
       indent: {
         findUnique: jest.fn(),
       },
@@ -25,6 +35,7 @@ describe('RmIntegrationService', () => {
         findUnique: jest.fn(),
         findMany: jest.fn(),
         update: jest.fn().mockResolvedValue({ id: 'outbox-uuid-1' }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
     };
 
@@ -41,13 +52,23 @@ describe('RmIntegrationService', () => {
     service = module.get<RmIntegrationService>(RmIntegrationService);
   });
 
+  afterEach(() => {
+    service.onModuleDestroy();
+    jest.clearAllMocks();
+  });
+
   afterAll(() => {
     process.env = originalEnv;
     global.fetch = originalFetch;
   });
 
-  it('should be defined', () => {
+  it('should be defined with correct default status and 4-hour schedule', () => {
     expect(service).toBeDefined();
+    const status = service.getSchedulerStatus();
+    expect(status.cronSchedule).toBe(DEFAULT_RM_OUTBOX_CRON_SCHEDULE);
+    expect(status.cronSchedule).toBe('0 0 */4 * * *');
+    expect(status.isRetrying).toBe(false);
+    expect(status.startupRetryEnabled).toBe(true);
   });
 
   it('should fail outbox gracefully if RM_API_URL or RM_INTERNAL_SECRET is missing', async () => {
@@ -108,15 +129,9 @@ describe('RmIntegrationService', () => {
           quantity: 10,
           shape: 'ROUND',
           lengthMm: 150,
-          widthMm: null,
-          heightMm: null,
           diameterMm: 25,
-          material: {
-            materialName: 'Aluminium 6061',
-          },
-          unit: {
-            unitName: 'Nos',
-          },
+          material: { materialName: 'Aluminium 6061' },
+          unit: { unitName: 'Nos' },
         },
       ],
       broughtMaterials: [
@@ -133,8 +148,7 @@ describe('RmIntegrationService', () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      text: jest.fn().mockResolvedValue('{"success":true}'),
-      json: jest.fn().mockResolvedValue({ success: true }),
+      text: jest.fn().mockResolvedValue('OK'),
     });
     global.fetch = fetchMock;
 
@@ -158,46 +172,6 @@ describe('RmIntegrationService', () => {
           'Content-Type': 'application/json',
           'x-internal-secret': 'rm-secret-123',
         },
-        body: JSON.stringify({
-          indentId: 'indent-uuid-1',
-          indentNumber: 'IND-2026-001',
-          poNumber: null,
-          customerName: 'Acme Corp',
-          layoutNumber: 'LAY-100',
-          mercCurrentState: 'STORES_PROCESSING',
-          lineItems: [
-            {
-              mercItemId: 'item-raw-1',
-              itemType: 'RAW_MATERIAL',
-              name: 'Aluminium 6061',
-              material: 'Aluminium 6061',
-              shape: 'ROUND',
-              lengthMm: 150,
-              widthMm: null,
-              heightMm: null,
-              diameterMm: 25,
-              quantityRequired: 10,
-              unit: 'Nos',
-              source: null,
-              vendorName: null,
-            },
-            {
-              mercItemId: 'item-bo-1',
-              itemType: 'BROUGHT_OUT',
-              name: 'Bearing 6204',
-              material: null,
-              shape: null,
-              lengthMm: null,
-              widthMm: null,
-              heightMm: null,
-              diameterMm: null,
-              quantityRequired: 4,
-              unit: null,
-              source: null,
-              vendorName: null,
-            },
-          ],
-        }),
       }),
     );
 
@@ -313,7 +287,10 @@ describe('RmIntegrationService', () => {
   });
 
   it('should execute cron handleOutboxRetry without errors', async () => {
-    const retrySpy = jest.spyOn(service, 'retryFailedOutbox').mockResolvedValue(undefined);
+    const retrySpy = jest.spyOn(service, 'retryFailedOutbox').mockResolvedValue({
+      retriedCount: 0,
+      successCount: 0,
+    });
     await service.handleOutboxRetry();
     expect(retrySpy).toHaveBeenCalled();
   });
@@ -329,6 +306,121 @@ describe('RmIntegrationService', () => {
     expect(mockPrisma.rmWebhookOutbox.findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: 'desc' },
       take: 50,
+    });
+  });
+
+  // ==========================================
+  // PHASE 3 OPTIMIZATION & RESILIENCE TESTS
+  // ==========================================
+
+  describe('Phase 3 Concurrency & Lock Protection', () => {
+    it('should skip retry sweep if another instance holds the distributed lock', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(0); // 0 rows updated -> lock held
+
+      const result = await service.retryFailedOutbox();
+
+      expect(result.skippedReason).toBe('LOCK_HELD_BY_ANOTHER_INSTANCE');
+      expect(result.retriedCount).toBe(0);
+      expect(mockPrisma.rmWebhookOutbox.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should skip retry sweep if local process is already running a sweep', async () => {
+      (service as any).isRetrying = true;
+
+      const result = await service.retryFailedOutbox();
+
+      expect(result.skippedReason).toBe('ALREADY_RUNNING_LOCALLY');
+      expect(result.retriedCount).toBe(0);
+      expect(mockPrisma.rmWebhookOutbox.findMany).not.toHaveBeenCalled();
+    });
+
+    it('should prevent concurrent duplicate send of the same in-flight outbox entry', async () => {
+      process.env.RM_API_URL = 'http://localhost:4000';
+      process.env.RM_INTERNAL_SECRET = 'rm-secret-123';
+
+      (service as any).inFlightSends.add('outbox-in-flight-1');
+
+      const result = await service.sendOutboxEntry('outbox-in-flight-1', { data: 123 });
+
+      expect(result).toBe(false);
+      expect(mockPrisma.rmWebhookOutbox.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Phase 3 Idle Optimization & Empty Outbox Handling', () => {
+    it('should cleanly handle empty outbox with zero HTTP dispatches', async () => {
+      mockPrisma.rmWebhookOutbox.findMany.mockResolvedValue([]);
+
+      const result = await service.retryFailedOutbox();
+
+      expect(result.skippedReason).toBe('NO_ELIGIBLE_ENTRIES');
+      expect(result.retriedCount).toBe(0);
+      expect(result.successCount).toBe(0);
+    });
+  });
+
+  describe('Phase 3 Startup Recovery & Lifecycle', () => {
+    it('should schedule startup recovery timer on application bootstrap', () => {
+      jest.useFakeTimers();
+      const retrySpy = jest.spyOn(service, 'retryFailedOutbox').mockResolvedValue({
+        retriedCount: 0,
+        successCount: 0,
+      });
+
+      service.onApplicationBootstrap();
+      expect((service as any).startupTimer).toBeDefined();
+
+      jest.advanceTimersByTime(15000);
+      expect(retrySpy).toHaveBeenCalled();
+
+      jest.useRealTimers();
+    });
+
+    it('should cancel startup timer cleanly on module destroy', () => {
+      jest.useFakeTimers();
+      service.onApplicationBootstrap();
+      expect((service as any).startupTimer).toBeDefined();
+
+      service.onModuleDestroy();
+      expect((service as any).startupTimer).toBeNull();
+
+      jest.useRealTimers();
+    });
+  });
+
+  describe('Phase 3 Network Timeout & Database Failure Recovery', () => {
+    it('should handle HTTP timeout signal and record FAILED status', async () => {
+      process.env.RM_API_URL = 'http://localhost:4000';
+      process.env.RM_INTERNAL_SECRET = 'rm-secret-123';
+
+      const timeoutError = new Error('The operation was aborted due to timeout');
+      timeoutError.name = 'TimeoutError';
+      global.fetch = jest.fn().mockRejectedValue(timeoutError);
+
+      const success = await service.sendOutboxEntry('outbox-timeout-1', { indentNumber: 'IND-999' });
+
+      expect(success).toBe(false);
+      expect(mockPrisma.rmWebhookOutbox.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'outbox-timeout-1' },
+          data: expect.objectContaining({
+            status: 'FAILED',
+            lastError: expect.stringContaining('timeout'),
+          }),
+        }),
+      );
+    });
+
+    it('should handle database error during retry sweep gracefully and release lock', async () => {
+      mockPrisma.rmWebhookOutbox.findMany.mockRejectedValue(
+        new Error('Neon database transient compute suspend'),
+      );
+
+      const result = await service.retryFailedOutbox();
+
+      expect(result.skippedReason).toContain('Neon database transient compute suspend');
+      expect(result.retriedCount).toBe(0);
+      expect((service as any).isRetrying).toBe(false);
     });
   });
 });

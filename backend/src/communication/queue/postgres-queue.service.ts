@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { IJobPayload } from './queue.constants';
+import { mailQueueEventBus } from './mail-queue.event-bus';
 
 @Injectable()
 export class PostgresQueueService {
@@ -16,6 +17,7 @@ export class PostgresQueueService {
     const maxAttempts = parseInt(process.env.SMTP_MAX_RETRIES || '4', 10);
     const availableAt = new Date(Date.now() + delayMs);
 
+    // 1. Ensure job is durably persisted to PostgreSQL BEFORE waking worker
     await this.prisma.emailJob.create({
       data: {
         id: payload.jobId,
@@ -27,6 +29,9 @@ export class PostgresQueueService {
         availableAt: availableAt,
       },
     });
+
+    // 2. Trigger reliable event-driven wake-up for the worker
+    mailQueueEventBus.emitWakeup({ jobId: payload.jobId, delayMs });
 
     return { id: payload.jobId };
   }

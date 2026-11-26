@@ -66,6 +66,16 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
   private dbSlowQueriesHistory: SlowDbQueryInfo[] = [];
   private dbConnected = false;
 
+  // Database Readiness Cache (Neon Compute Optimization)
+  private lastReadinessResult: { database: 'UP' | 'DOWN'; queue: 'UP' | 'DOWN' } | null = null;
+  private lastReadinessCheckTime = 0;
+  private lastSuccessfulDbQueryTime = 0;
+  private readonly readinessCacheTtlMs = parseInt(
+    process.env.READINESS_CACHE_TTL_MS || '30000',
+    10,
+  );
+  private readonly readinessErrorCacheTtlMs = 5000;
+
   // Redis Cache Metrics
   private redisConnected = false;
   private redisCacheHits = 0;
@@ -153,9 +163,10 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
       error?: string;
     }) => {
       this.totalDbQueries++;
-      this.dbConnected = true;
       if (data.success) {
         this.successDbQueries++;
+        this.dbConnected = true;
+        this.lastSuccessfulDbQueryTime = Date.now();
       } else {
         this.failedDbQueries++;
         this.dbFailuresHistory.push({
@@ -190,6 +201,9 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
 
     this.handlers['db.connection'] = (data: { connected: boolean }) => {
       this.dbConnected = data.connected;
+      if (data.connected) {
+        this.lastSuccessfulDbQueryTime = Date.now();
+      }
     };
 
     // 3. Redis Cache
@@ -335,34 +349,65 @@ export class ObservabilityService implements OnModuleInit, OnModuleDestroy {
     observabilityEventBus.emit('frontend.error', error);
   }
 
-  // Diagnostic getter for Readiness Probe
-  public async getSystemStatuses(): Promise<{
+  // Diagnostic getter for Readiness Probe with caching to prevent Neon compute wakeups
+  public async getSystemStatuses(forceLive = false): Promise<{
     database: 'UP' | 'DOWN';
     queue: 'UP' | 'DOWN';
   }> {
-    // Perform live, lightweight checks against the actual dependencies instead
-    // of relying only on in-memory event flags (those flags can remain false if
-    // the connection event fired before this service registered its listeners).
-    let database: 'UP' | 'DOWN' = 'DOWN';
+    const now = Date.now();
+    const cacheTtl =
+      this.lastReadinessResult?.database === 'UP'
+        ? this.readinessCacheTtlMs
+        : this.readinessErrorCacheTtlMs;
+
+    // 1. If not forcing live check, return fresh cached result if within TTL
+    if (
+      !forceLive &&
+      this.lastReadinessResult &&
+      now - this.lastReadinessCheckTime < cacheTtl
+    ) {
+      return this.lastReadinessResult;
+    }
+
+    // 2. If recent successful real database traffic occurred within the TTL window,
+    // we know with 100% certainty the database is active and connected, avoiding extra SQL probes.
+    if (
+      !forceLive &&
+      now - this.lastSuccessfulDbQueryTime < this.readinessCacheTtlMs
+    ) {
+      this.lastReadinessResult = { database: 'UP', queue: 'UP' };
+      this.lastReadinessCheckTime = now;
+      return this.lastReadinessResult;
+    }
+
+    // 3. Otherwise, perform a single lightweight SELECT 1 probe against PostgreSQL.
+    // Since the email queue is backed by PostgreSQL's email_jobs table, a single SELECT 1
+    // verifies connectivity for both the database and the queue in one query (avoiding redundant queries).
+    let databaseStatus: 'UP' | 'DOWN' = 'DOWN';
     try {
       await this.prismaService.$queryRaw`SELECT 1`;
-      database = 'UP';
-    } catch {
-      database = 'DOWN';
+      databaseStatus = 'UP';
+      this.lastSuccessfulDbQueryTime = now;
+      this.dbConnected = true;
+    } catch (err: any) {
+      databaseStatus = 'DOWN';
+      this.dbConnected = false;
+      this.logger.warn(`Readiness check failed database probe: ${err?.message}`);
     }
 
-    let queue: 'UP' | 'DOWN' = 'DOWN';
-    try {
-      await this.prismaService.$queryRaw`SELECT 1 FROM "email_jobs" LIMIT 1`;
-      queue = 'UP';
-    } catch {
-      queue = 'DOWN';
-    }
-
-    return {
-      database,
-      queue,
+    this.lastReadinessResult = {
+      database: databaseStatus,
+      queue: databaseStatus, // Queue is Postgres-backed (email_jobs table)
     };
+    this.lastReadinessCheckTime = now;
+
+    return this.lastReadinessResult;
+  }
+
+  public resetReadinessCache(): void {
+    this.lastReadinessResult = null;
+    this.lastReadinessCheckTime = 0;
+    this.lastSuccessfulDbQueryTime = 0;
   }
 
   // Private stats fetcher for metrics dashboard

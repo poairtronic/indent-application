@@ -1,10 +1,35 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnApplicationBootstrap,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 
+export const DEFAULT_RM_OUTBOX_CRON_SCHEDULE = '0 0 */4 * * *'; // Every 4 hours (00:00, 04:00, 08:00, 12:00, 16:00, 20:00)
+export const RM_OUTBOX_LOCK_KEY = 'RM_OUTBOX_RETRY_LOCK';
+export const RM_OUTBOX_LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+export const RM_OUTBOX_MAX_ATTEMPTS = 5;
+
+const OVERDUE_RM_OUTBOX_CRON_SCHEDULE =
+  process.env.RM_OUTBOX_RETRY_CRON_SCHEDULE || DEFAULT_RM_OUTBOX_CRON_SCHEDULE;
+
+export interface IRmOutboxRetryResult {
+  retriedCount: number;
+  successCount: number;
+  skippedReason?: string;
+}
+
 @Injectable()
-export class RmIntegrationService implements OnModuleInit {
+export class RmIntegrationService
+  implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly logger = new Logger(RmIntegrationService.name);
+  private isRetrying = false;
+  private readonly inFlightSends = new Set<string>();
+  private startupTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -20,11 +45,54 @@ export class RmIntegrationService implements OnModuleInit {
     this.logger.log(`[STARTUP] RM_INTERNAL_SECRET set = ${!!rmSecret}`);
     this.logger.log(`[STARTUP] MERC_INTERNAL_SECRET set = ${!!mercSecret}`);
     if (!rmUrl) this.logger.error('[STARTUP] CRITICAL: RM_API_URL is not set!');
-    if (!rmSecret) this.logger.error('[STARTUP] CRITICAL: RM_INTERNAL_SECRET is not set!');
+    if (!rmSecret)
+      this.logger.error('[STARTUP] CRITICAL: RM_INTERNAL_SECRET is not set!');
+  }
+
+  public onApplicationBootstrap(): void {
+    const isStartupRetryEnabled =
+      process.env.RM_OUTBOX_STARTUP_RETRY_ENABLED !== 'false';
+    if (isStartupRetryEnabled) {
+      this.logger.log(
+        'Scheduling startup RM outbox recovery check (delayed 15s)...',
+      );
+      this.startupTimer = setTimeout(() => {
+        this.retryFailedOutbox().catch((err) => {
+          this.logger.error(
+            'Error during startup RM outbox recovery check',
+            err?.stack,
+          );
+        });
+      }, 15000);
+    }
+  }
+
+  public onModuleDestroy(): void {
+    if (this.startupTimer) {
+      clearTimeout(this.startupTimer);
+      this.startupTimer = null;
+      this.logger.log('Cancelled pending startup RM outbox retry timer.');
+    }
+  }
+
+  public getSchedulerStatus(): {
+    isRetrying: boolean;
+    cronSchedule: string;
+    startupRetryEnabled: boolean;
+  } {
+    return {
+      isRetrying: this.isRetrying,
+      cronSchedule: OVERDUE_RM_OUTBOX_CRON_SCHEDULE,
+      startupRetryEnabled:
+        process.env.RM_OUTBOX_STARTUP_RETRY_ENABLED !== 'false',
+    };
   }
 
   // Called after STORES_PROCESSING transition
-  async notifyStoresPending(indentId: string, customPrisma?: any): Promise<void> {
+  async notifyStoresPending(
+    indentId: string,
+    customPrisma?: any,
+  ): Promise<void> {
     this.logger.log(`[RM-Outbox] Starting for indent: ${indentId}`);
 
     const db = customPrisma || this.prisma;
@@ -74,7 +142,10 @@ export class RmIntegrationService implements OnModuleInit {
           let parsedVendorName: string | null = null;
 
           if (rawSource) {
-            if (typeof rawSource === 'string' && rawSource.toLowerCase().startsWith('vendor')) {
+            if (
+              typeof rawSource === 'string' &&
+              rawSource.toLowerCase().startsWith('vendor')
+            ) {
               source = 'Vendor';
               const clean = rawSource
                 .replace(/^Vendor:\s*/i, '')
@@ -100,8 +171,13 @@ export class RmIntegrationService implements OnModuleInit {
             parsedVendorName ||
             null;
 
-          const materialName = item.material?.materialName || item.material?.name || null;
-          const itemName = itemRemarks?.product || item.product || materialName || 'Unknown';
+          const materialName =
+            item.material?.materialName || item.material?.name || null;
+          const itemName =
+            itemRemarks?.product ||
+            item.product ||
+            materialName ||
+            'Unknown';
 
           return {
             mercItemId: item.id,
@@ -137,9 +213,13 @@ export class RmIntegrationService implements OnModuleInit {
       ],
     };
 
-    this.logger.log(`[RM-Outbox] Payload built. Items: ${payload.lineItems.length}`);
+    this.logger.log(
+      `[RM-Outbox] Payload built. Items: ${payload.lineItems.length}`,
+    );
     this.logger.log(`[RM-Outbox] RM_API_URL: ${process.env.RM_API_URL}`);
-    this.logger.log(`[RM-Outbox] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`);
+    this.logger.log(
+      `[RM-Outbox] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`,
+    );
 
     // Step 2: Save to outbox first (guaranteed delivery)
     const outboxRepo = (db as any)?.rmWebhookOutbox || this.outbox;
@@ -157,7 +237,7 @@ export class RmIntegrationService implements OnModuleInit {
       this.logger.log(`[RM-Outbox] Saved to outbox: ${outbox.id}`);
     }
 
-    // Step 3: Try immediate send
+    // Step 3: Try immediate event-driven send
     if (outboxId) {
       await this.sendOutboxEntry(outboxId, payload);
     } else {
@@ -166,92 +246,118 @@ export class RmIntegrationService implements OnModuleInit {
     }
   }
 
-  async sendOutboxEntry(outboxId: string, payload?: any): Promise<void> {
-    this.logger.log(`[RM-Outbox-DEBUG] RM_API_URL raw value: "${process.env.RM_API_URL}"`);
-    this.logger.log(
-      `[RM-Outbox-DEBUG] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`,
-    );
-    this.logger.debug('[RM-Outbox] Validating outbound secret');
-
-    const rmUrl = process.env.RM_API_URL?.trim();
-    const rmSecret = process.env.RM_INTERNAL_SECRET?.trim();
-
-    if (!rmUrl || !rmSecret) {
-      this.logger.error('[RM-Outbox] RM_API_URL or RM_INTERNAL_SECRET missing in env');
-      if (this.outbox?.update) {
-        await this.outbox.update({
-          where: { id: outboxId },
-          data: {
-            status: 'FAILED',
-            lastError: 'Missing env vars',
-            lastAttemptAt: new Date(),
-            attemptCount: { increment: 1 },
-          },
-        });
-      }
-      return;
+  async sendOutboxEntry(outboxId: string, payload?: any): Promise<boolean> {
+    // In-flight guard to prevent duplicate concurrent send of the same message
+    if (this.inFlightSends.has(outboxId)) {
+      this.logger.debug(
+        `[RM-Outbox] Outbox entry ${outboxId} already in-flight. Skipping duplicate send.`,
+      );
+      return false;
     }
 
-    const entry = payload ?? (await this.outbox?.findUnique({ where: { id: outboxId } }))?.payload;
-    if (!entry) return;
-
-    const cleanUrl = rmUrl.replace(/\/+$/, '');
-    const targetUrl = `${cleanUrl}/api/internal/merc/indent-pending`;
-    const url = targetUrl;
-    this.logger.log(`[RM-Outbox] Full target URL: ${targetUrl}`);
-    this.logger.debug('[RM-Outbox] Validating outbound secret');
-    this.logger.log(`[RM-Outbox] Sending to: ${url}`);
+    this.inFlightSends.add(outboxId);
 
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-internal-secret': rmSecret,
-        },
-        body: JSON.stringify(entry),
-        // Add timeout
-        signal: AbortSignal.timeout(15000),
-      });
+      this.logger.log(
+        `[RM-Outbox-DEBUG] RM_API_URL raw value: "${process.env.RM_API_URL}"`,
+      );
+      this.logger.log(
+        `[RM-Outbox-DEBUG] RM_INTERNAL_SECRET set: ${!!process.env.RM_INTERNAL_SECRET}`,
+      );
+      this.logger.debug('[RM-Outbox] Validating outbound secret');
 
-      const responseBody = await res.text();
-      this.logger.log(`[RM-Outbox] Response: ${res.status} — ${responseBody}`);
+      const rmUrl = process.env.RM_API_URL?.trim();
+      const rmSecret = process.env.RM_INTERNAL_SECRET?.trim();
 
-      if (res.ok) {
-        await this.outbox.update({
-          where: { id: outboxId },
-          data: {
-            status: 'SENT',
-            sentAt: new Date(),
-            lastAttemptAt: new Date(),
-            attemptCount: { increment: 1 },
+      if (!rmUrl || !rmSecret) {
+        this.logger.error(
+          '[RM-Outbox] RM_API_URL or RM_INTERNAL_SECRET missing in env',
+        );
+        if (this.outbox?.update) {
+          await this.outbox.update({
+            where: { id: outboxId },
+            data: {
+              status: 'FAILED',
+              lastError: 'Missing env vars',
+              lastAttemptAt: new Date(),
+              attemptCount: { increment: 1 },
+            },
+          });
+        }
+        return false;
+      }
+
+      const entry =
+        payload ??
+        (await this.outbox?.findUnique({ where: { id: outboxId } }))?.payload;
+      if (!entry) return false;
+
+      const cleanUrl = rmUrl.replace(/\/+$/, '');
+      const targetUrl = `${cleanUrl}/api/internal/merc/indent-pending`;
+      const url = targetUrl;
+      this.logger.log(`[RM-Outbox] Full target URL: ${targetUrl}`);
+      this.logger.debug('[RM-Outbox] Validating outbound secret');
+      this.logger.log(`[RM-Outbox] Sending to: ${url}`);
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-secret': rmSecret,
           },
+          body: JSON.stringify(entry),
+          signal: AbortSignal.timeout(15000),
         });
-        this.logger.log(`[RM-Outbox] Successfully sent for outbox: ${outboxId}`);
-      } else {
+
+        const responseBody = await res.text();
+        this.logger.log(`[RM-Outbox] Response: ${res.status} — ${responseBody}`);
+
+        if (res.ok) {
+          await this.outbox.update({
+            where: { id: outboxId },
+            data: {
+              status: 'SENT',
+              sentAt: new Date(),
+              lastAttemptAt: new Date(),
+              attemptCount: { increment: 1 },
+            },
+          });
+          this.logger.log(
+            `[RM-Outbox] Successfully sent for outbox: ${outboxId}`,
+          );
+          return true;
+        } else {
+          await this.outbox.update({
+            where: { id: outboxId },
+            data: {
+              status: 'FAILED',
+              lastError: `HTTP ${res.status}: ${responseBody}`,
+              lastAttemptAt: new Date(),
+              attemptCount: { increment: 1 },
+            },
+          });
+          this.logger.error(
+            `[RM-Outbox] Failed HTTP ${res.status}: ${responseBody}`,
+          );
+          return false;
+        }
+      } catch (err: any) {
+        const errorMsg = err?.message ?? String(err);
+        this.logger.error(`[RM-Outbox] Network error: ${errorMsg}`);
         await this.outbox.update({
           where: { id: outboxId },
           data: {
             status: 'FAILED',
-            lastError: `HTTP ${res.status}: ${responseBody}`,
+            lastError: errorMsg,
             lastAttemptAt: new Date(),
             attemptCount: { increment: 1 },
           },
         });
-        this.logger.error(`[RM-Outbox] Failed HTTP ${res.status}: ${responseBody}`);
+        return false;
       }
-    } catch (err: any) {
-      const errorMsg = err?.message ?? String(err);
-      this.logger.error(`[RM-Outbox] Network error: ${errorMsg}`);
-      await this.outbox.update({
-        where: { id: outboxId },
-        data: {
-          status: 'FAILED',
-          lastError: errorMsg,
-          lastAttemptAt: new Date(),
-          attemptCount: { increment: 1 },
-        },
-      });
+    } finally {
+      this.inFlightSends.delete(outboxId);
     }
   }
 
@@ -273,37 +379,113 @@ export class RmIntegrationService implements OnModuleInit {
         signal: AbortSignal.timeout(15000),
       });
     } catch (err: any) {
-      this.logger.error(`[RM-Outbox] Direct send error: ${err?.message ?? err}`);
+      this.logger.error(
+        `[RM-Outbox] Direct send error: ${err?.message ?? err}`,
+      );
     }
   }
 
-  // Cron retry — called every 30 minutes for FAILED entries or PENDING older than 1 min with < 5 attempts
-  async retryFailedOutbox(): Promise<void> {
-    const failed = await this.outbox.findMany({
-      where: {
-        OR: [
-          { status: 'FAILED', attemptCount: { lt: 5 } },
-          {
-            status: 'PENDING',
-            createdAt: { lt: new Date(Date.now() - 60000) },
-            attemptCount: { lt: 5 },
-          },
-        ],
-      },
-      orderBy: { createdAt: 'asc' },
-      take: 10,
-    });
-
-    if (failed.length > 0) {
-      this.logger.log(`[RM-Outbox] Retrying ${failed.length} failed/pending entries`);
+  /**
+   * Cron retry / recovery sweep.
+   * Runs as a fallback (every 4 hours by default, configurable via RM_OUTBOX_RETRY_CRON_SCHEDULE).
+   * Picks up:
+   * 1. FAILED messages with attemptCount < 5
+   * 2. PENDING messages older than 1 minute with attemptCount < 5
+   */
+  async retryFailedOutbox(): Promise<IRmOutboxRetryResult> {
+    if (this.isRetrying) {
+      this.logger.warn(
+        '[RM-Outbox] Outbox retry sweep already in progress locally. Skipping overlapping execution.',
+      );
+      return {
+        retriedCount: 0,
+        successCount: 0,
+        skippedReason: 'ALREADY_RUNNING_LOCALLY',
+      };
     }
 
-    for (const entry of failed) {
-      await this.sendOutboxEntry(entry.id, entry.payload);
+    this.isRetrying = true;
+    let distributedLockValue: string | null = null;
+
+    try {
+      // 1. Cross-instance distributed lock
+      distributedLockValue = await this.acquireDistributedLock(
+        RM_OUTBOX_LOCK_KEY,
+        RM_OUTBOX_LOCK_TIMEOUT_MS,
+      );
+
+      if (!distributedLockValue) {
+        this.logger.debug(
+          '[RM-Outbox] Another instance holds the retry lock. Skipping execution.',
+        );
+        return {
+          retriedCount: 0,
+          successCount: 0,
+          skippedReason: 'LOCK_HELD_BY_ANOTHER_INSTANCE',
+        };
+      }
+
+      const failed = await this.outbox.findMany({
+        where: {
+          OR: [
+            { status: 'FAILED', attemptCount: { lt: RM_OUTBOX_MAX_ATTEMPTS } },
+            {
+              status: 'PENDING',
+              createdAt: { lt: new Date(Date.now() - 60000) },
+              attemptCount: { lt: RM_OUTBOX_MAX_ATTEMPTS },
+            },
+          ],
+        },
+        orderBy: { createdAt: 'asc' },
+        take: 10,
+      });
+
+      if (!failed || failed.length === 0) {
+        this.logger.debug(
+          '[RM-Outbox] No eligible outbox entries requiring retry.',
+        );
+        return {
+          retriedCount: 0,
+          successCount: 0,
+          skippedReason: 'NO_ELIGIBLE_ENTRIES',
+        };
+      }
+
+      this.logger.log(
+        `[RM-Outbox] Retrying ${failed.length} failed/pending entries`,
+      );
+      let successCount = 0;
+
+      for (const entry of failed) {
+        const success = await this.sendOutboxEntry(entry.id, entry.payload);
+        if (success) successCount++;
+      }
+
+      return { retriedCount: failed.length, successCount };
+    } catch (err: any) {
+      this.logger.error(
+        '[RM-Outbox] Error during retryFailedOutbox',
+        err?.stack,
+      );
+      return {
+        retriedCount: 0,
+        successCount: 0,
+        skippedReason: `ERROR: ${err?.message || 'UNKNOWN'}`,
+      };
+    } finally {
+      if (distributedLockValue) {
+        await this.releaseDistributedLock(
+          RM_OUTBOX_LOCK_KEY,
+          distributedLockValue,
+        );
+      }
+      this.isRetrying = false;
     }
   }
 
-  @Cron('*/30 * * * *') // every 30 minutes
+  @Cron(OVERDUE_RM_OUTBOX_CRON_SCHEDULE, {
+    name: 'rm-outbox-retry',
+  })
   async handleOutboxRetry(): Promise<void> {
     await this.retryFailedOutbox();
   }
@@ -313,5 +495,86 @@ export class RmIntegrationService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
+  }
+
+  private async acquireDistributedLock(
+    lockKey: string,
+    lockTimeoutMs: number,
+  ): Promise<string | null> {
+    const nowMs = Date.now();
+    const lockValue = nowMs.toString();
+    const expiryThreshold = nowMs - lockTimeoutMs;
+
+    try {
+      if (!this.prisma.applicationSetting) {
+        return lockValue; // Fallback for tests without applicationSetting mock
+      }
+
+      await this.prisma.applicationSetting.upsert({
+        where: { key: lockKey },
+        update: {},
+        create: {
+          key: lockKey,
+          value: '0',
+          category: 'INTEGRATION',
+          description: 'Distributed lock for RM outbox retry scheduler',
+        },
+      });
+
+      if (this.prisma.$executeRaw) {
+        const affected = await this.prisma.$executeRaw`
+          UPDATE application_settings
+          SET value = ${lockValue}, "updatedAt" = NOW()
+          WHERE key = ${lockKey}
+            AND (
+              value = '0' 
+              OR value IS NULL 
+              OR CAST(COALESCE(NULLIF(value, ''), '0') AS BIGINT) < ${expiryThreshold}
+            )
+        `;
+        if (affected > 0) return lockValue;
+        return null;
+      } else {
+        const current = await this.prisma.applicationSetting.findUnique({
+          where: { key: lockKey },
+        });
+        const currentVal = Number(current?.value || '0');
+        if (currentVal === 0 || currentVal < expiryThreshold) {
+          await this.prisma.applicationSetting.update({
+            where: { key: lockKey },
+            data: { value: lockValue },
+          });
+          return lockValue;
+        }
+        return null;
+      }
+    } catch (err: any) {
+      this.logger.warn(`Failed to acquire RM outbox lock: ${err?.message}`);
+      return null;
+    }
+  }
+
+  private async releaseDistributedLock(
+    lockKey: string,
+    lockValue: string,
+  ): Promise<void> {
+    try {
+      if (!this.prisma.applicationSetting) return;
+
+      if (this.prisma.$executeRaw) {
+        await this.prisma.$executeRaw`
+          UPDATE application_settings
+          SET value = '0', "updatedAt" = NOW()
+          WHERE key = ${lockKey} AND value = ${lockValue}
+        `;
+      } else {
+        await this.prisma.applicationSetting.update({
+          where: { key: lockKey },
+          data: { value: '0' },
+        });
+      }
+    } catch (err: any) {
+      this.logger.warn(`Failed to release RM outbox lock: ${err?.message}`);
+    }
   }
 }

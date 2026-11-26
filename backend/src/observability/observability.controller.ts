@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  Query,
   HttpCode,
   HttpStatus,
   ServiceUnavailableException,
@@ -10,7 +11,7 @@ import {
 import { ObservabilityService, FrontendErrorInfo } from './observability.service';
 import { Public } from '../common/decorators/public.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
 @ApiTags('System Observability & Monitoring')
 @Controller('observability')
@@ -33,10 +34,16 @@ export class ObservabilityController {
   @Get('health/readiness')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Readiness health check probe' })
+  @ApiQuery({
+    name: 'force',
+    required: false,
+    description: 'Bypass cache and force immediate live database connectivity check',
+  })
   @ApiResponse({ status: 200, description: 'All infrastructure dependencies are connected' })
   @ApiResponse({ status: 503, description: 'One or more system services are down' })
-  async getReadiness() {
-    const statuses = await this.observabilityService.getSystemStatuses();
+  async getReadiness(@Query('force') force?: string) {
+    const forceLive = force === 'true' || force === '1';
+    const statuses = await this.observabilityService.getSystemStatuses(forceLive);
     const isReady = Object.values(statuses).every((status) => status === 'UP');
 
     if (!isReady) {
