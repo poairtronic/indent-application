@@ -339,9 +339,7 @@ const NestedProcessArray: React.FC<{
                 (v) =>
                   v.vendorName === currentVendorType || currentVendorType.includes(v.vendorName),
               ));
-          const selectedSourceVendor = isSourceVendor
-            ? extractVendorName(currentVendorType)
-            : '';
+          const selectedSourceVendor = isSourceVendor ? extractVendorName(currentVendorType) : '';
 
           const currentProdSource =
             (watchedProcesses?.[pIndex] as any)?.productionSource ||
@@ -355,9 +353,7 @@ const NestedProcessArray: React.FC<{
                 (v) =>
                   v.vendorName === currentProdSource || currentProdSource.includes(v.vendorName),
               ));
-          const selectedProdVendor = isProdVendor
-            ? extractVendorName(currentProdSource)
-            : '';
+          const selectedProdVendor = isProdVendor ? extractVendorName(currentProdSource) : '';
 
           return (
             <div
@@ -745,174 +741,181 @@ export const IndentForm: React.FC<IndentFormProps> = ({
     // Running the full design schema here rejects valid actual-cost updates
     // before the API request is created. Backend DTO validation remains active.
     resolver: isAccountsMode ? undefined : (zodResolver(indentSchema) as never),
-    defaultValues: localBackupDraft || (initialData
-      ? {
-          indent: {
-            productName: initialData.productName ?? '',
-            departmentName: initialData.departmentName ?? '',
-            priority: initialData.priority as Priority,
-            requiredDate: initialData.requiredDate.split('T')[0],
-            purpose: initialData.purpose || '',
-            layoutNumber: initialData.layoutNumber || parsedIndentRemarks.layoutNumber || '',
-            customerName: initialData.customerName || parsedIndentRemarks.customerName || '',
-            remarks: initialData.customerName
-              ? initialData.remarks || ''
-              : parsedIndentRemarks.userRemarks || initialData.remarks || '',
-            items: (() => {
-              const availableProcessCosts = [...(initialData.costSheet?.processCosts || [])];
-              return (
-                initialData.items?.map((item) => {
-                  const parsed = parseItemRemarks(item.remarks);
+    defaultValues:
+      localBackupDraft ||
+      (initialData
+        ? {
+            indent: {
+              productName: initialData.productName ?? '',
+              departmentName: initialData.departmentName ?? '',
+              priority: initialData.priority as Priority,
+              requiredDate: initialData.requiredDate.split('T')[0],
+              purpose: initialData.purpose || '',
+              layoutNumber: initialData.layoutNumber || parsedIndentRemarks.layoutNumber || '',
+              customerName: initialData.customerName || parsedIndentRemarks.customerName || '',
+              remarks: initialData.customerName
+                ? initialData.remarks || ''
+                : parsedIndentRemarks.userRemarks || initialData.remarks || '',
+              items: (() => {
+                const availableProcessCosts = [...(initialData.costSheet?.processCosts || [])];
+                return (
+                  initialData.items?.map((item) => {
+                    const parsed = parseItemRemarks(item.remarks);
 
-                  return {
-                    product: parsed.product ?? '',
-                    materialName: item.material?.materialName ?? '',
-                    shape: (item as any).shape ?? undefined,
-                    diameterMm: (item as any).diameterMm ?? '',
-                    lengthMm: (item as any).lengthMm ?? '',
-                    widthMm: (item as any).widthMm ?? '',
-                    heightMm: (item as any).heightMm ?? '',
-                    quantity: Number(item.quantity),
-                    unitId: item.unitId,
-                    source: parsed.source ?? '',
-                    productionSource: parsed.productionSource ?? '',
-                    remarks: parsed.userRemarks ?? '',
-                    processes:
-                      item.indentProcesses?.map((ip: any, pIdx: number) => {
-                        const pId = ip.processId || ip.process?.id;
+                    return {
+                      product: parsed.product ?? '',
+                      materialName: item.material?.materialName ?? '',
+                      shape: (item as any).shape ?? undefined,
+                      diameterMm: (item as any).diameterMm ?? '',
+                      lengthMm: (item as any).lengthMm ?? '',
+                      widthMm: (item as any).widthMm ?? '',
+                      heightMm: (item as any).heightMm ?? '',
+                      quantity: Number(item.quantity),
+                      unitId: item.unitId,
+                      source: parsed.source ?? '',
+                      productionSource: parsed.productionSource ?? '',
+                      remarks: parsed.userRemarks ?? '',
+                      processes:
+                        item.indentProcesses?.map((ip: any, pIdx: number) => {
+                          const pId = ip.processId || ip.process?.id;
 
-                        let savedCost = 0;
-                        let savedActualCost = ip.actualCost ? Number(ip.actualCost) : undefined;
-                        let savedActualHours = ip.actualHours ? Number(ip.actualHours) : undefined;
+                          let savedCost = 0;
+                          let savedActualCost = ip.actualCost ? Number(ip.actualCost) : undefined;
+                          let savedActualHours = ip.actualHours
+                            ? Number(ip.actualHours)
+                            : undefined;
 
-                        // Primary match: exact indentItemId AND processId to avoid any item cost misassignment
-                        let costIndex = availableProcessCosts.findIndex(
-                          (pc: any) => pc.indentItemId === item.id && pc.processId === pId,
-                        );
-                        // Fallback match for legacy records where indentItemId was null
-                        if (costIndex === -1) {
-                          costIndex = availableProcessCosts.findIndex(
-                            (pc) => pc.processId === pId,
+                          // Primary match: exact indentItemId AND processId to avoid any item cost misassignment
+                          let costIndex = availableProcessCosts.findIndex(
+                            (pc: any) => pc.indentItemId === item.id && pc.processId === pId,
                           );
-                        }
-                        if (costIndex !== -1) {
-                          const matchedPc = availableProcessCosts[costIndex];
-                          savedCost = Number(matchedPc.predictedCost) || 0;
-                          if (matchedPc.actualCost !== undefined && matchedPc.actualCost !== null) {
-                            savedActualCost = Number(matchedPc.actualCost);
+                          // Fallback match for legacy records where indentItemId was null
+                          if (costIndex === -1) {
+                            costIndex = availableProcessCosts.findIndex(
+                              (pc) => pc.processId === pId,
+                            );
                           }
-                          if (
-                            matchedPc.actualHours !== undefined &&
-                            matchedPc.actualHours !== null
-                          ) {
-                            savedActualHours = Number(matchedPc.actualHours);
+                          if (costIndex !== -1) {
+                            const matchedPc = availableProcessCosts[costIndex];
+                            savedCost = Number(matchedPc.predictedCost) || 0;
+                            if (
+                              matchedPc.actualCost !== undefined &&
+                              matchedPc.actualCost !== null
+                            ) {
+                              savedActualCost = Number(matchedPc.actualCost);
+                            }
+                            if (
+                              matchedPc.actualHours !== undefined &&
+                              matchedPc.actualHours !== null
+                            ) {
+                              savedActualHours = Number(matchedPc.actualHours);
+                            }
+                            availableProcessCosts.splice(costIndex, 1);
                           }
-                          availableProcessCosts.splice(costIndex, 1);
-                        }
 
-                        return {
-                          processId: pId,
-                          processName: ip.process?.processName || '',
-                          estimatedHours: Number(ip.estimatedHours || 0),
-                          predictedCost: savedCost,
-                          actualCost: savedActualCost,
-                          actualHours: savedActualHours,
-                          vendorType: parsed.processSources?.[pIdx] || '',
-                          productionSource: parsed.processProductionSources?.[pIdx] || '',
-                        };
-                      }) || [],
-                  };
-                }) || []
-              );
-            })(),
-          },
-          broughtMaterials:
-            initialData.broughtMaterials?.map((bm) => ({
-              name: bm.name,
-              quantity: bm.quantity,
-              specification: bm.specification || '',
-              amount: bm.amount || 0,
-              actualAmount: bm.actualAmount || 0,
-            })) || [],
-          costSheet: {
-            predictedTotal: initialData.costSheet?.predictedTotal || 0,
-            designCost:
-              initialData.costSheet?.designCost !== undefined
-                ? Number(initialData.costSheet.designCost)
-                : parsedIndentRemarks.designCost || 0,
-            overheadCost:
-              initialData.costSheet?.overheadCost !== undefined
-                ? Number(initialData.costSheet.overheadCost)
-                : parsedIndentRemarks.overheadCost || 0,
-            contingencyCost:
-              initialData.costSheet?.contingencyCost !== undefined
-                ? Number(initialData.costSheet.contingencyCost)
-                : parsedIndentRemarks.contingencyCost || 0,
-            actualDesignCost:
-              initialData.costSheet?.actualDesignCost !== undefined &&
-              initialData.costSheet?.actualDesignCost !== null
-                ? Number(initialData.costSheet.actualDesignCost)
-                : parsedIndentRemarks.actualDesignCost || 0,
-            actualOverheadCost:
-              initialData.costSheet?.actualOverheadCost !== undefined &&
-              initialData.costSheet?.actualOverheadCost !== null
-                ? Number(initialData.costSheet.actualOverheadCost)
-                : parsedIndentRemarks.actualOverheadCost || 0,
-            actualContingencyCost:
-              initialData.costSheet?.actualContingencyCost !== undefined &&
-              initialData.costSheet?.actualContingencyCost !== null
-                ? Number(initialData.costSheet.actualContingencyCost)
-                : parsedIndentRemarks.actualContingencyCost || 0,
-            costItems:
-              initialData.costSheet?.costItems?.map((ci) => ({
-                materialName: ci.material?.materialName ?? '',
-                predictedRate: ci.predictedRate,
-                predictedQuantity: ci.predictedQuantity,
-                predictedAmount: ci.predictedAmount,
-                actualRate: ci.actualRate ?? undefined,
-                actualAmount: ci.actualAmount ?? undefined,
+                          return {
+                            processId: pId,
+                            processName: ip.process?.processName || '',
+                            estimatedHours: Number(ip.estimatedHours || 0),
+                            predictedCost: savedCost,
+                            actualCost: savedActualCost,
+                            actualHours: savedActualHours,
+                            vendorType: parsed.processSources?.[pIdx] || '',
+                            productionSource: parsed.processProductionSources?.[pIdx] || '',
+                          };
+                        }) || [],
+                    };
+                  }) || []
+                );
+              })(),
+            },
+            broughtMaterials:
+              initialData.broughtMaterials?.map((bm) => ({
+                name: bm.name,
+                quantity: bm.quantity,
+                specification: bm.specification || '',
+                amount: bm.amount || 0,
+                actualAmount: bm.actualAmount || 0,
               })) || [],
-          },
-        }
-      : {
-          indent: {
-            priority: Priority.MEDIUM,
-            purpose: '',
-            layoutNumber: '',
-            customerName: '',
-            remarks: '',
-            requiredDate: new Date().toISOString().split('T')[0],
-            items: [
-              {
-                product: '',
-                materialName: '',
-                shape: undefined,
-                diameterMm: '',
-                lengthMm: '',
-                widthMm: '',
-                heightMm: '',
-                quantity: 1,
-                unitId: '',
-                source: '',
-                productionSource: '',
-                remarks: '',
-                processes: [],
-              },
-            ],
-          },
-          costSheet: {
-            predictedTotal: 0,
-            designCost: 0,
-            overheadCost: 0,
-            contingencyCost: 0,
-            actualDesignCost: 0,
-            actualOverheadCost: 0,
-            actualContingencyCost: 0,
-            costItems: [
-              { materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
-            ],
-          },
-        }),
+            costSheet: {
+              predictedTotal: initialData.costSheet?.predictedTotal || 0,
+              designCost:
+                initialData.costSheet?.designCost !== undefined
+                  ? Number(initialData.costSheet.designCost)
+                  : parsedIndentRemarks.designCost || 0,
+              overheadCost:
+                initialData.costSheet?.overheadCost !== undefined
+                  ? Number(initialData.costSheet.overheadCost)
+                  : parsedIndentRemarks.overheadCost || 0,
+              contingencyCost:
+                initialData.costSheet?.contingencyCost !== undefined
+                  ? Number(initialData.costSheet.contingencyCost)
+                  : parsedIndentRemarks.contingencyCost || 0,
+              actualDesignCost:
+                initialData.costSheet?.actualDesignCost !== undefined &&
+                initialData.costSheet?.actualDesignCost !== null
+                  ? Number(initialData.costSheet.actualDesignCost)
+                  : parsedIndentRemarks.actualDesignCost || 0,
+              actualOverheadCost:
+                initialData.costSheet?.actualOverheadCost !== undefined &&
+                initialData.costSheet?.actualOverheadCost !== null
+                  ? Number(initialData.costSheet.actualOverheadCost)
+                  : parsedIndentRemarks.actualOverheadCost || 0,
+              actualContingencyCost:
+                initialData.costSheet?.actualContingencyCost !== undefined &&
+                initialData.costSheet?.actualContingencyCost !== null
+                  ? Number(initialData.costSheet.actualContingencyCost)
+                  : parsedIndentRemarks.actualContingencyCost || 0,
+              costItems:
+                initialData.costSheet?.costItems?.map((ci) => ({
+                  materialName: ci.material?.materialName ?? '',
+                  predictedRate: ci.predictedRate,
+                  predictedQuantity: ci.predictedQuantity,
+                  predictedAmount: ci.predictedAmount,
+                  actualRate: ci.actualRate ?? undefined,
+                  actualAmount: ci.actualAmount ?? undefined,
+                })) || [],
+            },
+          }
+        : {
+            indent: {
+              priority: Priority.MEDIUM,
+              purpose: '',
+              layoutNumber: '',
+              customerName: '',
+              remarks: '',
+              requiredDate: new Date().toISOString().split('T')[0],
+              items: [
+                {
+                  product: '',
+                  materialName: '',
+                  shape: undefined,
+                  diameterMm: '',
+                  lengthMm: '',
+                  widthMm: '',
+                  heightMm: '',
+                  quantity: 1,
+                  unitId: '',
+                  source: '',
+                  productionSource: '',
+                  remarks: '',
+                  processes: [],
+                },
+              ],
+            },
+            costSheet: {
+              predictedTotal: 0,
+              designCost: 0,
+              overheadCost: 0,
+              contingencyCost: 0,
+              actualDesignCost: 0,
+              actualOverheadCost: 0,
+              actualContingencyCost: 0,
+              costItems: [
+                { materialName: '', predictedRate: 0, predictedQuantity: 1, predictedAmount: 0 },
+              ],
+            },
+          }),
   });
 
   const {
@@ -1002,7 +1005,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({
 
   // Auto-save form draft to localStorage to protect designer-entered data against browser crashes or accidental reloads
   useEffect(() => {
-    if (!initialData?.id) return;
+    if (!initialData?.id) {
+      return undefined;
+    }
     const draftKey = `indent_draft_backup_${initialData.id}`;
 
     const subscription = watch((value) => {
@@ -1021,7 +1026,9 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [watch, initialData?.id]);
 
   // Derived Totals
@@ -1108,9 +1115,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
         ?.map((p, idx) => {
           const matchedProc = processes.find((pl: any) => pl.id === p.processId);
           const pName =
-            (p as any).processName?.trim() ||
-            matchedProc?.processName ||
-            p.processId?.trim();
+            (p as any).processName?.trim() || matchedProc?.processName || p.processId?.trim();
 
           allProcessCosts.push({
             processId: p.processId,
