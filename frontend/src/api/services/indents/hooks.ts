@@ -29,6 +29,10 @@ export function useIndent(id: string) {
     queryKey: queryKeys.indents.detail('indents', id),
     queryFn: () => indentService.getDetail(id),
     enabled: Boolean(id),
+    staleTime: 0,
+    refetchInterval: false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
   });
 }
 

@@ -715,7 +715,8 @@ export const IndentForm: React.FC<IndentFormProps> = ({
   const parsedIndentRemarks = parseIndentRemarks(initialData?.remarks);
 
   const localBackupDraft = React.useMemo(() => {
-    if (!initialData?.id) return null;
+    // Never load stale local backup draft when displaying read-only or viewing details
+    if (forceReadOnly || isAccountsMode || isProductionMode || !initialData?.id) return null;
     try {
       const raw = localStorage.getItem(`indent_draft_backup_${initialData.id}`);
       if (!raw) return null;
@@ -730,7 +731,7 @@ export const IndentForm: React.FC<IndentFormProps> = ({
       // Ignore parse errors
     }
     return null;
-  }, [initialData?.id, initialData?.updatedAt]);
+  }, [forceReadOnly, isAccountsMode, isProductionMode, initialData?.id, initialData?.updatedAt]);
 
   const {
     register,

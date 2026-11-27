@@ -29,6 +29,17 @@ export const IndentDetailsPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const { data: indent, isLoading, isError, error, refetch } = useIndent(id || '');
 
+  // Clear any stale local storage form backup draft for this indent to guarantee fresh database numbers
+  React.useEffect(() => {
+    if (id) {
+      try {
+        localStorage.removeItem(`indent_draft_backup_${id}`);
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [id]);
+
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const { isPrintOpen, openPrint, closePrint } = useUniversalPrint();
 
